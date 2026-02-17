@@ -1,0 +1,181 @@
+# ─────────────────────────────────────────────────────────────────
+# Cleanscendence — Continuous Integration
+# ─────────────────────────────────────────────────────────────────
+#
+# Jobs:
+#   1. backend-unit  — Jest unit + integration tests (mocked DB) → >80% coverage
+#   2. frontend-unit — Vitest component + store tests → >80% coverage
+#   3. e2e           — Playwright full-stack tests (docker-compose) — push only
+# ─────────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Cancel in-progress runs for the same branch on new push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+# ═══════════════════════════════════════════════════════════════════
+# JOB 1 — Backend unit & integration tests (no real DB)
+# ═══════════════════════════════════════════════════════════════════
+jobs:
+  backend-unit:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm test
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-test-secret-do-not-use-in-prod
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage
+          retention-days: 7
+
+  # ═══════════════════════════════════════════════════════════════════
+  # JOB 2 — Frontend unit tests (Vitest + happy-dom, no backend)
+  # ═══════════════════════════════════════════════════════════════════
+  frontend-unit:
+    name: Frontend Unit Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run tests with coverage
+        run: npm test
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          retention-days: 7
+
+  # ═══════════════════════════════════════════════════════════════════
+  # JOB 3 — E2E tests (full docker-compose stack + Playwright)
+  #          Only runs on push (not on PRs to save minutes on forks)
+  # ═══════════════════════════════════════════════════════════════════
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [backend-unit, frontend-unit]
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install E2E dependencies
+        working-directory: e2e
+        run: npm ci
+
+      - name: Install Playwright browsers (Chromium + Firefox)
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium firefox
+
+      # ── Start the full stack via docker-compose ───────────────────
+      - name: Start application stack
+        run: docker compose up -d --build
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-e2e-secret-change-in-prod' }}
+          DB_NAME: cleanscendence
+          DB_USER: cleanscendence
+          DB_PASSWORD: cleanscendence
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for backend health endpoint..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/api/health > /dev/null 2>&1; then
+              echo "✓ Backend is healthy"
+              break
+            fi
+            echo "  Attempt $i/30 — waiting..."
+            sleep 5
+          done
+          curl -sf http://localhost:8080/api/health || (echo "Backend did not become healthy" && exit 1)
+
+      # ── Run E2E tests ─────────────────────────────────────────────
+      - name: Run Playwright tests
+        working-directory: e2e
+        run: npm test
+        env:
+          E2E_BASE_URL: http://localhost:8080
+
+      # ── Artifacts ─────────────────────────────────────────────────
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
+
+      - name: Upload Playwright traces & screenshots on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: e2e/test-results
+          retention-days: 7
+
+      # ── Teardown ──────────────────────────────────────────────────
+      - name: Stop application stack
+        if: always()
+        run: docker compose down -v

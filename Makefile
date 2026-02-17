@@ -12,26 +12,35 @@ RESET  := \033[0m
 
 # ── Docker ──────────────────────────────────────────────────
 DC := docker compose
+DC_PROD := docker compose -f docker-compose.prod.yml
 
 .DEFAULT_GOAL := help
 .PHONY: help up down build logs restart ps \
+        prod-up prod-down prod-build prod-logs \
         clean clean-volumes \
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
-        shell-backend shell-frontend shell-db
+        shell-backend shell-frontend shell-db \
+        test
 
 # ── HELP ────────────────────────────────────────────────────
 help:
 	@echo ""
 	@echo "$(CYAN)========== Cleanscendence ===========$(RESET)"
 	@echo ""
-	@echo "$(YELLOW)Docker$(RESET)"
-	@echo "  $(GREEN)make up$(RESET)             Start all containers"
+	@echo "$(YELLOW)Docker Development$(RESET)"
+	@echo "  $(GREEN)make up$(RESET)             Start all containers (dev mode)"
 	@echo "  $(GREEN)make down$(RESET)           Stop all containers"
 	@echo "  $(GREEN)make build$(RESET)          Build / rebuild images"
 	@echo "  $(GREEN)make logs$(RESET)           Tail container logs"
 	@echo "  $(GREEN)make restart$(RESET)        Restart containers"
 	@echo "  $(GREEN)make ps$(RESET)             Show container status"
+	@echo ""
+	@echo "$(YELLOW)Docker Production$(RESET)"
+	@echo "  $(GREEN)make prod-up$(RESET)        Start production containers"
+	@echo "  $(GREEN)make prod-down$(RESET)      Stop production containers"
+	@echo "  $(GREEN)make prod-build$(RESET)     Build production images"
+	@echo "  $(GREEN)make prod-logs$(RESET)      View production logs"
 	@echo ""
 	@echo "$(YELLOW)Local Dev (no Docker)$(RESET)"
 	@echo "  $(GREEN)make install$(RESET)        npm install in backend & frontend"
@@ -43,6 +52,9 @@ help:
 	@echo "  $(GREEN)make shell-backend$(RESET)  Shell into backend container"
 	@echo "  $(GREEN)make shell-frontend$(RESET) Shell into frontend container"
 	@echo "  $(GREEN)make shell-db$(RESET)       psql into postgres container"
+	@echo ""
+	@echo "$(YELLOW)Testing$(RESET)"
+	@echo "  $(GREEN)make test$(RESET)           Run backend tests in container"
 	@echo ""
 	@echo "$(YELLOW)Cleanup$(RESET)"
 	@echo "  $(GREEN)make clean$(RESET)          Stop containers & remove images"
@@ -68,6 +80,19 @@ restart:
 ps:
 	$(DC) ps
 
+# ── PRODUCTION ──────────────────────────────────────────────
+prod-up:
+	$(DC_PROD) up -d --build
+
+prod-down:
+	$(DC_PROD) down
+
+prod-build:
+	$(DC_PROD) build --no-cache
+
+prod-logs:
+	$(DC_PROD) logs -f
+
 # ── LOCAL DEV ───────────────────────────────────────────────
 install:
 	cd backend  && npm install
@@ -80,6 +105,10 @@ dev:
 
 dev-backend:
 	cd backend && npm run dev
+
+# TESTING ─────────────────────────────────────────────────
+test:
+	$(DC) exec backend npm test
 
 dev-frontend:
 	cd frontend && npm run dev
