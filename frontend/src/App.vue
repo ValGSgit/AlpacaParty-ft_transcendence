@@ -30,17 +30,11 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth.js'
 
 const authStore = useAuthStore()
 const router = useRouter()
-
-// Restore session on app mount
-onMounted(() => {
-  authStore.fetchUser()
-})
 
 async function handleLogout() {
   await authStore.logout()
