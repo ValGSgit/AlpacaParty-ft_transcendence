@@ -1,12 +1,9 @@
-# ─────────────────────────────────────────────────────────────────
 # Cleanscendence — Continuous Integration
-# ─────────────────────────────────────────────────────────────────
 #
 # Jobs:
-#   1. backend-unit  — Jest unit + integration tests (mocked DB) → >80% coverage
-#   2. frontend-unit — Vitest component + store tests → >80% coverage
-#   3. e2e           — Playwright full-stack tests (docker-compose) — push only
-# ─────────────────────────────────────────────────────────────────
+#   1. backend-unit  — Jest unit + integration tests (mocked DB)
+#   2. frontend-unit — Vitest component + store tests
+#   3. e2e           — Playwright full-stack tests (push only)
 
 name: CI
 
@@ -16,7 +13,7 @@ on:
   pull_request:
     branches: [main, dev, backend]
 
-# Cancel in-progress runs for the same branch on new push
+# Cancel in-progress runs for the same branch/PR on new push
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -24,12 +21,12 @@ concurrency:
 env:
   NODE_VERSION: "20"
 
-# ═══════════════════════════════════════════════════════════════════
-# JOB 1 — Backend unit & integration tests (no real DB)
-# ═══════════════════════════════════════════════════════════════════
+# ==================================================================
+# JOB 1 — Backend unit & integration tests
+# ==================================================================
 jobs:
   backend-unit:
-    name: Backend Unit Tests
+    name: "Backend — Unit Tests"
     runs-on: ubuntu-latest
 
     defaults:
@@ -40,7 +37,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node.js ${{ env.NODE_VERSION }}
+      - name: Set up Node ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -64,11 +61,11 @@ jobs:
           path: backend/coverage
           retention-days: 7
 
-  # ═══════════════════════════════════════════════════════════════════
-  # JOB 2 — Frontend unit tests (Vitest + happy-dom, no backend)
-  # ═══════════════════════════════════════════════════════════════════
+  # ==================================================================
+  # JOB 2 — Frontend unit tests
+  # ==================================================================
   frontend-unit:
-    name: Frontend Unit Tests
+    name: "Frontend — Unit Tests"
     runs-on: ubuntu-latest
 
     defaults:
@@ -79,7 +76,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node.js ${{ env.NODE_VERSION }}
+      - name: Set up Node ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -87,7 +84,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Run tests with coverage
         run: npm test
@@ -100,12 +97,12 @@ jobs:
           path: frontend/coverage
           retention-days: 7
 
-  # ═══════════════════════════════════════════════════════════════════
-  # JOB 3 — E2E tests (full docker-compose stack + Playwright)
-  #          Only runs on push (not on PRs to save minutes on forks)
-  # ═══════════════════════════════════════════════════════════════════
+  # ==================================================================
+  # JOB 3 — E2E tests (Playwright + full docker-compose stack)
+  #          Runs on push only — skipped on pull requests
+  # ==================================================================
   e2e:
-    name: E2E Tests (Playwright)
+    name: "E2E — Playwright"
     runs-on: ubuntu-latest
     needs: [backend-unit, frontend-unit]
     if: github.event_name == 'push'
@@ -114,7 +111,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node.js ${{ env.NODE_VERSION }}
+      - name: Set up Node ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -125,11 +122,24 @@ jobs:
         working-directory: e2e
         run: npm ci
 
-      - name: Install Playwright browsers (Chromium + Firefox)
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('e2e/package-lock.json') }}
+
+      - name: Install Playwright browsers
         working-directory: e2e
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium firefox
 
-      # ── Start the full stack via docker-compose ───────────────────
+      - name: Install Playwright system deps (cache hit)
+        working-directory: e2e
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium firefox
+
+      # -- Start the full stack -------------------------------------
       - name: Start application stack
         run: docker compose up -d --build
         env:
@@ -138,27 +148,29 @@ jobs:
           DB_USER: cleanscendence
           DB_PASSWORD: cleanscendence
 
-      - name: Wait for services to be healthy
+      - name: Wait for backend to be healthy
         run: |
           echo "Waiting for backend health endpoint..."
           for i in $(seq 1 30); do
             if curl -sf http://localhost:8080/api/health > /dev/null 2>&1; then
-              echo "✓ Backend is healthy"
-              break
+              echo "Backend is healthy after ${i} attempts"
+              exit 0
             fi
-            echo "  Attempt $i/30 — waiting..."
+            echo "  Attempt $i/30 — retrying in 5s..."
             sleep 5
           done
-          curl -sf http://localhost:8080/api/health || (echo "Backend did not become healthy" && exit 1)
+          echo "Backend did not become healthy in time"
+          docker compose logs
+          exit 1
 
-      # ── Run E2E tests ─────────────────────────────────────────────
+      # -- Run tests ------------------------------------------------
       - name: Run Playwright tests
         working-directory: e2e
         run: npm test
         env:
           E2E_BASE_URL: http://localhost:8080
 
-      # ── Artifacts ─────────────────────────────────────────────────
+      # -- Artifacts ------------------------------------------------
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()
@@ -167,7 +179,7 @@ jobs:
           path: e2e/playwright-report
           retention-days: 7
 
-      - name: Upload Playwright traces & screenshots on failure
+      - name: Upload traces and screenshots on failure
         uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -175,7 +187,7 @@ jobs:
           path: e2e/test-results
           retention-days: 7
 
-      # ── Teardown ──────────────────────────────────────────────────
+      # -- Teardown -------------------------------------------------
       - name: Stop application stack
         if: always()
         run: docker compose down -v
