@@ -1,0 +1,9 @@
+{
+  "name": "cleanscendence-shared",
+  "version": "0.0.1",
+  "description": "Shared game logic (Three.js) for Cleanscendence",
+  "type": "module",
+  "dependencies": {
+    "three": "^0.170.0"
+  }
+}

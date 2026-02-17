@@ -1,0 +1,55 @@
+/**
+ * Global Styles
+ * @owner fankahou, LukasStefanek
+ * @issue https://github.com/ValGSgit/Cleanscendence/issues/1
+ */
+
+/* Reset */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Colors */
+  --primary: #00f0ff;
+  --primary-dark: #00c7d8;
+  --secondary: #b744ff;
+  --success: #00ff88;
+  --danger: #ff006e;
+  --warning: #ffea00;
+
+  /* Backgrounds */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a2a;
+
+  /* Text */
+  --text-primary: #e8e8f0;
+  --text-secondary: #a0a0b0;
+
+  /* Borders */
+  --border-color: #2a2a3a;
+
+  /* Typography */
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+body {
+  background: var(--bg-primary);
+  min-height: 100vh;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--primary-dark);
+}
