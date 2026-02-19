@@ -2,7 +2,7 @@
 export const CONST = {
   FLOOR_RADIUS: 25,
 
-  PLAYER_SPEED: 0.2,
+  PLAYER_FORWARD_SPEED: 0.2,
   PLAYER_ROTATION: 0.05,
   CALIBRATION: 25, // Change this for animation speed
 
@@ -13,5 +13,9 @@ export const CONST = {
 
   get MAX_MOVE_RADIUS() {
     return this.FLOOR_RADIUS - 2.0
+  },
+
+  get PLAYER_BACKWARD_SPEED() {
+    return this.PLAYER_FORWARD_SPEED * 0.5
   }
 }

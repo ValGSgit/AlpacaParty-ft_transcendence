@@ -1,6 +1,5 @@
 import { onMounted, onUnmounted } from 'vue'
 import { CONST } from '../config/constants.js'
-import { loadGLTF } from './modelLoader.js'
 import { gEngine, gScene, gPlayer, gAlpacas } from './globals.js'
 import * as THREE from 'three'
 import { spawnItems } from '../components/spawnItems.js'
@@ -23,16 +22,6 @@ export function usePlayerControls() {
   //Spawn new alpaca
   const onSpacePress = async () => {
     spawnAlpaca()
-  }
-
-  //Switching Alpacas
-  let currentIndex = 0
-  const onKeyFPress = () => {
-    if (currentIndex + 1 < gAlpacas.value.length)
-      ++currentIndex
-    else
-      currentIndex = 0
-    gPlayer.value = gAlpacas.value[currentIndex]
   }
 
   const onKeyDown = (e) => {
@@ -114,14 +103,17 @@ export function usePlayerControls() {
   const updatePlayer = (player, mixer, animations, camera) => {
     if (!player) return
 
-    const speed = CONST.PLAYER_SPEED
+    let speed = CONST.PLAYER_FORWARD_SPEED
     const rotation = CONST.PLAYER_ROTATION
     let dir = 0, dx = 0, dz = 0
 
     mesh = player.mesh
 
     if (keys.w) dir = 1
-    if (keys.s) dir = -1
+    if (keys.s) {
+      dir = -1;
+      speed = CONST.PLAYER_BACKWARD_SPEED
+    }
     if (keys.a) player.rotation.y += rotation;
     if (keys.d) player.rotation.y -= rotation;
     if (dir !== 0) {
@@ -148,8 +140,9 @@ export function usePlayerControls() {
     }
 
     if (isMoving) {
+      const animDir = keys.w ? 1 : -1
       newAction = walkAction
-      walkAction.timeScale = speed * CONST.CALIBRATION
+      walkAction.timeScale = (speed * CONST.CALIBRATION) * animDir
     }
     else {
       newAction = idleAction
