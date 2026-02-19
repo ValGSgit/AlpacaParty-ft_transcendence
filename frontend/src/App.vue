@@ -20,10 +20,11 @@
             <router-link to="/login" class="nav-link">Login</router-link>
             <router-link to="/register" class="nav-link">Register</router-link>
           </template>
+          <router-link to="/game" class="nav-link">Game</router-link>
         </div>
       </div>
     </nav>
-    <main class="main-content">
+    <main :class="['main-content', { 'game-content': $route.name === 'Game' }]">
       <router-view />
     </main>
   </div>
@@ -46,7 +47,7 @@ async function handleLogout() {
 .navbar {
   background: var(--bg-secondary, #12121a);
   border-bottom: 1px solid var(--border-color, #2a2a3a);
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1.5rem;overflow: hidden;
 }
 
 .nav-container {
@@ -92,5 +93,14 @@ async function handleLogout() {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
+}
+
+.game-content {
+  max-width: none;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  background: black;
+  min-height: 100vh;
 }
 </style>
