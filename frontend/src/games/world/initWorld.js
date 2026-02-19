@@ -78,7 +78,7 @@ async function spawnTrees(scene) {
 async function loadPlayer(scene) {
   const { model, mixer, animations } = await loadGLTF('/models/Llama.glb')
   if (model) {
-    model.scale.multiplyScalar(.75)
+    model.scale.multiplyScalar(1)
     if (mixer && animations.length > 1)
       mixer.clipAction(animations[1]).play()
     scene.add(model)

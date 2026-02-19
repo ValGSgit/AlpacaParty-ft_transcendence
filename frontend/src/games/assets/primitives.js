@@ -2,14 +2,10 @@ import * as THREE from 'three'
 
 
 export const Cylinder = (radius, height, segments, materialConfig) => {
-  // 1. Geometry (Same as before)
   const geometry = new THREE.CylinderGeometry(radius, radius, height, segments)
-
   let material;
 
-  // 2. Determine Material Type
   if (Array.isArray(materialConfig)) {
-    // A. User passed an array of materials [Side, Top, Bottom]
     material = materialConfig
   }
   else if (typeof materialConfig === 'string' || typeof materialConfig === 'number') {

@@ -6,6 +6,9 @@ import { spawnItems } from '../components/spawnItems.js'
 
 const { spawnAlpaca } = spawnItems()
 
+const playerMathBox = new THREE.Box3()
+const otherMathBox = new THREE.Box3()
+
 export function usePlayerControls() {
   const keys = {
     w: false, a: false, s: false, d: false,
@@ -19,7 +22,6 @@ export function usePlayerControls() {
     isMoving = keys.w || keys.a || keys.s || keys.d
   }
 
-  //Spawn new alpaca
   const onSpacePress = async () => {
     spawnAlpaca()
   }
@@ -30,13 +32,7 @@ export function usePlayerControls() {
       case 'KeyA': keys.a = true; break
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
-
-      case 'Space':
-        onSpacePress()
-        break
-      case 'KeyF':
-        onKeyFPress()
-        break
+      case 'Space': onSpacePress(); break
     }
     checkMovement()
   }
@@ -52,13 +48,11 @@ export function usePlayerControls() {
   }
 
   const raycasting = (e) => {
-    // get mouse position
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
     const pointer = new THREE.Vector2()
     pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
     pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
 
-    // send ray
     const raycaster = new THREE.Raycaster()
     raycaster.setFromCamera(pointer, gEngine.value.camera)
     return raycaster
@@ -70,12 +64,10 @@ export function usePlayerControls() {
     if (intersects.length > 0) {
       let obj = intersects[0].object
       switchAlpaca(obj)
-      //do other things also
     }
   }
 
   const switchAlpaca = (obj) => {
-
     while (obj) {
       for (let i = 0; i < gAlpacas.value.length; ++i) {
         if (obj.id === gAlpacas.value[i].model.id) {
@@ -100,6 +92,43 @@ export function usePlayerControls() {
   })
 
 
+  const checkCollision = (player, nextX, nextZ) => {
+    const oldX = player.position.x
+    const oldZ = player.position.z
+
+    player.position.x = nextX
+    player.position.z = nextZ
+    player.updateMatrixWorld(true)
+
+    let hasCollision = false
+
+    const playerColliderMesh = player.userData.collider
+    if (!playerColliderMesh) return false // Safety check in case it hasn't loaded yet
+    playerMathBox.setFromObject(playerColliderMesh)
+
+    for (const other of gAlpacas.value) {
+      if (other.model.uuid === player.uuid) continue
+
+      const otherColliderMesh = other.model.userData.collider
+      if (!otherColliderMesh) continue // Safety check
+
+      other.model.updateMatrixWorld(true)
+
+      otherMathBox.setFromObject(otherColliderMesh)
+
+      if (playerMathBox.intersectsBox(otherMathBox)) {
+        hasCollision = true
+        break
+      }
+    }
+
+    player.position.x = oldX
+    player.position.z = oldZ
+    player.updateMatrixWorld(true)
+
+    return hasCollision
+  }
+
   const updatePlayer = (player, mixer, animations, camera) => {
     if (!player) return
 
@@ -116,6 +145,7 @@ export function usePlayerControls() {
     }
     if (keys.a) player.rotation.y += rotation;
     if (keys.d) player.rotation.y -= rotation;
+
     if (dir !== 0) {
       dx = Math.sin(player.rotation.y) * speed * dir
       dz = Math.cos(player.rotation.y) * speed * dir
@@ -124,7 +154,12 @@ export function usePlayerControls() {
       let nextZ = player.position.z + dz
 
       const distance = Math.sqrt(nextX * nextX + nextZ * nextZ)
-      if (distance < CONST.MAX_MOVE_RADIUS) {
+      const withinBounds = distance < CONST.MAX_MOVE_RADIUS
+
+      // Call our fixed collision check
+      const hitSomething = checkCollision(player, nextX, nextZ)
+
+      if (withinBounds && !hitSomething) {
         player.position.x += dx
         player.position.z += dz
       }
