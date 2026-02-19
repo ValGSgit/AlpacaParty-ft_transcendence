@@ -2,20 +2,22 @@
 
 <template>
   <div ref="gameContainer" class="scene-container"></div>
-  <div v-if="isEngineReady">
-  <!-- Game HUD -->
-  <div class="hud-left">
+  <div v-if="!gameContainer" class="modal-overlay">Loading...</div>
+  <!-- Components -->
+  <div v-if="gameContainer">
+    <!-- Game HUD -->
+    <div class="hud-left">
       <div class="stat"><span>💰 {{ gUser.coins }}</span></div>
-  </div>
-  <!-- Side Controls -->
-  <div class="hud-right">
-    <button class="hud-btn" @click="addDebugCoins" title="DEBUG: +1 Coin" style="background: #ffd700; color: #000;">🤑</button>
-    <button class="hud-btn" @click="openShopMenu" title="Shop">💰</button>
-  </div>
-  <!-- Shop UI -->
-  <div v-if="gUser.pause" class="modal-overlay" @click.self="gUser.pause = false">
-  <button class="shop-btn" @click="buyAlpaca" title="Buy Alpaca">💰 Buy Alpaca</button>
-  </div>
+    </div>
+    <!-- Side Buttons -->
+    <div class="hud-right">
+      <button class="hud-btn" @click="addDebugCoins" title="DEBUG: +1 Coin" style="background: #ffd700; color: #000;">🤑</button>
+      <button class="hud-btn" @click="openShopMenu" title="Shop">💰</button>
+    </div>
+    <!-- Shop UI -->
+    <div v-if="gUser.pause" class="modal-overlay" @click.self="gUser.pause = false">
+      <button class="shop-btn" @click="buyAlpaca" title="Buy Alpaca">💰 Buy Alpaca</button>
+    </div>
   </div>
 </template>
 
@@ -32,8 +34,6 @@ import { useShop } from './components/shop.js'
 import './game.css'
 
 const gameContainer = ref(null)
-const isEngineReady = ref(false)
-
 const clock = new THREE.Clock()
 
 let player = null
@@ -58,7 +58,6 @@ onMounted(async () => {
     cameraUpdate = updateCamera
 
     await initWorld(gScene.value)
-    isEngineReady.value = true
     gameLoop()
   }
   window.addEventListener('resize', onResize)
