@@ -67,7 +67,7 @@ async function spawnTrees(scene) {
     const z = (Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3)
     const treeClone = model.clone()
     treeClone.rotation.y = Math.random() * Math.PI * 2
-    const scale = 0.8 + Math.random() * 0.8
+    const scale = 1 + Math.random() * 0.6
     treeClone.position.set(x, 4.5 * scale, z) // FIX 3D Model for offset
     treeClone.scale.multiplyScalar(scale)
     trees.add(treeClone)

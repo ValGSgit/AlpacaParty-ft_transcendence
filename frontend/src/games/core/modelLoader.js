@@ -59,6 +59,7 @@ function generateCollider(model) {
   const mat = MATS.debug
   const collider = new THREE.Mesh(geo, mat)
   collider.position.copy(center)
+  collider.name = "Collider"
 
   return collider
 }
