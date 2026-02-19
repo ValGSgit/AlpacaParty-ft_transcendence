@@ -1,9 +1,10 @@
+import { shallowRef } from 'vue'
 import * as THREE from 'three'
 import * as GRADIENT from "../utils/createGradient.js"
 import * as PRIMITIVES from '../assets/primitives.js'
 import { loadGLTF } from '../core/modelLoader.js'
 import { CONST } from '../config/constants.js'
-import { gPlayer, gAlpacas } from '../core/globals.js'
+import { gPlayer, gAlpacas, gUser } from '../core/globals.js'
 
 export async function initWorld(scene) {
 
@@ -14,6 +15,7 @@ export async function initWorld(scene) {
   const player = await loadPlayer(scene)
   gPlayer.value = player
   gAlpacas.value.push(player)
+  gUser.value = initUser()
 }
 
 function setupLighting(scene) {
@@ -84,4 +86,11 @@ async function loadPlayer(scene) {
     scene.add(model)
   }
   return { model, mixer, animations }
+}
+
+function initUser() {
+  //for loading data from backend also ?
+  let coins = 0
+  let pause = false
+  return { coins, pause }
 }

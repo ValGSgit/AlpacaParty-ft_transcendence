@@ -2,6 +2,21 @@
 
 <template>
   <div ref="gameContainer" class="scene-container"></div>
+  <div v-if="isEngineReady">
+  <!-- Game HUD -->
+  <div class="hud-left">
+      <div class="stat"><span>💰 {{ gUser.coins }}</span></div>
+  </div>
+  <!-- Side Controls -->
+  <div class="hud-right">
+    <button class="hud-btn" @click="addDebugCoins" title="DEBUG: +1 Coin" style="background: #ffd700; color: #000;">🤑</button>
+    <button class="hud-btn" @click="openShopMenu" title="Shop">💰</button>
+  </div>
+  <!-- Shop UI -->
+  <div v-if="gUser.pause" class="modal-overlay" @click.self="gUser.pause = false">
+  <button class="shop-btn" @click="buyAlpaca" title="Buy Alpaca">💰 Buy Alpaca</button>
+  </div>
+  </div>
 </template>
 
 <!---------------------- SCRIPT ------------------------->
@@ -12,9 +27,12 @@ import { useGameEngine } from './core/useGameEngine.js'
 import { usePlayerControls } from './core/usePlayerControls.js'
 import { initWorld } from './world/initWorld.js'
 import { useCamera } from './core/useCamera.js'
-import { gEngine, gScene, gPlayer } from './core/globals.js'
+import { gEngine, gScene, gPlayer, gUser } from './core/globals.js'
+import { useShop } from './components/shop.js'
+import './game.css'
 
 const gameContainer = ref(null)
+const isEngineReady = ref(false)
 
 const clock = new THREE.Clock()
 
@@ -26,6 +44,7 @@ let animationFrameId
 let cameraUpdate = null
 
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
+const { openShopMenu, buyAlpaca, addDebugCoins } = useShop()
 
 onMounted(async () => {
   gEngine.value = init()
@@ -39,6 +58,7 @@ onMounted(async () => {
     cameraUpdate = updateCamera
 
     await initWorld(gScene.value)
+    isEngineReady.value = true
     gameLoop()
   }
   window.addEventListener('resize', onResize)
@@ -81,15 +101,4 @@ onUnmounted(() => {
 </script>
 
 <!---------------------- STYLE ------------------------->
-<style scoped>
-.scene-container {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  display: block;
-
-  /* Background Gradient - alpha has to be turned on in renderer for this to work,
-  would render faster, but can't be reflected in reflective materials */
-  /* background: linear-gradient(to bottom, #1E90FF 0%, #87CEEB 100%); */
-}
-</style>
+<style src="./game.css"></style>
