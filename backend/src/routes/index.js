@@ -6,6 +6,8 @@
  * Mount sub-routers here as they are implemented.
  */
 import express from 'express';
+import authRoutes from './auth.js';
+import userRoutes from './users.js';
 
 const router = express.Router();
 
@@ -19,16 +21,15 @@ router.get('/health', (_req, res) => {
   });
 });
 
-// TODO: Mount route modules as issues are completed
-// import authRoutes from './auth.js';          // Issue #8
-// import userRoutes from './users.js';         // Issue #9
+// Mounted route modules
+router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
+
+// TODO: Mount remaining route modules as issues are completed
 // import friendRoutes from './friends.js';     // Issue #9
 // import chatRoutes from './chat.js';          // Issue #9
 // import gameRoutes from './game.js';          // Issue #9
 // import notificationRoutes from './notifications.js';
-
-// router.use('/auth', authRoutes);
-// router.use('/users', userRoutes);
 // router.use('/friends', friendRoutes);
 // router.use('/chat', chatRoutes);
 // router.use('/game', gameRoutes);

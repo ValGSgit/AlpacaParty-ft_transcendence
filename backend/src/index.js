@@ -67,9 +67,9 @@ app.get('/', (_req, res) => {
     version: '0.0.1',
     endpoints: {
       health: '/api/health',
-      // TODO: Uncomment as routes are implemented (Issue #9)
-      // auth: '/api/auth',
-      // users: '/api/users',
+      auth: '/api/auth',
+      users: '/api/users',
+      // TODO: Uncomment as routes are implemented
       // friends: '/api/friends',
       // chat: '/api/chat',
       // game: '/api/game',

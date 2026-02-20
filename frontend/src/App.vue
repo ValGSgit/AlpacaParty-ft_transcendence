@@ -12,7 +12,14 @@
         </router-link>
         <div class="nav-links">
           <router-link to="/" class="nav-link">Home</router-link>
-          <!-- TODO: Add auth-gated navigation links -->
+          <template v-if="authStore.isAuthenticated">
+            <router-link to="/profile" class="nav-link">Profile</router-link>
+            <button class="nav-link nav-btn" @click="handleLogout">Logout</button>
+          </template>
+          <template v-else>
+            <router-link to="/login" class="nav-link">Login</router-link>
+            <router-link to="/register" class="nav-link">Register</router-link>
+          </template>
         </div>
       </div>
     </nav>
@@ -23,7 +30,16 @@
 </template>
 
 <script setup>
-// TODO: Import auth store, socket service, etc.
+import { useRouter } from 'vue-router'
+import { useAuthStore } from './stores/auth.js'
+
+const authStore = useAuthStore()
+const router = useRouter()
+
+async function handleLogout() {
+  await authStore.logout()
+  router.push('/')
+}
 </script>
 
 <style scoped>
@@ -62,6 +78,14 @@
 .nav-link:hover,
 .nav-link.router-link-active {
   color: var(--primary, #00f0ff);
+}
+
+.nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
 }
 
 .main-content {
