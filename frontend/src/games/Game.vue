@@ -17,7 +17,10 @@
     </div>
     <!-- Shop UI -->
     <div v-if="gUser.pause" class="modal-overlay" @click.self="gUser.pause = false">
-      <button class="shop-btn" @click="buyAlpaca" title="Buy Alpaca">💰 Buy Alpaca</button>
+      <div class="shop-title">Mini Shop
+        <button class="shop-btn" @click="buyAlpaca" title="Buy Alpaca">💰 Buy Alpaca</button>
+        <button class="shop-btn" @click="increaseFarmSize" title="Increase Farm Size">💰 Increase Farm Size</button>
+      </div>
     </div>
     <!-- Edit Mode -->
      <div v-if="gUser.edit" class="edit-mode">
@@ -50,7 +53,7 @@ let animationFrameId
 let cameraUpdate = null
 
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff } = useShop()
+const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize } = useShop()
 
 onMounted(async () => {
   gEngine.value = init()

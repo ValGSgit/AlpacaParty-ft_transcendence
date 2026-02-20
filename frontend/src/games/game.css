@@ -75,6 +75,14 @@
   z-index: 100;
 }
 
+.shop-title {
+  font-size: 50px;
+  display: flex;
+  flex-direction: column; /* This stacks them vertically */
+  gap: 10px;              /* This adds clean spacing between them */
+  align-items: center; /* Keeps the button from stretching full-width */
+}
+
 .shop-btn {
   pointer-events: auto; /* Buttons must be clickable */
   width: 200px;
