@@ -2,6 +2,7 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as THREE from 'three'
 import { MATERIALS as MATS } from '../config/materials.js'
+import { CONST } from '../config/constants.js';
 
 export async function loadGLTF(path) {
   const loader = new GLTFLoader();
@@ -56,8 +57,7 @@ function generateCollider(model) {
   boundingBox.getSize(size)
   boundingBox.getCenter(center)
   const geo = new THREE.BoxGeometry(size.x, size.y, size.z)
-  //const mat = MATS.collider
-  const mat = MATS.debug
+  const mat = CONST.DEBUG ? MATS.debug : MATS.collider
   const collider = new THREE.Mesh(geo, mat)
   collider.position.copy(center)
   collider.name = "Collider"
