@@ -16,10 +16,11 @@
       <button class="hud-btn" @click="editModeOn" title="Edit Scene">✏️</button>
     </div>
     <!-- Shop UI -->
-    <div v-if="gUser.pause" class="modal-overlay" @click.self="gUser.pause = false">
+    <div v-if="gUser.pause" class="modal-overlay">
       <div class="shop-title">Mini Shop
         <button class="shop-btn" @click="buyAlpaca" title="Buy Alpaca">💰 Buy Alpaca</button>
         <button class="shop-btn" @click="increaseFarmSize" title="Increase Farm Size">💰 Increase Farm Size</button>
+        <button class="close-btn" @click="gUser.pause = false" title="Close">✖️</button>
       </div>
     </div>
     <!-- Edit Mode -->
