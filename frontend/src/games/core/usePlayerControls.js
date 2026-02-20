@@ -33,11 +33,6 @@ export function usePlayerControls() {
       if (withinBounds) {
         hasCollision = checkCollision(player, nextX, nextZ, nextRotY)
       }
-      if (!hasCollision) {
-        player.position.x = nextX
-        player.position.z = nextZ
-        player.rotation.y = nextRotY
-      }
     }
     return { isMoving, speed }
   }

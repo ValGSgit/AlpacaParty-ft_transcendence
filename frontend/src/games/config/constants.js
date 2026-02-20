@@ -1,6 +1,8 @@
 
+import { gAlpacas, gUser } from '../core/globals.js'
+
 export const CONST = {
-  FLOOR_RADIUS: 25,
+  BASE_RADIUS: 25,
   PLAYER_FORWARD_SPEED: 0.2,
   PLAYER_ROTATION: 0.05,
 
@@ -14,6 +16,19 @@ export const CONST = {
   DEBUG: 0,
   COLLIDER_SIZE: 0.8,
 
+  MAX_UPGRADES: 5,
+
+  get ALPACA_COST() {
+    return gAlpacas.value.length
+  },
+
+  get UPGRADE_COST() {
+    return gUser.value.upgrades + 1.0
+  },
+
+  get FLOOR_RADIUS() {
+    return this.BASE_RADIUS + (gUser.value.upgrades * 5.0) //change upgrade size
+  },
 
   get MAX_MOVE_RADIUS() {
     return this.FLOOR_RADIUS - 2.0

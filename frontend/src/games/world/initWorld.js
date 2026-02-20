@@ -16,7 +16,6 @@ export async function initWorld(scene) {
   spawnTrees(scene)
   gPlayer.value = player
   gAlpacas.value.push(player)
-  gUser.value = initUser()
 }
 
 function setupLighting(scene) {
@@ -59,6 +58,7 @@ function createFloor(scene) {
   )
   floor.position.y = - floor.geometry.parameters.height / 2
   scene.add(floor)
+  gScene.value.floor = floor
 }
 
 async function spawnTrees(scene) {
@@ -101,13 +101,4 @@ async function loadPlayer(scene) {
     scene.add(model)
   }
   return { model, mixer, animations }
-}
-
-function initUser() {
-  //for loading data from backend also ?
-  let coins = 0
-  let pause = false
-  let edit = false
-  let selected = false
-  return { coins, pause, edit, selected}
 }

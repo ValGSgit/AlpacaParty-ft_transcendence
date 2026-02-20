@@ -18,6 +18,7 @@ export function useGameEngine(containerRef) {
 
     scene.value = new THREE.Scene()
     gScene.value = scene.value
+    gScene.value.floor = null
 
     // CAMERA
     const w = containerRef.value.clientWidth

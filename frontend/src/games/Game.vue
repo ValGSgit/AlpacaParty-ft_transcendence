@@ -36,6 +36,7 @@ import * as THREE from 'three'
 import { useGameEngine } from './core/useGameEngine.js'
 import { usePlayerControls } from './core/usePlayerControls.js'
 import { initWorld } from './world/initWorld.js'
+import { initUser } from './user/initUser.js'
 import { useCamera } from './core/useCamera.js'
 import { gEngine, gScene, gPlayer, gUser } from './core/globals.js'
 import { useShop } from './components/shop.js'
@@ -65,6 +66,7 @@ onMounted(async () => {
   {
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
+    gUser.value = initUser()
 
     await initWorld(gScene.value)
     gameIsReady.value = true

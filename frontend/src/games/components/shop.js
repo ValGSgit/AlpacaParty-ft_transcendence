@@ -1,7 +1,12 @@
-import { gUser, gEngine } from '../core/globals.js'
+import { gUser, gEngine, gScene } from '../core/globals.js'
 import { loadGLTF } from '../core/modelLoader.js'
 import { alpacaHandling } from './alpacaHandling.js'
 import { CONST } from '../config/constants.js'
+import { initWorld } from '../world/initWorld.js'
+import * as PRIMITIVES from '../assets/primitives.js'
+import * as GRADIENT from "../utils/createGradient.js"
+
+import * as THREE from 'three'
 
 const { spawnAlpaca } = alpacaHandling()
 
@@ -13,9 +18,11 @@ export function useShop() {
   }
 
   const buyAlpaca = () => {
-    if (gUser.value.coins > 0) {
+    console.log(gUser.value.coins)
+    console.log(CONST.ALPACA_COST)
+    if (gUser.value.coins >= CONST.ALPACA_COST) {
+      gUser.value.coins -= CONST.ALPACA_COST
       spawnAlpaca()
-      gUser.value.coins--
     }
     else
       alert('Not enough coins!')
@@ -36,9 +43,20 @@ export function useShop() {
   }
 
   const increaseFarmSize = () => {
-    //CONST.FLOOR_RADIUS++
-    //not working now, need to change it to gUser instead of CONST
+    if (gUser.value.upgrades === CONST.MAX_UPGRADES) {
+      alert("You reached max upgrades!")
+    }
+    else if (gUser.value.coins < CONST.UPGRADE_COST)
+      alert('Not enough coins!')
+    else {
+      gUser.value.coins -= CONST.UPGRADE_COST
+      const floor = gScene.value.floor
+      floor.scale.x = CONST.FLOOR_RADIUS / CONST.BASE_RADIUS
+      floor.scale.z = CONST.FLOOR_RADIUS / CONST.BASE_RADIUS
+      gUser.value.upgrades++
+    }
+
   }
 
-  return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize}
+  return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize }
 }
