@@ -44,7 +44,16 @@ async function handleLogout() {
 </script>
 
 <style scoped>
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Force the app to be exactly the screen height */
+  width: 100vw;
+  overflow: hidden; /* Prevents the whole page from scrolling */
+}
+
 .navbar {
+  flex-shrink: 0; /* Prevents the navbar from squishing */
   background: var(--bg-secondary, #12121a);
   border-bottom: 1px solid var(--border-color, #2a2a3a);
   padding: 0.75rem 1.5rem;overflow: hidden;
@@ -90,17 +99,20 @@ async function handleLogout() {
 }
 
 .main-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
+  flex-grow: 1; /* Tells the main content to take up all remaining space */
+  overflow: hidden; /* Prevents internal scrolling */
+  position: relative;
 }
 
 .game-content {
-  max-width: none;
-  width: 100vw;
+  width: 100%;
+  height: 100%; /* Now 100% of the remaining space, NOT the whole screen */
   margin: 0;
   padding: 0;
   background: black;
-  min-height: 100vh;
+  
+  /* CRITICAL: Stops the browser from "panning" when you drag the mouse/finger */
+  touch-action: none; 
+  overscroll-behavior: none;
 }
 </style>

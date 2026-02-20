@@ -1,9 +1,11 @@
+import { shallowRef } from 'vue'
 import * as THREE from 'three'
 import * as GRADIENT from "../utils/createGradient.js"
 import * as PRIMITIVES from '../assets/primitives.js'
 import { loadGLTF } from '../core/modelLoader.js'
 import { CONST } from '../config/constants.js'
-import { gPlayer, gAlpacas } from '../core/globals.js'
+import { gPlayer, gAlpacas, gUser } from '../core/globals.js'
+import { addItems } from '../components/spawnItems.js'
 
 export async function initWorld(scene) {
 
@@ -14,6 +16,7 @@ export async function initWorld(scene) {
   const player = await loadPlayer(scene)
   gPlayer.value = player
   gAlpacas.value.push(player)
+  gUser.value = initUser()
 }
 
 function setupLighting(scene) {
@@ -60,11 +63,11 @@ function createFloor(scene) {
 
 async function spawnTrees(scene) {
   const { model } = await loadGLTF('/models/tree.glb')
-  const amount = Math.floor(CONST.FLOOR_RADIUS / 3)
+  const amount = Math.floor(CONST.FLOOR_RADIUS / 4)
   const trees = new THREE.Group()
   for (let i = 0; i < amount; i++) {
-    const x = (Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3)
-    const z = (Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3)
+    const x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
+    const z = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
     const treeClone = model.clone()
     treeClone.rotation.y = Math.random() * Math.PI * 2
     const scale = 1 + Math.random() * 0.6
@@ -72,7 +75,7 @@ async function spawnTrees(scene) {
     treeClone.scale.multiplyScalar(scale)
     trees.add(treeClone)
   }
-  scene.add(trees)
+  addItems(trees)
 }
 
 async function loadPlayer(scene) {
@@ -84,4 +87,11 @@ async function loadPlayer(scene) {
     scene.add(model)
   }
   return { model, mixer, animations }
+}
+
+function initUser() {
+  //for loading data from backend also ?
+  let coins = 0
+  let pause = false
+  return { coins, pause }
 }

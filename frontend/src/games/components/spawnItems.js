@@ -1,5 +1,5 @@
 import { CONST } from '../config/constants.js'
-import { gScene } from '../core/globals.js'
+import { gScene, gItems } from '../core/globals.js'
 
 export function spawnItems() {
 
@@ -19,3 +19,8 @@ export function spawnItems() {
   return { spawnAtRandomPos }
 }
 
+export function addItems(items) {
+
+  gScene.value.add(items)
+  gItems.value.push(items)
+}

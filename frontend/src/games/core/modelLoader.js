@@ -56,8 +56,8 @@ function generateCollider(model) {
   boundingBox.getSize(size)
   boundingBox.getCenter(center)
   const geo = new THREE.BoxGeometry(size.x, size.y, size.z)
-  const mat = MATS.collider
-  // const mat = MATS.debug
+  //const mat = MATS.collider
+  const mat = MATS.debug
   const collider = new THREE.Mesh(geo, mat)
   collider.position.copy(center)
   collider.name = "Collider"

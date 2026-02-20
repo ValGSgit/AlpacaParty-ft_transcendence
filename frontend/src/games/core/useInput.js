@@ -4,7 +4,7 @@ import { gEngine, gScene, gPlayer, gAlpacas } from './globals.js'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 
 export function useInput() {
-  const { spawnAlpaca, switchAlpaca } = alpacaHandling()
+  const { switchAlpaca } = alpacaHandling()
 
   const keys = reactive({
     w: false, a: false, s: false, d: false, space: false
@@ -16,10 +16,6 @@ export function useInput() {
       case 'KeyA': keys.a = true; break
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
-      case 'Space':
-        keys.space = true
-        spawnAlpaca()
-        break
     }
   }
 
@@ -29,10 +25,8 @@ export function useInput() {
       case 'KeyA': keys.a = false; break
       case 'KeyS': keys.s = false; break
       case 'KeyD': keys.d = false; break
-      case 'Space': keys.space = false; break
     }
   }
-
 
   const onDoubleClick = (e) => {
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
