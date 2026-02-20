@@ -11,7 +11,9 @@ export const CONST = {
   MIN_ZOOM: 10.0,
   MAX_ZOOM: 200.0,
 
-  DEBUG: 0,
+  DEBUG: 1,
+  COLLIDER_SIZE: 0.8,
+
 
   get MAX_MOVE_RADIUS() {
     return this.FLOOR_RADIUS - 2.0

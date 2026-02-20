@@ -4,16 +4,16 @@ import * as GRADIENT from "../utils/createGradient.js"
 import * as PRIMITIVES from '../assets/primitives.js'
 import { loadGLTF } from '../core/modelLoader.js'
 import { CONST } from '../config/constants.js'
-import { gPlayer, gAlpacas, gUser } from '../core/globals.js'
-import { addItems } from '../components/spawnItems.js'
+import { gPlayer, gAlpacas, gUser, gScene, gItems } from '../core/globals.js'
+import { usePhysics } from '../core/usePhysics.js'
 
 export async function initWorld(scene) {
 
   scene.background = GRADIENT.Linear('#4abdff', '#142191')
   setupLighting(scene)
   createFloor(scene)
-  spawnTrees(scene)
   const player = await loadPlayer(scene)
+  spawnTrees(scene)
   gPlayer.value = player
   gAlpacas.value.push(player)
   gUser.value = initUser()
@@ -63,19 +63,33 @@ function createFloor(scene) {
 
 async function spawnTrees(scene) {
   const { model } = await loadGLTF('/models/tree.glb')
+  const { checkCollisionWith } = usePhysics()
   const amount = Math.floor(CONST.FLOOR_RADIUS / 4)
   const trees = new THREE.Group()
+
   for (let i = 0; i < amount; i++) {
-    const x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
-    const z = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
     const treeClone = model.clone()
-    treeClone.rotation.y = Math.random() * Math.PI * 2
-    const scale = 1 + Math.random() * 0.6
-    treeClone.position.set(x, 4.5 * scale, z) // FIX 3D Model for offset
-    treeClone.scale.multiplyScalar(scale)
+    treeClone.traverse((child) => {
+      if (child.isMesh && (child.name.startsWith('UCX_') || child.name === 'Collider')) {
+        treeClone.userData.collider = child
+      }
+    })
+    let isColliding = false
+    do {
+      const x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
+      const z = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
+      treeClone.rotation.y = Math.random() * Math.PI * 2
+      const scale = 1 + Math.random() * 0.6
+      treeClone.position.set(x, 4.5 * scale, z)
+      treeClone.scale.set(scale, scale, scale)
+      treeClone.updateMatrixWorld(true)
+      isColliding = checkCollisionWith(treeClone, gAlpacas.value)
+    } while (isColliding);
+
     trees.add(treeClone)
+    gItems.value.push(treeClone)
   }
-  addItems(trees)
+  gScene.value.add(trees)
 }
 
 async function loadPlayer(scene) {

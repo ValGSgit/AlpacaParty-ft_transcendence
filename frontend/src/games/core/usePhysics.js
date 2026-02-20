@@ -1,47 +1,81 @@
-import * as THREE from 'three'
-import { gAlpacas } from './globals.js'
+import { OBB } from 'three/addons/math/OBB.js'
+import { gAlpacas, gItems } from './globals.js'
+import { CONST } from '../config/constants.js'
+import { MATERIALS as MATS } from '../config/materials.js'
 
-const playerMathBox = new THREE.Box3()
-const otherMathBox = new THREE.Box3()
+const sourceOBB = new OBB()
+const obstacleOBB = new OBB()
+let debugTimer = null
 
 export function usePhysics() {
 
-  const checkCollision = (player, nextX, nextZ) => {
-    const oldX = player.position.x
-    const oldZ = player.position.z
-
-    player.position.x = nextX
-    player.position.z = nextZ
-    player.updateMatrixWorld()
-
+  const checkCollisionWith = (sourceObj, objects) => {
     let hasCollision = false
-    const playerColliderMesh = player.userData.collider
 
-    if (!playerColliderMesh) return false
+    const sourceCollider = sourceObj.userData.collider
+    if (!sourceCollider || !sourceCollider.userData.baseOBB) return false
 
-    playerMathBox.setFromObject(playerColliderMesh)
+    sourceCollider.updateMatrixWorld(true)
+    sourceOBB.copy(sourceCollider.userData.baseOBB)
+    sourceOBB.applyMatrix4(sourceCollider.matrixWorld)
 
-    for (const other of gAlpacas.value) {
-      if (other.model.uuid === player.uuid) continue
+    for (const obstacle of objects) {
+      const obstacleModel = obstacle.model || obstacle
+      if (obstacleModel.uuid === sourceObj.uuid) continue
 
-      const otherColliderMesh = other.model.userData.collider
-      if (!otherColliderMesh || !otherColliderMesh.isMesh) continue
+      const obstacleCollider = obstacleModel.userData.collider
+      if (!obstacleCollider || !obstacleCollider.userData.baseOBB) continue
 
-      other.model.updateMatrixWorld(true)
-      otherMathBox.setFromObject(otherColliderMesh)
+      obstacleCollider.updateMatrixWorld(true)
+      obstacleOBB.copy(obstacleCollider.userData.baseOBB)
+      obstacleOBB.applyMatrix4(obstacleCollider.matrixWorld)
 
-      if (playerMathBox.intersectsBox(otherMathBox)) {
+      if (sourceOBB.intersectsOBB(obstacleOBB)) {
         hasCollision = true
+        if (CONST.DEBUG)
+          drawDebugBox(obstacleCollider)
         break
       }
     }
-
-    player.position.x = oldX
-    player.position.z = oldZ
-    player.updateMatrixWorld(true)
-
     return hasCollision
   }
 
-  return { checkCollision }
+  const checkCollision = (player, nextX, nextZ, nextRotY) => {
+    const oldX = player.position.x
+    const oldZ = player.position.z
+    const oldRotY = player.rotation.y
+
+    player.position.x = nextX
+    player.position.z = nextZ
+    if (nextRotY !== undefined) player.rotation.y = nextRotY
+    player.updateMatrixWorld(true)
+
+    let hasCollision = checkCollisionWith(player, gAlpacas.value)
+    if (!hasCollision) {
+      hasCollision = checkCollisionWith(player, gItems.value)
+    }
+    if (hasCollision) {
+      player.position.x = oldX
+      player.position.z = oldZ
+      player.rotation.y = oldRotY
+      player.updateMatrixWorld(true)
+    }
+    return hasCollision
+  }
+
+  return { checkCollision, checkCollisionWith }
+}
+
+function drawDebugBox(hitMesh) {
+  hitMesh.material = MATS.collider_hit
+  hitMesh.visible = true
+
+  if (hitMesh.userData.debugTimer) {
+    clearTimeout(hitMesh.userData.debugTimer)
+  }
+
+  hitMesh.userData.debugTimer = setTimeout(() => {
+    hitMesh.material = MATS.debug
+    hitMesh.userData.debugTimer = null
+  }, 1500)
 }
