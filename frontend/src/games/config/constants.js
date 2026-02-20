@@ -1,9 +1,9 @@
 
 export const CONST = {
   FLOOR_RADIUS: 25,
-
   PLAYER_FORWARD_SPEED: 0.2,
   PLAYER_ROTATION: 0.05,
+
   CALIBRATION: 25, // Change this for animation speed
 
   CAMERA_OFFSET: { x: 0, y: 3, z: 0 },

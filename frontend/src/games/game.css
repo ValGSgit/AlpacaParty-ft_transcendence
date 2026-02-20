@@ -75,6 +75,14 @@
   z-index: 100;
 }
 
+.shop-title {
+  font-size: 50px;
+  display: flex;
+  flex-direction: column; /* This stacks them vertically */
+  gap: 10px;              /* This adds clean spacing between them */
+  align-items: center; /* Keeps the button from stretching full-width */
+}
+
 .shop-btn {
   pointer-events: auto; /* Buttons must be clickable */
   width: 200px;
@@ -89,4 +97,36 @@
   align-items: center;
   justify-content: center;
   transition: transform 0.1s;
+}
+
+.edit-mode {
+  padding-top: 90px;
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: top ;
+  justify-content: center;
+  z-index: 100;
+}
+
+.close-btn {
+  pointer-events: auto; /* Buttons must be clickable */
+  width: 30px;
+  height: 30px;
+  font-size: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  transition: transform 0.1s;
+}
+
+.close-btn:hover {
+  transform: scale(1.1);
+  background: rgba(0, 240, 255, 0.2);
 }
