@@ -93,5 +93,7 @@ function initUser() {
   //for loading data from backend also ?
   let coins = 0
   let pause = false
-  return { coins, pause }
+  let edit = false
+  let selected = false
+  return { coins, pause, edit, selected}
 }

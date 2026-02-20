@@ -1,10 +1,13 @@
 import { reactive, onMounted, onUnmounted } from 'vue'
 import * as THREE from 'three'
-import { gEngine, gScene, gPlayer, gAlpacas } from './globals.js'
+import { gEngine, gScene, gUser, gAlpacas, gItems } from './globals.js'
 import { alpacaHandling } from '../components/alpacaHandling.js'
+import { CONST } from '../config/constants.js'
+import { usePhysics } from './usePhysics.js'
 
 export function useInput() {
   const { switchAlpaca } = alpacaHandling()
+  const { checkCollision } = usePhysics()
 
   const keys = reactive({
     w: false, a: false, s: false, d: false, space: false
@@ -43,16 +46,89 @@ export function useInput() {
     }
   }
 
+  const selectItem = (obj) => {
+    while (obj) {
+          for (let i = 0; i < gItems.value.length; ++i) {
+            if (obj.id === gAlpacas.value[i].model.id) {
+              gEngine.value.controls.enabled = false
+              gUser.value.selected = gAlpacas.value[i]
+              return
+            }
+          }
+          obj = obj.parent
+        }
+  }
+
+  const handleMouseMove = (e) => {
+  if (gUser.value && gUser.value.selected)
+  {
+    const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
+    const pointer = new THREE.Vector2()
+    pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+    pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+
+    const raycaster = new THREE.Raycaster()
+    raycaster.setFromCamera(pointer, gEngine.value.camera)
+
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); 
+    const worldPoint = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(plane, worldPoint)) {
+      const distance = Math.sqrt(worldPoint.x * worldPoint.x + worldPoint.z * worldPoint.z)
+      const withinBounds = distance < CONST.MAX_MOVE_RADIUS
+      const hitSomething = checkCollision(gUser.value.selected.model, worldPoint.x, worldPoint.z)
+      
+      if (withinBounds && !hitSomething) {
+        gUser.value.selected.model.position.x = worldPoint.x
+        gUser.value.selected.model.position.z = worldPoint.z
+      }
+    }
+  }
+}
+
+  const onPointerDown = (e) => {
+    // Select item in edit mode
+    if (gUser.value.edit)
+    {
+    const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
+    const pointer = new THREE.Vector2()
+    pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+    pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+
+    const raycaster = new THREE.Raycaster()
+    raycaster.setFromCamera(pointer, gEngine.value.camera)
+
+    const intersects = raycaster.intersectObjects(gScene.value.children, true)
+    if (intersects.length > 0) {
+      selectItem(intersects[0].object)
+    }
+    }
+  }
+
+  const onPointerUp = (e) => {
+    if (gUser.value.selected)
+    {
+      gUser.value.selected = null
+      gEngine.value.controls.enabled = true
+    }
+  }
+
   onMounted(() => {
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('mousemove', handleMouseMove);
     gEngine.value.renderer.domElement.addEventListener('dblclick', onDoubleClick)
+    gEngine.value.renderer.domElement.addEventListener('pointerdown', onPointerDown)
+    gEngine.value.renderer.domElement.addEventListener('pointerup', onPointerUp)
+
   })
 
   onUnmounted(() => {
     window.removeEventListener('keydown', onKeyDown)
     window.removeEventListener('keyup', onKeyUp)
+    window.removeEventListener('mousemove', handleMouseMove);
     gEngine.value.renderer.domElement.removeEventListener('dblclick', onDoubleClick)
+    gEngine.value.renderer.domElement.removeEventListener('pointerdown', onPointerDown)
+    gEngine.value.renderer.domElement.removeEventListener('pointerup', onPointerUp)
   })
 
   return { keys }

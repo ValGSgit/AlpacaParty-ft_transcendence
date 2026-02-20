@@ -2,9 +2,9 @@
 
 <template>
   <div ref="gameContainer" class="scene-container"></div>
-  <div v-if="!gameContainer" class="modal-overlay">Loading...</div>
+  <div v-if="!gameIsReady" class="modal-overlay">Loading...</div>
   <!-- Components -->
-  <div v-if="gameContainer">
+  <div v-if="gameIsReady">
     <!-- Game HUD -->
     <div class="hud-left">
       <div class="stat"><span>💰 {{ gUser.coins }}</span></div>
@@ -13,17 +13,22 @@
     <div class="hud-right">
       <button class="hud-btn" @click="addDebugCoins" title="DEBUG: +1 Coin" style="background: #ffd700; color: #000;">🤑</button>
       <button class="hud-btn" @click="openShopMenu" title="Shop">💰</button>
+      <button class="hud-btn" @click="editModeOn" title="Edit Scene">✏️</button>
     </div>
     <!-- Shop UI -->
     <div v-if="gUser.pause" class="modal-overlay" @click.self="gUser.pause = false">
       <button class="shop-btn" @click="buyAlpaca" title="Buy Alpaca">💰 Buy Alpaca</button>
+    </div>
+    <!-- Edit Mode -->
+     <div v-if="gUser.edit" class="edit-mode">
+        Click and Drag Item <button class="close-btn" @click="editModeOff" title="Close">✖️</button>
     </div>
   </div>
 </template>
 
 <!---------------------- SCRIPT ------------------------->
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { shallowRef, ref, onMounted, onUnmounted } from 'vue'
 import * as THREE from 'three'
 import { useGameEngine } from './core/useGameEngine.js'
 import { usePlayerControls } from './core/usePlayerControls.js'
@@ -34,6 +39,7 @@ import { useShop } from './components/shop.js'
 import './game.css'
 
 const gameContainer = ref(null)
+const gameIsReady= shallowRef(false)
 const clock = new THREE.Clock()
 
 let player = null
@@ -44,7 +50,7 @@ let animationFrameId
 let cameraUpdate = null
 
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { openShopMenu, buyAlpaca, addDebugCoins } = useShop()
+const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff } = useShop()
 
 onMounted(async () => {
   gEngine.value = init()
@@ -58,6 +64,7 @@ onMounted(async () => {
     cameraUpdate = updateCamera
 
     await initWorld(gScene.value)
+    gameIsReady.value = true
     gameLoop()
   }
   window.addEventListener('resize', onResize)
@@ -76,7 +83,7 @@ const gameLoop = () => {
 
   if (player) {
     updatePlayer(player, mixer, animations)
-    if (cameraUpdate)
+    if (cameraUpdate && !gUser.value.selected)
     {
       cameraUpdate(player)
     }
