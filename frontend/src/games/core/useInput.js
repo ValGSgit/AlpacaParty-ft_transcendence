@@ -53,8 +53,7 @@ export function useInput() {
           gEngine.value.controls.enabled = false
           gUser.value.selected = gItems.value[i]
           // clone model and make it red for area that is not possible to place
-          cloneGhost(gUser.value.selected)
-          const ghost = gPlayer.value.selectedGhost
+          const ghost = cloneGhost(gUser.value.selected)
           // add invisible ghost
           ghost.visible = false;
           gScene.value.add(ghost)
@@ -163,4 +162,5 @@ export function cloneGhost(selected) {
       child.material.opacity = 0.5;
       }
     })
+    return ghost
   }

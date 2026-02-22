@@ -3,8 +3,6 @@ import { gScene, gItems, gUser, gPlayer } from '../core/globals.js'
 import { loadGLTF } from '../core/modelLoader.js'
 import { cloneGhost } from '../core/useInput.js'
 
-//const { cloneGhost } = useInput()
-
 export function spawnItems() {
 
   async function spwanShopItem() {
@@ -18,8 +16,9 @@ export function spawnItems() {
     model.scale.set(scale, scale, scale)
 
     gUser.value.selected = model
-    cloneGhost(gUser.value.selected)
-    gScene.value.add(gPlayer.value.selectedGhost)
+    const ghost = cloneGhost(gUser.value.selected)
+    gScene.value.add(ghost)
+    
     gUser.value.shop = false
     gUser.value.itemMenu = false
 

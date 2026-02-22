@@ -18,8 +18,6 @@ export function useShop() {
   }
 
   const buyAlpaca = () => {
-    console.log(gUser.value.coins)
-    console.log(CONST.ALPACA_COST)
     if (gUser.value.coins >= CONST.ALPACA_COST) {
       gUser.value.coins -= CONST.ALPACA_COST
       spawnAlpaca()
