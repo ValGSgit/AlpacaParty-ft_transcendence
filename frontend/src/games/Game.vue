@@ -19,10 +19,18 @@
     <!-- Shop UI -->
     <div v-if="gUser.pause" class="modal-overlay">
       <div class="shop-title">Mini Shop
-        <button class="shop-btn" @click="buyAlpaca" title="Buy Alpaca">💰 Buy Alpaca</button>
         <button class="shop-btn" @click="increaseFarmSize" title="Increase Farm Size">💰 Increase Farm Size</button>
+        <button class="shop-btn" @click="buyAlpaca" title="Buy Alpaca">💰 Buy Alpaca</button>
+        <button class="shop-btn" @click="itemShopOn" title="Buy Item">💰 Buy Item</button>
         <button class="close-btn" @click="gUser.pause = false" title="Close">✖️</button>
       </div>
+    </div>
+    <!-- Item Menu -->
+    <div v-if="gUser.itemMenu" class="modal-overlay">
+        <div class="shop-title">Select Item
+          <button class="shop-btn" @click="spwanShopItem()" title="Tree">🌳</button>
+          <button class="close-btn" @click="itemShopOff" title="Close">✖️</button>
+        </div>
     </div>
     <!-- Edit Mode -->
      <div v-if="gUser.edit" class="edit-mode">
@@ -43,6 +51,7 @@ import { useCamera } from './core/useCamera.js'
 import { gEngine, gScene, gPlayer, gUser } from './core/globals.js'
 import { useShop } from './components/shop.js'
 import './game.css'
+import { spawnItems } from "./components/spawnItems.js"
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -56,7 +65,8 @@ let animationFrameId
 let cameraUpdate = null
 
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight } = useShop()
+const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, itemShopOn, itemShopOff } = useShop()
+const { spwanShopItem } = spawnItems()
 
 onMounted(async () => {
   gEngine.value = init()

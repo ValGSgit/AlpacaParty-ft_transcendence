@@ -4,7 +4,8 @@ export function initUser() {
   let coins = 5
   let pause = false
   let edit = false
-  let selected = false
+  let selected = null
   let upgrades = 0
-  return { coins, pause, edit, selected, upgrades }
+  let itemMenu = false
+  return { coins, pause, edit, selected, upgrades, itemMenu }
 }

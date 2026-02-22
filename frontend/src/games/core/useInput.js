@@ -1,6 +1,6 @@
 import { reactive, onMounted, onUnmounted } from 'vue'
 import * as THREE from 'three'
-import { gEngine, gScene, gUser, gAlpacas, gItems } from './globals.js'
+import { gEngine, gScene, gUser, gPlayer, gItems } from './globals.js'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { CONST } from '../config/constants.js'
 import { usePhysics } from './usePhysics.js'
@@ -52,6 +52,12 @@ export function useInput() {
         if (obj.id === gItems.value[i].id) {
           gEngine.value.controls.enabled = false
           gUser.value.selected = gItems.value[i]
+          // clone model and make it red for area that is not possible to place
+          cloneGhost(gUser.value.selected)
+          const ghost = gPlayer.value.selectedGhost
+          // add invisible ghost
+          ghost.visible = false;
+          gScene.value.add(ghost)
           return
         }
       }
@@ -60,6 +66,7 @@ export function useInput() {
   }
 
   const handleMouseMove = (e) => {
+    // item selected to move
     if (gUser.value && gUser.value.selected) {
       const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
       const pointer = new THREE.Vector2()
@@ -71,11 +78,21 @@ export function useInput() {
 
       const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
       const worldPoint = new THREE.Vector3();
+      const ghost = gPlayer.value.selectedGhost
+      // move around
       if (raycaster.ray.intersectPlane(plane, worldPoint)) {
         const distance = Math.sqrt(worldPoint.x * worldPoint.x + worldPoint.z * worldPoint.z)
         const withinBounds = distance < CONST.MAX_MOVE_RADIUS
-        if (withinBounds) {
-          checkCollision(gUser.value.selected, worldPoint.x, worldPoint.z)
+        if (withinBounds && !checkCollision(gUser.value.selected, worldPoint.x, worldPoint.z)) {
+          gUser.value.selected.visible = true
+          ghost.visible = false;
+        }
+        else
+        {
+          gUser.value.selected.visible = false
+          ghost.visible = true;
+          ghost.position.x = worldPoint.x
+          ghost.position.z = worldPoint.z
         }
       }
     }
@@ -101,6 +118,10 @@ export function useInput() {
 
   const onPointerUp = (e) => {
     if (gUser.value.selected) {
+      gUser.value.selected.visible = true
+      if (gPlayer.value.selectedGhost)
+        gScene.value.remove(gPlayer.value.selectedGhost)
+      gPlayer.value.selectedGhost = null
       gUser.value.selected = null
       gEngine.value.controls.enabled = true
     }
@@ -127,3 +148,19 @@ export function useInput() {
 
   return { keys }
 }
+
+export function cloneGhost(selected) {
+    const ghost = selected.clone()
+    // need to use gPlayer instead of gUser as it can't be in ref but shallowRef
+    gPlayer.value.selectedGhost = ghost
+    ghost.traverse((child) => {
+    if (child.isMesh) {
+      // clone the material so we don't turn the ORIGINAL model red too
+      child.material = child.material.clone(); 
+      child.material.color.set(0xff0000);
+      // make it see-through for a "ghost" effect
+      child.material.transparent = true;
+      child.material.opacity = 0.5;
+      }
+    })
+  }

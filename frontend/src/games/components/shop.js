@@ -60,7 +60,7 @@ export function useShop() {
 
   let light = true
 
-    const editLight = () => {
+  const editLight = () => {
       if (light)
       {
         gScene.value.ambientLight.color.set(0x555555)
@@ -75,5 +75,15 @@ export function useShop() {
       }
   }
 
-  return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight }
+  const itemShopOn = () => {
+    gUser.value.itemMenu = true
+    gUser.value.pause = false
+  }
+
+  const itemShopOff = () => {
+    gUser.value.itemMenu = false
+    gUser.value.pause = true
+  }
+
+  return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, itemShopOn, itemShopOff }
 }
