@@ -14,6 +14,7 @@
       <button class="hud-btn" @click="addDebugCoins" title="DEBUG: +1 Coin" style="background: #ffd700; color: #000;">🤑</button>
       <button class="hud-btn" @click="openShopMenu" title="Shop">💰</button>
       <button class="hud-btn" @click="editModeOn" title="Edit Scene">✏️</button>
+      <button class="hud-btn" @click="editLight" title="Edit Light">🌟</button>
     </div>
     <!-- Shop UI -->
     <div v-if="gUser.pause" class="modal-overlay">
@@ -55,7 +56,7 @@ let animationFrameId
 let cameraUpdate = null
 
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize } = useShop()
+const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight } = useShop()
 
 onMounted(async () => {
   gEngine.value = init()

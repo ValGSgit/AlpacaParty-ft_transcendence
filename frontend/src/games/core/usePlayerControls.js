@@ -17,10 +17,10 @@ export function usePlayerControls() {
 
     if (keys.w) { dir = 1; isMoving = true }
     if (keys.s) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isMoving = true }
-    if (keys.a) { nextRotY += rotation * dir; isMoving = true }
-    if (keys.d) { nextRotY -= rotation * dir; isMoving = true }
+    if (keys.a) { nextRotY += rotation; isMoving = true }
+    if (keys.d) { nextRotY -= rotation; isMoving = true }
 
-    if (dir !== 0) {
+    if (isMoving) {
       dx = Math.sin(nextRotY) * speed * dir
       dz = Math.cos(nextRotY) * speed * dir
 

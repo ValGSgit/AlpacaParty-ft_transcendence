@@ -21,6 +21,7 @@ export async function initWorld(scene) {
 function setupLighting(scene) {
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
   scene.add(ambientLight)
+  gScene.value.ambientLight = ambientLight
   const sunLight = new THREE.DirectionalLight('#ffffff', 1.2)
   sunLight.position.set(10, 45, 3)
   sunLight.castShadow = true
@@ -32,6 +33,7 @@ function setupLighting(scene) {
   sunLight.shadow.camera.top = d
   sunLight.shadow.camera.bottom = -d
   scene.add(sunLight)
+  gScene.value.sunLight = sunLight
 
   // Helper to see LightBox
   // const helper = new THREE.CameraHelper(sunLight.shadow.camera)

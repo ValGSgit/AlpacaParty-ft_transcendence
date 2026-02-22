@@ -58,5 +58,22 @@ export function useShop() {
 
   }
 
-  return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize }
+  let light = true
+
+    const editLight = () => {
+      if (light)
+      {
+        gScene.value.ambientLight.color.set(0x555555)
+        gScene.value.sunLight.color.set(0x555555)
+        light = false
+      }
+      else
+      {
+        gScene.value.ambientLight.color.set(0xffffff)
+        gScene.value.sunLight.color.set(0xffffff)
+        light = true
+      }
+  }
+
+  return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight }
 }
