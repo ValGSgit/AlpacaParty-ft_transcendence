@@ -8,6 +8,9 @@ export function usePlayerControls() {
   const { checkCollision } = usePhysics()
 
   let currentAction = null
+  let isJumping = false
+  let isFalling = false
+
 
   const handleMovement = (player) => {
     let speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
@@ -20,6 +23,11 @@ export function usePlayerControls() {
     if (keys.s) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isMoving = true }
     if (keys.a) { nextRotY += rotation; isMoving = true }
     if (keys.d) { nextRotY -= rotation; isMoving = true }
+    if (keys.space && player.position.y <= CONST.JUMPING_MAX_HEIGHT && !isFalling) { player.position.y += CONST.JUMPING_SPEED; isMoving = true; isJumping = true }
+    if (player.position.y > 0 && (!keys.space || isFalling)) { player.position.y -= CONST.JUMPING_SPEED; isJumping = true }
+    if (player.position.y < 0) player.position.y = 0 // reset y if it goes below the ground
+    if (player.position.y === 0) {isJumping = false; if (!keys.space) isFalling = false }
+    if (player.position.y >= CONST.JUMPING_MAX_HEIGHT) isFalling = true
 
     if (isMoving) {
       dx = Math.sin(nextRotY) * speed * dir
@@ -41,6 +49,7 @@ export function usePlayerControls() {
   const handleAnimation = (mixer, animations, isMoving, speed) => {
     const idleAction = mixer.clipAction(animations[1])
     const walkAction = mixer.clipAction(animations[5])
+    const jumpAction = mixer.clipAction(animations[2])
 
     let newAction
 
@@ -51,7 +60,10 @@ export function usePlayerControls() {
 
     if (isMoving) {
       const animDir = keys.w ? 1 : -1
-      newAction = walkAction
+      if (isJumping)
+        newAction = jumpAction
+      else
+        newAction = walkAction
       walkAction.timeScale = (speed * CONST.CALIBRATION) * animDir
     } else {
       newAction = idleAction

@@ -23,12 +23,17 @@ export function useInput() {
     console.log("gScene.value.alpacaMenu", gScene.value.alpacaMenu)
   }
 
+
+
+
+
   const onKeyDown = (e) => {
     switch (e.code) {
       case 'KeyW': keys.w = true; break
       case 'KeyA': keys.a = true; break
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
+      case 'Space': keys.space = true; break
       case 'KeyP': print_debug_flags(); break
     }
   }
@@ -39,6 +44,7 @@ export function useInput() {
       case 'KeyA': keys.a = false; break
       case 'KeyS': keys.s = false; break
       case 'KeyD': keys.d = false; break
+      case 'Space': keys.space = false; break
     }
   }
 

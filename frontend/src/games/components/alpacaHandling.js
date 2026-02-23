@@ -86,5 +86,6 @@ export function alpacaHandling() {
     //hit no alpaca, walk to obj
     return false
   }
+
   return { spawnAlpaca, switchAlpaca, moveAlpaca }
 }

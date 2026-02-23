@@ -11,7 +11,8 @@ export function spawnItems() {
     const x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
     const z = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
     model.rotation.y = Math.random() * Math.PI * 2
-    const scale = 1 + Math.random() * 0.6
+    //const scale = 1 + Math.random() * 0.6
+    const scale = 0.3 // very small for jump testing
     model.position.set(x, 4.5 * scale, z) // remove y later for non-tree objs
     model.scale.set(scale, scale, scale)
 
