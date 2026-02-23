@@ -14,27 +14,62 @@
       <button class="hud-btn" @click="addDebugCoins" title="DEBUG: +1 Coin" style="background: #ffd700; color: #000;">🤑</button>
       <button class="hud-btn" @click="openShopMenu" title="Shop">💰</button>
       <button class="hud-btn" @click="editModeOn" title="Edit Scene">✏️</button>
-      <button class="hud-btn" @click="editLight" title="Edit Light">🌟</button>
+      <button class="hud-btn" @click="editLight(0)" title="Edit Light">🌟</button>
     </div>
     <!-- Shop UI -->
-    <div v-if="gUser.pause" class="modal-overlay">
+    <div v-if="gScene.pause" class="modal-overlay">
       <div class="shop-title">Mini Shop
         <button class="shop-btn" @click="increaseFarmSize" title="Increase Farm Size">💰 Increase Farm Size</button>
-        <button class="shop-btn" @click="buyAlpaca" title="Buy Alpaca">💰 Buy Alpaca</button>
-        <button class="shop-btn" @click="itemShopOn" title="Buy Item">💰 Buy Item</button>
-        <button class="close-btn" @click="gUser.pause = false" title="Close">✖️</button>
+        <button class="shop-btn" @click="alpacaMenuOn" title="Buy Alpaca">💰 Buy Alpaca</button>
+        <button class="shop-btn" @click="itemShopOn(true)" title="Buy Item">💰 Buy Item</button>
+        <button class="close-btn" @click="gScene.pause = false" title="Close">✖️</button>
+      </div>
+    </div>
+    <!-- Alpaca Menu -->
+    <div v-if="gScene.alpacaMenu && gScene.newAlpaca" class="modal-overlay">
+        <div class="shop-title">Buy Alpaca
+          <button class="shop-btn" @click="buyAlpaca()" title="Black">Black</button>
+          <button class="shop-btn" @click="buyAlpaca(0x555555)" title="Grey">Grey</button>
+          <button class="shop-btn" @click="buyAlpaca(0xffffff)" title="White">White</button>
+          <button class="close-btn" @click="alpacaMenuOff" title="Close">✖️</button>
+        </div>
+    </div>
+    <!-- Alpaca Stat -->
+    <div v-if="gScene.alpacaMenu && !gScene.newAlpaca" class="modal-overlay">
+      <div class="shop-title">Alpaca Stats
+        <div class="alpaca-stat">
+          <div v-if="!gPlayer.speedOffset">Speed: Normal</div>
+           <div v-if="gPlayer.speedOffset > 0">Speed: Fast</div>
+           <div v-if="gPlayer.speedOffset < 0">Speed: Slow</div>
+           <button class="stat-btn" @click="changeSpeed(-1)" title="Speed--">-</button>
+           <button class="stat-btn" @click="changeSpeed(1)" title="Speed++">+</button>
+        </div>
+        <button class="close-btn" @click="gScene.alpacaMenu = false" title="Close">✖️</button>
       </div>
     </div>
     <!-- Item Menu -->
-    <div v-if="gUser.itemMenu" class="modal-overlay">
+    <div v-if="gScene.itemMenu" class="modal-overlay">
         <div class="shop-title">Select Item
           <button class="shop-btn" @click="spwanShopItem()" title="Tree">🌳</button>
           <button class="close-btn" @click="itemShopOff" title="Close">✖️</button>
         </div>
     </div>
     <!-- Edit Mode -->
-     <div v-if="gUser.edit" class="edit-mode">
+     <div v-if="gScene.edit" class="edit-mode">
         Click and Drag Item <button class="close-btn" @click="editModeOff" title="Close">✖️</button>
+    </div>
+    <!-- Light Menu -->
+    <div v-if="gScene.lightMenu" class="edit-mode">
+        <div class="shop-title">Edit Light
+          <div class="alpaca-stat">
+           <button class="stat-btn" @click="editLight(0x555555)" title="--">1</button>
+           <button class="stat-btn" @click="editLight(0x888888)" title="-">2</button>
+           <button class="stat-btn" @click="editLight(0xaaaaaa)" title="normal">3</button>
+           <button class="stat-btn" @click="editLight(0xcccccc)" title="+">4</button>
+           <button class="stat-btn" @click="editLight(0xffffff)" title="++">5</button>
+          </div>
+          <button class="close-btn" @click="gScene.lightMenu = false" title="Close">✖️</button>
+        </div>
     </div>
   </div>
 </template>
@@ -65,7 +100,7 @@ let animationFrameId
 let cameraUpdate = null
 
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, itemShopOn, itemShopOff } = useShop()
+const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed } = useShop()
 const { spwanShopItem } = spawnItems()
 
 onMounted(async () => {
@@ -100,7 +135,7 @@ const gameLoop = () => {
 
   if (player) {
     updatePlayer(player, mixer, animations)
-    if (cameraUpdate && !gUser.value.selected)
+    if (cameraUpdate && !gScene.value.selected)
     {
       cameraUpdate(player)
     }

@@ -102,6 +102,7 @@ async function loadPlayer(scene) {
       mixer.clipAction(animations[1]).play()
     scene.add(model)
   }
-  let selectedGhost = null
-  return { model, mixer, animations, selectedGhost}
+  let speedOffset = 0
+  let rotationOffset = 0
+  return { model, mixer, animations, speedOffset, rotationOffset}
 }

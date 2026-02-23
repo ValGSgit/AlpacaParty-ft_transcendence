@@ -6,12 +6,22 @@ import { CONST } from '../config/constants.js'
 import { usePhysics } from './usePhysics.js'
 
 export function useInput() {
-  const { switchAlpaca } = alpacaHandling()
+  const { switchAlpaca, moveAlpaca } = alpacaHandling()
   const { checkCollision } = usePhysics()
 
   const keys = reactive({
     w: false, a: false, s: false, d: false, space: false
   })
+
+  const print_debug_flags = () => {
+    //console.log("", )
+    console.log("gScene.value.selected", gScene.value.selected)
+    console.log("gScene.value.selectedGhost", gScene.value.selectedGhost)
+    console.log("gScene.value.pause", gScene.value.pause)
+    console.log("gScene.value.edit", gScene.value.edit)
+    console.log("gScene.value.itemMenu", gScene.value.itemMenu)
+    console.log("gScene.value.alpacaMenu", gScene.value.alpacaMenu)
+  }
 
   const onKeyDown = (e) => {
     switch (e.code) {
@@ -19,6 +29,7 @@ export function useInput() {
       case 'KeyA': keys.a = true; break
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
+      case 'KeyP': print_debug_flags(); break
     }
   }
 
@@ -41,8 +52,8 @@ export function useInput() {
     raycaster.setFromCamera(pointer, gEngine.value.camera)
 
     const intersects = raycaster.intersectObjects(gScene.value.children, true)
-    if (intersects.length > 0) {
-      switchAlpaca(intersects[0].object)
+    if (intersects.length > 0 && !switchAlpaca(intersects[0].object, raycaster)) {
+        moveAlpaca(raycaster) // move alpaca if it didnt hit another one
     }
   }
 
@@ -51,9 +62,9 @@ export function useInput() {
       for (let i = 0; i < gItems.value.length; ++i) {
         if (obj.id === gItems.value[i].id) {
           gEngine.value.controls.enabled = false
-          gUser.value.selected = gItems.value[i]
+          gScene.value.selected = gItems.value[i]
           // clone model and make it red for area that is not possible to place
-          const ghost = cloneGhost(gUser.value.selected)
+          const ghost = cloneGhost(gScene.value.selected)
           // add invisible ghost
           ghost.visible = false;
           gScene.value.add(ghost)
@@ -66,7 +77,7 @@ export function useInput() {
 
   const handleMouseMove = (e) => {
     // item selected to move
-    if (gUser.value && gUser.value.selected) {
+    if (gUser.value && gScene.value.selected) {
       const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
       const pointer = new THREE.Vector2()
       pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
@@ -77,18 +88,18 @@ export function useInput() {
 
       const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
       const worldPoint = new THREE.Vector3();
-      const ghost = gPlayer.value.selectedGhost
+      const ghost = gScene.value.selectedGhost
       // move around
       if (raycaster.ray.intersectPlane(plane, worldPoint)) {
         const distance = Math.sqrt(worldPoint.x * worldPoint.x + worldPoint.z * worldPoint.z)
         const withinBounds = distance < CONST.MAX_MOVE_RADIUS
-        if (withinBounds && !checkCollision(gUser.value.selected, worldPoint.x, worldPoint.z)) {
-          gUser.value.selected.visible = true
+        if (withinBounds && !checkCollision(gScene.value.selected, worldPoint.x, worldPoint.z)) {
+          gScene.value.selected.visible = true
           ghost.visible = false;
         }
         else
         {
-          gUser.value.selected.visible = false
+          gScene.value.selected.visible = false
           ghost.visible = true;
           ghost.position.x = worldPoint.x
           ghost.position.z = worldPoint.z
@@ -99,7 +110,7 @@ export function useInput() {
 
   const onPointerDown = (e) => {
     // Select item in edit mode
-    if (gUser.value.edit) {
+    if (gScene.value.edit) {
       const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
       const pointer = new THREE.Vector2()
       pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
@@ -116,12 +127,12 @@ export function useInput() {
   }
 
   const onPointerUp = (e) => {
-    if (gUser.value.selected) {
-      gUser.value.selected.visible = true
-      if (gPlayer.value.selectedGhost)
-        gScene.value.remove(gPlayer.value.selectedGhost)
-      gPlayer.value.selectedGhost = null
-      gUser.value.selected = null
+    if (gScene.value.selected) {
+      if (gScene.value.selectedGhost)
+        gScene.value.remove(gScene.value.selectedGhost)
+      gScene.value.selected.visible = true
+      gScene.value.selectedGhost = null
+      gScene.value.selected = null
       gEngine.value.controls.enabled = true
     }
   }
@@ -151,7 +162,7 @@ export function useInput() {
 export function cloneGhost(selected) {
     const ghost = selected.clone()
     // need to use gPlayer instead of gUser as it can't be in ref but shallowRef
-    gPlayer.value.selectedGhost = ghost
+    gScene.value.selectedGhost = ghost
     ghost.traverse((child) => {
     if (child.isMesh) {
       // clone the material so we don't turn the ORIGINAL model red too

@@ -19,8 +19,19 @@ export function useGameEngine(containerRef) {
     scene.value = new THREE.Scene()
     gScene.value = scene.value
     gScene.value.floor = null
+    // lights
     gScene.value.ambientLight = null
     gScene.value.sunLight = null
+    // for selection
+    gScene.value.selected = null
+    gScene.value.selectedGhost = null
+    // flags for UI
+    gScene.value.pause = false
+    gScene.value.edit = false
+    gScene.value.itemMenu = false
+    gScene.value.alpacaMenu = false
+    gScene.value.newAlpaca = false
+    gScene.value.lightMenu = false
 
     // CAMERA
     const w = containerRef.value.clientWidth

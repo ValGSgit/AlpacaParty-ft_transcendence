@@ -15,12 +15,12 @@ export function spawnItems() {
     model.position.set(x, 4.5 * scale, z) // remove y later for non-tree objs
     model.scale.set(scale, scale, scale)
 
-    gUser.value.selected = model
-    const ghost = cloneGhost(gUser.value.selected)
+    gScene.value.selected = model
+    const ghost = cloneGhost(gScene.value.selected)
     gScene.value.add(ghost)
     
     gUser.value.shop = false
-    gUser.value.itemMenu = false
+    gScene.value.itemMenu = false
 
     gScene.value.add(model)
     gItems.value.push(model)

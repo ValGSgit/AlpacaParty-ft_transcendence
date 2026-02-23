@@ -1,6 +1,7 @@
 import { CONST } from '../config/constants.js'
 import { useInput } from './useInput.js'
 import { usePhysics } from './usePhysics.js'
+import { gPlayer } from './globals.js'
 
 export function usePlayerControls() {
   const { keys } = useInput()
@@ -9,8 +10,8 @@ export function usePlayerControls() {
   let currentAction = null
 
   const handleMovement = (player) => {
-    let speed = CONST.PLAYER_FORWARD_SPEED
-    const rotation = CONST.PLAYER_ROTATION
+    let speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
+    const rotation = CONST.PLAYER_ROTATION + gPlayer.value.rotationOffset
     let dir = 0, dx = 0, dz = 0
     let isMoving = false
     let nextRotY = player.rotation.y

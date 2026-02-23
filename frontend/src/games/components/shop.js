@@ -1,4 +1,4 @@
-import { gUser, gEngine, gScene } from '../core/globals.js'
+import { gUser, gPlayer, gScene } from '../core/globals.js'
 import { loadGLTF } from '../core/modelLoader.js'
 import { alpacaHandling } from './alpacaHandling.js'
 import { CONST } from '../config/constants.js'
@@ -13,18 +13,20 @@ const { spawnAlpaca } = alpacaHandling()
 export function useShop() {
 
   const openShopMenu = () => {
-    if (!gUser.value.edit)
-      gUser.value.pause = true
+    editModeOff()
+    gScene.value.pause = true
   }
 
-  const buyAlpaca = () => {
+  const buyAlpaca = (color) => {
     if (gUser.value.coins >= CONST.ALPACA_COST) {
       gUser.value.coins -= CONST.ALPACA_COST
-      spawnAlpaca()
+      spawnAlpaca(color)
     }
     else
       alert('Not enough coins!')
-    gUser.value.pause = false
+    gScene.value.pause = false
+    gScene.value.alpacaMenu = false
+    gScene.value.newAlpaca = false // reset flag
   }
 
   const addDebugCoins = () => {
@@ -32,12 +34,12 @@ export function useShop() {
   }
 
   const editModeOn = () => {
-    gUser.value.edit = true
+    gScene.value.edit = true
   }
 
   const editModeOff = () => {
-    gUser.value.edit = false
-    gUser.value.selected = null
+    gScene.value.edit = false
+    gScene.value.selected = null
   }
 
   const increaseFarmSize = () => {
@@ -56,32 +58,43 @@ export function useShop() {
 
   }
 
-  let light = true
+  const editLight = (light) => {
+    gScene.value.lightMenu = true
+    if (light === 0)
+      return
+    gScene.value.ambientLight.color.set(light)
+    gScene.value.sunLight.color.set(light)
+  }
+  const alpacaMenuOn = (newAlpaca) => {
+    gScene.value.alpacaMenu = true
+    gScene.value.pause = false
+    gScene.value.newAlpaca = newAlpaca // flag for creating new Alpaca
+  }
 
-  const editLight = () => {
-      if (light)
-      {
-        gScene.value.ambientLight.color.set(0x555555)
-        gScene.value.sunLight.color.set(0x555555)
-        light = false
-      }
-      else
-      {
-        gScene.value.ambientLight.color.set(0xffffff)
-        gScene.value.sunLight.color.set(0xffffff)
-        light = true
-      }
+  const alpacaMenuOff = () => {
+    gScene.value.alpacaMenu = false
+    gScene.value.pause = true
+    gScene.value.newAlpaca = false // flag for creating new Alpaca
   }
 
   const itemShopOn = () => {
-    gUser.value.itemMenu = true
-    gUser.value.pause = false
+    gScene.value.itemMenu = true
+    gScene.value.pause = false
   }
 
   const itemShopOff = () => {
-    gUser.value.itemMenu = false
-    gUser.value.pause = true
+    gScene.value.itemMenu = false
+    gScene.value.pause = true
   }
 
-  return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, itemShopOn, itemShopOff }
+  const changeSpeed = (speed) => {
+    const newSpeed = gPlayer.value.speedOffset + speed * 0.1
+    console.log(newSpeed)
+    if (newSpeed < -0.1 || newSpeed > 0.1) // range check
+      alert("speed out of range")
+    else
+      gPlayer.value.speedOffset = newSpeed
+  }
+
+  return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed }
 }
