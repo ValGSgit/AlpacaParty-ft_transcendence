@@ -31,7 +31,7 @@ describe('GET /api/health', () => {
     expect(res.body.status).toBe('ok');
     expect(res.body.message).toMatch(/running/i);
     expect(res.body.timestamp).toBeDefined();
-    expect(res.body.version).toBe('0.0.1');
+    expect(res.body.version).toBe('0.1.0');
   });
 });
 
