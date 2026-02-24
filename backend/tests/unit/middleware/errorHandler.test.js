@@ -83,5 +83,43 @@ describe('errorHandler middleware', () => {
 
       expect(res._status).toBe(500);
     });
+
+    test('should preserve 422 status code', () => {
+      const err = new Error('Unprocessable Entity');
+      err.status = 422;
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(422);
+      expect(res._json.error.message).toBe('Unprocessable Entity');
+    });
+
+    test('should preserve 403 status code', () => {
+      const err = new Error('Forbidden');
+      err.status = 403;
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(403);
+    });
+
+    test('should return 500 and default message for plain thrown string', () => {
+      const err = { message: '', status: undefined };
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(500);
+      expect(res._json.error.message).toBe('Internal Server Error');
+    });
+
+    test('notFoundHandler sets err.status=404 with message Not Found', () => {
+      let captured;
+      notFoundHandler({}, {}, (err) => { captured = err; });
+      expect(captured.status).toBe(404);
+      expect(captured.message).toBe('Not Found');
+    });
   });
 });

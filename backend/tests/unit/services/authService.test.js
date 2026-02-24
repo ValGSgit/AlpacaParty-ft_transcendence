@@ -68,6 +68,35 @@ describe('AuthService', () => {
       expect(decoded.id).toBe(42);
       expect(decoded.type).toBe('refresh');
     });
+
+    test('refresh token should not contain username', () => {
+      const token = AuthService.generateRefreshToken(fakeUser);
+      const decoded = AuthService.verifyToken(token);
+      expect(decoded.username).toBeUndefined();
+    });
+  });
+
+  describe('generateAccessToken — admin flag', () => {
+    test('should embed is_admin=true when user is admin', () => {
+      const adminUser = { id: 7, username: 'admin', is_admin: true };
+      const token = AuthService.generateAccessToken(adminUser);
+      const decoded = AuthService.verifyToken(token);
+      expect(decoded.is_admin).toBe(true);
+    });
+
+    test('access token should NOT have type field', () => {
+      const token = AuthService.generateAccessToken({ id: 1, username: 'u', is_admin: false });
+      const decoded = AuthService.verifyToken(token);
+      expect(decoded.type).toBeUndefined();
+    });
+
+    test('decoded token should contain iat and exp', () => {
+      const token = AuthService.generateAccessToken({ id: 1, username: 'u', is_admin: false });
+      const decoded = AuthService.verifyToken(token);
+      expect(typeof decoded.iat).toBe('number');
+      expect(typeof decoded.exp).toBe('number');
+      expect(decoded.exp).toBeGreaterThan(decoded.iat);
+    });
   });
 
   describe('validatePassword', () => {
@@ -116,6 +145,43 @@ describe('AuthService', () => {
       const { valid, errors } = AuthService.validatePassword('ab');
       expect(valid).toBe(false);
       expect(errors.length).toBeGreaterThan(1);
+    });
+
+    test('should accept password at exactly minLength with all requirements', () => {
+      // 8 chars, upper + lower + digit
+      const { valid, errors } = AuthService.validatePassword('Abc1defg');
+      expect(valid).toBe(true);
+      expect(errors).toHaveLength(0);
+    });
+
+    test('should reject password one char below minLength', () => {
+      // 7 chars, otherwise valid
+      const { valid, errors } = AuthService.validatePassword('Abc1def');
+      expect(valid).toBe(false);
+      expect(errors.some(e => e.includes('at least'))).toBe(true);
+    });
+
+    test('should reject number-only string regardless of length', () => {
+      const { valid, errors } = AuthService.validatePassword('12345678');
+      expect(valid).toBe(false);
+      expect(errors.some(e => e.includes('uppercase'))).toBe(true);
+      expect(errors.some(e => e.includes('lowercase'))).toBe(true);
+    });
+  });
+
+  describe('access token / refresh token are not interchangeable', () => {
+    test('refresh token should fail authentication (has type=refresh)', () => {
+      const refresh = AuthService.generateRefreshToken({ id: 1, username: 'u' });
+      const decoded = AuthService.verifyToken(refresh);
+      // authenticate middleware rejects tokens with type === 'refresh'
+      expect(decoded.type).toBe('refresh');
+    });
+
+    test('access token should pass verification and have no type', () => {
+      const access = AuthService.generateAccessToken({ id: 1, username: 'u', is_admin: false });
+      const decoded = AuthService.verifyToken(access);
+      expect(decoded).not.toBeNull();
+      expect(decoded.type).toBeUndefined();
     });
   });
 });
