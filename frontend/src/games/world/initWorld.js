@@ -1,4 +1,4 @@
-import { shallowRef } from 'vue'
+import api from '../../services/api.js'
 import * as THREE from 'three'
 import * as GRADIENT from "../utils/createGradient.js"
 import * as PRIMITIVES from '../assets/primitives.js'
@@ -10,13 +10,46 @@ import { usePhysics } from '../core/usePhysics.js'
 export async function initWorld(scene) {
 
   scene.background = GRADIENT.Linear('#4abdff', '#142191')
+  
+  const user = await loadGame()
   setupLighting(scene)
   createFloor(scene)
-  const player = await loadPlayer(scene)
-  spawnTrees(scene)
-  gPlayer.value = player
-  gAlpacas.value.push(player)
+  
+  console.log(user.alpacas.length)
+  if (!user || user.alpacas.length === 0) // newAlpaca or without login
+  {
+    const player = await loadPlayer(scene)
+    gPlayer.value = player
+    gAlpacas.value.push(player)
+  }
+  else // loadAlpaca
+  {
+    for (let i = 0; user.alpacas[i]; i++)
+    {
+      const player = await loadPlayer(scene, user.alpacas[i])
+      gPlayer.value = player
+      gAlpacas.value.push(player)
+    }
+  }
+  if (!user || !user.items)
+    spawnTrees(scene)
+  else
+    spawnTrees(scene, user.items)
 }
+
+  async function loadGame() {
+    try {
+      const { data } = await api.get('users/me')
+      //console.log(data.user.items)
+      //console.log(data.user.alpacas)
+      gUser.value.coins = data.user.coins
+      gUser.value.upgrades = data.user.upgrades
+      return data.user
+    } catch (error) {
+      console.error('Failed to load user stats:', error)
+      return null
+  }
+  }
 
 function setupLighting(scene) {
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
@@ -63,14 +96,18 @@ function createFloor(scene) {
   gScene.value.floor = floor
 }
 
-async function spawnTrees(scene) {
+async function spawnTrees(scene, items) {
   const { model } = await loadGLTF('/models/tree.glb')
   const { checkCollisionWith } = usePhysics()
-  const amount = Math.floor(CONST.FLOOR_RADIUS / 4)
   const trees = new THREE.Group()
+  let amount, x, y, z, scale
 
-  model.name = "tree"
+  if (items)
+    amount = items.length
+  else
+    amount = Math.floor(CONST.FLOOR_RADIUS / 4)
 
+  model.name = "tree" // change it later for other items
   for (let i = 0; i < amount; i++) {
     const treeClone = model.clone()
     treeClone.traverse((child) => {
@@ -80,12 +117,25 @@ async function spawnTrees(scene) {
     })
     let isColliding = false
     do {
-      const x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
-      const z = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
-      treeClone.rotation.y = Math.random() * Math.PI * 2
-      const scale = 1 + Math.random() * 0.6
-      treeClone.position.set(x, 4.5 * scale, z)
-      treeClone.scale.set(scale, scale, scale)
+      if (items) // load items
+      {
+        model.name = items[i].name
+        x = items[i].position[0]
+        y = items[i].position[1]
+        z = items[i].position[2]
+        treeClone.rotation.y = items[i].rotation
+        treeClone.scale.set(items[i].scale.x, items[i].scale.y, items[i].scale.z)
+        treeClone.position.set(x, y, z)
+      }
+      else if (isColliding) // new or just spawn a tree if the loaded tree is colliding
+      {
+        x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
+        z = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
+        treeClone.rotation.y = Math.random() * Math.PI * 2
+        scale = 1 + Math.random() * 0.6
+        treeClone.position.set(x, 4.5 * scale, z)
+        treeClone.scale.set(scale, scale, scale)
+      }
       treeClone.updateMatrixWorld(true)
       isColliding = checkCollisionWith(treeClone, gAlpacas.value)
     } while (isColliding);
@@ -96,20 +146,41 @@ async function spawnTrees(scene) {
   gScene.value.add(trees)
 }
 
-async function loadPlayer(scene) {
+async function loadPlayer(scene, alpaca) {
   const { model, mixer, animations } = await loadGLTF('/models/Llama.glb')
   if (model) {
     //model.scale.multiplyScalar(1)
     if (mixer && animations.length > 1)
       mixer.clipAction(animations[1]).play()
-    scene.add(model)
   }
   let speedOffset = 0
   let rotationOffset = 0
   model.name = "Alpaca"
   model.traverse((child) => {
       if (child.isMesh && child.name === 'Cylinder')
-        model.color = child.material.color.getHex(); // get default model color
+      {
+        if (alpaca) // load alpaca color
+        {
+          child.material.color.set(alpaca.color)
+          model.color = alpaca.color
+        }
+        else
+          model.color = child.material.color.getHex(); // get default model color
+
+      }
     })
+  if (alpaca) // loading
+  {
+    model.name = alpaca.name
+    model.color = alpaca.color
+    model.position.x = alpaca.position[0]
+    model.position.y = alpaca.position[1]
+    model.position.z = alpaca.position[2]
+    model.rotation.y = alpaca.rotation
+    model.scale.set(alpaca.scale.x, alpaca.scale.y, alpaca.scale.z)
+    speedOffset = alpaca.speedOffset
+    rotationOffset = alpaca.rotationOffset
+  }
+  scene.add(model)
   return { model, mixer, animations, speedOffset, rotationOffset}
 }

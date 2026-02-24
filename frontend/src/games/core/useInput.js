@@ -16,16 +16,18 @@ export function useInput() {
 
   const print_debug_flags = () => {
     //console.log("", )
-    console.log("gScene.value.selected", gScene.value.selected)
+/*     console.log("gScene.value.selected", gScene.value.selected)
     console.log("gScene.value.selectedGhost", gScene.value.selectedGhost)
     console.log("gScene.value.pause", gScene.value.pause)
     console.log("gScene.value.edit", gScene.value.edit)
     console.log("gScene.value.itemMenu", gScene.value.itemMenu)
-    console.log("gScene.value.alpacaMenu", gScene.value.alpacaMenu)
+    console.log("gScene.value.alpacaMenu", gScene.value.alpacaMenu) */
+    console.log("gAlpacas.value.length = ", gAlpacas.value.length)
+    // gAlpacas.value = [] // clear all Alpaca
   }
 
 
-  async function saveFarm() {
+  async function saveGame() {
     const saveAlpacas = gAlpacas.value.map(alpaca => {
       return {
         position: alpaca.model.position.toArray(), // [x, y, z]
@@ -59,27 +61,11 @@ export function useInput() {
       coins: gUser.value.coins,
       upgrades: gUser.value.upgrades
     })
-      console.log(gUser.value.coins)
       console.log('✅ Farm stats synced to server')
     } catch (error) {
       console.error('Failed to sync farm stats:', error)
   }
 
-  }
-
-  async function loadFarm() {
-    try {
-      const { data } = await api.get('users/me')
-      console.log(data.user.items)
-      console.log(data.user.alpacas)
-      console.log(data.user.coins)
-      console.log(data.user.upgrades)
-      gUser.value.coins = data.user.coins
-      gUser.value.upgrades = data.user.upgrades
-      
-    } catch (error) {
-      console.error('Failed to load user stats:', error)
-  }
   }
 
 
@@ -90,8 +76,7 @@ export function useInput() {
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
       case 'Space': keys.space = true; break
-      case 'KeyF': saveFarm(); break
-      case 'KeyG': loadFarm(); break
+      case 'KeyF': saveGame(); break
       case 'KeyP': print_debug_flags(); break
     }
   }
