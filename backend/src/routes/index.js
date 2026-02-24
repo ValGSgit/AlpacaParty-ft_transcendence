@@ -6,8 +6,12 @@
  * Mount sub-routers here as they are implemented.
  */
 import express from 'express';
+import { createRequire } from 'module';
 import authRoutes from './auth.js';
 import userRoutes from './users.js';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../../package.json');
 
 const router = express.Router();
 
@@ -17,7 +21,7 @@ router.get('/health', (_req, res) => {
     status: 'ok',
     message: 'Cleanscendence backend is running',
     timestamp: new Date().toISOString(),
-    version: '0.0.1',
+    version,
   });
 });
 
