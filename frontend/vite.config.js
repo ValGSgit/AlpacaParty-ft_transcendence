@@ -9,6 +9,9 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  build: {
+    target: 'esnext',
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -17,11 +20,12 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    allowedHosts: ['localhost', 'frontend', 'nginx'],
     watch: {
       usePolling: true,
     },
     proxy: {
-      '/api': {
+      '/api/': {
         target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
