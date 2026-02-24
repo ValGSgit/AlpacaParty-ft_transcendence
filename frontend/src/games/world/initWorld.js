@@ -69,6 +69,8 @@ async function spawnTrees(scene) {
   const amount = Math.floor(CONST.FLOOR_RADIUS / 4)
   const trees = new THREE.Group()
 
+  model.name = "tree"
+
   for (let i = 0; i < amount; i++) {
     const treeClone = model.clone()
     treeClone.traverse((child) => {
@@ -97,12 +99,17 @@ async function spawnTrees(scene) {
 async function loadPlayer(scene) {
   const { model, mixer, animations } = await loadGLTF('/models/Llama.glb')
   if (model) {
-    model.scale.multiplyScalar(1)
+    //model.scale.multiplyScalar(1)
     if (mixer && animations.length > 1)
       mixer.clipAction(animations[1]).play()
     scene.add(model)
   }
   let speedOffset = 0
   let rotationOffset = 0
+  model.name = "Alpaca"
+  model.traverse((child) => {
+      if (child.isMesh && child.name === 'Cylinder')
+        model.color = child.material.color.getHex(); // get default model color
+    })
   return { model, mixer, animations, speedOffset, rotationOffset}
 }

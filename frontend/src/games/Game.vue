@@ -27,10 +27,21 @@
     </div>
     <!-- Alpaca Menu -->
     <div v-if="gScene.alpacaMenu && gScene.newAlpaca" class="modal-overlay">
-        <div class="shop-title">Buy Alpaca
-          <button class="shop-btn" @click="buyAlpaca()" title="Black">Black</button>
+        <div class="shop-title">New Alpaca
+      <div class="input-group">
+        <label>Name</label>
+        <input v-model="alpacaConfig.name" placeholder="Name your alpaca..." />
+      </div>
+      <div class="input-group">
+        <label>Size ({{ alpacaConfig.scale }}x)</label>
+        <input type="range" v-model.number="alpacaConfig.scale" min="0.5" max="1" step="0.25" />
+      </div>
+          <button class="shop-btn" @click="buyAlpaca()" title="Original">Original</button>
+          <button class="shop-btn" @click="buyAlpaca(0x000000)" title="Black">Black</button>
           <button class="shop-btn" @click="buyAlpaca(0x555555)" title="Grey">Grey</button>
           <button class="shop-btn" @click="buyAlpaca(0xffffff)" title="White">White</button>
+          <div class="color-picker-row"><input type="color" v-model="alpacaConfig.color" /></div>
+          <button class="shop-btn" @click="buyAlpaca(alpacaConfig.color)" title="Custom">Custom</button>
           <button class="close-btn" @click="alpacaMenuOff" title="Close">✖️</button>
         </div>
     </div>
@@ -59,7 +70,7 @@
         Click and Drag Item <button class="close-btn" @click="editModeOff" title="Close">✖️</button>
     </div>
     <!-- Light Menu -->
-    <div v-if="gScene.lightMenu" class="edit-mode">
+    <div v-if="gScene.lightMenu && !gScene.edit" class="edit-mode-light">
         <div class="shop-title">Edit Light
           <div class="alpaca-stat">
            <button class="stat-btn" @click="editLight(0x555555)" title="--">1</button>
@@ -84,7 +95,7 @@ import { initWorld } from './world/initWorld.js'
 import { initUser } from './user/initUser.js'
 import { useCamera } from './core/useCamera.js'
 import { gEngine, gScene, gPlayer, gUser } from './core/globals.js'
-import { useShop } from './components/shop.js'
+import { alpacaConfig, useShop } from './components/shop.js'
 import './game.css'
 import { spawnItems } from "./components/spawnItems.js"
 

@@ -1,9 +1,10 @@
 import { reactive, onMounted, onUnmounted } from 'vue'
 import * as THREE from 'three'
-import { gEngine, gScene, gUser, gPlayer, gItems } from './globals.js'
+import { gEngine, gScene, gUser, gPlayer, gAlpacas, gItems } from './globals.js'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { CONST } from '../config/constants.js'
 import { usePhysics } from './usePhysics.js'
+import api from '../../services/api.js'
 
 export function useInput() {
   const { switchAlpaca, moveAlpaca } = alpacaHandling()
@@ -24,7 +25,62 @@ export function useInput() {
   }
 
 
+  async function saveFarm() {
+    const saveAlpacas = gAlpacas.value.map(alpaca => {
+      return {
+        position: alpaca.model.position.toArray(), // [x, y, z]
+        rotation: alpaca.model.rotation.y,          // Just the Y axis
+        speedOffset: alpaca.speedOffset,
+        rotationOffset: alpaca.rotationOffset,
+        name: alpaca.model.name,                    // e.g., "Alpaca_Brown"
+        color : alpaca.model.color,
+        scale :  alpaca.model.scale
+      };
+    });
 
+    const saveItems = gItems.value.map(item => {
+      return {
+        position: item.position.toArray(), // [x, y, z]
+        rotation: item.rotation.y,          // Just the Y axis
+        name: item.name,                    // e.g., "item_Brown"
+        scale : item.scale
+      };
+    });
+
+    const jsonStringItems = JSON.stringify(saveItems);
+    const jsonStringAlpacas = JSON.stringify(saveAlpacas);
+    //console.log(jsonStringItems)
+    //console.log(jsonStringAlpacas)
+
+    try {
+    await api.put('users/me', {
+      items: jsonStringItems,
+      alpacas: jsonStringAlpacas,
+      coins: gUser.value.coins,
+      upgrades: gUser.value.upgrades
+    })
+      console.log(gUser.value.coins)
+      console.log('✅ Farm stats synced to server')
+    } catch (error) {
+      console.error('Failed to sync farm stats:', error)
+  }
+
+  }
+
+  async function loadFarm() {
+    try {
+      const { data } = await api.get('users/me')
+      console.log(data.user.items)
+      console.log(data.user.alpacas)
+      console.log(data.user.coins)
+      console.log(data.user.upgrades)
+      gUser.value.coins = data.user.coins
+      gUser.value.upgrades = data.user.upgrades
+      
+    } catch (error) {
+      console.error('Failed to load user stats:', error)
+  }
+  }
 
 
   const onKeyDown = (e) => {
@@ -34,6 +90,8 @@ export function useInput() {
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
       case 'Space': keys.space = true; break
+      case 'KeyF': saveFarm(); break
+      case 'KeyG': loadFarm(); break
       case 'KeyP': print_debug_flags(); break
     }
   }

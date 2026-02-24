@@ -8,13 +8,18 @@ import { usePhysics } from '../core/usePhysics.js'
 export function alpacaHandling() {
   const { checkCollision } = usePhysics()
 
-  const spawnAlpaca = (color) => {
+  const spawnAlpaca = (color, name, scale) => {
     const originalAlpaca = gAlpacas.value[0]
     if (color === undefined)
-      color = 0x000000 // black for default
+      color = originalAlpaca.model.color
     const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
     clonedModel.rotation.set(0, 0, 0)
     clonedModel.quaternion.identity()
+    if (name === undefined)
+      clonedModel.name = "NewAlpaca"
+    else
+      clonedModel.name = name
+    clonedModel.color = color
 
     clonedModel.traverse((child) => {
       if (child.isMesh && (child.name.startsWith('UCX_') || child.name === 'Collider')) {
@@ -40,7 +45,8 @@ export function alpacaHandling() {
     const x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
     const z = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
     newAlpaca.model.rotation.y = Math.random() * Math.PI * 2
-    const scale = 1 + Math.random() * 0.6
+    if (scale === undefined)
+      scale = 1
     newAlpaca.model.position.set(x, 0, z)
     newAlpaca.model.scale.set(scale, scale, scale)
     

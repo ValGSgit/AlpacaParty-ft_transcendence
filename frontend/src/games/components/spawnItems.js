@@ -7,6 +7,7 @@ export function spawnItems() {
 
   async function spwanShopItem() {
     const { model } = await loadGLTF('/models/tree.glb')
+    model.name = "tree"
 
     const x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
     const z = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))

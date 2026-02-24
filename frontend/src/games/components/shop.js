@@ -5,6 +5,7 @@ import { CONST } from '../config/constants.js'
 import { initWorld } from '../world/initWorld.js'
 import * as PRIMITIVES from '../assets/primitives.js'
 import * as GRADIENT from "../utils/createGradient.js"
+import { reactive } from 'vue'
 
 import * as THREE from 'three'
 
@@ -20,7 +21,7 @@ export function useShop() {
   const buyAlpaca = (color) => {
     if (gUser.value.coins >= CONST.ALPACA_COST) {
       gUser.value.coins -= CONST.ALPACA_COST
-      spawnAlpaca(color)
+      spawnAlpaca(color, alpacaConfig.name, alpacaConfig.scale)
     }
     else
       alert('Not enough coins!')
@@ -98,3 +99,10 @@ export function useShop() {
 
   return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed }
 }
+
+
+export const alpacaConfig = reactive({
+    name: 'New Alpaca',
+    color: '#ffffff',
+    scale: 1.0
+});
