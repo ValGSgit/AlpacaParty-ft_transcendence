@@ -1,10 +1,13 @@
 /**
- * Auth Controller — handles registration, login, logout, token refresh
+ * Auth Controller — handles registration, login, logout, token refresh, OAuth
  * @owner ValGSgit
  * @issue https://github.com/ValGSgit/Cleanscendence/issues/8
  */
 import User from '../models/User.js';
+import Achievement from '../models/Achievement.js';
 import AuthService from '../services/authService.js';
+import { oauthTokensForUser } from '../services/oauthService.js';
+import config from '../config/index.js';
 
 /**
  * POST /api/auth/register
@@ -47,6 +50,9 @@ export const register = async (req, res, next) => {
     // --- Create user ---
     const passwordHash = await AuthService.hashPassword(password);
     const user = await User.create({ username, email, passwordHash });
+
+    // Unlock first-login achievement (non-blocking)
+    Achievement.unlock(user.id, 'first_login').catch(() => {});
 
     const accessToken = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
@@ -154,4 +160,18 @@ export const refresh = async (req, res, next) => {
  */
 export const me = async (req, res) => {
   res.json({ user: req.user });
+};
+
+/**
+ * GET /api/auth/google/callback
+ * GET /api/auth/github/callback
+ * Passport fills req.user after strategy succeeds.
+ * Redirect to frontend with JWT tokens in query params.
+ */
+export const oauthCallback = (req, res) => {
+  const { accessToken, refreshToken } = oauthTokensForUser(req.user);
+  const frontendUrl = config.frontendUrl;
+  res.redirect(
+    `${frontendUrl}/oauth-callback?accessToken=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(refreshToken)}`,
+  );
 };
