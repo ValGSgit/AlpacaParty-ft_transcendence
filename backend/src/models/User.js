@@ -26,7 +26,7 @@ const User = {
    */
   async findById(id) {
     const { rows } = await query(
-      `SELECT id, username, email, avatar, bio, status, is_online, is_admin, last_seen, created_at
+      `SELECT id, username, email, avatar, bio, status, is_online, is_admin, last_seen, created_at, coins, upgrades, items, alpacas
        FROM users WHERE id = $1`,
       [id],
     );
@@ -72,7 +72,7 @@ const User = {
    * @param {{ username?: string, email?: string, avatar?: string, bio?: string, status?: string }} fields
    */
   async update(id, fields) {
-    const allowed = ['username', 'email', 'avatar', 'bio', 'status'];
+    const allowed = ['username', 'email', 'avatar', 'bio', 'status', 'coins', 'upgrades', 'items', 'alpacas'];
     const sets = [];
     const values = [];
     let idx = 1;
