@@ -52,9 +52,9 @@ export function useShop() {
     else {
       gUser.value.coins -= CONST.UPGRADE_COST
       const floor = gScene.value.floor
+      gUser.value.upgrades++
       floor.scale.x = CONST.FLOOR_RADIUS / CONST.BASE_RADIUS
       floor.scale.z = CONST.FLOOR_RADIUS / CONST.BASE_RADIUS
-      gUser.value.upgrades++
     }
 
   }
@@ -102,7 +102,7 @@ export function useShop() {
 
 
 export const alpacaConfig = reactive({
-    name: 'New Alpaca',
-    color: '#ffffff',
-    scale: 1.0
+  name: 'New Alpaca',
+  color: '#ffffff',
+  scale: 1.0
 });

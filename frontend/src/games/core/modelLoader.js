@@ -29,7 +29,7 @@ export async function loadGLTF(path) {
 
     // generate Collision if none was included
     if (!collider) {
-      console.warn(`NO UCX collider found in ${model.name}, generating collider...`)
+      //console.warn(`NO UCX collider found in ${model.name}, generating collider...`)
       collider = generateCollider(model)
     }
     model.userData.collider = collider

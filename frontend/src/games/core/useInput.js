@@ -4,7 +4,7 @@ import { gEngine, gScene, gUser, gPlayer, gAlpacas, gItems } from './globals.js'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { CONST } from '../config/constants.js'
 import { usePhysics } from './usePhysics.js'
-import api from '../../services/api.js'
+import { saveGame } from './saveLoadGame.js'
 
 export function useInput() {
   const { switchAlpaca, moveAlpaca } = alpacaHandling()
@@ -16,58 +16,19 @@ export function useInput() {
 
   const print_debug_flags = () => {
     //console.log("", )
-/*     console.log("gScene.value.selected", gScene.value.selected)
-    console.log("gScene.value.selectedGhost", gScene.value.selectedGhost)
-    console.log("gScene.value.pause", gScene.value.pause)
-    console.log("gScene.value.edit", gScene.value.edit)
-    console.log("gScene.value.itemMenu", gScene.value.itemMenu)
-    console.log("gScene.value.alpacaMenu", gScene.value.alpacaMenu) */
+    /*     console.log("gScene.value.selected", gScene.value.selected)
+        console.log("gScene.value.selectedGhost", gScene.value.selectedGhost)
+        console.log("gScene.value.pause", gScene.value.pause)
+        console.log("gScene.value.edit", gScene.value.edit)
+        console.log("gScene.value.itemMenu", gScene.value.itemMenu)
+        console.log("gScene.value.alpacaMenu", gScene.value.alpacaMenu) */
     console.log("gAlpacas.value.length = ", gAlpacas.value.length)
-    // gAlpacas.value = [] // clear all Alpaca
+    console.log("gItems.value.length = ", gItems.value.length)
+    gAlpacas.value = [] // clear all Alpaca
+    gItems.value = [] // clear all Alpaca
+    gUser.value.upgrades = 0
+    gUser.value.coins = 10
   }
-
-
-  async function saveGame() {
-    const saveAlpacas = gAlpacas.value.map(alpaca => {
-      return {
-        position: alpaca.model.position.toArray(), // [x, y, z]
-        rotation: alpaca.model.rotation.y,          // Just the Y axis
-        speedOffset: alpaca.speedOffset,
-        rotationOffset: alpaca.rotationOffset,
-        name: alpaca.model.name,                    // e.g., "Alpaca_Brown"
-        color : alpaca.model.color,
-        scale :  alpaca.model.scale
-      };
-    });
-
-    const saveItems = gItems.value.map(item => {
-      return {
-        position: item.position.toArray(), // [x, y, z]
-        rotation: item.rotation.y,          // Just the Y axis
-        name: item.name,                    // e.g., "item_Brown"
-        scale : item.scale
-      };
-    });
-
-    const jsonStringItems = JSON.stringify(saveItems);
-    const jsonStringAlpacas = JSON.stringify(saveAlpacas);
-    //console.log(jsonStringItems)
-    //console.log(jsonStringAlpacas)
-
-    try {
-    await api.put('users/me', {
-      items: jsonStringItems,
-      alpacas: jsonStringAlpacas,
-      coins: gUser.value.coins,
-      upgrades: gUser.value.upgrades
-    })
-      console.log('✅ Farm stats synced to server')
-    } catch (error) {
-      console.error('Failed to sync farm stats:', error)
-  }
-
-  }
-
 
   const onKeyDown = (e) => {
     switch (e.code) {
@@ -102,7 +63,7 @@ export function useInput() {
 
     const intersects = raycaster.intersectObjects(gScene.value.children, true)
     if (intersects.length > 0 && !switchAlpaca(intersects[0].object, raycaster)) {
-        moveAlpaca(raycaster) // move alpaca if it didnt hit another one
+      moveAlpaca(raycaster) // move alpaca if it didnt hit another one
     }
   }
 
@@ -146,8 +107,7 @@ export function useInput() {
           gScene.value.selected.visible = true
           ghost.visible = false;
         }
-        else
-        {
+        else {
           gScene.value.selected.visible = false
           ghost.visible = true;
           ghost.position.x = worldPoint.x
@@ -183,6 +143,7 @@ export function useInput() {
       gScene.value.selectedGhost = null
       gScene.value.selected = null
       gEngine.value.controls.enabled = true
+      saveGame()
     }
   }
 
@@ -209,18 +170,18 @@ export function useInput() {
 }
 
 export function cloneGhost(selected) {
-    const ghost = selected.clone()
-    // need to use gPlayer instead of gUser as it can't be in ref but shallowRef
-    gScene.value.selectedGhost = ghost
-    ghost.traverse((child) => {
+  const ghost = selected.clone()
+  // need to use gPlayer instead of gUser as it can't be in ref but shallowRef
+  gScene.value.selectedGhost = ghost
+  ghost.traverse((child) => {
     if (child.isMesh) {
       // clone the material so we don't turn the ORIGINAL model red too
-      child.material = child.material.clone(); 
+      child.material = child.material.clone();
       child.material.color.set(0xff0000);
       // make it see-through for a "ghost" effect
       child.material.transparent = true;
       child.material.opacity = 0.5;
-      }
-    })
-    return ghost
-  }
+    }
+  })
+  return ghost
+}

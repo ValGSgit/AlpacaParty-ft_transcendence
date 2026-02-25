@@ -5,7 +5,7 @@ import { cloneGhost } from '../core/useInput.js'
 
 export function spawnItems() {
 
-  async function spwanShopItem() {
+  async function spawnShopItem() {
     const { model } = await loadGLTF('/models/tree.glb')
     model.name = "tree"
 
@@ -20,7 +20,7 @@ export function spawnItems() {
     gScene.value.selected = model
     const ghost = cloneGhost(gScene.value.selected)
     gScene.value.add(ghost)
-    
+
     gUser.value.shop = false
     gScene.value.itemMenu = false
 
@@ -41,7 +41,7 @@ export function spawnItems() {
 
     gScene.value.add(model)
   }
-  return { spawnAtRandomPos, spwanShopItem }
+  return { spawnAtRandomPos, spawnShopItem }
 }
 
 export function addItems(items) {

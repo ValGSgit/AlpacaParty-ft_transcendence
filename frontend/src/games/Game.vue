@@ -61,7 +61,7 @@
     <!-- Item Menu -->
     <div v-if="gScene.itemMenu" class="modal-overlay">
         <div class="shop-title">Select Item
-          <button class="shop-btn" @click="spwanShopItem()" title="Tree">🌳</button>
+          <button class="shop-btn" @click="spawnShopItem()" title="Tree">🌳</button>
           <button class="close-btn" @click="itemShopOff" title="Close">✖️</button>
         </div>
     </div>
@@ -96,8 +96,9 @@ import { initUser } from './user/initUser.js'
 import { useCamera } from './core/useCamera.js'
 import { gEngine, gScene, gPlayer, gUser } from './core/globals.js'
 import { alpacaConfig, useShop } from './components/shop.js'
-import './game.css'
 import { spawnItems } from "./components/spawnItems.js"
+import { saveGame } from './core/saveLoadGame.js'
+import './game.css'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -112,7 +113,7 @@ let cameraUpdate = null
 
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed } = useShop()
-const { spwanShopItem } = spawnItems()
+const { spawnShopItem } = spawnItems()
 
 onMounted(async () => {
   gEngine.value = init()
@@ -163,6 +164,7 @@ const gameLoop = () => {
 }
 
 onUnmounted(() => {
+  //saveGame()
   cancelAnimationFrame(animationFrameId)
   cleanup()
   window.removeEventListener('resize', onResize)

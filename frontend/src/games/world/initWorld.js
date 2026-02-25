@@ -6,16 +6,17 @@ import { loadGLTF } from '../core/modelLoader.js'
 import { CONST } from '../config/constants.js'
 import { gPlayer, gAlpacas, gUser, gScene, gItems } from '../core/globals.js'
 import { usePhysics } from '../core/usePhysics.js'
+import { watchChanges } from '../core/watchChanges.js'
 
+let startWatching = null
 export async function initWorld(scene) {
 
   scene.background = GRADIENT.Linear('#4abdff', '#142191')
-  
+
   const user = await loadGame()
   setupLighting(scene)
   createFloor(scene)
-  
-  console.log(user.alpacas.length)
+
   if (!user || user.alpacas.length === 0) // newAlpaca or without login
   {
     const player = await loadPlayer(scene)
@@ -24,32 +25,33 @@ export async function initWorld(scene) {
   }
   else // loadAlpaca
   {
-    for (let i = 0; user.alpacas[i]; i++)
-    {
+    for (let i = 0; user.alpacas[i]; i++) {
       const player = await loadPlayer(scene, user.alpacas[i])
       gPlayer.value = player
       gAlpacas.value.push(player)
     }
   }
-  if (!user || !user.items)
+  if (!user || user.items.length === 0)
     spawnTrees(scene)
   else
     spawnTrees(scene, user.items)
+  startWatching = watchChanges()
 }
 
-  async function loadGame() {
-    try {
-      const { data } = await api.get('users/me')
-      //console.log(data.user.items)
-      //console.log(data.user.alpacas)
-      gUser.value.coins = data.user.coins
-      gUser.value.upgrades = data.user.upgrades
-      return data.user
-    } catch (error) {
-      console.error('Failed to load user stats:', error)
-      return null
+async function loadGame() {
+  try {
+    const { data } = await api.get('users/me')
+    //console.log(data)
+    //console.log(data.user.items)
+    //console.log(data.user.alpacas)
+    gUser.value.coins = data.user.coins
+    gUser.value.upgrades = data.user.upgrades
+    return data.user
+  } catch (error) {
+    console.error('Failed to load user stats:', error)
+    return null
   }
-  }
+}
 
 function setupLighting(scene) {
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
@@ -149,7 +151,6 @@ async function spawnTrees(scene, items) {
 async function loadPlayer(scene, alpaca) {
   const { model, mixer, animations } = await loadGLTF('/models/Llama.glb')
   if (model) {
-    //model.scale.multiplyScalar(1)
     if (mixer && animations.length > 1)
       mixer.clipAction(animations[1]).play()
   }
@@ -157,18 +158,17 @@ async function loadPlayer(scene, alpaca) {
   let rotationOffset = 0
   model.name = "Alpaca"
   model.traverse((child) => {
-      if (child.isMesh && child.name === 'Cylinder')
+    if (child.isMesh && child.name === 'Cylinder') {
+      if (alpaca) // load alpaca color
       {
-        if (alpaca) // load alpaca color
-        {
-          child.material.color.set(alpaca.color)
-          model.color = alpaca.color
-        }
-        else
-          model.color = child.material.color.getHex(); // get default model color
-
+        child.material.color.set(alpaca.color)
+        model.color = alpaca.color
       }
-    })
+      else
+        model.color = child.material.color.getHex(); // get default model color
+
+    }
+  })
   if (alpaca) // loading
   {
     model.name = alpaca.name
@@ -182,5 +182,5 @@ async function loadPlayer(scene, alpaca) {
     rotationOffset = alpaca.rotationOffset
   }
   scene.add(model)
-  return { model, mixer, animations, speedOffset, rotationOffset}
+  return { model, mixer, animations, speedOffset, rotationOffset }
 }

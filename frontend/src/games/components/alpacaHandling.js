@@ -25,8 +25,7 @@ export function alpacaHandling() {
       if (child.isMesh && (child.name.startsWith('UCX_') || child.name === 'Collider')) {
         clonedModel.userData.collider = child
       }
-      if (child.isMesh && child.name === 'Cylinder')
-      {
+      if (child.isMesh && child.name === 'Cylinder') {
         child.material = child.material.clone();
         child.material.color.set(color)
       }
@@ -49,7 +48,7 @@ export function alpacaHandling() {
       scale = 1
     newAlpaca.model.position.set(x, 0, z)
     newAlpaca.model.scale.set(scale, scale, scale)
-    
+
     gScene.value.selected = newAlpaca.model
     const ghost = cloneGhost(gScene.value.selected)
     gScene.value.add(ghost)
@@ -60,8 +59,7 @@ export function alpacaHandling() {
   const moveAlpaca = (raycaster) => {
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const worldPoint = new THREE.Vector3();
-    if (!raycaster)
-    {
+    if (!raycaster) {
       // random x z for AI
       worldPoint.x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
       worldPoint.y = 0
