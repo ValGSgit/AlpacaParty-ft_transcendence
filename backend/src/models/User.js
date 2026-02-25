@@ -184,7 +184,7 @@ const User = {
       `SELECT id, username, avatar, is_online, xp, level
        FROM users WHERE username ILIKE $1 OR bio ILIKE $1
        ORDER BY ${sortCol} ${sortDir} LIMIT $2 OFFSET $3`,
-      [`%${term}%`, limit, offset],
+      [`${term}%`, limit, offset],
     );
     return rows;
   },
