@@ -95,6 +95,6 @@ test.describe('API Health', () => {
     const body = await response.json()
     expect(body.status).toBe('ok')
     expect(body.message).toMatch(/running/i)
-    expect(body.version).toBe('0.0.1')
+    expect(body.version).toBe('0.1.0')
   })
 })
