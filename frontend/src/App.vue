@@ -8,7 +8,7 @@
     <nav class="navbar">
       <div class="nav-container">
         <router-link to="/" class="nav-logo">
-          <span class="logo-text">Cleanscendence</span>
+          <span class="logo-text">Alpaca Party!</span>
         </router-link>
         <div class="nav-links">
           <router-link to="/" class="nav-link">Home</router-link>
@@ -18,9 +18,7 @@
           </template>
           <template v-else>
             <router-link to="/login" class="nav-link">Login</router-link>
-            <router-link to="/register" class="nav-link">Register</router-link>
           </template>
-          <router-link to="/game" class="nav-link">Game</router-link>
         </div>
       </div>
     </nav>

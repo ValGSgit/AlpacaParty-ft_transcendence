@@ -1,8 +1,16 @@
 import api from '../../services/api.js'
 import { gUser, gAlpacas, gItems } from './globals.js'
+import { useAuthStore } from '../../stores/auth.js'
 
+const { isAuthenticated } = useAuthStore()
 
 export async function saveGame() {
+  if (!isAuthenticated)
+  {
+    console.log("user not logged in, not saving")
+    return
+  }
+  
   const saveAlpacas = gAlpacas.value.map(alpaca => {
     return {
       position: alpaca.model.position.toArray(), // [x, y, z]

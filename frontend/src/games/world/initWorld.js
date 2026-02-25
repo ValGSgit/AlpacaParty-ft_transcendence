@@ -4,16 +4,20 @@ import * as GRADIENT from "../utils/createGradient.js"
 import * as PRIMITIVES from '../assets/primitives.js'
 import { loadGLTF } from '../core/modelLoader.js'
 import { CONST } from '../config/constants.js'
-import { gPlayer, gAlpacas, gUser, gScene, gItems } from '../core/globals.js'
+import { gPlayer, gAlpacas, gUser, gScene, gItems, gEngine } from '../core/globals.js'
 import { usePhysics } from '../core/usePhysics.js'
-import { watchChanges } from '../core/watchChanges.js'
+import { useAuthStore } from '../../stores/auth.js'
 
-let startWatching = null
+const { isAuthenticated } = useAuthStore()
+
 export async function initWorld(scene) {
 
   scene.background = GRADIENT.Linear('#4abdff', '#142191')
-
-  const user = await loadGame()
+  let user = null
+  if (isAuthenticated)
+    user = await loadGame()
+  else
+    console.log("user not logged in, not loading")
   setupLighting(scene)
   createFloor(scene)
 
@@ -35,7 +39,6 @@ export async function initWorld(scene) {
     spawnTrees(scene)
   else
     spawnTrees(scene, user.items)
-  startWatching = watchChanges()
 }
 
 async function loadGame() {

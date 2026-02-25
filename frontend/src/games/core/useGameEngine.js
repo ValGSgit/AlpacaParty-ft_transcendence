@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { ref, shallowRef } from 'vue'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { gScene, gUser } from './globals.js'
+import { gScene, gAlpacas, gItems, gUser } from './globals.js'
 import { CONST } from '../config/constants.js'
 
 export function useGameEngine(containerRef) {
@@ -15,6 +15,11 @@ export function useGameEngine(containerRef) {
 
   const init = () => {
     if (!containerRef.value) return null
+    // memory cleanup
+    if (gScene.value) {clearScene(gScene.value)}
+    gAlpacas.value = []
+    gItems.value = []
+    gUser.value = null
 
     scene.value = new THREE.Scene()
     gScene.value = scene.value
@@ -73,9 +78,48 @@ export function useGameEngine(containerRef) {
     renderer.value.render(scene.value, camera.value)
   }
 
+  const clearScene = (scene) => {
+  if (!scene) return;
+
+  scene.traverse((object) => {
+    if (object.geometry) object.geometry.dispose();
+    if (object.material) {
+      if (Array.isArray(object.material)) {
+        object.material.forEach(cleanupMaterial);
+      } else {
+        cleanupMaterial(object.material);
+      }
+    }
+  });
+  while (scene.children.length > 0) {
+    const child = scene.children[0];
+    scene.remove(child);
+  }
+};
+const cleanupMaterial = (material) => {
+  for (const key in material) {
+    const value = material[key];
+    if (value && value.isTexture) {
+      value.dispose();
+    }
+  }
+  material.dispose();
+};
+//
   const cleanup = () => {
+    clearScene(scene.value)
+    scene.value.sunLight.dispose() // the two leaks
+    scene.value.background.dispose()
     if (animationId) cancelAnimationFrame(animationId)
-    if (renderer.value) renderer.value.dispose()
+    gAlpacas.value = [];
+    gItems.value = [];
+    // check for leaks
+    if (renderer.value) {
+      renderer.value.dispose()
+      renderer.value.forceContextLoss(); // forces WebGL to release the context
+      renderer.value.domElement.remove(); // Remove the canvas from the HTML
+    }
+    //console.log(renderer.value.info.memory); // debug leaks, one geometry from the background and one from alpaca still hanging
   }
 
   const onResize = () => {

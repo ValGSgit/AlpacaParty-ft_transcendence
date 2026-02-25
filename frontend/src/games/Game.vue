@@ -1,6 +1,12 @@
 <!---------------------- HTML --------------------------->
 
 <template>
+  <div v-if="showLoginWarning" class="modal-overlay">
+    <div class="shop-title">Welcome to Alpaca Party!
+      <button class="shop-btn" @click="warningOff" title="Close">Try</button>
+      <router-link to="/login" class="shop-btn">Login</router-link>
+    </div>
+  </div>
   <div ref="gameContainer" class="scene-container"></div>
   <div v-if="!gameIsReady" class="modal-overlay">Loading...</div>
   <!-- Components -->
@@ -98,6 +104,8 @@ import { gEngine, gScene, gPlayer, gUser } from './core/globals.js'
 import { alpacaConfig, useShop } from './components/shop.js'
 import { spawnItems } from "./components/spawnItems.js"
 import { saveGame } from './core/saveLoadGame.js'
+import { useAuthStore } from '../stores/auth.js'
+import { watchChanges } from './core/watchChanges.js'
 import './game.css'
 
 const gameContainer = ref(null)
@@ -111,11 +119,23 @@ let animations = null
 let animationFrameId
 let cameraUpdate = null
 
+let stopMyWatcher
+
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed } = useShop()
 const { spawnShopItem } = spawnItems()
+const { isAuthenticated } = useAuthStore()
+
+const showLoginWarning = ref(false);
+const warningOff = () => {showLoginWarning.value = false;};
+
+
 
 onMounted(async () => {
+  if (!isAuthenticated)
+    showLoginWarning.value = true
+  else
+    showLoginWarning.value = false
   gEngine.value = init()
 
   if (!gEngine.value) {
@@ -129,6 +149,7 @@ onMounted(async () => {
 
     await initWorld(gScene.value)
     gameIsReady.value = true
+    stopMyWatcher = watchChanges()
     gameLoop()
   }
   window.addEventListener('resize', onResize)
@@ -164,10 +185,11 @@ const gameLoop = () => {
 }
 
 onUnmounted(() => {
-  //saveGame()
+  saveGame()
+  stopMyWatcher()
   cancelAnimationFrame(animationFrameId)
-  cleanup()
   window.removeEventListener('resize', onResize)
+  cleanup()
 })
 </script>
 
