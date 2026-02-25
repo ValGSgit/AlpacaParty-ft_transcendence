@@ -31,92 +31,161 @@ make install && make dev       # frontend :5173, backend :3000
 
 ```mermaid
 graph TB
-    subgraph Client["🌐 Client (Browser)"]
-        VUE["Vue 3 + Vite SPA\n(port 5173)"]
+    subgraph INFRA["🐳 Infrastructure"]
+        NGINX["nginx/nginx.conf(reverse proxy :80)"]
     end
 
-    subgraph Proxy["🔀 nginx (port 8080)"]
-        NGINX["Reverse Proxy\n/api → backend\n/ → frontend"]
-    end
+    subgraph FE["🖥️ Frontend  (Vite + Vue 3)"]
+        MAIN["main.js(mounts app, router, pinia,fetchUser before router)"]
 
-    subgraph Backend["⚙️ Express.js API (port 3000)"]
-        direction TB
-        IDX["index.js\nEntry Point"]
-
-        subgraph Middleware["Middleware"]
-            HELMET["helmet\n(security headers)"]
-            CORS["cors"]
-            RATE["rate-limit\n(100 req / 15 min)"]
-            AUTH_MW["authenticate()\nJWT guard"]
-            ERR["errorHandler"]
+        subgraph FVIEWS["Views"]
+            HOME["Home.vue"]
+            LOGIN["Login.vue"]
+            REGISTER["Register.vue"]
+            PROFILE["Profile.vue"]
         end
 
-        subgraph Routes["Routes  /api/..."]
-            HEALTH["/health"]
-            AUTH_R["/auth"]
-            USER_R["/users"]
-            FUTURE["/friends  /chat  /game\n(planned)"]
+        subgraph FROUTER["Router"]
+            ROUTER["router/index.js(beforeEach guard)"]
         end
 
-        subgraph Controllers["Controllers"]
-            AUTH_C["authController\nregister · login · logout\nrefresh · me"]
-            USER_C["userController\ngetMe · updateMe\nchangePassword · listUsers · getUser"]
+        subgraph FSTORES["Pinia Stores"]
+            AUTHSTORE["stores/auth.js(user, tokens, login,logout, fetchUser)"]
         end
 
-        subgraph Services["Services"]
-            AUTH_S["authService\nbcrypt hash · JWT sign/verify"]
+        subgraph FSERVICES["Services"]
+            API["services/api.js(axios + interceptors)"]
+            SOCKET["services/socket.js(socket.io-client)"]
         end
 
-        subgraph Models["Models"]
-            USER_M["User\ncreate · findById · findByEmail\nfindByUsername · update · delete"]
-        end
-
-        subgraph Config["Config"]
-            CFG["config/index.js\nport · jwt · db · cors · rateLimit"]
-            DB_CFG["config/database.js\npg pool"]
+        subgraph FTESTS["Frontend Tests (Vitest)"]
+            APPT["App.test.js"]
+            ROUTERT["router/router.test.js"]
+            AUTHT["stores/auth.test.js"]
+            HOMET["views/Home.test.js"]
+            LOGINT["views/Login.test.js"]
+            PROFILET["views/Profile.test.js"]
+            REGISTERT["views/Register.test.js"]
         end
     end
 
-    subgraph Database["🗄️ PostgreSQL (port 5432)"]
-        direction TB
-        USERS["users"]
-        FRIENDS["friends\nfriend_requests"]
-        BLOCKED["blocked_users"]
-        MESSAGES["messages"]
-        MATCHES["match_history\n(planned)"]
+    subgraph BE["⚙️ Backend  (Node + Express)"]
+        INDEX["src/index.js(entry point)"]
+
+        subgraph BCONFIG["Config"]
+            CFG["config/index.js(jwt, db, oauth, urls)"]
+            DBCFG["config/database.js\n(pg pool)"]
+        end
+
+        subgraph BROUTES["Routes"]
+            ROUTEIDX["routes/index.js(/api/health)"]
+            AUTHRT["routes/auth.js(/api/auth/*)"]
+            USERSRT["routes/users.js(/api/users/*)"]
+        end
+
+        subgraph BCONTROLLERS["Controllers"]
+            AUTHCTRL["authController.js(register, login, refresh,logout, oauth callbacks)"]
+            USERCTRL["userController.js(getMe, getUser,updateMe, searchUsers)"]
+        end
+
+        subgraph BMIDDLEWARE["Middleware"]
+            AUTHMW["auth.js(requireAuth,optionalAuth)"]
+            ERRMW["errorHandler.js(notFound, errorHandler)"]
+        end
+
+        subgraph BMODELS["Models"]
+            USERMODEL["User.js(findById, findByUsername,create, update,updatePassword, search)"]
+        end
+
+        subgraph BSERVICES["Services"]
+            AUTHSVC["authService.js(hashPassword, validatePassword,generateTokens, verifyToken)"]
+        end
+
+        subgraph BTESTS["Backend Tests (Jest)"]
+            subgraph BUNIT["Unit"]
+                UCFG["config/config.test.js"]
+                UAUTHMW["middleware/auth.test.js"]
+                UERRMW["middleware/errorHandler.test.js"]
+                UMODEL["models/user.test.js"]
+                USVC["services/authService.test.js"]
+            end
+            subgraph BINT["Integration"]
+                IAUTH["auth.routes.test.js"]
+                IUSERS["users.routes.test.js"]
+                IHEALTH["health.routes.test.js"]
+            end
+        end
     end
 
-    subgraph Tests["🧪 Tests (Jest + Supertest)"]
-        UNIT["Unit Tests\nconfig · middleware · services"]
-        INT["Integration Tests\nauth · users · health routes"]
+    subgraph DB["🗄️ Database"]
+        PG[("PostgreSQL\n(users table)")]
     end
 
-    subgraph E2E["🎭 E2E (Playwright)"]
-        E2E_T["auth · navigation · profile specs"]
+    subgraph E2E["🎭 E2E  (Playwright)"]
+        EAUTH["auth.spec.js(register, login, logout)"]
+        ENAV["navigation.spec.js(guards, route redirects,API health)"]
+        EPROF["profile.spec.js(profile data,avatar, join date)"]
     end
 
-    VUE -->|"HTTP / WS"| NGINX
-    NGINX -->|"/api/*"| IDX
-    NGINX -->|"/"| VUE
+    subgraph CI["⚡ CI/CD (.github/workflows/ci.yml)"]
+        CIJOBS["backend-unit\frontend-unit\e2e"]
+    end
 
-    IDX --> HELMET & CORS & RATE
-    IDX --> AUTH_R & USER_R & HEALTH
+    %% Infrastructure routing
+    NGINX -->|"/api/* → :3000"| INDEX
+    NGINX -->|"/* → :8080"| MAIN
 
-    AUTH_R --> AUTH_C
-    USER_R --> AUTH_MW --> USER_C
+    %% Frontend internal
+    MAIN --> ROUTER
+    MAIN --> AUTHSTORE
+    ROUTER -->|"guards"| FVIEWS
+    FVIEWS --> AUTHSTORE
+    AUTHSTORE --> API
+    API -->|"HTTP /api/*"| NGINX
+    SOCKET -->|"WS"| NGINX
 
-    AUTH_C --> AUTH_S --> USER_M
-    USER_C --> USER_M
+    %% Backend internal
+    INDEX --> ROUTEIDX
+    INDEX --> AUTHRT
+    INDEX --> USERSRT
+    INDEX --> ERRMW
+    AUTHRT --> AUTHMW
+    AUTHRT --> AUTHCTRL
+    USERSRT --> AUTHMW
+    USERSRT --> USERCTRL
+    AUTHCTRL --> AUTHSVC
+    AUTHCTRL --> USERMODEL
+    USERCTRL --> USERMODEL
+    AUTHMW --> AUTHSVC
+    AUTHSVC --> CFG
+    USERMODEL --> DBCFG
+    DBCFG --> PG
 
-    USER_M --> DB_CFG --> Database
+    %% E2E hits nginx
+    E2E -->|"browser → :8080"| NGINX
+    E2E -->|"request → /api"| NGINX
 
-    CFG -.->|"reads env vars"| AUTH_S
-    CFG -.->|"reads env vars"| DB_CFG
+    %% CI runs all test suites
+    CI -->|"npm test"| BTESTS
+    CI -->|"npm test"| FTESTS
+    CI -->|"playwright test"| E2E
 
-    ERR -.->|"catches all errors"| IDX
+    %% Styles
+    classDef infra fill:#313244,color:#cdd6f4,stroke:#fab387,stroke-width:2px
+    classDef fe fill:#1e1e2e,color:#cdd6f4,stroke:#89dceb,stroke-width:2px
+    classDef be fill:#1e1e2e,color:#cdd6f4,stroke:#a6e3a1,stroke-width:2px
+    classDef db fill:#181825,color:#cdd6f4,stroke:#cba6f7,stroke-width:2px
+    classDef e2e fill:#1e1e2e,color:#cdd6f4,stroke:#f38ba8,stroke-width:2px
+    classDef ci fill:#1e1e2e,color:#cdd6f4,stroke:#f9e2af,stroke-width:2px
+    classDef test fill:#11111b,color:#a6adc8,stroke:#585b70,stroke-width:1px
 
-    Tests -.-> Backend
-    E2E -.-> Client
+    class NGINX infra
+    class MAIN,HOME,LOGIN,REGISTER,PROFILE,ROUTER,AUTHSTORE,API,SOCKET fe
+    class INDEX,CFG,DBCFG,ROUTEIDX,AUTHRT,USERSRT,AUTHCTRL,USERCTRL,AUTHMW,ERRMW,USERMODEL,AUTHSVC be
+    class PG db
+    class EAUTH,ENAV,EPROF e2e
+    class CIJOBS ci
+    class APPT,ROUTERT,AUTHT,HOMET,LOGINT,PROFILET,REGISTERT,UCFG,UAUTHMW,UERRMW,UMODEL,USVC,IAUTH,IUSERS,IHEALTH test
 ```
 
 ## Architecture — Request Lifecycle
@@ -164,3 +233,4 @@ Browser / Client
 ## Issue Tracker
 
 See [GitHub Issues](https://github.com/ValGSgit/Cleanscendence/issues) for the full backlog.
+
