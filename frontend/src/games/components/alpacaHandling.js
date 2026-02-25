@@ -15,24 +15,22 @@ export function alpacaHandling() {
     const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
     clonedModel.rotation.set(0, 0, 0)
     clonedModel.quaternion.identity()
-    if (name === undefined)
-      clonedModel.name = "NewAlpaca"
-    else
-      clonedModel.name = name
+    clonedModel = (name === undefined) ? "NewAlpaca" : name
+    // if (name === undefined)
+    //   clonedModel.name = "NewAlpaca"
+    // else
+    //   clonedModel.name = name
     clonedModel.color = color
 
     clonedModel.traverse((child) => {
-      if (child.isMesh && (child.name.startsWith('UCX_') || child.name === 'Collider')) {
+      if (child.isMesh && child.name === 'Collider') {
         clonedModel.userData.collider = child
-      }
-      if (child.isMesh && child.name === 'Cylinder') {
         child.material = child.material.clone();
         child.material.color.set(color)
       }
     })
 
     const clonedMixer = new THREE.AnimationMixer(clonedModel)
-
     const newAlpaca = {
       model: clonedModel,
       mixer: clonedMixer,
@@ -41,12 +39,9 @@ export function alpacaHandling() {
       rotationOffset: 0
     }
 
-    const x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
-    const z = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
-    newAlpaca.model.rotation.y = Math.random() * Math.PI * 2
     if (scale === undefined)
       scale = 1
-    newAlpaca.model.position.set(x, 0, z)
+    newAlpaca.model.position.set(0, 0, 0)
     newAlpaca.model.scale.set(scale, scale, scale)
 
     gScene.value.selected = newAlpaca.model
@@ -67,10 +62,7 @@ export function alpacaHandling() {
     }
     else
       raycaster.ray.intersectPlane(plane, worldPoint)
-    // teleport for the moment, need improvement
-    const distance = Math.sqrt(worldPoint.x * worldPoint.x + worldPoint.z * worldPoint.z)
-    const withinBounds = distance < CONST.MAX_MOVE_RADIUS
-    if (withinBounds)
+    if (checkWithinBounds(worldPoint.x, worldPoint.z))
       checkCollision(gPlayer.value.model, worldPoint.x, worldPoint.z)
   }
 

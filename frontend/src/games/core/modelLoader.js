@@ -17,6 +17,7 @@ export async function loadGLTF(path) {
       if (child.isMesh) {
         if (child.name.startsWith('UCX_')) {
           collider = child
+          collider.name = "Collider"
           child.visible = false
           // FOR DEBUGGING
           // child.visible = true

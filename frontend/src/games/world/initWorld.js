@@ -113,7 +113,7 @@ async function spawnTrees(scene, items) {
   for (let i = 0; i < amount; i++) {
     const treeClone = model.clone()
     treeClone.traverse((child) => {
-      if (child.isMesh && (child.name.startsWith('UCX_') || child.name === 'Collider')) {
+      if (child.isMesh && child.name === 'Collider') {
         treeClone.userData.collider = child
       }
     })

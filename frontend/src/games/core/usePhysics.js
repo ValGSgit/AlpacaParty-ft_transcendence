@@ -63,7 +63,13 @@ export function usePhysics() {
     return hasCollision
   }
 
-  return { checkCollision, checkCollisionWith }
+  const checkWithinBounds = (x, z) => {
+    const distance = Math.sqrt(x * x + z * z)
+    const withinBounds = distance < CONST.MAX_MOVE_RADIUS
+    return withinBounds
+  }
+
+  return { checkCollision, checkCollisionWith, checkWithinBounds }
 }
 
 function drawDebugBox(hitMesh) {
