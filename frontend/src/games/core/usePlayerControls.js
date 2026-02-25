@@ -5,12 +5,11 @@ import { gPlayer } from './globals.js'
 
 export function usePlayerControls() {
   const { keys } = useInput()
-  const { checkCollision } = usePhysics()
+  const { checkCollision, checkWithinBounds } = usePhysics()
 
   let currentAction = null
   let isJumping = false
   let isFalling = false
-
 
   const handleMovement = (player) => {
     let speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
@@ -26,7 +25,7 @@ export function usePlayerControls() {
     if (keys.space && player.position.y <= CONST.JUMPING_MAX_HEIGHT && !isFalling) { player.position.y += CONST.JUMPING_SPEED; isMoving = true; isJumping = true }
     if (player.position.y > 0 && (!keys.space || isFalling)) { player.position.y -= CONST.JUMPING_SPEED; isJumping = true }
     if (player.position.y < 0) player.position.y = 0 // reset y if it goes below the ground
-    if (player.position.y === 0) {isJumping = false; if (!keys.space) isFalling = false }
+    if (player.position.y === 0) { isJumping = false; if (!keys.space) isFalling = false }
     if (player.position.y >= CONST.JUMPING_MAX_HEIGHT) isFalling = true
 
     if (isMoving) {
@@ -36,11 +35,8 @@ export function usePlayerControls() {
       let nextX = player.position.x + dx
       let nextZ = player.position.z + dz
 
-      const distance = Math.sqrt(nextX * nextX + nextZ * nextZ)
-      const withinBounds = distance < CONST.MAX_MOVE_RADIUS
-      let hasCollision = false
-      if (withinBounds) {
-        hasCollision = checkCollision(player, nextX, nextZ, nextRotY)
+      if (checkWithinBounds(nextX, nextZ)) {
+        checkCollision(player, nextX, nextZ, nextRotY)
       }
     }
     return { isMoving, speed }
@@ -71,7 +67,11 @@ export function usePlayerControls() {
 
     if (currentAction !== newAction) {
       currentAction.fadeOut(0.4)
-      newAction.reset().fadeIn(0.4).play()
+      newAction.reset()
+      if (newAction === jumpAction) {
+        newAction.time = 0.15;
+      }
+      newAction.fadeIn(0.4).play()
       currentAction = newAction
     }
   }

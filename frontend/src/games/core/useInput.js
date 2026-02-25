@@ -1,14 +1,17 @@
-import { reactive, onMounted, onUnmounted } from 'vue'
 import * as THREE from 'three'
-import { gEngine, gScene, gUser, gPlayer, gAlpacas, gItems } from './globals.js'
+import { reactive, onMounted, onUnmounted } from 'vue'
+import { gEngine, gScene, gUser, gAlpacas, gItems } from './globals.js'
 import { alpacaHandling } from '../components/alpacaHandling.js'
-import { CONST } from '../config/constants.js'
 import { usePhysics } from './usePhysics.js'
 import { saveGame } from './saveLoadGame.js'
+import { useShop } from '../components/shop.js'
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
+import { MATERIALS as MATS } from '../config/materials.js'
 
 export function useInput() {
   const { switchAlpaca, moveAlpaca } = alpacaHandling()
-  const { checkCollision } = usePhysics()
+  const { checkCollision, checkWithinBounds } = usePhysics()
+  const { alpacaMenuOff, itemShopOff, editModeOff } = useShop()
 
   const keys = reactive({
     w: false, a: false, s: false, d: false, space: false
@@ -39,6 +42,7 @@ export function useInput() {
       case 'Space': keys.space = true; break
       case 'KeyF': saveGame(); break
       case 'KeyP': print_debug_flags(); break
+      case 'Escape': handleEscapeKey(); break
     }
   }
 
@@ -101,9 +105,7 @@ export function useInput() {
       const ghost = gScene.value.selectedGhost
       // move around
       if (raycaster.ray.intersectPlane(plane, worldPoint)) {
-        const distance = Math.sqrt(worldPoint.x * worldPoint.x + worldPoint.z * worldPoint.z)
-        const withinBounds = distance < CONST.MAX_MOVE_RADIUS
-        if (withinBounds && !checkCollision(gScene.value.selected, worldPoint.x, worldPoint.z)) {
+        if (checkWithinBounds(worldPoint.x, worldPoint.z) && !checkCollision(gScene.value.selected, worldPoint.x, worldPoint.z)) {
           gScene.value.selected.visible = true
           ghost.visible = false;
         }
@@ -135,7 +137,7 @@ export function useInput() {
     }
   }
 
-  const onPointerUp = (e) => {
+  const onPointerUp = () => {
     if (gScene.value.selected) {
       if (gScene.value.selectedGhost)
         gScene.value.remove(gScene.value.selectedGhost)
@@ -145,6 +147,14 @@ export function useInput() {
       gEngine.value.controls.enabled = true
       saveGame()
     }
+  }
+
+  const handleEscapeKey = () => {
+    gScene.value.pause = false
+    gScene.value.lightMenu = false
+    if (gScene.value.alpacaMenu) alpacaMenuOff()
+    if (gScene.value.itemMenu) itemShopOff()
+    if (gScene.value.edit) editModeOff()
   }
 
   onMounted(() => {
@@ -170,17 +180,14 @@ export function useInput() {
 }
 
 export function cloneGhost(selected) {
-  const ghost = selected.clone()
-  // need to use gPlayer instead of gUser as it can't be in ref but shallowRef
+  const ghost = SkeletonUtils.clone(selected)
   gScene.value.selectedGhost = ghost
   ghost.traverse((child) => {
     if (child.isMesh) {
-      // clone the material so we don't turn the ORIGINAL model red too
-      child.material = child.material.clone();
-      child.material.color.set(0xff0000);
-      // make it see-through for a "ghost" effect
-      child.material.transparent = true;
-      child.material.opacity = 0.5;
+      if (child.name !== "Collider")
+        child.material = MATS.ghost
+      else
+        child.material = MATS.collider_hit
     }
   })
   return ghost

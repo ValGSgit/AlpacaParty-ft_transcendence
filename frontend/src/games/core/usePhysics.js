@@ -5,7 +5,6 @@ import { MATERIALS as MATS } from '../config/materials.js'
 
 const sourceOBB = new OBB()
 const obstacleOBB = new OBB()
-let debugTimer = null
 
 export function usePhysics() {
 
@@ -63,7 +62,13 @@ export function usePhysics() {
     return hasCollision
   }
 
-  return { checkCollision, checkCollisionWith }
+  const checkWithinBounds = (x, z) => {
+    const distance = Math.sqrt(x * x + z * z)
+    const withinBounds = distance < CONST.MAX_MOVE_RADIUS
+    return withinBounds
+  }
+
+  return { checkCollision, checkCollisionWith, checkWithinBounds }
 }
 
 function drawDebugBox(hitMesh) {
@@ -77,5 +82,5 @@ function drawDebugBox(hitMesh) {
   hitMesh.userData.debugTimer = setTimeout(() => {
     hitMesh.material = MATS.debug
     hitMesh.userData.debugTimer = null
-  }, 1500)
+  }, 1000)
 }

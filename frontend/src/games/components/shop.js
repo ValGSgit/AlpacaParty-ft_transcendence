@@ -1,13 +1,7 @@
 import { gUser, gPlayer, gScene } from '../core/globals.js'
-import { loadGLTF } from '../core/modelLoader.js'
 import { alpacaHandling } from './alpacaHandling.js'
 import { CONST } from '../config/constants.js'
-import { initWorld } from '../world/initWorld.js'
-import * as PRIMITIVES from '../assets/primitives.js'
-import * as GRADIENT from "../utils/createGradient.js"
 import { reactive } from 'vue'
-
-import * as THREE from 'three'
 
 const { spawnAlpaca } = alpacaHandling()
 
@@ -31,7 +25,7 @@ export function useShop() {
   }
 
   const addDebugCoins = () => {
-    gUser.value.coins++
+    gUser.value.coins += 1000
   }
 
   const editModeOn = () => {
@@ -66,6 +60,7 @@ export function useShop() {
     gScene.value.ambientLight.color.set(light)
     gScene.value.sunLight.color.set(light)
   }
+
   const alpacaMenuOn = (newAlpaca) => {
     gScene.value.alpacaMenu = true
     gScene.value.pause = false

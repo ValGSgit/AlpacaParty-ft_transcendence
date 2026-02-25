@@ -26,6 +26,12 @@ export const MATERIALS = {
     polygonOffset: true,
     polygonOffsetFactor: -1, // Pulls the polygons slightly toward the camera
     polygonOffsetUnits: -1,
+  }),
+
+  ghost: new THREE.MeshBasicMaterial({
+    color: 0xff0000,
+    transparent: true,
+    opacity: 0.5,
   })
 }
 

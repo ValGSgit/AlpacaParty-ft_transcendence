@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { ref, shallowRef } from 'vue'
+import { shallowRef } from 'vue'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { gScene, gAlpacas, gItems, gUser } from './globals.js'
 import { CONST } from '../config/constants.js'
