@@ -1,0 +1,127 @@
+/**
+ * User Controller — profile viewing & editing
+ * @owner ValGSgit
+ * @issue https://github.com/ValGSgit/Cleanscendence/issues/9
+ */
+import User from '../models/User.js';
+import AuthService from '../services/authService.js';
+
+/**
+ * GET /api/users/me — alias handled via auth/me, but also available here
+ */
+export const getMe = async (req, res) => {
+  res.json({ user: req.user });
+};
+
+/**
+ * PUT /api/users/me — update own profile
+ */
+export const updateMe = async (req, res, next) => {
+  try {
+    const { username, email, bio, status, avatar, coins, upgrades, items, alpacas } = req.body;
+
+    // Check username uniqueness if changing
+    if (username && username !== req.user.username) {
+      if (username.length < 3 || username.length > 32) {
+        return res.status(400).json({ error: { message: 'Username must be 3-32 characters' } });
+      }
+      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        return res.status(400).json({ error: { message: 'Username may only contain letters, numbers, hyphens and underscores' } });
+      }
+      const existing = await User.findByUsername(username);
+      if (existing) {
+        return res.status(409).json({ error: { message: 'Username already taken' } });
+      }
+    }
+
+    // Check email uniqueness if changing
+    if (email && email !== req.user.email) {
+      const existing = await User.findByEmail(email);
+      if (existing) {
+        return res.status(409).json({ error: { message: 'Email already registered' } });
+      }
+    }
+
+    const updatedUser = await User.update(req.user.id, {
+      username,
+      email,
+      bio,
+      status,
+      avatar,
+      coins,
+      upgrades,
+      items,
+      alpacas
+    });
+
+    res.json({ user: updatedUser });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * PUT /api/users/me/password — change own password
+ */
+export const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: { message: 'currentPassword and newPassword are required' } });
+    }
+
+    const userWithPw = await User.findByIdWithPassword(req.user.id);
+    const valid = await AuthService.comparePassword(currentPassword, userWithPw.password_hash);
+    if (!valid) {
+      return res.status(401).json({ error: { message: 'Current password is incorrect' } });
+    }
+
+    const { valid: pwValid, errors } = AuthService.validatePassword(newPassword);
+    if (!pwValid) {
+      return res.status(400).json({ error: { message: errors.join('. ') } });
+    }
+
+    const hash = await AuthService.hashPassword(newPassword);
+    await User.updatePassword(req.user.id, hash);
+
+    res.json({ message: 'Password updated' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/users/:id — view another user's public profile
+ */
+export const getUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: { message: 'User not found' } });
+    }
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/users — list / search users
+ */
+export const listUsers = async (req, res, next) => {
+  try {
+    const { search, limit = 50, offset = 0 } = req.query;
+
+    let users;
+    if (search) {
+      users = await User.search(search, { limit: Number(limit) });
+    } else {
+      users = await User.findAll({ limit: Number(limit), offset: Number(offset) });
+    }
+
+    res.json({ users });
+  } catch (err) {
+    next(err);
+  }
+};

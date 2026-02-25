@@ -1,0 +1,272 @@
+/* The Three.js container */
+.scene-container {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  /* So you can see if it's loading */
+}
+
+.hud-left {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.stat {
+  width: 100px;
+  height: 50px;
+  font-size: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+
+.hud-right {
+  position: absolute;
+  /* Floating on top */
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  /* Critical: ensure the div itself doesn't block mouse clicks 
+     to the game, but the buttons inside DO accept clicks */
+  pointer-events: none;
+}
+
+.hud-btn {
+  pointer-events: auto;
+  /* Buttons must be clickable */
+  width: 50px;
+  height: 50px;
+  font-size: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+
+.hud-btn:hover {
+  transform: scale(1.1);
+  background: rgba(0, 240, 255, 0.2);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.shop-title {
+  font-size: 50px;
+  display: flex;
+  flex-direction: column;
+  /* This stacks them vertically */
+  gap: 10px;
+  /* This adds clean spacing between them */
+  align-items: center;
+  /* Keeps the button from stretching full-width */
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.input-group label {
+  /* Adjust the size of the word "Name" here */
+  font-size: 50px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #333;
+  /* Adjust to match your UI text color */
+}
+
+/* Input of Name */
+.input-group input[type="text"] {
+  padding: 8px 12px;
+  font-size: 25px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  outline: none;
+}
+
+/* --- PRESET COLOR BUTTONS --- */
+.color-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* Creates a neat 2x2 grid */
+  gap: 8px;
+}
+
+/* --- CUSTOM COLOR PICKER --- */
+.custom-color-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* This resets the ugly browser default and makes a clean, clickable square */
+input[type="color"].custom-picker {
+  -webkit-appearance: none;
+  border: none;
+  width: 44px;
+  /* Makes the color picker much larger */
+  height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+}
+
+input[type="color"].custom-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"].custom-picker::-webkit-color-swatch {
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  /* Matches the rounded corners */
+}
+
+/* Make sure the custom buy button takes up the remaining space */
+.custom-color-row .shop-btn {
+  flex-grow: 1;
+  height: 44px;
+  /* Matches the height of the color picker */
+  margin: 0;
+}
+
+/* Buttons for Alpaca Color */
+.shop-btn {
+  pointer-events: auto;
+  /* Buttons must be clickable */
+  width: 200px;
+  height: 50px;
+  font-size: 24px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px solid rgba(0, 240, 255, 0.5);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+
+.alpaca-stat {
+  font-size: 30px;
+  display: flex;
+  flex-direction: none;
+  /* This stacks them vertically */
+  gap: 10px;
+  /* This adds clean spacing between them */
+  align-items: center;
+  /* Keeps the button from stretching full-width */
+}
+
+.stat-btn {
+  pointer-events: auto;
+  /* Buttons must be clickable */
+  width: 30px;
+  height: 30px;
+  font-size: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+
+.edit-mode {
+  padding-top: 90px;
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: top;
+  justify-content: center;
+  z-index: 100;
+}
+
+.edit-mode-light {
+  padding-top: 90px;
+  pointer-events: auto;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: top;
+  justify-content: center;
+  z-index: 100;
+}
+
+.close-btn {
+  pointer-events: auto;
+  /* Buttons must be clickable */
+  width: 30px;
+  height: 30px;
+  font-size: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  transition: transform 0.1s;
+}
+
+.close-btn:hover {
+  transform: scale(1.1);
+  background: rgba(0, 240, 255, 0.2);
+}
+
+.input-group {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 5px;
+}
+
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}

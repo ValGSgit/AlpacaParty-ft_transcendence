@@ -1,6 +1,5 @@
 # ── Dependencies ─────────────────────────────────────────────
 node_modules/
-package-lock.json
 
 # ── Build outputs ────────────────────────────────────────────
 dist/
@@ -29,3 +28,9 @@ npm-debug.log*
 
 # ── Docker persistent data (local) ──────────────────────────
 data/
+
+# ── Test artifacts ───────────────────────────────────────────
+coverage/
+**/coverage/
+playwright-report/
+test-results/

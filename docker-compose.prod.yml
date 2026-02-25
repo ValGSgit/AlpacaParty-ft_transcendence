@@ -1,0 +1,96 @@
+# Docker Compose — Production
+# @owner ValGSgit
+# @issue https://github.com/ValGSgit/Cleanscendence/issues/3
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml down
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: cleanscendence_db_prod
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cleanscendence}
+      POSTGRES_USER: ${DB_USER:-cleanscendence}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./PostgreSQL/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cleanscendence}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: always
+    networks:
+      - cleanscendence_net
+
+  # ── Backend (Express) ──────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: cleanscendence_backend_prod
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-cleanscendence}
+      DB_USER: ${DB_USER:-cleanscendence}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    networks:
+      - cleanscendence_net
+
+  # ── Frontend (Static Files) ────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_API_URL=${VITE_API_URL:-/api}
+    container_name: cleanscendence_frontend_prod
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - cleanscendence_net
+
+  # ── nginx reverse proxy ────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: cleanscendence_nginx_prod
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: always
+    networks:
+      - cleanscendence_net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  pg_data:
+    driver: local
+
+networks:
+  cleanscendence_net:
+    driver: bridge
