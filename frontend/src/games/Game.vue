@@ -27,23 +27,30 @@
     </div>
     <!-- Alpaca Menu -->
     <div v-if="gScene.alpacaMenu && gScene.newAlpaca" class="modal-overlay">
-        <div class="shop-title">New Alpaca
-      <div class="input-group">
-        <label>Name</label>
-        <input v-model="alpacaConfig.name" placeholder="Name your alpaca..." />
-      </div>
-      <div class="input-group">
-        <label>Size ({{ alpacaConfig.scale }}x)</label>
-        <input type="range" v-model.number="alpacaConfig.scale" min="0.5" max="1" step="0.25" />
-      </div>
-          <button class="shop-btn" @click="buyAlpaca()" title="Original">Original</button>
-          <button class="shop-btn" @click="buyAlpaca(0x000000)" title="Black">Black</button>
-          <button class="shop-btn" @click="buyAlpaca(0x555555)" title="Grey">Grey</button>
-          <button class="shop-btn" @click="buyAlpaca(0xffffff)" title="White">White</button>
-          <div class="color-picker-row"><input type="color" v-model="alpacaConfig.color" /></div>
-          <button class="shop-btn" @click="buyAlpaca(alpacaConfig.color)" title="Custom">Custom</button>
-          <button class="close-btn" @click="alpacaMenuOff" title="Close">✖️</button>
+      <div class="shop-title">New Alpaca
+        <div class="input-group">
+          <label>Name</label>
+          <input type="text" v-model="alpacaConfig.name" placeholder="Name your alpaca..." />
         </div>
+        <div class="input-group">
+          <label>Size </label>
+          <input type="range" v-model.number="alpacaConfig.scale" min="0.75" max="1.25" step="0.05" />
+        </div>
+
+        <div class="color-grid">
+          <button class="shop-btn" @click="buyAlpaca()" title="Original">Original</button>
+          <button class="shop-btn" @click="buyAlpaca(0x111111)" title="Black">Black</button>
+          <button class="shop-btn" @click="buyAlpaca(0x555555)" title="Grey">Grey</button>
+          <button class="shop-btn" @click="buyAlpaca(0xeeeeee)" title="White">White</button>
+        </div>
+
+        <div class="custom-color-row">
+          <input type="color" v-model="alpacaConfig.color" class="custom-picker" />
+          <button class="shop-btn" @click="buyAlpaca(alpacaConfig.color)" title="Custom">Buy Custom</button>
+        </div>
+
+        <button class="close-btn" @click="alpacaMenuOff" title="Close">✖️</button>
+      </div>
     </div>
     <!-- Alpaca Stat -->
     <div v-if="gScene.alpacaMenu && !gScene.newAlpaca" class="modal-overlay">

@@ -25,7 +25,7 @@ export function useShop() {
   }
 
   const addDebugCoins = () => {
-    gUser.value.coins++
+    gUser.value.coins += 1000
   }
 
   const editModeOn = () => {

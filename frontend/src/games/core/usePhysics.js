@@ -5,7 +5,6 @@ import { MATERIALS as MATS } from '../config/materials.js'
 
 const sourceOBB = new OBB()
 const obstacleOBB = new OBB()
-let debugTimer = null
 
 export function usePhysics() {
 
@@ -83,5 +82,5 @@ function drawDebugBox(hitMesh) {
   hitMesh.userData.debugTimer = setTimeout(() => {
     hitMesh.material = MATS.debug
     hitMesh.userData.debugTimer = null
-  }, 1500)
+  }, 1000)
 }
