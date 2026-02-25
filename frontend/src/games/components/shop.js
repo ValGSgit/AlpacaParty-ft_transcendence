@@ -98,7 +98,6 @@ export function useShop() {
     {
       gScene.value.cameraMode = 0
       gEngine.value.camera.position.set(30, 30, 50)
-      gEngine.value.camera.lookAt(0, 0, 0)
     }
   }
 

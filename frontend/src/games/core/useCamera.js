@@ -4,27 +4,24 @@ import { gScene } from './globals.js'
 
 export function useCamera(camera, controls) {
 
-  const offset = new THREE.Vector3(
-    CONST.CAMERA_OFFSET.x,
-    CONST.CAMERA_OFFSET.y,
-    CONST.CAMERA_OFFSET.z
-  )
-  const lookAt = new THREE.Vector3()
-  const currentPosition = new THREE.Vector3()
-  
-
   const updateCamera = (player) => {
     if (!controls || !player) return
 
-    let mode = gScene.value.cameraMode 
+    const offset = new THREE.Vector3(
+      CONST.CAMERA_OFFSET.x,
+      CONST.CAMERA_OFFSET.y,
+      CONST.CAMERA_OFFSET.z
+    )
+    const lookAt = new THREE.Vector3()
+    const currentPosition = new THREE.Vector3()
+    const mode = gScene.value.cameraMode 
 
-    if (!mode || mode === 0){
+    if (mode === 0){
       // normal original orbit
     controls.enabled = true
-    lookAt.copy(player.position).add(offset)
-    currentPosition.set(player.position)
-    controls.target.lerp(lookAt, CONST.CAMERA_LERP)
-    controls.update()  
+    currentPosition.copy(player.position).add(offset)
+    controls.target.lerp(currentPosition, CONST.CAMERA_LERP)
+    controls.update()
     }
     else if (mode === 1)
     {
