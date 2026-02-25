@@ -23,8 +23,11 @@ export function alpacaHandling() {
         if (child.name === 'Collider')
           clonedModel.userData.collider = child
         else {
-          child.material = child.material.clone()
-          child.material.color.set(color)
+          if (child.name === 'Cylinder') // 'Cylinder' is the alpacasbody name
+          {
+            child.material = child.material.clone();
+            child.material.color.set(color)
+          }
         }
       }
     })
