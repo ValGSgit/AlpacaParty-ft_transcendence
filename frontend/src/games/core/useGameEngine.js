@@ -37,6 +37,8 @@ export function useGameEngine(containerRef) {
     gScene.value.alpacaMenu = false
     gScene.value.newAlpaca = false
     gScene.value.lightMenu = false
+    // camera mode
+    gScene.value.cameraMode = 0
 
     // CAMERA
     const w = containerRef.value.clientWidth

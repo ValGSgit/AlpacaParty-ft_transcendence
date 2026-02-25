@@ -1,4 +1,4 @@
-import { gUser, gPlayer, gScene } from '../core/globals.js'
+import { gUser, gPlayer, gScene, gEngine } from '../core/globals.js'
 import { alpacaHandling } from './alpacaHandling.js'
 import { CONST } from '../config/constants.js'
 import { reactive } from 'vue'
@@ -91,7 +91,18 @@ export function useShop() {
       gPlayer.value.speedOffset = newSpeed
   }
 
-  return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed }
+  const changeCamera = () => {
+    if (gScene.value.cameraMode < 3)
+      gScene.value.cameraMode ++;
+    else // reset
+    {
+      gScene.value.cameraMode = 0
+      gEngine.value.camera.position.set(30, 30, 50)
+      gEngine.value.camera.lookAt(0, 0, 0)
+    }
+  }
+
+  return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera }
 }
 
 

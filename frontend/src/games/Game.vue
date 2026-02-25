@@ -21,6 +21,7 @@
       <button class="hud-btn" @click="openShopMenu" title="Shop">💰</button>
       <button class="hud-btn" @click="editModeOn" title="Edit Scene">✏️</button>
       <button class="hud-btn" @click="editLight(0)" title="Edit Light">🌟</button>
+      <button class="hud-btn" @click="changeCamera" title="Change Camera">🎥</button>
     </div>
     <!-- Shop UI -->
     <div v-if="gScene.pause" class="modal-overlay">
@@ -129,7 +130,7 @@ let cameraUpdate = null
 let stopMyWatcher
 
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed } = useShop()
+const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera } = useShop()
 const { spawnShopItem } = spawnItems()
 const { isAuthenticated } = useAuthStore()
 
