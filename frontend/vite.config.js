@@ -21,6 +21,13 @@ export default defineConfig({
     host: true,
     port: 5173,
     allowedHosts: ['localhost', 'frontend', 'nginx'],
+    // Route HMR websocket through nginx on /ws so the browser doesn't try
+    // to open a direct ws://localhost:8080/?token=... connection that nginx
+    // has no rule for.
+    hmr: {
+      path: '/ws',
+      clientPort: 8080,
+    },
     watch: {
       usePolling: true,
     },
