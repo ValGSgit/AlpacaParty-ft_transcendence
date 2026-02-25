@@ -7,6 +7,7 @@ import { saveGame } from './saveLoadGame.js'
 import { useShop } from '../components/shop.js'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 import { MATERIALS as MATS } from '../config/materials.js'
+import { CONST } from '../config/constants.js'
 
 export function useInput() {
   const { switchAlpaca, moveAlpaca } = alpacaHandling()
@@ -186,8 +187,10 @@ export function cloneGhost(selected) {
     if (child.isMesh) {
       if (child.name !== "Collider")
         child.material = MATS.ghost
-      else
-        child.material = MATS.collider_hit
+      else {
+        if (CONST.DEBUG)
+          child.material = MATS.collider_hit
+      }
     }
   })
   return ghost
