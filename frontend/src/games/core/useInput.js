@@ -5,6 +5,7 @@ import { alpacaHandling } from '../components/alpacaHandling.js'
 import { usePhysics } from './usePhysics.js'
 import { saveGame } from './saveLoadGame.js'
 import { useShop } from '../components/shop.js'
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 import { MATERIALS as MATS } from '../config/materials.js'
 
 export function useInput() {
@@ -179,7 +180,7 @@ export function useInput() {
 }
 
 export function cloneGhost(selected) {
-  const ghost = selected.clone()
+  const ghost = SkeletonUtils.clone(selected)
   gScene.value.selectedGhost = ghost
   ghost.traverse((child) => {
     if (child.isMesh) {

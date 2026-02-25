@@ -15,22 +15,21 @@ export function alpacaHandling() {
     const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
     clonedModel.rotation.set(0, 0, 0)
     clonedModel.quaternion.identity()
-    clonedModel = (name === undefined) ? "NewAlpaca" : name
-    // if (name === undefined)
-    //   clonedModel.name = "NewAlpaca"
-    // else
-    //   clonedModel.name = name
+    clonedModel.name = (name === undefined) ? "NewAlpaca" : name
     clonedModel.color = color
 
     clonedModel.traverse((child) => {
-      if (child.isMesh && child.name === 'Collider') {
-        clonedModel.userData.collider = child
-        child.material = child.material.clone();
-        child.material.color.set(color)
+      if (child.isMesh) {
+        if (child.name === 'Collider')
+          clonedModel.userData.collider = child
+        else {
+          child.material = child.material.clone()
+          child.material.color.set(color)
+        }
       }
     })
-
     const clonedMixer = new THREE.AnimationMixer(clonedModel)
+
     const newAlpaca = {
       model: clonedModel,
       mixer: clonedMixer,
@@ -62,7 +61,10 @@ export function alpacaHandling() {
     }
     else
       raycaster.ray.intersectPlane(plane, worldPoint)
-    if (checkWithinBounds(worldPoint.x, worldPoint.z))
+    // teleport for the moment, need improvement
+    const distance = Math.sqrt(worldPoint.x * worldPoint.x + worldPoint.z * worldPoint.z)
+    const withinBounds = distance < CONST.MAX_MOVE_RADIUS
+    if (withinBounds)
       checkCollision(gPlayer.value.model, worldPoint.x, worldPoint.z)
   }
 
