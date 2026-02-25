@@ -64,3 +64,4 @@ make install && make dev       # frontend :5173, backend :3000
 ## Issue Tracker
 
 See [GitHub Issues](https://github.com/ValGSgit/Cleanscendence/issues) for the full backlog.
+
