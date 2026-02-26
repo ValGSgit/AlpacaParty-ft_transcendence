@@ -9,14 +9,16 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 import { MATERIALS as MATS } from '../config/materials.js'
 import { CONST } from '../config/constants.js'
 
+// move it to outside of the function so it can be used in useEngine and other functions
+const keys = reactive({
+  w: false, a: false, s: false, d: false, space: false, pointer: false
+})
+
 export function useInput() {
-  const { switchAlpaca, moveAlpaca } = alpacaHandling()
+  const { switchAlpaca, moveAlpaca, split } = alpacaHandling()
   const { checkCollision, checkWithinBounds } = usePhysics()
   const { alpacaMenuOff, itemShopOff, editModeOff } = useShop()
 
-  const keys = reactive({
-    w: false, a: false, s: false, d: false, space: false
-  })
 
   const print_debug_flags = () => {
     //console.log("", )
@@ -41,7 +43,7 @@ export function useInput() {
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
       case 'Space': keys.space = true; break
-      case 'KeyF': saveGame(); break
+      case 'KeyF': split(); break
       case 'KeyP': print_debug_flags(); break
       case 'Escape': handleEscapeKey(); break
     }
@@ -121,6 +123,7 @@ export function useInput() {
   }
 
   const onPointerDown = (e) => {
+    keys.pointer = true
     // Select item in edit mode
     if (gScene.value.edit) {
       const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
@@ -139,6 +142,7 @@ export function useInput() {
   }
 
   const onPointerUp = () => {
+    keys.pointer = false
     if (gScene.value.selected) {
       if (gScene.value.selectedGhost)
         gScene.value.remove(gScene.value.selectedGhost)

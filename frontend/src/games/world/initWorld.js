@@ -181,6 +181,10 @@ async function loadPlayer(scene, alpaca) {
     model.position.z = alpaca.position[2]
     model.rotation.y = alpaca.rotation
     model.scale.set(alpaca.scale.x, alpaca.scale.y, alpaca.scale.z)
+    model.isJumping = false
+    model.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
+    model.isFalling = false
+    model.currentAction = null
     speedOffset = alpaca.speedOffset
     rotationOffset = alpaca.rotationOffset
   }

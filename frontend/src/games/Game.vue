@@ -108,12 +108,13 @@ import { usePlayerControls } from './core/usePlayerControls.js'
 import { initWorld } from './world/initWorld.js'
 import { initUser } from './user/initUser.js'
 import { useCamera } from './core/useCamera.js'
-import { gEngine, gScene, gPlayer, gUser } from './core/globals.js'
+import { gEngine, gScene, gPlayer, gUser, gAlpacas } from './core/globals.js'
 import { alpacaConfig, useShop } from './components/shop.js'
 import { spawnItems } from "./components/spawnItems.js"
 import { saveGame } from './core/saveLoadGame.js'
 import { useAuthStore } from '../stores/auth.js'
 import { watchChanges } from './core/watchChanges.js'
+import { handleAnimation } from './core/useAnimation.js'
 import './game.css'
 
 const gameContainer = ref(null)
@@ -182,8 +183,15 @@ const gameLoop = () => {
     }
   }
 
-  if (mixer) {
-    mixer.update(delta)
+  // update all mixer
+  for (let i = 0; gAlpacas.value[i]; i++){
+    if (gAlpacas.value[i] && gAlpacas.value[i].mixer) {
+      if (gAlpacas.value[i].model.id !== player.id)
+      {
+        handleAnimation(gAlpacas.value[i].model, gAlpacas.value[i].mixer, gAlpacas.value[i].animations, 0, 1)
+      }
+      gAlpacas.value[i].mixer.update(delta)
+    }
   }
 
   gEngine.value.renderer.render(
