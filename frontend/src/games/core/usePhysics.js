@@ -41,7 +41,10 @@ export function usePhysics() {
   }
 
   const checkCollision = (player, nextX, nextZ, nextRotY) => {
-    storePos(player)
+    const oldX = player.position.x
+    const oldZ = player.position.z
+    const oldRotY = player.rotation.y
+
     player.position.x = nextX
     player.position.z = nextZ
     if (nextRotY !== undefined) player.rotation.y = nextRotY
@@ -52,7 +55,9 @@ export function usePhysics() {
       hasCollision = checkCollisionWith(player, gItems.value)
     }
     if (hasCollision) {
-      restorePos(player)
+      player.position.x = oldX
+      player.position.z = oldZ
+      player.rotation.y = oldRotY
       player.updateMatrixWorld(true)
     }
     return hasCollision
