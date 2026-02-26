@@ -1,16 +1,16 @@
 import { CONST } from '../config/constants.js'
 import * as THREE from 'three'
 import { gAlpacas, gPlayer, gScene, gEngine } from "../core/globals.js"
-import { cloneGhost } from '../components/editMode.js'
 import { usePhysics } from '../core/usePhysics.js'
-import { handleAnimation } from '../core/useAnimation.js'
-import { cloneModel } from '../utils/cloneModel.js'
 import { setupPlacement } from '../components/editMode.js'
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
+import { handleAnimation } from '../core/useAnimation.js'
 
 export function alpacaHandling() {
   const { checkCollision } = usePhysics()
 
   const createAlpacaData = (model, animations, scale) => {
+    if (scale === undefined) scale = 1
     model.position.set(0, 0, 0)
     model.scale.set(scale, scale, scale)
 
@@ -24,9 +24,37 @@ export function alpacaHandling() {
   }
   const spawnAlpaca = (color, name, scale) => {
     const originalAlpaca = gAlpacas.value[0]
-    color = color ?? originalAlpaca.model.color
+    if (color === undefined)
+      color = originalAlpaca.model.color
+    const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
+    clonedModel.rotation.set(0, 0, 0)
+    clonedModel.quaternion.identity()
+    clonedModel.name = (name === undefined) ? "NewAlpaca" : name
+    clonedModel.color = color
+    //flags init
+    clonedModel.isMoving = false // this one is for doubleClick moving, not wasd
+    clonedModel.isJumping = false
+    clonedModel.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
+    clonedModel.isFalling = false
+    clonedModel.currentAction = null
+    clonedModel.target = null
+    clonedModel.readyToMove = false
 
-    const clonedModel = cloneModel(originalAlpaca.model, color, name)
+    clonedModel.traverse((child) => {
+      if (child.isMesh) {
+        if (child.name === 'Collider')
+          clonedModel.userData.collider = child
+        else {
+          if (child.name === 'Cylinder') // 'Cylinder' is the alpacasbody name
+          {
+            child.material = child.material.clone();
+            child.material.color.set(color)
+          }
+        }
+      }
+    })
+    const clonedMixer = new THREE.AnimationMixer(clonedModel)
+
     const newAlpaca = createAlpacaData(clonedModel, originalAlpaca.animations, scale)
     setupPlacement(newAlpaca.model)
     gAlpacas.value.push(newAlpaca)
@@ -61,32 +89,32 @@ export function alpacaHandling() {
   }
 
   const createLaserBeam = (origin, direction, length) => {
-  // 1. Create a thin cylinder
-  const geometry = new THREE.CylinderGeometry(0.05, 0.05, length, 8);
-  
-  // 2. Make it glow with Emissive
-  const material = new THREE.MeshStandardMaterial({
-    color: 0x00ffff,
-    emissive: 0x00ffff,
-    emissiveIntensity: 2,
-    transparent: true,
-    opacity: 0.8
-  });
+    // 1. Create a thin cylinder
+    const geometry = new THREE.CylinderGeometry(0.05, 0.05, length, 8);
 
-  const laser = new THREE.Mesh(geometry, material);
+    // 2. Make it glow with Emissive
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x00ffff,
+      emissive: 0x00ffff,
+      emissiveIntensity: 2,
+      transparent: true,
+      opacity: 0.8
+    });
 
-  // 3. Position and Rotate the laser
-  // Cylinders are created vertically, so we need to tilt it to match the ray
-  laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
-  
-  // Position it halfway between the origin and the end of the ray
-  const middlePoint = new THREE.Vector3().copy(direction).multiplyScalar(length / 2);
-  laser.position.copy(origin).add(middlePoint);
+    const laser = new THREE.Mesh(geometry, material);
 
-  return laser;
+    // 3. Position and Rotate the laser
+    // Cylinders are created vertically, so we need to tilt it to match the ray
+    laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+
+    // Position it halfway between the origin and the end of the ray
+    const middlePoint = new THREE.Vector3().copy(direction).multiplyScalar(length / 2);
+    laser.position.copy(origin).add(middlePoint);
+
+    return laser;
   };
 
-  const findAlpaca = (alpaca) =>{
+  const findAlpaca = (alpaca) => {
     while (alpaca) {
       for (let i = 0; i < gAlpacas.value.length; ++i) {
         if (alpaca.id === gAlpacas.value[i].model.id) {
@@ -120,60 +148,60 @@ export function alpacaHandling() {
     const hits = raycaster.intersectObjects(targets, true);
 
     if (hits.length > 0) {
-    // If we hit something, make the beam shorter so it stops at the target
-    const hitDistance = hits[0].distance;
-    beam.scale.y = hitDistance / far; // Shrink the beam to the hit point
-    const hitAlpaca = findAlpaca(hits[0].object)
-    hitAlpaca.model.isDead = -1 // being hit
-  }
+      // If we hit something, make the beam shorter so it stops at the target
+      const hitDistance = hits[0].distance;
+      beam.scale.y = hitDistance / far; // Shrink the beam to the hit point
+      const hitAlpaca = findAlpaca(hits[0].object)
+      hitAlpaca.model.isDead = -1 // being hit
+    }
 
-  // Fade out and remove the beam
-  setTimeout(() => {
-    gScene.value.remove(beam);
-  }, 200); // Quick flash effect
+    // Fade out and remove the beam
+    setTimeout(() => {
+      gScene.value.remove(beam);
+    }, 200); // Quick flash effect
   }
 
   const moveToTarget = (alpaca, delta) => {
-  if (!alpaca || !alpaca.target) return;
+    if (!alpaca || !alpaca.target) return;
 
-  const speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
-  const stopDistance = 0.5; // Don't jitter when we arrive
+    const speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
+    const stopDistance = 0.5; // Don't jitter when we arrive
 
-  // 1. Calculate direction vector
-  const moveVec = new THREE.Vector3().subVectors(alpaca.target, alpaca.position);
-  const distance = moveVec.length();
+    // 1. Calculate direction vector
+    const moveVec = new THREE.Vector3().subVectors(alpaca.target, alpaca.position);
+    const distance = moveVec.length();
 
-  if (distance > stopDistance) {
-    // 2. Normalize and move
-    moveVec.normalize();
-    
-    // Check collisions BEFORE moving (optional but recommended)
-    const nextX = alpaca.position.x + moveVec.x * speed;
-    const nextZ = alpaca.position.z + moveVec.z * speed;
+    if (distance > stopDistance) {
+      // 2. Normalize and move
+      moveVec.normalize();
 
-    //if (!checkCollision(alpaca.model, nextX, nextZ)) {
+      // Check collisions BEFORE moving (optional but recommended)
+      const nextX = alpaca.position.x + moveVec.x * speed;
+      const nextZ = alpaca.position.z + moveVec.z * speed;
+
+      //if (!checkCollision(alpaca.model, nextX, nextZ)) {
       alpaca.position.x = nextX;
       alpaca.position.z = nextZ;
 
       // 3. Rotate to face the target smoothly
       const targetRotation = Math.atan2(moveVec.x, moveVec.z);
       alpaca.rotation.y = THREE.MathUtils.lerp(
-        alpaca.rotation.y, 
-        targetRotation, 
+        alpaca.rotation.y,
+        targetRotation,
         0.1
       );
-    //}
-    
-    alpaca.isMoving = true;
-  } else {
-    // We arrived!
-    alpaca.target = null;
-    alpaca.isMoving = false;
-    alpaca.readyToMove = false
-    setTimeout(() => {
-      alpaca.readyToMove = true
-    }, Math.random() * 10000)
-  }
+      //}
+
+      alpaca.isMoving = true;
+    } else {
+      // We arrived!
+      alpaca.target = null;
+      alpaca.isMoving = false;
+      alpaca.readyToMove = false
+      setTimeout(() => {
+        alpaca.readyToMove = true
+      }, Math.random() * 10000)
+    }
   };
 
   return { spawnAlpaca, switchAlpaca, moveAlpaca, split, moveToTarget }
