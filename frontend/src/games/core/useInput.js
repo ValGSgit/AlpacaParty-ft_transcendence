@@ -14,7 +14,6 @@ const keys = reactive({
 
 export function useInput() {
   const { switchAlpaca, moveAlpaca, split } = alpacaHandling()
-
   const { alpacaMenuOff, itemShopOff } = useShop()
   const { editModeOff, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement } = useEditMode()
 
@@ -87,18 +86,7 @@ export function useInput() {
   }
 
   const onPointerUp = () => {
-    keys.pointer = false
-    if (gScene.value.selected) {
-      if (gScene.value.selectedGhost)
-        gScene.value.remove(gScene.value.selectedGhost)
-      gScene.value.selected.visible = true
-      gScene.value.selectedGhost = null
-      if (gScene.value.selected.readyToMove !== undefined) // AI alpaca ready to move
-        gScene.value.selected.readyToMove = true
-      gScene.value.selected = null
-      gEngine.value.controls.enabled = true
-      saveGame()
-    }
+
   }
 
   //Close all UI Menus
