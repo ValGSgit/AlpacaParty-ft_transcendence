@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { reactive, onMounted, onUnmounted } from 'vue'
-import { gEngine, gScene, gUser, gAlpacas, gItems } from './globals.js'
+import { gEngine, gScene, gUser, gAlpacas, gItems, gPlayer } from './globals.js'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { usePhysics } from './usePhysics.js'
 import { saveGame } from './saveLoadGame.js'
@@ -70,7 +70,7 @@ export function useInput() {
 
     const intersects = raycaster.intersectObjects(gScene.value.children, true)
     if (intersects.length > 0 && !switchAlpaca(intersects[0].object, raycaster)) {
-      moveAlpaca(raycaster) // move alpaca if it didnt hit another one
+      moveAlpaca(gPlayer.value.model, raycaster) // move alpaca if it didnt hit another one
     }
   }
 
@@ -148,6 +148,8 @@ export function useInput() {
         gScene.value.remove(gScene.value.selectedGhost)
       gScene.value.selected.visible = true
       gScene.value.selectedGhost = null
+      if (gScene.value.selected.readyToMove !== undefined) // AI alpaca ready to move
+        gScene.value.selected.readyToMove = true
       gScene.value.selected = null
       gEngine.value.controls.enabled = true
       saveGame()

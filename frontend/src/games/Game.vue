@@ -115,6 +115,9 @@ import { saveGame } from './core/saveLoadGame.js'
 import { useAuthStore } from '../stores/auth.js'
 import { watchChanges } from './core/watchChanges.js'
 import { handleAnimation } from './core/useAnimation.js'
+import { alpacaHandling } from './components/alpacaHandling.js'
+import { CONST } from './config/constants.js'
+
 import './game.css'
 
 const gameContainer = ref(null)
@@ -134,6 +137,7 @@ const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera } = useShop()
 const { spawnShopItem } = spawnItems()
 const { isAuthenticated } = useAuthStore()
+const { moveToTarget, moveAlpaca } = alpacaHandling()
 
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
@@ -183,12 +187,17 @@ const gameLoop = () => {
     }
   }
 
-  // update all mixer
+  // update all mixer and moving to targets
   for (let i = 0; gAlpacas.value[i]; i++){
     if (gAlpacas.value[i] && gAlpacas.value[i].mixer) {
-      if (gAlpacas.value[i].model.id !== player.id)
+      moveToTarget(gAlpacas.value[i].model, delta)
+      if (gAlpacas.value[i].model.id !== player.id) // only update other alpacas, not the player
       {
-        handleAnimation(gAlpacas.value[i].model, gAlpacas.value[i].mixer, gAlpacas.value[i].animations, 0, 1)
+        moveAlpaca(gAlpacas.value[i].model)
+        let dir = 0 // not moving
+        if (gAlpacas.value[i].model.isMoving)
+          dir = 1
+        handleAnimation(gAlpacas.value[i].model, gAlpacas.value[i].mixer, gAlpacas.value[i].animations, dir, CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset)
       }
       gAlpacas.value[i].mixer.update(delta)
     }

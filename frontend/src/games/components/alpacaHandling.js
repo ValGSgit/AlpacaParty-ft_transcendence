@@ -18,6 +18,14 @@ export function alpacaHandling() {
     clonedModel.quaternion.identity()
     clonedModel.name = (name === undefined) ? "NewAlpaca" : name
     clonedModel.color = color
+    //flags init
+    clonedModel.isMoving = false // this one is for doubleClick moving, not wasd
+    clonedModel.isJumping = false
+    clonedModel.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
+    clonedModel.isFalling = false
+    clonedModel.currentAction = null
+    clonedModel.target = null
+    clonedModel.readyToMove = false
 
     clonedModel.traverse((child) => {
       if (child.isMesh) {
@@ -54,22 +62,21 @@ export function alpacaHandling() {
     gAlpacas.value.push(newAlpaca)
   }
 
-  const moveAlpaca = (raycaster) => {
+  const moveAlpaca = (player, raycaster) => {
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const worldPoint = new THREE.Vector3();
-    if (!raycaster) {
+    if (!raycaster && !player.target && player.readyToMove) {
       // random x z for AI
       worldPoint.x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
       worldPoint.y = 0
       worldPoint.z = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
+      player.target = worldPoint
     }
-    else
+    else if (raycaster) // doubleClick
+    {
       raycaster.ray.intersectPlane(plane, worldPoint)
-    // teleport for the moment, need improvement
-    const distance = Math.sqrt(worldPoint.x * worldPoint.x + worldPoint.z * worldPoint.z)
-    const withinBounds = distance < CONST.MAX_MOVE_RADIUS
-    if (withinBounds)
-      checkCollision(gPlayer.value.model, worldPoint.x, worldPoint.z)
+      player.target = worldPoint
+    }
   }
 
   const switchAlpaca = (obj) => {
@@ -156,5 +163,48 @@ export function alpacaHandling() {
   }, 200); // Quick flash effect
   }
 
-  return { spawnAlpaca, switchAlpaca, moveAlpaca, split }
+  const moveToTarget = (alpaca, delta) => {
+  if (!alpaca || !alpaca.target) return;
+
+  const speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
+  const stopDistance = 0.5; // Don't jitter when we arrive
+
+  // 1. Calculate direction vector
+  const moveVec = new THREE.Vector3().subVectors(alpaca.target, alpaca.position);
+  const distance = moveVec.length();
+
+  if (distance > stopDistance) {
+    // 2. Normalize and move
+    moveVec.normalize();
+    
+    // Check collisions BEFORE moving (optional but recommended)
+    const nextX = alpaca.position.x + moveVec.x * speed;
+    const nextZ = alpaca.position.z + moveVec.z * speed;
+
+    //if (!checkCollision(alpaca.model, nextX, nextZ)) {
+      alpaca.position.x = nextX;
+      alpaca.position.z = nextZ;
+
+      // 3. Rotate to face the target smoothly
+      const targetRotation = Math.atan2(moveVec.x, moveVec.z);
+      alpaca.rotation.y = THREE.MathUtils.lerp(
+        alpaca.rotation.y, 
+        targetRotation, 
+        0.1
+      );
+    //}
+    
+    alpaca.isMoving = true;
+  } else {
+    // We arrived!
+    alpaca.target = null;
+    alpaca.isMoving = false;
+    alpaca.readyToMove = false
+    setTimeout(() => {
+      alpaca.readyToMove = true
+    }, Math.random() * 10000)
+  }
+  };
+
+  return { spawnAlpaca, switchAlpaca, moveAlpaca, split, moveToTarget }
 }

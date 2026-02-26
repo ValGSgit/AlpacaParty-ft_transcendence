@@ -181,13 +181,17 @@ async function loadPlayer(scene, alpaca) {
     model.position.z = alpaca.position[2]
     model.rotation.y = alpaca.rotation
     model.scale.set(alpaca.scale.x, alpaca.scale.y, alpaca.scale.z)
-    model.isJumping = false
-    model.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
-    model.isFalling = false
-    model.currentAction = null
     speedOffset = alpaca.speedOffset
     rotationOffset = alpaca.rotationOffset
   }
+  // flags init
+  model.isMoving = false // this one is for doubleClick moving, not wasd
+  model.isJumping = false
+  model.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
+  model.isFalling = false
+  model.currentAction = null
+  model.target = null
+  model.readyToMove = false
   scene.add(model)
   return { model, mixer, animations, speedOffset, rotationOffset }
 }

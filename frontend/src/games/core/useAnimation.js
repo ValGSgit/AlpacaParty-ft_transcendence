@@ -2,7 +2,6 @@ import { CONST } from '../config/constants.js'
 import * as THREE from 'three'
 
 export function handleAnimation(player, mixer, animations, animDir, speed){
-    
     const idleAction = mixer.clipAction(animations[1])
     const walkAction = mixer.clipAction(animations[5])
     const jumpAction = mixer.clipAction(animations[2])
