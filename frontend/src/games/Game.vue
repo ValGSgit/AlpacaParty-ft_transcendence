@@ -34,7 +34,7 @@
     </div>
     <!-- Alpaca Menu -->
     <div v-if="gScene.alpacaMenu && gScene.newAlpaca" class="modal-overlay">
-      <div class="shop-title">New Alpaca
+      <div class="shop-title">Buy Alpaca
         <div class="input-group">
           <label>Name</label>
           <input type="text" v-model="alpacaConfig.name" placeholder="Name your alpaca..." />
@@ -103,19 +103,26 @@
 <script setup>
 import { shallowRef, ref, onMounted, onUnmounted } from 'vue'
 import * as THREE from 'three'
-import { useGameEngine } from './core/useGameEngine.js'
-import { usePlayerControls } from './core/usePlayerControls.js'
-import { initWorld } from './world/initWorld.js'
-import { initUser } from './user/initUser.js'
-import { useCamera } from './core/useCamera.js'
-import { gEngine, gScene, gPlayer, gUser, gAlpacas } from './core/globals.js'
+
 import { alpacaConfig, useShop } from './components/shop.js'
 import { spawnItems } from "./components/spawnItems.js"
-import { saveGame } from './core/saveLoadGame.js'
-import { useAuthStore } from '../stores/auth.js'
-import { watchChanges } from './core/watchChanges.js'
-import { handleAnimation } from './core/useAnimation.js'
 import { alpacaHandling } from './components/alpacaHandling.js'
+import { useEditMode } from './components/editMode.js'
+import { useGameEngine } from './core/useGameEngine.js'
+import { watchChanges } from './core/watchChanges.js'
+import { addDebugCoins } from './core/debug.js'
+import { usePlayerControls } from './core/usePlayerControls.js'
+import { useCamera } from './core/useCamera.js'
+import { gEngine, gScene, gPlayer, gUser, gAlpacas } from './core/globals.js'
+import { saveGame } from './core/saveLoadGame.js'
+import { handleAnimation } from './core/useAnimation.js'
+
+import { initUser } from './user/initUser.js'
+
+import { initWorld } from './world/initWorld.js'
+
+import { useAuthStore } from '../stores/auth.js'
+
 import { CONST } from './config/constants.js'
 
 import './game.css'
@@ -134,15 +141,13 @@ let cameraUpdate = null
 let stopMyWatcher
 
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera } = useShop()
+const { openShopMenu, buyAlpaca, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera } = useShop()
 const { spawnShopItem } = spawnItems()
 const { isAuthenticated } = useAuthStore()
 const { moveToTarget, moveAlpaca } = alpacaHandling()
 
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
-
-
 
 onMounted(async () => {
   if (!isAuthenticated)
