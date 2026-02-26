@@ -103,17 +103,24 @@
 <script setup>
 import { shallowRef, ref, onMounted, onUnmounted } from 'vue'
 import * as THREE from 'three'
-import { useGameEngine } from './core/useGameEngine.js'
-import { usePlayerControls } from './core/usePlayerControls.js'
-import { initWorld } from './world/initWorld.js'
-import { initUser } from './user/initUser.js'
-import { useCamera } from './core/useCamera.js'
-import { gEngine, gScene, gPlayer, gUser } from './core/globals.js'
+
+import { useEditMode } from './components/editMode.js'
 import { alpacaConfig, useShop } from './components/shop.js'
 import { spawnItems } from "./components/spawnItems.js"
-import { saveGame } from './core/saveLoadGame.js'
-import { useAuthStore } from '../stores/auth.js'
+
+import { useGameEngine } from './core/useGameEngine.js'
 import { watchChanges } from './core/watchChanges.js'
+import { addDebugCoins } from './core/debug.js'
+import { usePlayerControls } from './core/usePlayerControls.js'
+import { useCamera } from './core/useCamera.js'
+import { gEngine, gScene, gPlayer, gUser } from './core/globals.js'
+import { saveGame } from './core/saveLoadGame.js'
+
+import { initUser } from './user/initUser.js'
+
+import { useAuthStore } from '../stores/auth.js'
+
+import { initWorld } from './world/initWorld.js'
 import './game.css'
 
 const gameContainer = ref(null)
@@ -130,10 +137,10 @@ let cameraUpdate = null
 let stopMyWatcher
 
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera } = useShop()
+const { openShopMenu, buyAlpaca, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera } = useShop()
 const { spawnShopItem } = spawnItems()
 const { isAuthenticated } = useAuthStore()
-
+const {editModeOn, editModeOff } =  useEditMode()
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
 

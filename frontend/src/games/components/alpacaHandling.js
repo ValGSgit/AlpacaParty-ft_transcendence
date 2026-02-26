@@ -2,7 +2,7 @@ import { CONST } from '../config/constants.js'
 import * as THREE from 'three'
 import { gAlpacas, gPlayer, gUser, gScene } from "../core/globals.js"
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
-import { cloneGhost } from '../core/useInput.js'
+import { cloneGhost } from '../components/editMode.js'
 import { usePhysics } from '../core/usePhysics.js'
 
 export function alpacaHandling() {

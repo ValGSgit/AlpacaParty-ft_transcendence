@@ -2,8 +2,10 @@ import { gUser, gPlayer, gScene, gEngine } from '../core/globals.js'
 import { alpacaHandling } from './alpacaHandling.js'
 import { CONST } from '../config/constants.js'
 import { reactive } from 'vue'
+import { useEditMode } from './editMode.js'
 
 const { spawnAlpaca } = alpacaHandling()
+const { editModeOff, editModeOn } = useEditMode()
 
 export function useShop() {
 
@@ -22,19 +24,6 @@ export function useShop() {
     gScene.value.pause = false
     gScene.value.alpacaMenu = false
     gScene.value.newAlpaca = false // reset flag
-  }
-
-  const addDebugCoins = () => {
-    gUser.value.coins += 1000
-  }
-
-  const editModeOn = () => {
-    gScene.value.edit = true
-  }
-
-  const editModeOff = () => {
-    gScene.value.edit = false
-    gScene.value.selected = null
   }
 
   const increaseFarmSize = () => {
@@ -93,7 +82,7 @@ export function useShop() {
 
   const changeCamera = () => {
     if (gScene.value.cameraMode < 3)
-      gScene.value.cameraMode ++;
+      gScene.value.cameraMode++;
     else // reset
     {
       gScene.value.cameraMode = 0
@@ -101,9 +90,8 @@ export function useShop() {
     }
   }
 
-  return { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera }
+  return { openShopMenu, buyAlpaca, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera }
 }
-
 
 export const alpacaConfig = reactive({
   name: 'New Alpaca',

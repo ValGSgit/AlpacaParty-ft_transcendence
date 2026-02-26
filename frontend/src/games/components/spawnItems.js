@@ -1,7 +1,7 @@
 import { CONST } from '../config/constants.js'
 import { gScene, gItems, gUser, gPlayer } from '../core/globals.js'
 import { loadGLTF } from '../core/modelLoader.js'
-import { cloneGhost } from '../core/useInput.js'
+import { cloneGhost } from '../components/editMode.js'
 
 export function spawnItems() {
 
@@ -44,8 +44,9 @@ export function spawnItems() {
   return { spawnAtRandomPos, spawnShopItem }
 }
 
-export function addItems(items) {
-
+export function addToScene(items) {
   gScene.value.add(items)
   gItems.value.push(items)
+  //if has collider add to collidable
+  //add to selectable
 }
