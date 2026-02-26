@@ -5,7 +5,7 @@ import { reactive } from 'vue'
 import { useEditMode } from './editMode.js'
 
 const { spawnAlpaca } = alpacaHandling()
-const { editModeOff, editModeOn } = useEditMode()
+const { editModeOff } = useEditMode()
 
 export function useShop() {
 
@@ -15,10 +15,8 @@ export function useShop() {
   }
 
   const buyAlpaca = (color) => {
-    if (gUser.value.coins >= CONST.ALPACA_COST) {
-      gUser.value.coins -= CONST.ALPACA_COST
+    if (gUser.value.coins >= CONST.ALPACA_COST)
       spawnAlpaca(color, alpacaConfig.name, alpacaConfig.scale)
-    }
     else
       alert('Not enough coins!')
     gScene.value.pause = false
@@ -39,7 +37,11 @@ export function useShop() {
       floor.scale.x = CONST.FLOOR_RADIUS / CONST.BASE_RADIUS
       floor.scale.z = CONST.FLOOR_RADIUS / CONST.BASE_RADIUS
     }
+  }
 
+  const closeShop = () => {
+    gUser.value.shop = false
+    gScene.value.itemMenu = false
   }
 
   const editLight = (light) => {
@@ -90,7 +92,7 @@ export function useShop() {
     }
   }
 
-  return { openShopMenu, buyAlpaca, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera }
+  return { openShopMenu, buyAlpaca, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera, closeShop }
 }
 
 export const alpacaConfig = reactive({

@@ -11,7 +11,7 @@ export function useInput() {
   const { switchAlpaca, moveAlpaca } = alpacaHandling()
 
   const { alpacaMenuOff, itemShopOff } = useShop()
-  const { editModeOff, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem } = useEditMode()
+  const { editModeOff, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement } = useEditMode()
 
   const keys = reactive({
     w: false, a: false, s: false, d: false, space: false
@@ -41,7 +41,7 @@ export function useInput() {
   }
 
   const onWheel = (e) => {
-    if (gScene.value.edit && gScene.value.selected) {
+    if (gScene.value.selected) {
       rotateItem(e)
     }
   }
@@ -63,7 +63,7 @@ export function useInput() {
 
   const handleMouseMove = (e) => {
     // item selected to move
-    if (gScene.value.edit) {
+    if (gScene.value.edit || gScene.value.selected) {
       if (gUser.value && gScene.value.selected) {
         moveItem(e)
       }
@@ -75,7 +75,7 @@ export function useInput() {
 
   const onPointerDown = (e) => {
     // Select item in edit mode
-    if (gScene.value.edit) {
+    if (gScene.value.edit || gScene.value.selected) {
       if (gScene.value.selected) {
         placeItem()
       } else {
@@ -94,6 +94,10 @@ export function useInput() {
     gScene.value.lightMenu = false
     if (gScene.value.alpacaMenu) alpacaMenuOff()
     if (gScene.value.itemMenu) itemShopOff()
+
+    if (gScene.value.selected) {
+      cancelPlacement()
+    }
     if (gScene.value.edit) {
       removeHighlight()
       editModeOff()

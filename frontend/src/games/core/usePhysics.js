@@ -7,6 +7,7 @@ const sourceOBB = new OBB()
 const obstacleOBB = new OBB()
 
 export function usePhysics() {
+  const { storePos, restorePos } = usePos()
 
   const checkCollisionWith = (sourceObj, objects) => {
     let hasCollision = false
@@ -40,10 +41,7 @@ export function usePhysics() {
   }
 
   const checkCollision = (player, nextX, nextZ, nextRotY) => {
-    const oldX = player.position.x
-    const oldZ = player.position.z
-    const oldRotY = player.rotation.y
-
+    storePos(player)
     player.position.x = nextX
     player.position.z = nextZ
     if (nextRotY !== undefined) player.rotation.y = nextRotY
@@ -54,9 +52,7 @@ export function usePhysics() {
       hasCollision = checkCollisionWith(player, gItems.value)
     }
     if (hasCollision) {
-      player.position.x = oldX
-      player.position.z = oldZ
-      player.rotation.y = oldRotY
+      restorePos(player)
       player.updateMatrixWorld(true)
     }
     return hasCollision
@@ -69,6 +65,24 @@ export function usePhysics() {
   }
 
   return { checkCollision, checkCollisionWith, checkWithinBounds }
+}
+
+export function usePos() {
+
+  const storePos = (model) => {
+    model.userData.originalPos = model.position.clone()
+    model.userData.originalRotY = model.rotation.y
+  }
+
+  const restorePos = (model) => {
+    if (model.userData.originalPos) {
+      model.position.x = model.userData.originalPos.x;
+      model.position.z = model.userData.originalPos.z;
+      model.rotation.y = model.userData.originalRotY;
+    }
+  }
+
+  return { storePos, restorePos }
 }
 
 function drawDebugBox(hitMesh) {

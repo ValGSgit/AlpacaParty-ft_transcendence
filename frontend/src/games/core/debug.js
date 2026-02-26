@@ -11,7 +11,7 @@ export function printDebug() {
       console.log("gScene.value.alpacaMenu", gScene.value.alpacaMenu) */
   console.log("gAlpacas.value.length = ", gAlpacas.value.length)
   console.log("gItems.value.length = ", gItems.value.length)
-  resetValues()
+  //resetValues()
 }
 
 function resetValues() {

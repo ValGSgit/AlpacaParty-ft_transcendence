@@ -1,10 +1,11 @@
 import * as THREE from 'three'
-import { gEngine, gScene, gSelectable } from '../core/globals.js'
+import { gAlpacas, gEngine, gItems, gScene, gSelectable } from '../core/globals.js'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 import { MATERIALS as MATS } from '../config/materials.js'
 import { CONST } from '../config/constants.js'
-import { usePhysics } from '../core/usePhysics.js'
+import { usePhysics, usePos } from '../core/usePhysics.js'
 import { saveGame } from '../core/saveLoadGame.js'
+import { spendCoins } from './coins.js'
 
 const pointer = new THREE.Vector2()
 const raycaster = new THREE.Raycaster()
@@ -13,6 +14,7 @@ const worldPoint = new THREE.Vector3()
 
 export function useEditMode() {
   const { checkCollision, checkWithinBounds } = usePhysics()
+  const { storePos, restorePos } = usePos()
   let hoveredItem = null
 
   const editModeOn = () => {
@@ -47,6 +49,7 @@ export function useEditMode() {
     const intersects = raycaster.intersectObjects(gSelectable.value, true)
     if (intersects.length > 0) {
       gScene.value.selected = findItem(intersects[0].object)
+      storePos(gScene.value.selected)
       if (hoveredItem) {
         removeHighlight(hoveredItem)
         hoveredItem = null
@@ -71,11 +74,13 @@ export function useEditMode() {
 
   const removeHighlight = (item) => {
     if (item === undefined) item = hoveredItem
+    if (!item) return
     item.traverse((child) => {
       if (child.isMesh && child.name !== "Collider" && child.userData.originalMaterial) {
         child.material = child.userData.originalMaterial
       }
     })
+    hoveredItem = null
   }
 
   const highlightItem = (e) => {
@@ -116,16 +121,6 @@ export function useEditMode() {
     }
   }
 
-  const placeItem = () => {
-    if (gScene.value.selectedGhost)
-      gScene.value.remove(gScene.value.selectedGhost)
-    gScene.value.selected.visible = true
-    gScene.value.selectedGhost = null
-    gScene.value.selected = null
-    gEngine.value.controls.enabled = true
-    saveGame()
-  }
-
   const rotateItem = (e) => {
     const direction = e.deltaY > 0 ? 1 : -1
     const steps = 36
@@ -137,10 +132,62 @@ export function useEditMode() {
     moveItem(e)
   }
 
+  const placeItem = () => {
+    let selected = gScene.value.selected
+    let ghost = gScene.value.selectedGhost
 
-  return { editModeOn, editModeOff, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem }
+    if (ghost)
+      gScene.value.remove(ghost)
+    selected.visible = true
+    if (selected.userData.isNew) {
+      spendCoins(selected.userData.cost)
+      selected.userData.isNew = false
+    }
+    resetSelected()
+    saveGame()
+  }
+
+  const cancelPlacement = () => {
+    if (!gScene.value.selected) return;
+
+    let selected = gScene.value.selected;
+    let ghost = gScene.value.selectedGhost;
+
+    if (ghost) {
+      gScene.value.remove(ghost);
+    }
+
+    if (selected.userData.isNew) {
+      gScene.value.remove(selected);
+      gAlpacas.value = gAlpacas.value.filter(alpaca => alpaca.model !== selected);
+      gItems.value = gItems.value.filter(item => item !== selected);
+    } else {
+      restorePos(selected)
+      selected.visible = true;
+    }
+    resetSelected()
+  }
+  return { editModeOn, editModeOff, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement }
 }
 
+function resetSelected() {
+  gScene.value.selected = null;
+  gScene.value.selectedGhost = null;
+  gEngine.value.controls.enabled = true;
+}
+
+export function setupPlacement(model) {
+  gScene.value.selected = model
+  gEngine.value.controls.enabled = false
+
+  const ghost = cloneGhost(model)
+  ghost.visible = false
+
+  model.userData.isNew = true
+
+  gScene.value.add(ghost)
+  gScene.value.add(model)
+}
 
 export function cloneGhost(selected) {
   const ghost = SkeletonUtils.clone(selected)

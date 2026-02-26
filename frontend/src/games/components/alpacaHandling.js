@@ -1,55 +1,33 @@
 import { CONST } from '../config/constants.js'
 import * as THREE from 'three'
-import { gAlpacas, gPlayer, gUser, gScene } from "../core/globals.js"
-import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
+import { gAlpacas, gPlayer, gScene, gEngine } from "../core/globals.js"
 import { cloneGhost } from '../components/editMode.js'
 import { usePhysics } from '../core/usePhysics.js'
+import { cloneModel } from '../utils/cloneModel.js'
+import { setupPlacement } from '../components/editMode.js'
 
 export function alpacaHandling() {
   const { checkCollision } = usePhysics()
 
-  const spawnAlpaca = (color, name, scale) => {
-    const originalAlpaca = gAlpacas.value[0]
-    if (color === undefined)
-      color = originalAlpaca.model.color
-    const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
-    clonedModel.rotation.set(0, 0, 0)
-    clonedModel.quaternion.identity()
-    clonedModel.name = (name === undefined) ? "NewAlpaca" : name
-    clonedModel.color = color
+  const createAlpacaData = (model, animations, scale) => {
+    model.position.set(0, 0, 0)
+    model.scale.set(scale, scale, scale)
 
-    clonedModel.traverse((child) => {
-      if (child.isMesh) {
-        if (child.name === 'Collider')
-          clonedModel.userData.collider = child
-        else {
-          if (child.name === 'Cylinder') // 'Cylinder' is the alpacasbody name
-          {
-            child.material = child.material.clone();
-            child.material.color.set(color)
-          }
-        }
-      }
-    })
-    const clonedMixer = new THREE.AnimationMixer(clonedModel)
-
-    const newAlpaca = {
-      model: clonedModel,
-      mixer: clonedMixer,
-      animations: originalAlpaca.animations,
+    return {
+      model: model,
+      mixer: new THREE.AnimationMixer(model),
+      animations: animations,
       speedOffset: 0,
       rotationOffset: 0
     }
+  }
+  const spawnAlpaca = (color, name, scale) => {
+    const originalAlpaca = gAlpacas.value[0]
+    color = color ?? originalAlpaca.model.color
 
-    if (scale === undefined)
-      scale = 1
-    newAlpaca.model.position.set(0, 0, 0)
-    newAlpaca.model.scale.set(scale, scale, scale)
-
-    gScene.value.selected = newAlpaca.model
-    const ghost = cloneGhost(gScene.value.selected)
-    gScene.value.add(ghost)
-    gScene.value.add(newAlpaca.model)
+    const clonedModel = cloneModel(originalAlpaca.model, color, name)
+    const newAlpaca = createAlpacaData(clonedModel, originalAlpaca.animations, scale)
+    setupPlacement(newAlpaca.model)
     gAlpacas.value.push(newAlpaca)
   }
 

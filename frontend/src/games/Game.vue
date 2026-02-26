@@ -34,7 +34,7 @@
     </div>
     <!-- Alpaca Menu -->
     <div v-if="gScene.alpacaMenu && gScene.newAlpaca" class="modal-overlay">
-      <div class="shop-title">New Alpaca
+      <div class="shop-title">Buy Alpaca
         <div class="input-group">
           <label>Name</label>
           <input type="text" v-model="alpacaConfig.name" placeholder="Name your alpaca..." />
