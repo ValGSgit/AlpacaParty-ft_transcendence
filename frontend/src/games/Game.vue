@@ -145,6 +145,7 @@ const { openShopMenu, buyAlpaca, increaseFarmSize, editLight, alpacaMenuOn, alpa
 const { spawnShopItem } = spawnItems()
 const { isAuthenticated } = useAuthStore()
 const { moveToTarget, moveAlpaca } = alpacaHandling()
+const {editModeOn, editModeOff } =  useEditMode()
 
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
