@@ -53,8 +53,8 @@ const config = {
     || (process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',')[0] : 'http://localhost:8080'),
 
   rateLimit: {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
+    windowMs: 15 * 60 * 10000, // 15 minutes
+    max: 1000,
   },
 
   password: {

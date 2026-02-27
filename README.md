@@ -191,35 +191,30 @@ graph TB
 ## Architecture — Request Lifecycle
 
 ```
-Browser / Client
-      │
-      ▼
-  nginx :8080
-      │  /api/*
-      ▼
-  index.js
-      │
-      ├─► helmet (security headers)
-      ├─► cors
-      ├─► express-rate-limit  (100 req / 15 min per IP)
-      ├─► express.json body parser
-      │
-      ├─► /api/health  ────────────────────────────► 200 OK
-      │
-      ├─► /api/auth/*
-      │       └─► authController
-      │                └─► authService  (bcrypt / JWT)
-      │                        └─► User model  (pg pool)
-      │                                └─► PostgreSQL
-      │
-      └─► /api/users/*
-              └─► authenticate()  ← JWT guard
-                      └─► userController
-                               └─► User model  (pg pool)
-                                       └─► PostgreSQL
+.
+├── backend/          Express.js API server
+│   └── src/
+│       ├── config/       Config & DB connection
+│       ├── controllers/  Route handlers
+│       ├── middleware/    Auth, error handling
+│       ├── models/       Data access
+│       ├── routes/       API routes
+│       ├── services/     Business logic
+│       └── utils/        Helpers
+├── frontend/         Vue 3 + Vite SPA
+│   └── src/
+│       ├── components/   Reusable UI
+│       ├── router/       Vue Router
+│       ├── services/     API & Socket clients
+│       ├── stores/       Pinia stores
+│       └── views/        Page components
+├── nginx/            Reverse proxy config
+├── PostgreSQL/       DB init scripts
+├── shared/           Shared game logic (Three.js)
+├── docker-compose.yml
+├── Makefile
+└── .env.example
 ```
-
----
 
 ## Services (Docker)
 

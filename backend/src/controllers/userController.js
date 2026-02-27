@@ -18,7 +18,7 @@ export const getMe = async (req, res) => {
  */
 export const updateMe = async (req, res, next) => {
   try {
-    const { username, email, bio, status, avatar } = req.body;
+    const { username, email, bio, status, avatar, coins, upgrades, items, alpacas } = req.body;
 
     // Check username uniqueness if changing
     if (username && username !== req.user.username) {
@@ -48,6 +48,10 @@ export const updateMe = async (req, res, next) => {
       bio,
       status,
       avatar,
+      coins,
+      upgrades,
+      items,
+      alpacas
     });
 
     res.json({ user: updatedUser });

@@ -92,7 +92,7 @@ const User = {
    * Update a user's profile fields.
    */
   async update(id, fields) {
-    const allowed = ['username', 'email', 'avatar', 'bio', 'status', 'is_public'];
+    const allowed = ['username', 'email', 'avatar', 'bio', 'status', 'coins', 'upgrades', 'items', 'alpacas'];
     const sets = [];
     const values = [];
     let idx = 1;

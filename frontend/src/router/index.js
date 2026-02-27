@@ -8,10 +8,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 
-const Home = () => import('../views/Home.vue')
+const Home = () => import('../games/Game.vue')
 const Login = () => import('../views/Login.vue')
 const Register = () => import('../views/Register.vue')
 const Profile = () => import('../views/Profile.vue')
+//const Game = () => import('../games/Game.vue')
 // TODO: Add views as issues are implemented
 // const Friends = () => import('../views/Friends.vue')     // Friends System
 // const Messages = () => import('../views/Messages.vue')   // Chat / WebSockets
@@ -44,6 +45,12 @@ const routes = [
     component: Profile,
     meta: { requiresAuth: true },
   },
+  /* {
+    path: '/game',
+    name: 'Game',
+    component: Game,
+    meta: { requiresAuth: false }, // just play for now
+  }, */
   // TODO: Add routes as features are implemented
 ]
 

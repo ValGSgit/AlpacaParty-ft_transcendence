@@ -8,7 +8,7 @@
     <nav class="navbar">
       <div class="nav-container">
         <router-link to="/" class="nav-logo">
-          <span class="logo-text">Cleanscendence</span>
+          <span class="logo-text">Alpaca Party!</span>
         </router-link>
         <div class="nav-links">
           <router-link to="/" class="nav-link">Home</router-link>
@@ -18,12 +18,11 @@
           </template>
           <template v-else>
             <router-link to="/login" class="nav-link">Login</router-link>
-            <router-link to="/register" class="nav-link">Register</router-link>
           </template>
         </div>
       </div>
     </nav>
-    <main class="main-content">
+    <main :class="['main-content', { 'game-content': $route.name === 'Game' }]">
       <router-view />
     </main>
   </div>
@@ -43,10 +42,19 @@ async function handleLogout() {
 </script>
 
 <style scoped>
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Force the app to be exactly the screen height */
+  width: 100vw;
+  overflow: hidden; /* Prevents the whole page from scrolling */
+}
+
 .navbar {
+  flex-shrink: 0; /* Prevents the navbar from squishing */
   background: var(--bg-secondary, #12121a);
   border-bottom: 1px solid var(--border-color, #2a2a3a);
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1.5rem;overflow: hidden;
 }
 
 .nav-container {
@@ -89,8 +97,20 @@ async function handleLogout() {
 }
 
 .main-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
+  flex-grow: 1; /* Tells the main content to take up all remaining space */
+  overflow: hidden; /* Prevents internal scrolling */
+  position: relative;
+}
+
+.game-content {
+  width: 100%;
+  height: 100%; /* Now 100% of the remaining space, NOT the whole screen */
+  margin: 0;
+  padding: 0;
+  background: black;
+  
+  /* CRITICAL: Stops the browser from "panning" when you drag the mouse/finger */
+  touch-action: none; 
+  overscroll-behavior: none;
 }
 </style>
