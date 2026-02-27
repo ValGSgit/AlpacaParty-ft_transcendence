@@ -6,7 +6,7 @@
 import { query } from '../config/database.js';
 
 const SAFE_FIELDS = `id, username, email, avatar, bio, status, is_public, is_online,
-       is_admin, oauth_provider, xp, level, last_seen, created_at, updated_at`;
+       is_admin, oauth_provider, xp, level, last_seen, created_at, updated_at, coins, upgrades, items, alpacas`;
 
 const User = {
   /**
