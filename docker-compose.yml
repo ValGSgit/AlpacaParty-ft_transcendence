@@ -41,6 +41,13 @@ services:
       DB_USER: ${DB_USER:-cleanscendence}
       DB_PASSWORD: ${DB_PASSWORD:-cleanscendence}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:8080/api/auth/google/callback}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-http://localhost:8080/api/auth/github/callback}
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -85,6 +92,22 @@ services:
     restart: unless-stopped
     networks:
       - cleanscendence_net
+
+  # ── E2E Tests (Playwright) — on-demand ─────────────────────
+  e2e:
+    build:
+      context: ./e2e
+      dockerfile: Dockerfile
+    container_name: cleanscendence_e2e
+    environment:
+      E2E_BASE_URL: http://nginx:80
+      PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium-browser
+    depends_on:
+      - nginx
+    networks:
+      - cleanscendence_net
+    profiles:
+      - e2e
 
 volumes:
   pg_data:

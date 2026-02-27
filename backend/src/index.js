@@ -8,11 +8,12 @@ import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
 import config from './config/index.js';
 import routes from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
-// TODO: Import and initialize socket service (WebSockets issue)
-// import { initializeSocket } from './services/socketService.js';
+import { initializeSocket } from './services/socketService.js';
+import { initializePassport } from './services/oauthService.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -30,7 +31,7 @@ app.use(cors({
   origin: config.cors.origins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
 }));
 
 // Rate limiting
@@ -46,8 +47,12 @@ app.use('/api', rateLimit({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// TODO: Initialize Passport for OAuth (Issue #8, OAuth issue)
-// app.use(passport.initialize());
+// Passport (OAuth)
+const passport = initializePassport();
+app.use(passport.initialize());
+
+// Serve uploaded files
+app.use('/uploads', express.static(config.uploads.dir));
 
 // Dev request logging
 if (config.nodeEnv === 'development') {
@@ -69,10 +74,15 @@ app.get('/', (_req, res) => {
       health: '/api/health',
       auth: '/api/auth',
       users: '/api/users',
-      // TODO: Uncomment as routes are implemented
-      // friends: '/api/friends',
-      // chat: '/api/chat',
-      // game: '/api/game',
+      friends: '/api/friends',
+      chat: '/api/chat',
+      game: '/api/game',
+      posts: '/api/posts',
+      organizations: '/api/organizations',
+      notifications: '/api/notifications',
+      uploads: '/api/uploads',
+      admin: '/api/admin',
+      publicApi: '/api/public',
     },
   });
 });
@@ -81,8 +91,8 @@ app.get('/', (_req, res) => {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// TODO: Initialize WebSocket (WebSockets issue)
-// initializeSocket(httpServer);
+// Initialize WebSocket
+initializeSocket(httpServer, config.cors.origins);
 
 // Start server
 const PORT = config.port;

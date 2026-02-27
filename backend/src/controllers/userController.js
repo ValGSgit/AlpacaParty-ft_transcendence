@@ -1,10 +1,13 @@
 /**
- * User Controller — profile viewing & editing
+ * User Controller — profile viewing, editing, GDPR
  * @owner ValGSgit
  * @issue https://github.com/ValGSgit/Cleanscendence/issues/9
  */
 import User from '../models/User.js';
 import AuthService from '../services/authService.js';
+import DataExportService from '../services/dataExportService.js';
+import DataRequest from '../models/DataRequest.js';
+import NotificationService from '../services/notificationService.js';
 
 /**
  * GET /api/users/me — alias handled via auth/me, but also available here
@@ -18,7 +21,7 @@ export const getMe = async (req, res) => {
  */
 export const updateMe = async (req, res, next) => {
   try {
-    const { username, email, bio, status, avatar, coins, upgrades, items, alpacas } = req.body;
+    const { username, email, bio, status, avatar, is_public } = req.body;
 
     // Check username uniqueness if changing
     if (username && username !== req.user.username) {
@@ -43,15 +46,7 @@ export const updateMe = async (req, res, next) => {
     }
 
     const updatedUser = await User.update(req.user.id, {
-      username,
-      email,
-      bio,
-      status,
-      avatar,
-      coins,
-      upgrades,
-      items,
-      alpacas
+      username, email, bio, status, avatar, is_public,
     });
 
     res.json({ user: updatedUser });
@@ -121,6 +116,62 @@ export const listUsers = async (req, res, next) => {
     }
 
     res.json({ users });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── GDPR ──────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/users/me/export?format=json|csv|xml
+ */
+export const exportMyData = async (req, res, next) => {
+  try {
+    const format = ['json', 'csv', 'xml'].includes(req.query.format) ? req.query.format : 'json';
+    const { data, contentType, extension } = await DataExportService.exportUserData(req.user.id, format);
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="cleanscendence-data.${extension}"`);
+    res.send(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /api/users/me/delete-request
+ * User requests account deletion (queued).
+ */
+export const requestDeletion = async (req, res, next) => {
+  try {
+    // Prevent duplicate pending requests
+    const existing = await DataRequest.getByUser(req.user.id);
+    const pending = existing.find((r) => r.type === 'delete' && r.status === 'pending');
+    if (pending) {
+      return res.status(409).json({ error: { message: 'A deletion request is already pending' } });
+    }
+
+    const request = await DataRequest.create({ userId: req.user.id, type: 'delete' });
+    await NotificationService.notify({
+      userId: req.user.id,
+      type: 'data_request',
+      title: 'Deletion Request Received',
+      message: 'Your account deletion request has been received and will be processed shortly.',
+    });
+    res.status(201).json({ request });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/users/me/data-requests — list own data requests
+ */
+export const listDataRequests = async (req, res, next) => {
+  try {
+    const requests = await DataRequest.getByUser(req.user.id);
+    res.json({ requests });
   } catch (err) {
     next(err);
   }

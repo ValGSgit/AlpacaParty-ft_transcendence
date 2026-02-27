@@ -12,8 +12,13 @@
         </router-link>
         <div class="nav-links">
           <router-link to="/" class="nav-link">Home</router-link>
+          <router-link to="/api-test" class="nav-link" style="color:#ffd93d">API Test</router-link>
           <template v-if="authStore.isAuthenticated">
-            <router-link to="/profile" class="nav-link">Profile</router-link>
+            <router-link to="/friends"  class="nav-link">Friends</router-link>
+            <router-link to="/messages" class="nav-link">Messages</router-link>
+            <router-link to="/game"     class="nav-link">Game</router-link>
+            <router-link to="/profile"  class="nav-link">Profile</router-link>
+            <router-link to="/settings" class="nav-link">Settings</router-link>
             <button class="nav-link nav-btn" @click="handleLogout">Logout</button>
           </template>
           <template v-else>

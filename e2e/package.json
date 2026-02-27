@@ -1,6 +1,6 @@
 {
   "name": "cleanscendence-e2e",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Cleanscendence — End-to-End Tests (Playwright)",
   "private": true,
   "type": "module",
