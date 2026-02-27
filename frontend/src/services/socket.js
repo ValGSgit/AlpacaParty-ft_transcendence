@@ -1,12 +1,23 @@
 /**
  * Socket.io Client Service
- * @owner TBD
- * @issue Real-time WebSockets (Socket.io) — not yet assigned
- *
- * Will handle real-time events: chat, notifications, game state, presence
+ * @owner ValGSgit
+ * Handles real-time events: chat, notifications, game state, presence
  */
 
-// TODO: Implement socket connection once WebSocket issue is created
-// import { io } from 'socket.io-client'
-// const socket = io({ autoConnect: false })
-// export default socket
+import { io } from 'socket.io-client'
+
+let socket = null
+
+export function connectSocket(token) {
+	socket = io('http://localhost:3000', {
+		auth: { token },
+		autoConnect: true,
+	})
+	return socket
+}
+
+export function disconnectSocket() {
+	if (socket) socket.disconnect()
+}
+
+export { socket }

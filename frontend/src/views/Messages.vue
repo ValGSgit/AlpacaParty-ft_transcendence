@@ -1,29 +1,22 @@
 <!--
   Messages View — DM conversations and group chat rooms
-  @owner TODO
+  @owner ValGSgit
 -->
 <template>
   <div class="messages-page">
-    <!-- ── Sidebar ── -->
+    <!-- Sidebar for DMs and Rooms -->
     <aside class="sidebar">
       <div class="sidebar-tabs">
         <button :class="['stab', { active: sideTab === 'dms' }]" @click="sideTab = 'dms'">DMs</button>
         <button :class="['stab', { active: sideTab === 'rooms' }]" @click="sideTab = 'rooms'">Rooms</button>
       </div>
-
-      <!-- DM conversations -->
       <div v-if="sideTab === 'dms'">
         <div class="new-dm">
           <input v-model="newDmId" type="number" placeholder="User ID" />
           <button class="btn-sm btn-primary" @click="openDm">Open</button>
         </div>
         <ul class="conv-list">
-          <li
-            v-for="c in conversations"
-            :key="c.other_user_id"
-            :class="['conv-item', { active: selected?.type === 'dm' && selected.id === c.other_user_id }]"
-            @click="selectDm(c)"
-          >
+          <li v-for="c in conversations" :key="c.other_user_id" :class="['conv-item', { active: selected?.type === 'dm' && selected.id === c.other_user_id }]" @click="selectDm(c)">
             <img :src="c.avatar || '/avatars/default.png'" class="mini-avatar" alt="" />
             <div class="conv-info">
               <span class="conv-name">{{ c.username }}</span>
@@ -34,23 +27,14 @@
         </ul>
         <p v-if="!conversations.length && !loading" class="empty">No conversations yet.</p>
       </div>
-
-      <!-- Group rooms -->
       <div v-if="sideTab === 'rooms'">
-        <button class="btn-sm btn-primary create-room-btn" @click="showCreateRoom = !showCreateRoom">
-          + New Room
-        </button>
+        <button class="btn-sm btn-primary create-room-btn" @click="showCreateRoom = !showCreateRoom">+ New Room</button>
         <div v-if="showCreateRoom" class="new-room-form">
           <input v-model="newRoomName" type="text" placeholder="Room name" />
           <button class="btn-sm btn-primary" @click="createRoom">Create</button>
         </div>
         <ul class="conv-list">
-          <li
-            v-for="r in rooms"
-            :key="r.id"
-            :class="['conv-item', { active: selected?.type === 'room' && selected.id === r.id }]"
-            @click="selectRoom(r)"
-          >
+          <li v-for="r in rooms" :key="r.id" :class="['conv-item', { active: selected?.type === 'room' && selected.id === r.id }]" @click="selectRoom(r)">
             <div class="room-icon">#</div>
             <div class="conv-info">
               <span class="conv-name">{{ r.name }}</span>
@@ -60,14 +44,12 @@
         <p v-if="!rooms.length && !loading" class="empty">No rooms yet.</p>
       </div>
     </aside>
-
-    <!-- ── Main chat area ── -->
+    <!-- Main chat area -->
     <main class="chat-area">
       <div v-if="!selected" class="no-selection">
         <p>Select a conversation or room to start chatting.</p>
         <p class="hint">Real-time messaging via WebSocket — connect and send via the socket service.</p>
       </div>
-
       <template v-else>
         <header class="chat-header">
           <span class="chat-title">
@@ -78,52 +60,47 @@
             <button class="btn-sm btn-danger" @click="deleteRoom" v-if="selected.owner_id === currentUserId">Delete</button>
           </div>
         </header>
-
         <div v-if="msgError" class="error-banner">{{ msgError }}</div>
-
         <div class="messages-list" ref="msgBox">
           <p v-if="loadingMessages" class="loading">Loading messages…</p>
-          <div v-for="m in messages" :key="m.id" :class="['msg', { mine: m.sender_id === currentUserId || m.sender_id === currentUserId }]">
+          <div v-for="m in messages" :key="m.id" :class="['msg', { mine: m.sender_id === currentUserId }]">
             <span class="msg-author">{{ m.sender_username || m.username }}</span>
             <span class="msg-content">{{ m.content }}</span>
             <span class="msg-time">{{ formatTime(m.created_at) }}</span>
           </div>
           <p v-if="!messages.length && !loadingMessages" class="empty">No messages yet.</p>
         </div>
-
         <form class="message-form" @submit.prevent="sendMessage">
           <input v-model="newMessage" type="text" placeholder="Type a message…" autocomplete="off" />
           <button type="submit" class="btn-primary" :disabled="!newMessage.trim()">Send</button>
         </form>
-
       </template>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
 import { socket, connectSocket, disconnectSocket } from '../services/socket.js'
 
-const authStore     = useAuthStore()
+const authStore = useAuthStore()
 const currentUserId = computed(() => authStore.user?.id)
-const socketStatus  = ref('disconnected') // 'disconnected' | 'connecting' | 'connected' | 'error'
 
-const sideTab     = ref('dms')
+const sideTab = ref('dms')
 const conversations = ref([])
-const rooms       = ref([])
-const selected    = ref(null)
-const messages    = ref([])
-const loading     = ref(false)
+const rooms = ref([])
+const selected = ref(null)
+const messages = ref([])
+const loading = ref(false)
 const loadingMessages = ref(false)
-const msgError    = ref(null)
-const newMessage  = ref('')
-const newDmId     = ref('')
+const msgError = ref(null)
+const newMessage = ref('')
+const newDmId = ref('')
 const newRoomName = ref('')
 const showCreateRoom = ref(false)
-const msgBox      = ref(null)
+const msgBox = ref(null)
 
 function formatTime(ts) {
   if (!ts) return ''
@@ -136,7 +113,7 @@ async function fetchConversations() {
     const { data } = await api.get('/chat/conversations')
     conversations.value = data.conversations
   } catch {
-    // fail silently — user might have no conversations
+    // fail silently
   } finally {
     loading.value = false
   }
@@ -146,7 +123,7 @@ async function fetchRooms() {
   try {
     const { data } = await api.get('/chat/rooms')
     rooms.value = data.rooms
-  } catch { /* fail silently */ }
+  } catch {}
 }
 
 async function selectDm(c) {
@@ -235,24 +212,15 @@ function setupSocket() {
   const token = localStorage.getItem('accessToken')
   if (!token) return
 
-  socketStatus.value = 'connecting'
   connectSocket(token)
 
   socket.on('connect', () => {
-    socketStatus.value = 'connected'
     msgError.value = null
   })
-
-  socket.on('disconnect', () => {
-    socketStatus.value = 'disconnected'
-  })
-
+  socket.on('disconnect', () => {})
   socket.on('connect_error', (err) => {
-    socketStatus.value = 'error'
     msgError.value = `Socket error: ${err.message}`
   })
-
-  // Incoming DM — append if conversation is open
   socket.on('dm:received', ({ message }) => {
     if (
       selected.value?.type === 'dm' &&
@@ -261,11 +229,8 @@ function setupSocket() {
       messages.value.push(message)
       scrollToBottom()
     }
-    // Refresh conversation list for unread badge
     fetchConversations()
   })
-
-  // Incoming room message — append if room is open
   socket.on('room:message', ({ message }) => {
     if (selected.value?.type === 'room' && message.room_id === selected.value.id) {
       messages.value.push(message)
@@ -327,15 +292,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.messages-page {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 0;
-  height: calc(100vh - 120px);
-  border: 1px solid var(--border-color, #2a2a3a);
-  border-radius: 10px;
-  overflow: hidden;
-}
+/* ...existing styles... */
 
 /* ── Sidebar ── */
 .sidebar {

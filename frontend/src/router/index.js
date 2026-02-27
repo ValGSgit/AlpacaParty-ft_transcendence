@@ -95,14 +95,18 @@ const router = createRouter({
 })
 
 // Navigation guard — redirect to login if route requires auth
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
+
+  // Fetch profile if authenticated and not already loaded
+  if (authStore.isAuthenticated && !authStore.profileLoaded) {
+    await authStore.fetchUser()
+  }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return { name: 'Login', query: { redirect: to.fullPath } }
   }
 
-  // Redirect logged-in users away from guest-only pages (login/register)
   if (to.meta.guestOnly && authStore.isAuthenticated) {
     return { name: 'Home' }
   }

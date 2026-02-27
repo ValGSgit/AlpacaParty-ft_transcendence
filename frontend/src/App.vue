@@ -52,14 +52,13 @@ async function handleLogout() {
   flex-direction: column;
   height: 100vh; /* Force the app to be exactly the screen height */
   width: 100vw;
-  overflow: hidden; /* Prevents the whole page from scrolling */
 }
 
 .navbar {
   flex-shrink: 0; /* Prevents the navbar from squishing */
   background: var(--bg-secondary, #12121a);
   border-bottom: 1px solid var(--border-color, #2a2a3a);
-  padding: 0.75rem 1.5rem;overflow: hidden;
+  padding: 0.75rem 1.5rem;
 }
 
 .nav-container {
@@ -103,7 +102,6 @@ async function handleLogout() {
 
 .main-content {
   flex-grow: 1; /* Tells the main content to take up all remaining space */
-  overflow: hidden; /* Prevents internal scrolling */
   position: relative;
 }
 
