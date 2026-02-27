@@ -64,7 +64,7 @@ app.use('/api', routes);
 app.get('/', (_req, res) => {
   res.json({
     name: 'Cleanscendence API',
-    version: '0.0.1',
+    version: '0.1.0',
     endpoints: {
       health: '/api/health',
       auth: '/api/auth',

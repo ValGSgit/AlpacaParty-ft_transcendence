@@ -8,9 +8,12 @@
  */
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = (process.env.NODE_ENV || 'development') === 'development';
 
 // JWT secret — must be set explicitly in production
@@ -44,6 +47,11 @@ const config = {
       : ['http://localhost:5173', 'http://localhost:8080'],
   },
 
+  // Explicit frontend URL used for OAuth post-login redirects.
+  // Falls back to the first CORS origin when not set.
+  frontendUrl: process.env.FRONTEND_URL
+    || (process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',')[0] : 'http://localhost:8080'),
+
   rateLimit: {
     windowMs: 15 * 60 * 10000, // 15 minutes
     max: 1000,
@@ -54,6 +62,42 @@ const config = {
     requireUppercase: true,
     requireLowercase: true,
     requireNumber: true,
+  },
+
+  // OAuth 2.0
+  oauth: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/auth/google/callback',
+    },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID || '',
+      clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+      callbackUrl: process.env.GITHUB_CALLBACK_URL || 'http://localhost:3000/api/auth/github/callback',
+    },
+  },
+
+  // File uploads
+  uploads: {
+    dir: process.env.UPLOAD_DIR || path.resolve(__dirname, '../../uploads'),
+    maxSizeBytes: parseInt(process.env.UPLOAD_MAX_SIZE, 10) || 10 * 1024 * 1024, // 10 MB
+    allowedMimeTypes: [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      'application/pdf',
+      'text/plain', 'text/csv',
+      'application/json',
+      'application/xml', 'text/xml',
+    ],
+  },
+
+  // Gamification
+  xp: {
+    perWin: 25,
+    perLoss: 5,
+    perDraw: 10,
+    perPost: 5,
+    levelThreshold: 100, // XP per level
   },
 };
 

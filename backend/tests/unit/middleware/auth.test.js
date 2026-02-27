@@ -110,6 +110,31 @@ describe('authenticate middleware', () => {
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
   });
+
+  test('should attach admin user and call next', async () => {
+    const adminUser = { id: 2, username: 'admin', email: 'admin@test.com', is_admin: true };
+    const token = AuthService.generateAccessToken({ id: 2, username: 'admin', is_admin: true });
+    mockQuery.mockResolvedValueOnce({ rows: [adminUser] });
+
+    const { req, res } = createReqRes({ authorization: `Bearer ${token}` });
+    const next = jest.fn();
+
+    await authenticate(req, res, next);
+
+    expect(req.user).toEqual(adminUser);
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  test('should reject token with lowercase bearer scheme', async () => {
+    const token = AuthService.generateAccessToken({ id: 1, username: 'u', is_admin: false });
+    const { req, res } = createReqRes({ authorization: `bearer ${token}` });
+    const next = jest.fn();
+
+    await authenticate(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
 });
 
 describe('optionalAuth middleware', () => {
@@ -159,5 +184,27 @@ describe('optionalAuth middleware', () => {
 
     expect(req.user).toBeNull();
     expect(next).toHaveBeenCalled();
+  });
+
+  test('should proceed without user when DB throws in optionalAuth', async () => {
+    const token = AuthService.generateAccessToken({ id: 1, username: 'u', is_admin: false });
+    mockQuery.mockRejectedValueOnce(new Error('DB failure'));
+
+    const req = { headers: { authorization: `Bearer ${token}` }, user: null };
+    const next = jest.fn();
+
+    await optionalAuth(req, {}, next);
+
+    expect(next).toHaveBeenCalled();
+  });
+
+  test('should not set req.user when bearer token is missing', async () => {
+    const req = { headers: {}, user: null };
+    const next = jest.fn();
+
+    await optionalAuth(req, {}, next);
+
+    expect(req.user).toBeNull();
+    expect(next).toHaveBeenCalledTimes(1);
   });
 });

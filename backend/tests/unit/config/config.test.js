@@ -53,4 +53,33 @@ describe('config', () => {
   test('should parse port as integer', () => {
     expect(typeof config.port).toBe('number');
   });
+
+  test('should have oauth configuration with google and github', () => {
+    expect(config.oauth).toBeDefined();
+    expect(config.oauth.google).toBeDefined();
+    expect(config.oauth.google.callbackUrl).toBeDefined();
+    expect(config.oauth.github).toBeDefined();
+    expect(config.oauth.github.callbackUrl).toBeDefined();
+  });
+
+  test('should have frontendUrl defined', () => {
+    expect(config.frontendUrl).toBeDefined();
+    expect(typeof config.frontendUrl).toBe('string');
+    expect(config.frontendUrl.length).toBeGreaterThan(0);
+  });
+
+  test('should have db user and password fields', () => {
+    expect(config.db.user).toBeDefined();
+    expect(config.db.password).toBeDefined();
+  });
+
+  test('jwt expiresIn should be a non-empty string', () => {
+    expect(typeof config.jwt.expiresIn).toBe('string');
+    expect(config.jwt.expiresIn.length).toBeGreaterThan(0);
+  });
+
+  test('jwt refreshExpiresIn should be a non-empty string', () => {
+    expect(typeof config.jwt.refreshExpiresIn).toBe('string');
+    expect(config.jwt.refreshExpiresIn.length).toBeGreaterThan(0);
+  });
 });
