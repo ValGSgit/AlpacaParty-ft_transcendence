@@ -9,9 +9,9 @@ name: CI
 
 on:
   push:
-    branches: [main, dev, backend]
+    branches: [main, dev, backend-main, backend-Val]
   pull_request:
-    branches: [main, dev, backend]
+    branches: [main, dev, backend-main, backend-Val]
 
 # Cancel in-progress runs for the same branch/PR on new push
 concurrency:
