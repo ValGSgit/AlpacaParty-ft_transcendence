@@ -101,21 +101,21 @@
 
 <!---------------------- SCRIPT ------------------------->
 <script setup>
-import { shallowRef, ref, onMounted, onUnmounted } from 'vue'
 import * as THREE from 'three'
+import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 
-import { alpacaConfig, useShop } from './components/shop.js'
-import { spawnItems } from "./components/spawnItems.js"
 import { alpacaHandling } from './components/alpacaHandling.js'
 import { useEditMode } from './components/editMode.js'
-import { useGameEngine } from './core/useGameEngine.js'
-import { watchChanges } from './core/watchChanges.js'
+import { alpacaConfig, useShop } from './components/shop.js'
+import { spawnItems } from "./components/spawnItems.js"
 import { addDebugCoins } from './core/debug.js'
-import { usePlayerControls } from './core/usePlayerControls.js'
-import { useCamera } from './core/useCamera.js'
-import { gEngine, gScene, gPlayer, gUser, gAlpacas } from './core/globals.js'
+import { gAlpacas, gEngine, gPlayer, gScene, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
 import { handleAnimation } from './core/useAnimation.js'
+import { useCamera } from './core/useCamera.js'
+import { useGameEngine } from './core/useGameEngine.js'
+import { usePlayerControls } from './core/usePlayerControls.js'
+import { watchChanges } from './core/watchChanges.js'
 
 import { initUser } from './user/initUser.js'
 
@@ -196,7 +196,7 @@ const gameLoop = () => {
   // update all mixer and moving to targets
   for (let i = 0; gAlpacas.value[i]; i++){
     if (gAlpacas.value[i] && gAlpacas.value[i].mixer) {
-      moveToTarget(gAlpacas.value[i].model, delta)
+      moveToTarget(gAlpacas.value[i].model)
       if (gAlpacas.value[i].model.id !== player.id) // only update other alpacas, not the player
       {
         moveAlpaca(gAlpacas.value[i].model)

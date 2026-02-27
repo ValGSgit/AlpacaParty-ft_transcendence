@@ -1,79 +1,28 @@
-import { CONST } from '../config/constants.js'
 import * as THREE from 'three'
-import { gAlpacas, gPlayer, gScene, gEngine } from "../core/globals.js"
-import { usePhysics } from '../core/usePhysics.js'
-import { setupPlacement } from '../components/editMode.js'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
-import { handleAnimation } from '../core/useAnimation.js'
+import { setupPlacement } from '../components/editMode.js'
+import { CONST } from '../config/constants.js'
+import { MATERIALS as MATS } from '../config/materials.js'
+import { gAlpacas, gPlayer, gScene } from "../core/globals.js"
+import { getRandomPos } from '../utils/randomValues.js'
+
+const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 
 export function alpacaHandling() {
-  const { checkCollision } = usePhysics()
-
-  const createAlpacaData = (model, animations, scale) => {
-    if (scale === undefined) scale = 1
-    model.position.set(0, 0, 0)
-    model.scale.set(scale, scale, scale)
-
-    return {
-      model: model,
-      mixer: new THREE.AnimationMixer(model),
-      animations: animations,
-      speedOffset: 0,
-      rotationOffset: 0
-    }
-  }
-  const spawnAlpaca = (color, name, scale) => {
-    const originalAlpaca = gAlpacas.value[0]
-    if (color === undefined)
-      color = originalAlpaca.model.color
-    const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
-    clonedModel.rotation.set(0, 0, 0)
-    clonedModel.quaternion.identity()
-    clonedModel.name = (name === undefined) ? "NewAlpaca" : name
-    clonedModel.color = color
-    //flags init
-    clonedModel.isMoving = false // this one is for doubleClick moving, not wasd
-    clonedModel.isJumping = false
-    clonedModel.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
-    clonedModel.isFalling = false
-    clonedModel.currentAction = null
-    clonedModel.target = null
-    clonedModel.readyToMove = false
-
-    clonedModel.traverse((child) => {
-      if (child.isMesh) {
-        if (child.name === 'Collider')
-          clonedModel.userData.collider = child
-        else {
-          if (child.name === 'Cylinder') // 'Cylinder' is the alpacasbody name
-          {
-            child.material = child.material.clone();
-            child.material.color.set(color)
-          }
-        }
-      }
-    })
-    const clonedMixer = new THREE.AnimationMixer(clonedModel)
-
-    const newAlpaca = createAlpacaData(clonedModel, originalAlpaca.animations, scale)
-    setupPlacement(newAlpaca.model)
-    gAlpacas.value.push(newAlpaca)
-  }
 
   const moveAlpaca = (player, raycaster) => {
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const worldPoint = new THREE.Vector3();
-    if (!raycaster && !player.target && player.readyToMove) {
-      // random x z for AI
-      worldPoint.x = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
+    // 1. Check player.model.target and player.model.readyToMove
+    if (!raycaster && !player.model.target && player.model.readyToMove) {
+      worldPoint.x = getRandomPos()
       worldPoint.y = 0
-      worldPoint.z = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
-      player.target = worldPoint
+      worldPoint.z = getRandomPos()
+      player.model.target = worldPoint // 2. Assign to player.model
     }
     else if (raycaster) // doubleClick
     {
-      raycaster.ray.intersectPlane(plane, worldPoint)
-      player.target = worldPoint
+      raycaster.ray.intersectPlane(floorPlane, worldPoint)
+      player.model.target = worldPoint // 3. Assign to player.model
     }
   }
 
@@ -88,46 +37,7 @@ export function alpacaHandling() {
     return true
   }
 
-  const createLaserBeam = (origin, direction, length) => {
-    // 1. Create a thin cylinder
-    const geometry = new THREE.CylinderGeometry(0.05, 0.05, length, 8);
-
-    // 2. Make it glow with Emissive
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x00ffff,
-      emissive: 0x00ffff,
-      emissiveIntensity: 2,
-      transparent: true,
-      opacity: 0.8
-    });
-
-    const laser = new THREE.Mesh(geometry, material);
-
-    // 3. Position and Rotate the laser
-    // Cylinders are created vertically, so we need to tilt it to match the ray
-    laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
-
-    // Position it halfway between the origin and the end of the ray
-    const middlePoint = new THREE.Vector3().copy(direction).multiplyScalar(length / 2);
-    laser.position.copy(origin).add(middlePoint);
-
-    return laser;
-  };
-
-  const findAlpaca = (alpaca) => {
-    while (alpaca) {
-      for (let i = 0; i < gAlpacas.value.length; ++i) {
-        if (alpaca.id === gAlpacas.value[i].model.id) {
-          //console.log("Found:", alpaca.name);
-          return gAlpacas.value[i]
-        }
-      }
-      alpaca = alpaca.parent
-    }
-    return null
-  }
-
-  const split = () => {
+  const spit = () => {
     const origin = new THREE.Vector3().copy(gPlayer.value.model.position)
     let dx = Math.sin(gPlayer.value.model.rotation.y)
     let dz = Math.cos(gPlayer.value.model.rotation.y)
@@ -139,11 +49,9 @@ export function alpacaHandling() {
     const far = 10
     const raycaster = new THREE.Raycaster(origin, direction, near, far)
 
-    // --- RENDERING THE SPLIT ---
     const beam = createLaserBeam(origin, direction, far);
     gScene.value.add(beam);
 
-    // --- CHECKING FOR HITS ---
     const targets = gAlpacas.value.map(a => a.model);
     const hits = raycaster.intersectObjects(targets, true);
 
@@ -155,13 +63,13 @@ export function alpacaHandling() {
       hitAlpaca.model.isDead = -1 // being hit
     }
 
-    // Fade out and remove the beam
     setTimeout(() => {
       gScene.value.remove(beam);
-    }, 200); // Quick flash effect
+      beam.geometry.dispose();
+    }, 200);
   }
 
-  const moveToTarget = (alpaca, delta) => {
+  const moveToTarget = (alpaca) => {
     if (!alpaca || !alpaca.target) return;
 
     const speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
@@ -204,5 +112,82 @@ export function alpacaHandling() {
     }
   };
 
-  return { spawnAlpaca, switchAlpaca, moveAlpaca, split, moveToTarget }
+  return { switchAlpaca, moveAlpaca, spit, moveToTarget }
+}
+
+export function spawnAlpaca(color, name, scale) {
+  const originalAlpaca = gAlpacas.value[0]
+  const finalColor = color ?? originalAlpaca.model.color
+  const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
+  clonedModel.name = name ?? "NewAlpaca"
+  clonedModel.color = finalColor
+
+  initFlags(clonedModel)
+  applyNewColor(clonedModel, finalColor)
+  const newAlpaca = createAlpacaData(clonedModel, originalAlpaca.animations, scale)
+  setupPlacement(newAlpaca.model)
+  gAlpacas.value.push(newAlpaca)
+}
+
+// -----------------------------------------------------------------------------------------------
+
+const createLaserBeam = (origin, direction, length) => {
+  const geo = new THREE.CylinderGeometry(0.05, 0.05, length, 8);
+  geo.translate(0, length / 2, 0);
+  const laser = new THREE.Mesh(geo, MATS.spit);
+  laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+  laser.position.copy(origin);
+
+  return laser;
+};
+
+const findAlpaca = (alpaca) => {
+  while (alpaca) {
+    for (let i = 0; i < gAlpacas.value.length; ++i) {
+      if (alpaca.id === gAlpacas.value[i].model.id) {
+        //console.log("Found:", alpaca.name);
+        return gAlpacas.value[i]
+      }
+    }
+    alpaca = alpaca.parent
+  }
+  return null
+}
+
+const initFlags = (model) => {
+  model.rotation.set(0, 0, 0)
+  model.quaternion.identity()
+  model.isMoving = false
+  model.isJumping = false
+  model.isDead = 0
+  model.isFalling = false
+  model.currentAction = null
+  model.target = null
+  model.readyToMove = false
+}
+
+const createAlpacaData = (model, animations, scale = 1) => {
+  model.position.set(0, 0, 0)
+  model.scale.set(scale, scale, scale)
+
+  return {
+    model: model,
+    mixer: new THREE.AnimationMixer(model),
+    animations: animations,
+    speedOffset: 0,
+    rotationOffset: 0
+  }
+}
+
+const applyNewColor = (model, color) => {
+  model.traverse((child) => {
+    if (child.isMesh) {
+      if (child.name === 'Collider') {
+        model.userData.collider = child
+      } else if (child.name === 'Cylinder') {
+        child.material = child.material.clone()
+        child.material.color.set(color)
+      }
+    }
+  })
 }

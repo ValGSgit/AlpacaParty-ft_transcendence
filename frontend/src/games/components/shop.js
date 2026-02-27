@@ -1,10 +1,9 @@
 import { gUser, gPlayer, gScene, gEngine } from '../core/globals.js'
-import { alpacaHandling } from './alpacaHandling.js'
+import { spawnAlpaca } from './alpacaHandling.js'
 import { CONST } from '../config/constants.js'
 import { reactive } from 'vue'
 import { useEditMode } from './editMode.js'
 
-const { spawnAlpaca } = alpacaHandling()
 const { editModeOff } = useEditMode()
 
 export function useShop() {

@@ -13,7 +13,7 @@ const keys = reactive({
 })
 
 export function useInput() {
-  const { switchAlpaca, moveAlpaca, split } = alpacaHandling()
+  const { switchAlpaca, moveAlpaca, spit } = alpacaHandling()
   const { alpacaMenuOff, itemShopOff } = useShop()
   const { editModeOff, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement } = useEditMode()
 
@@ -24,7 +24,7 @@ export function useInput() {
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
       case 'Space': keys.space = true; break
-      case 'KeyF': split(); break
+      case 'KeyF': spit(); break
       case 'KeyP': printDebug(); break
       case 'Escape': handleEscapeKey(); break
     }

@@ -28,5 +28,13 @@ export const MATERIALS = {
     color: 0xff0000,
     transparent: true,
     opacity: 0.5,
+  }),
+
+  spit: new THREE.MeshStandardMaterial({
+    color: 0x00ffff,
+    emissive: 0x00ffff,
+    emissiveIntensity: 2,
+    transparent: true,
+    opacity: 0.8
   })
 }

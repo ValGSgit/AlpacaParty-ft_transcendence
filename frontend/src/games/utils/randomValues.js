@@ -1,15 +1,20 @@
-// import {}
+import { CONST } from '../config/constants.js'
 
-// const spawnAtRandom = (model) => {
+const spawnAtRandom = (model) => {
 
-//   const x = (Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3)
-//   const z = (Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3)
-//   model.position.set(x, 0, z)
+  const x = (Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3)
+  const z = (Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3)
+  model.position.set(x, 0, z)
 
-//   model.rotation.y = Math.random() * Math.PI * 2
+  model.rotation.y = Math.random() * Math.PI * 2
 
-//   const scale = 0.7 + Math.random() * 0.3
-//   model.scale.multiplyScalar(scale)
+  const scale = 0.7 + Math.random() * 0.3
+  model.scale.multiplyScalar(scale)
 
-//   gScene.value.add(model)
-// }
+  gScene.value.add(model)
+}
+
+export function getRandomPos() {
+  const value = Math.floor((Math.random() - 0.5) * (CONST.FLOOR_RADIUS * 1.3))
+  return value
+}
