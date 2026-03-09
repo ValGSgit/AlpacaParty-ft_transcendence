@@ -21,7 +21,7 @@ export const getMe = async (req, res) => {
  */
 export const updateMe = async (req, res, next) => {
   try {
-    const { username, email, bio, status, avatar, is_public } = req.body;
+    const { username, email, bio, status, avatar, is_public, coins, upgrades, items, alpacas } = req.body;
 
     // Check username uniqueness if changing
     if (username && username !== req.user.username) {
@@ -46,8 +46,8 @@ export const updateMe = async (req, res, next) => {
     }
 
     const updatedUser = await User.update(req.user.id, {
-      username, email, bio, status, avatar, is_public,
-    });
+    username, email, bio, status, avatar, is_public, coins, upgrades, items, alpacas,
+  });
 
     res.json({ user: updatedUser });
   } catch (err) {

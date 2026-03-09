@@ -169,12 +169,13 @@
           v-for="(entry, i) in [...logs].reverse()"
           :key="i"
           class="log-entry"
-          :class="entry.ok ? 'ok' : 'err'"
+          :class="entry.ok ? 'ok' : entry.expected ? 'expected' : 'err'"
         >
           <div class="log-meta">
             <span class="log-method">{{ entry.method }}</span>
             <span class="log-url">{{ entry.url }}</span>
             <span class="log-status">{{ entry.status }}</span>
+            <span v-if="entry.expected" class="log-expected-badge" title="Expected response — correct behaviour for this endpoint">expected</span>
             <span class="log-time">{{ entry.time }}ms</span>
             <div class="log-actions-row">
               <button class="icon-btn small" @click="copyText(entry.body)" title="Copy response">⎘</button>
@@ -348,10 +349,10 @@ function exportLog() {
   URL.revokeObjectURL(a.href)
 }
 
-async function request(method, path, body, extraHeaders = {}) {
+async function request(method, path, body, extraHeaders = {}, expectStatus = null) {
   const url = `${BASE}${path}`
   const start = Date.now()
-  const entry = reactive({ method: method.toUpperCase(), url, status: 0, body: '', ok: false, time: 0, collapsed: false })
+  const entry = reactive({ method: method.toUpperCase(), url, status: 0, body: '', ok: false, expected: false, time: 0, collapsed: false })
   try {
     const res = await axios({ method, url, data: body, headers: { ...authHeaders(), ...extraHeaders } })
     entry.status = res.status
@@ -360,6 +361,9 @@ async function request(method, path, body, extraHeaders = {}) {
   } catch (e) {
     entry.status = e.response?.status ?? 0
     entry.body = JSON.stringify(e.response?.data ?? e.message, null, 2)
+    if (expectStatus && entry.status === expectStatus) {
+      entry.expected = true
+    }
   }
   entry.time = Date.now() - start
   logs.value.push(entry)
@@ -373,7 +377,7 @@ async function fire(ep) {
   const body   = typeof ep.body    === 'function' ? ep.body()    : ep.body
   const extra  = typeof ep.headers === 'function' ? ep.headers() : (ep.headers ?? {})
   activeReqs[ep.label] = true
-  try { await request(method, path, body, extra) }
+  try { await request(method, path, body, extra, ep.expectStatus ?? null) }
   finally { delete activeReqs[ep.label] }
 }
 
@@ -574,27 +578,27 @@ const sections = computed(() => [
   {
     title: '🔑 Public API (needs X-API-Key)',
     endpoints: [
-      { label: 'Docs',               path: '/public',               headers: () => apiKeyHeaders() },
-      { label: 'Public Users',       path: '/public/users',         headers: () => apiKeyHeaders() },
+      { label: 'Docs',               path: '/public',               headers: () => apiKeyHeaders(), expectStatus: 401 },
+      { label: 'Public Users',       path: '/public/users',         headers: () => apiKeyHeaders(), expectStatus: 401 },
       { label: 'Public User',        path: () => `/public/users/${targetUserId.value}`,
-        headers: () => apiKeyHeaders(), params: ['userId'] },
-      { label: 'Public Leaderboard', path: '/public/leaderboard',  headers: () => apiKeyHeaders() },
-      { label: 'Public Posts',       path: '/public/posts',        headers: () => apiKeyHeaders() },
-      { label: 'Public Orgs',        path: '/public/organizations', headers: () => apiKeyHeaders() },
+        headers: () => apiKeyHeaders(), params: ['userId'], expectStatus: 401 },
+      { label: 'Public Leaderboard', path: '/public/leaderboard',  headers: () => apiKeyHeaders(), expectStatus: 401 },
+      { label: 'Public Posts',       path: '/public/posts',        headers: () => apiKeyHeaders(), expectStatus: 401 },
+      { label: 'Public Orgs',        path: '/public/organizations', headers: () => apiKeyHeaders(), expectStatus: 401 },
     ],
   },
   {
     title: '🛡️ Admin (must be admin)',
     endpoints: [
-      { label: 'Admin Stats',      path: '/admin/stats' },
-      { label: 'Admin Users',      path: '/admin/users' },
+      { label: 'Admin Stats',      path: '/admin/stats',                                                           expectStatus: 403 },
+      { label: 'Admin Users',      path: '/admin/users',                                                           expectStatus: 403 },
       { label: 'Delete User',      method: 'DELETE',
-        path: () => `/admin/users/${targetUserId.value}`, params: ['userId'], danger: true },
+        path: () => `/admin/users/${targetUserId.value}`, params: ['userId'], danger: true,                         expectStatus: 403 },
       { label: 'Toggle Admin',     method: 'PUT',
-        path: () => `/admin/users/${targetUserId.value}/toggle-admin`, params: ['userId'] },
-      { label: 'Data Requests',    path: '/admin/data-requests' },
+        path: () => `/admin/users/${targetUserId.value}/toggle-admin`, params: ['userId'],                          expectStatus: 403 },
+      { label: 'Data Requests',    path: '/admin/data-requests',                                                   expectStatus: 403 },
       { label: 'Process Data Req', method: 'POST',
-        path: () => `/admin/data-requests/${targetReqId.value}/process`, params: ['reqId'], danger: true },
+        path: () => `/admin/data-requests/${targetReqId.value}/process`, params: ['reqId'], danger: true,           expectStatus: 403 },
     ],
   },
 ])
@@ -834,8 +838,9 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .log-empty { color: #444; text-align: center; padding: 2rem; font-size: .85rem; }
 
 .log-entry { border-left: 3px solid #444; padding-left: .7rem; }
-.log-entry.ok  { border-color: #4ecdc4; }
-.log-entry.err { border-color: #ff6b6b; }
+.log-entry.ok       { border-color: #4ecdc4; }
+.log-entry.err      { border-color: #ff6b6b; }
+.log-entry.expected { border-color: #ffd93d; }
 
 .log-meta {
   display: flex; gap: .6rem; font-size: .75rem;
@@ -844,8 +849,14 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .log-method { font-weight: 700; color: #7c7cff; min-width: 3.2rem; }
 .log-url    { color: #999; flex: 1; word-break: break-all; }
 .log-status { font-weight: 700; }
-.log-entry.ok .log-status  { color: #4ecdc4; }
-.log-entry.err .log-status { color: #ff6b6b; }
+.log-entry.ok       .log-status { color: #4ecdc4; }
+.log-entry.err      .log-status { color: #ff6b6b; }
+.log-entry.expected .log-status { color: #ffd93d; }
+.log-expected-badge {
+  font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  padding: .1rem .4rem; border-radius: 3px;
+  background: #2a2200; color: #ffd93d; border: 1px solid #ffd93d44;
+}
 .log-time { color: #666; white-space: nowrap; }
 .log-actions-row { display: flex; gap: .25rem; margin-left: auto; }
 

@@ -204,10 +204,23 @@ async function changePassword() {
 async function requestExport() {
   requestingData.value = true
   try {
-    await api.post('/users/me/data-request', { type: 'export', format: exportFormat.value })
-    flash('Export requested. You will be notified when it is ready.')
+    const res = await api.get('/users/me/export', {
+      params: { format: exportFormat.value },
+      responseType: 'blob',
+    })
+    const ext = exportFormat.value
+    const blob = new Blob([res.data])
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `alpacaparty-data.${ext}`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    flash('Data exported successfully.')
   } catch (e) {
-    flash(e.response?.data?.error?.message || 'Failed to request export.', 'error')
+    flash(e.response?.data?.error?.message || 'Failed to export data.', 'error')
   } finally {
     requestingData.value = false
   }
@@ -217,7 +230,7 @@ async function confirmDelete() {
   if (!window.confirm('Are you sure? This will permanently delete your account.')) return
   requestingData.value = true
   try {
-    await api.post('/users/me/data-request', { type: 'delete' })
+    await api.post('/users/me/delete-request')
     flash('Delete request submitted. Account deletion will be processed by an admin.')
   } catch (e) {
     flash(e.response?.data?.error?.message || 'Failed to request deletion.', 'error')
