@@ -8,7 +8,7 @@
       <p class="hero-sub">Raise and customise your alpaca farm in a 3D world.</p>
 
       <div class="cta-group">
-        <router-link v-if="authStore.isAuthenticated" to="/" class="btn-primary">
+        <router-link v-if="authStore.isAuthenticated" to="/game" class="btn-primary">
           🎮 Play Now
         </router-link>
         <template v-else>
