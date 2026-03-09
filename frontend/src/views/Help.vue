@@ -83,7 +83,7 @@ const inputEl = ref(null)
 
 const suggestions = [
   'How do I add friends?',
-  'How does the Pong game work?',
+  'How does the Alpaca game work?',
   'What are achievements?',
   'How do I manage my alpaca farm?',
 ]

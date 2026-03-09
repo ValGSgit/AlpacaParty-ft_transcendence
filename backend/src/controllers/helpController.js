@@ -11,7 +11,6 @@ const MODEL = 'llama-3.3-70b-versatile';
 
 const SYSTEM_PROMPT = `You are the friendly help assistant for **Cleanscendence** (also known as "Alpaca Party!"), a social web application where users can:
 
-- Play Pong games and climb an ELO leaderboard
 - Manage an alpaca farm (buy alpacas, earn coins, upgrade)
 - Add friends, send direct messages, and join group chat rooms
 - Create and join organisations
