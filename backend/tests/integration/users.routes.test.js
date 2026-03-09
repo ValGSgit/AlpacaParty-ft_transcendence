@@ -203,7 +203,7 @@ describe('PUT /api/users/me/password', () => {
 describe('GET /api/users/:id', () => {
   test('200 — returns user by id', async () => {
     mockAuth();
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 2, username: 'other', bio: 'hi' }] });
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: 2, username: 'other', bio: 'hi', is_public: true }] });
 
     const res = await request.get('/api/users/2').set('Authorization', `Bearer ${validToken}`);
     expect(res.status).toBe(200);
@@ -227,8 +227,8 @@ describe('GET /api/users', () => {
     mockAuth();
     mockQuery.mockResolvedValueOnce({
       rows: [
-        { id: 1, username: 'user1' },
-        { id: 2, username: 'user2' },
+        { id: 1, username: 'user1', is_public: true },
+        { id: 2, username: 'user2', is_public: true },
       ],
     });
 

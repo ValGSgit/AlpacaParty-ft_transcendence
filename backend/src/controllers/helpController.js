@@ -29,14 +29,14 @@ Your role:
 /** POST /api/help/chat — non-streaming, returns full message */
 export const chat = async (req, res, next) => {
   try {
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      return res.status(503).json({ error: { message: 'Help service is not configured' } });
-    }
-
     const { messages } = req.body;
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: { message: 'messages array is required' } });
+    }
+
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ error: { message: 'Help service is not configured' } });
     }
 
     // Build the conversation with system prompt
@@ -79,14 +79,14 @@ export const chat = async (req, res, next) => {
 /** POST /api/help/chat/stream — SSE streaming response */
 export const chatStream = async (req, res, next) => {
   try {
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      return res.status(503).json({ error: { message: 'Help service is not configured' } });
-    }
-
     const { messages } = req.body;
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: { message: 'messages array is required' } });
+    }
+
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ error: { message: 'Help service is not configured' } });
     }
 
     const conversation = [

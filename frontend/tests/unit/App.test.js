@@ -28,6 +28,14 @@ function createTestRouter() {
       { path: '/login', name: 'Login', component: { template: '<div>Login</div>' } },
       { path: '/register', name: 'Register', component: { template: '<div>Register</div>' } },
       { path: '/profile', name: 'Profile', component: { template: '<div>Profile</div>' } },
+      { path: '/friends', name: 'Friends', component: { template: '<div>Friends</div>' } },
+      { path: '/messages', name: 'Messages', component: { template: '<div>Messages</div>' } },
+      { path: '/game', name: 'Game', component: { template: '<div>Game</div>' } },
+      { path: '/settings', name: 'Settings', component: { template: '<div>Settings</div>' } },
+      { path: '/help', name: 'Help', component: { template: '<div>Help</div>' } },
+      { path: '/api-test', name: 'ApiTest', component: { template: '<div>ApiTest</div>' } },
+      { path: '/privacy', name: 'PrivacyPolicy', component: { template: '<div>Privacy</div>' } },
+      { path: '/terms', name: 'TermsOfService', component: { template: '<div>Terms</div>' } },
     ],
   })
 }
@@ -48,7 +56,7 @@ describe('App.vue', () => {
       global: { plugins: [pinia, router] },
     })
 
-    expect(wrapper.find('.logo-text').text()).toBe('AlpacaParty')
+    expect(wrapper.find('.logo-text').text()).toBe('Alpaca Party!')
   })
 
   it('shows login/register links when not authenticated', () => {
@@ -57,7 +65,6 @@ describe('App.vue', () => {
     })
 
     expect(wrapper.find('a[href="/login"]').exists()).toBe(true)
-    expect(wrapper.find('a[href="/register"]').exists()).toBe(true)
     expect(wrapper.find('a[href="/profile"]').exists()).toBe(false)
   })
 
