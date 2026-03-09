@@ -48,6 +48,7 @@ services:
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-http://localhost:8080/api/auth/github/callback}
+      API_KEYS: ${API_KEYS:-test-api-key}
     volumes:
       - ./backend:/app
       - /app/node_modules
