@@ -1,4 +1,4 @@
-# Cleanscendence
+# AlpacaParty
 
 > 42 Transcendence — Vue 3 + Express.js + PostgreSQL + Docker + nginx + Socket.io + Three.js
 
@@ -220,12 +220,12 @@ graph TB
 
 | Service | Container | Port |
 |---------|-----------|------|
-| nginx | cleanscendence_nginx | **8080** → 80 |
-| frontend | cleanscendence_frontend | 5173 |
-| backend | cleanscendence_backend | 3000 |
-| postgres | cleanscendence_db | 5432 |
+| nginx | alpacaparty_nginx | **8080** → 80 |
+| frontend | alpacaparty_frontend | 5173 |
+| backend | alpacaparty_backend | 3000 |
+| postgres | alpacaparty_db | 5432 |
 
 ## Issue Tracker
 
-See [GitHub Issues](https://github.com/ValGSgit/Cleanscendence/issues) for the full backlog.
+See [GitHub Issues](https://github.com/ValGSgit/AlpacaParty/issues) for the full backlog.
 

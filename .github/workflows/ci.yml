@@ -1,4 +1,4 @@
-# Cleanscendence — Continuous Integration
+# AlpacaParty — Continuous Integration
 #
 # Jobs:
 #   1. backend-unit  — Jest unit + integration tests (mocked DB)
@@ -138,9 +138,9 @@ jobs:
         run: docker compose up -d --build
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-e2e-secret-change-in-prod' }}
-          DB_NAME: cleanscendence
-          DB_USER: cleanscendence
-          DB_PASSWORD: cleanscendence
+          DB_NAME: alpacaparty
+          DB_USER: alpacaparty
+          DB_PASSWORD: alpacaparty
 
       - name: Wait for backend to be healthy
         run: |

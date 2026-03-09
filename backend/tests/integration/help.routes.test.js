@@ -108,7 +108,7 @@ describe('POST /api/help/chat', () => {
     // Verify the body includes system prompt and user message
     const fetchBody = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(fetchBody.messages[0].role).toBe('system');
-    expect(fetchBody.messages[0].content).toMatch(/Cleanscendence/i);
+    expect(fetchBody.messages[0].content).toMatch(/AlpacaParty/i);
     expect(fetchBody.messages[fetchBody.messages.length - 1]).toEqual({
       role: 'user',
       content: 'How do I add friends?',

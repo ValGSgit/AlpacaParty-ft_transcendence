@@ -48,7 +48,7 @@ describe('App.vue', () => {
       global: { plugins: [pinia, router] },
     })
 
-    expect(wrapper.find('.logo-text').text()).toBe('Cleanscendence')
+    expect(wrapper.find('.logo-text').text()).toBe('AlpacaParty')
   })
 
   it('shows login/register links when not authenticated', () => {

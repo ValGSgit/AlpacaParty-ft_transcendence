@@ -1,7 +1,7 @@
 /**
  * User Model — Database access layer for users table
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/9
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/9
  */
 import { query } from '../config/database.js';
 

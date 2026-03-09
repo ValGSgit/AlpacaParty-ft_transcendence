@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test'
 test.describe('Navigation', () => {
   test('home page loads correctly', async ({ page }) => {
     await page.goto('/')
-    await expect(page.locator('h1')).toContainText('Welcome to Cleanscendence')
+    await expect(page.locator('h1')).toContainText('Welcome to AlpacaParty')
     await expect(page.locator('.nav-logo')).toBeVisible()
   })
 

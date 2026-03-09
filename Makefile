@@ -1,7 +1,7 @@
 # ============================================================================
-# CLEANSCENDENCE — Makefile
+# ALPACAPARTY — Makefile
 # @owner   ValGSgit
-# @issue   https://github.com/ValGSgit/Cleanscendence/issues/6
+# @issue   https://github.com/ValGSgit/AlpacaParty/issues/6
 # ============================================================================
 
 # ── Colours ─────────────────────────────────────────────────
@@ -27,7 +27,7 @@ DC_PROD := docker compose -f docker-compose.prod.yml
 # ── HELP ────────────────────────────────────────────────────
 help:
 	@echo ""
-	@echo "$(CYAN)========== Cleanscendence ===========$(RESET)"
+	@echo "$(CYAN)========== AlpacaParty ===========$(RESET)"
 	@echo ""
 	@echo "$(YELLOW)Docker Development$(RESET)"
 	@echo "  $(GREEN)make up$(RESET)             Start all containers (dev mode)"
@@ -146,7 +146,7 @@ shell-frontend:
 	$(DC) exec frontend sh
 
 shell-db:
-	$(DC) exec postgres psql -U $${DB_USER:-cleanscendence} -d $${DB_NAME:-cleanscendence}
+	$(DC) exec postgres psql -U $${DB_USER:-alpacaparty} -d $${DB_NAME:-alpacaparty}
 
 # ── CLEANUP ─────────────────────────────────────────────────
 clean:

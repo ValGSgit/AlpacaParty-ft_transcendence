@@ -27,7 +27,7 @@ router.use(requireApiKey);
 // ── Documentation endpoint ──────────────────────────────────
 router.get('/', (_req, res) => {
   res.json({
-    name: 'Cleanscendence Public API',
+    name: 'AlpacaParty Public API',
     version: '1.0',
     authentication: 'X-API-Key header required',
     endpoints: [

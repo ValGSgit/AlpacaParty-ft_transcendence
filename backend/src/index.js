@@ -1,7 +1,7 @@
 /**
  * Express Application Entry Point
  * @owner DavidPoetsch, ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/2
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/2
  */
 import express from 'express';
 import { createServer } from 'http';
@@ -68,7 +68,7 @@ app.use('/api', routes);
 // Root endpoint
 app.get('/', (_req, res) => {
   res.json({
-    name: 'Cleanscendence API',
+    name: 'AlpacaParty API',
     version: '0.1.0',
     endpoints: {
       health: '/api/health',
@@ -97,7 +97,7 @@ initializeSocket(httpServer, config.cors.origins);
 // Start server
 const PORT = config.port;
 httpServer.listen(PORT, () => {
-  console.log(`[server] Cleanscendence API running on port ${PORT} (${config.nodeEnv})`);
+  console.log(`[server] AlpacaParty API running on port ${PORT} (${config.nodeEnv})`);
 });
 
 export default app;

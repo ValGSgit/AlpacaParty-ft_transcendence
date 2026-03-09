@@ -1,7 +1,7 @@
 <!--
   OAuthCallback View
   @owner ValGSgit
-  @issue https://github.com/ValGSgit/Cleanscendence/issues/8
+  @issue https://github.com/ValGSgit/AlpacaParty/issues/8
 
   Handles the redirect from the backend after Google / GitHub OAuth.
   The backend appends ?accessToken=…&refreshToken=… to this route's URL.

@@ -1,7 +1,7 @@
 /**
  * Auth Store — Pinia store for authentication state
  * @owner fankahou, LukasStefanek
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/8
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'

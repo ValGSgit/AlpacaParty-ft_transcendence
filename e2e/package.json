@@ -1,7 +1,7 @@
 {
-  "name": "cleanscendence-e2e",
+  "name": "alpacaparty-e2e",
   "version": "0.1.0",
-  "description": "Cleanscendence — End-to-End Tests (Playwright)",
+  "description": "AlpacaParty — End-to-End Tests (Playwright)",
   "private": true,
   "type": "module",
   "scripts": {

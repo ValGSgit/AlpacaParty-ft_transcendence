@@ -1,35 +1,35 @@
 # Docker Compose — Development
 # @owner ValGSgit
-# @issue https://github.com/ValGSgit/Cleanscendence/issues/3
+# @issue https://github.com/ValGSgit/AlpacaParty/issues/3
 
 services:
   # ── PostgreSQL ──────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: cleanscendence_db
+    container_name: alpacaparty_db
     environment:
-      POSTGRES_DB: ${DB_NAME:-cleanscendence}
-      POSTGRES_USER: ${DB_USER:-cleanscendence}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-cleanscendence}
+      POSTGRES_DB: ${DB_NAME:-alpacaparty}
+      POSTGRES_USER: ${DB_USER:-alpacaparty}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-alpacaparty}
     ports:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./PostgreSQL/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cleanscendence}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-alpacaparty}"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - cleanscendence_net
+      - alpacaparty_net
 
   # ── Backend (Express) ──────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: cleanscendence_backend
+    container_name: alpacaparty_backend
     ports:
       - "3000:3000"
     environment:
@@ -37,9 +37,9 @@ services:
       PORT: 3000
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-cleanscendence}
-      DB_USER: ${DB_USER:-cleanscendence}
-      DB_PASSWORD: ${DB_PASSWORD:-cleanscendence}
+      DB_NAME: ${DB_NAME:-alpacaparty}
+      DB_USER: ${DB_USER:-alpacaparty}
+      DB_PASSWORD: ${DB_PASSWORD:-alpacaparty}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
@@ -58,14 +58,14 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - cleanscendence_net
+      - alpacaparty_net
 
   # ── Frontend (Vue 3 + Vite) ────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: cleanscendence_frontend
+    container_name: alpacaparty_frontend
     ports:
       - "5173:5173"
     environment:
@@ -78,12 +78,12 @@ services:
       - backend
     restart: unless-stopped
     networks:
-      - cleanscendence_net
+      - alpacaparty_net
 
   # ── nginx reverse proxy ────────────────────────────────────
   nginx:
     image: nginx:alpine
-    container_name: cleanscendence_nginx
+    container_name: alpacaparty_nginx
     ports:
       - "8080:80"
     volumes:
@@ -93,21 +93,21 @@ services:
       - backend
     restart: unless-stopped
     networks:
-      - cleanscendence_net
+      - alpacaparty_net
 
   # ── E2E Tests (Playwright) — on-demand ─────────────────────
   e2e:
     build:
       context: ./e2e
       dockerfile: Dockerfile
-    container_name: cleanscendence_e2e
+    container_name: alpacaparty_e2e
     environment:
       E2E_BASE_URL: http://nginx:80
       PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium-browser
     depends_on:
       - nginx
     networks:
-      - cleanscendence_net
+      - alpacaparty_net
     profiles:
       - e2e
 
@@ -115,5 +115,5 @@ volumes:
   pg_data:
 
 networks:
-  cleanscendence_net:
+  alpacaparty_net:
     driver: bridge

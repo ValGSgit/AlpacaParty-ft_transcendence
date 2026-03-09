@@ -1,7 +1,7 @@
 /**
  * API Route Index
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/9
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/9
  */
 import express from 'express';
 import authRoutes from './auth.js';
@@ -23,7 +23,7 @@ const router = express.Router();
 router.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
-    message: 'Cleanscendence backend is running',
+    message: 'AlpacaParty backend is running',
     timestamp: new Date().toISOString(),
     version: '0.1.0',
   });

@@ -1,7 +1,7 @@
 /**
  * User Controller — profile viewing, editing, GDPR
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/9
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/9
  */
 import User from '../models/User.js';
 import AuthService from '../services/authService.js';
@@ -95,6 +95,10 @@ export const getUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ error: { message: 'User not found' } });
     }
+    // Only the owner or admins can see non-public profiles
+    if (!user.is_public && user.id !== req.user.id && !req.user.is_admin) {
+      return res.status(404).json({ error: { message: 'User not found' } });
+    }
     res.json({ user });
   } catch (err) {
     next(err);
@@ -115,6 +119,11 @@ export const listUsers = async (req, res, next) => {
       users = await User.findAll({ limit: Number(limit), offset: Number(offset) });
     }
 
+    // Non-admin users only see public profiles (plus themselves)
+    if (!req.user.is_admin) {
+      users = users.filter(u => u.is_public || u.id === req.user.id);
+    }
+
     res.json({ users });
   } catch (err) {
     next(err);
@@ -132,7 +141,7 @@ export const exportMyData = async (req, res, next) => {
     const { data, contentType, extension } = await DataExportService.exportUserData(req.user.id, format);
 
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="cleanscendence-data.${extension}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="alpacaparty-data.${extension}"`);
     res.send(data);
   } catch (err) {
     next(err);

@@ -1,7 +1,7 @@
 /**
  * Vite Configuration
  * @owner fankahou, LukasStefanek
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/1
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/1
  */
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'

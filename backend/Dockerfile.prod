@@ -1,6 +1,6 @@
 # Backend Dockerfile (Production)
 # @owner ValGSgit
-# @issue https://github.com/ValGSgit/Cleanscendence/issues/3
+# @issue https://github.com/ValGSgit/AlpacaParty/issues/3
 
 # ── Stage 1: Build dependencies ──────────────────────────────
 FROM node:20-alpine AS builder

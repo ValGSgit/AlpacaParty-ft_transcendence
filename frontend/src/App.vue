@@ -1,7 +1,7 @@
 <!--
   Root Application Component
   @owner fankahou, LukasStefanek
-  @issue https://github.com/ValGSgit/Cleanscendence/issues/1
+  @issue https://github.com/ValGSgit/AlpacaParty/issues/1
 -->
 <template>
   <div id="app">
@@ -31,6 +31,15 @@
     <main :class="['main-content', { 'game-content': $route.name === 'Game' }]">
       <router-view />
     </main>
+    <footer v-if="$route.name !== 'Game'" class="app-footer">
+      <div class="footer-container">
+        <span class="footer-copy">&copy; 2026 AlpacaParty</span>
+        <div class="footer-links">
+          <router-link to="/privacy">Privacy Policy</router-link>
+          <router-link to="/terms">Terms of Service</router-link>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -116,5 +125,40 @@ async function handleLogout() {
   /* CRITICAL: Stops the browser from "panning" when you drag the mouse/finger */
   touch-action: none; 
   overscroll-behavior: none;
+}
+
+.app-footer {
+  flex-shrink: 0;
+  background: var(--bg-secondary, #12121a);
+  border-top: 1px solid var(--border-color, #2a2a3a);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.85rem;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-copy {
+  color: var(--text-secondary, #a0a0b0);
+}
+
+.footer-links {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.footer-links a {
+  color: var(--text-secondary, #a0a0b0);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover {
+  color: var(--primary, #00f0ff);
 }
 </style>

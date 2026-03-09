@@ -186,10 +186,10 @@ export function initializeSocket(httpServer, corsOrigins) {
       }
     });
 
-    // ── Game: state sync (PoC — authoritative server relay) ──
+    // ── Game: state sync (authoritative server relay) ──
     socket.on('game:state', async ({ gameId, state }) => {
-      // Relay game state to opponent without validation (PoC).
-      // Replace with server-side simulation for production.
+      const game = await Game.findById(gameId);
+      if (!game || ![game.player1_id, game.player2_id].includes(user.id)) return;
       socket.to(`game:${gameId}`).emit('game:state', { from: user.id, state });
     });
 

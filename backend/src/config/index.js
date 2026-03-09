@@ -1,7 +1,7 @@
 /**
  * Application Configuration
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/5
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/5
  *
  * Centralised config from environment variables.
  * See .env.example at the project root for required variables.
@@ -36,9 +36,9 @@ const config = {
   db: {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT, 10) || 5432,
-    name: process.env.DB_NAME || 'cleanscendence',
-    user: process.env.DB_USER || 'cleanscendence',
-    password: process.env.DB_PASSWORD || 'cleanscendence',
+    name: process.env.DB_NAME || 'alpacaparty',
+    user: process.env.DB_USER || 'alpacaparty',
+    password: process.env.DB_PASSWORD || 'alpacaparty',
   },
 
   cors: {

@@ -1,7 +1,7 @@
 /**
  * Error-handling Middleware
  * @owner DavidPoetsch, ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/2
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/2
  */
 
 export const notFoundHandler = (_req, _res, next) => {

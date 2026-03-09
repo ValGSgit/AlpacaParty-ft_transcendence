@@ -1,7 +1,7 @@
 /**
  * Vue Router Configuration
  * @owner fankahou, LukasStefanek
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/1
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/1
  *
  * Route guards and auth-gated routes will be added with Issue #8 (Authentication)
  */
@@ -20,6 +20,8 @@ const Settings = () => import('../views/Settings.vue')
 const Help     = () => import('../views/Help.vue')
 const NotFound = () => import('../views/NotFound.vue')
 const OAuthCallback = () => import('../views/OAuthCallback.vue')
+const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
+const TermsOfService = () => import('../views/TermsOfService.vue')
 
 const routes = [
   {
@@ -89,6 +91,18 @@ const routes = [
     meta: { requiresAuth: false },
   },
   {
+    path: '/privacy',
+    name: 'PrivacyPolicy',
+    component: PrivacyPolicy,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/terms',
+    name: 'TermsOfService',
+    component: TermsOfService,
+    meta: { requiresAuth: false },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: NotFound,
@@ -106,7 +120,7 @@ router.beforeEach(async (to) => {
   const authStore = useAuthStore()
 
   // Fetch profile if authenticated and not already loaded
-  if (authStore.isAuthenticated && !authStore.profileLoaded) {
+  if (authStore.isAuthenticated && !authStore.user) {
     await authStore.fetchUser()
   }
 
