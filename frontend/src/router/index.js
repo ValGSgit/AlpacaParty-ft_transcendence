@@ -1,24 +1,27 @@
 /**
  * Vue Router Configuration
  * @owner fankahou, LukasStefanek
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/1
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/1
  *
  * Route guards and auth-gated routes will be added with Issue #8 (Authentication)
  */
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 
-const Home = () => import('../games/Game.vue')
-const Login = () => import('../views/Login.vue')
+const Home     = () => import('../views/Home.vue')
+const Login    = () => import('../views/Login.vue')
 const Register = () => import('../views/Register.vue')
-const Profile = () => import('../views/Profile.vue')
-//const Game = () => import('../games/Game.vue')
-// TODO: Add views as issues are implemented
-// const Friends = () => import('../views/Friends.vue')     // Friends System
-// const Messages = () => import('../views/Messages.vue')   // Chat / WebSockets
-// const Game = () => import('../views/Game.vue')           // Game Core
-// const Settings = () => import('../views/Settings.vue')   // User Management
-// const NotFound = () => import('../views/NotFound.vue')
+const Profile  = () => import('../views/Profile.vue')
+const ApiTest  = () => import('../views/ApiTest.vue')
+const Friends  = () => import('../views/Friends.vue')
+const Messages = () => import('../views/Messages.vue')
+const Game     = () => import('../games/Game.vue')
+const Settings = () => import('../views/Settings.vue')
+const Help     = () => import('../views/Help.vue')
+const NotFound = () => import('../views/NotFound.vue')
+const OAuthCallback = () => import('../views/OAuthCallback.vue')
+const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
+const TermsOfService = () => import('../views/TermsOfService.vue')
 
 const routes = [
   {
@@ -45,13 +48,66 @@ const routes = [
     component: Profile,
     meta: { requiresAuth: true },
   },
-  /* {
+  {
+    path: '/api-test',
+    name: 'ApiTest',
+    component: ApiTest,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/friends',
+    name: 'Friends',
+    component: Friends,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/messages',
+    name: 'Messages',
+    component: Messages,
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/game',
     name: 'Game',
     component: Game,
-    meta: { requiresAuth: false }, // just play for now
-  }, */
-  // TODO: Add routes as features are implemented
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: Settings,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/help',
+    name: 'Help',
+    component: Help,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/oauth-callback',
+    name: 'OAuthCallback',
+    component: OAuthCallback,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/privacy',
+    name: 'PrivacyPolicy',
+    component: PrivacyPolicy,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/terms',
+    name: 'TermsOfService',
+    component: TermsOfService,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: NotFound,
+    meta: { requiresAuth: false },
+  },
 ]
 
 const router = createRouter({
@@ -60,14 +116,18 @@ const router = createRouter({
 })
 
 // Navigation guard — redirect to login if route requires auth
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
+
+  // Fetch profile if authenticated and not already loaded
+  if (authStore.isAuthenticated && !authStore.user) {
+    await authStore.fetchUser()
+  }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return { name: 'Login', query: { redirect: to.fullPath } }
   }
 
-  // Redirect logged-in users away from guest-only pages (login/register)
   if (to.meta.guestOnly && authStore.isAuthenticated) {
     return { name: 'Home' }
   }

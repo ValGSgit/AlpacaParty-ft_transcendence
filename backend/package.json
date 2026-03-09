@@ -1,7 +1,7 @@
 {
-  "name": "cleanscendence-backend",
+  "name": "alpacaparty-backend",
   "version": "0.1.0",
-  "description": "Cleanscendence Express.js backend",
+  "description": "AlpacaParty Express.js backend",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
   },
-  "keywords": ["cleanscendence", "backend", "express", "postgresql"],
+  "keywords": ["alpacaparty", "backend", "express", "postgresql"],
   "license": "MIT",
   "dependencies": {
     "bcrypt": "^6.0.0",

@@ -1,42 +1,46 @@
 /**
  * API Route Index
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/9
- *
- * Mount sub-routers here as they are implemented.
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/9
  */
 import express from 'express';
-import { createRequire } from 'module';
 import authRoutes from './auth.js';
 import userRoutes from './users.js';
-
-const require = createRequire(import.meta.url);
-const { version } = require('../../package.json');
+import friendRoutes from './friends.js';
+import chatRoutes from './chat.js';
+import gameRoutes from './game.js';
+import postRoutes from './posts.js';
+import organizationRoutes from './organizations.js';
+import notificationRoutes from './notifications.js';
+import uploadRoutes from './uploads.js';
+import adminRoutes from './admin.js';
+import publicRoutes from './public.js';
+import helpRoutes from './help.js';
 
 const router = express.Router();
 
-// Health check
+// ── Health check ────────────────────────────────────────────
 router.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
-    message: 'Cleanscendence backend is running',
+    message: 'AlpacaParty backend is running',
     timestamp: new Date().toISOString(),
-    version,
+    version: '0.1.0',
   });
 });
 
-// Mounted route modules
+// ── Route modules ────────────────────────────────────────────
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
-
-// TODO: Mount remaining route modules as issues are completed
-// import friendRoutes from './friends.js';     // Issue #9
-// import chatRoutes from './chat.js';          // Issue #9
-// import gameRoutes from './game.js';          // Issue #9
-// import notificationRoutes from './notifications.js';
-// router.use('/friends', friendRoutes);
-// router.use('/chat', chatRoutes);
-// router.use('/game', gameRoutes);
-// router.use('/notifications', notificationRoutes);
+router.use('/friends', friendRoutes);
+router.use('/chat', chatRoutes);
+router.use('/game', gameRoutes);
+router.use('/posts', postRoutes);
+router.use('/organizations', organizationRoutes);
+router.use('/notifications', notificationRoutes);
+router.use('/uploads', uploadRoutes);
+router.use('/admin', adminRoutes);
+router.use('/public', publicRoutes);
+router.use('/help', helpRoutes);
 
 export default router;

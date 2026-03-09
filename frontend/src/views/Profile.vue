@@ -1,7 +1,7 @@
 <!--
   Profile View — current user's profile page
   @owner fankahou, LukasStefanek
-  @issue https://github.com/ValGSgit/Cleanscendence/issues/9
+  @issue https://github.com/ValGSgit/AlpacaParty/issues/9
 -->
 <template>
   <div class="profile-page">

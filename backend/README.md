@@ -1,6 +1,6 @@
-# Cleanscendence — Backend
+# AlpacaParty — Backend
 
-> Express.js REST API for the Cleanscendence project (42 Transcendence).  
+> Express.js REST API for the AlpacaParty project (42 Transcendence).  
 > Owners: **ValGSgit** · **DavidPoetsch**
 
 ---
@@ -133,9 +133,9 @@ Copy `.env.example` from the project root and fill in the values.
 | `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh token lifetime |
 | `DB_HOST` | `localhost` | PostgreSQL host |
 | `DB_PORT` | `5432` | PostgreSQL port |
-| `DB_NAME` | `cleanscendence` | Database name |
-| `DB_USER` | `cleanscendence` | Database user |
-| `DB_PASSWORD` | `cleanscendence` | Database password |
+| `DB_NAME` | `alpacaparty` | Database name |
+| `DB_USER` | `alpacaparty` | Database user |
+| `DB_PASSWORD` | `alpacaparty` | Database password |
 | `CORS_ORIGINS` | `http://localhost:5173,http://localhost:8080` | Comma-separated allowed origins |
 
 ---

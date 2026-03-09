@@ -1,7 +1,7 @@
 {
-  "name": "cleanscendence-shared",
+  "name": "alpacaparty-shared",
   "version": "0.0.1",
-  "description": "Shared game logic (Three.js) for Cleanscendence",
+  "description": "Shared game logic (Three.js) for AlpacaParty",
   "type": "module",
   "dependencies": {
     "three": "^0.170.0"

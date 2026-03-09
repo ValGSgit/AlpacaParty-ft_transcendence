@@ -34,7 +34,7 @@
     </div>
     <!-- Alpaca Menu -->
     <div v-if="gScene.alpacaMenu && gScene.newAlpaca" class="modal-overlay">
-      <div class="shop-title">New Alpaca
+      <div class="shop-title">Buy Alpaca
         <div class="input-group">
           <label>Name</label>
           <input type="text" v-model="alpacaConfig.name" placeholder="Name your alpaca..." />
@@ -101,19 +101,30 @@
 
 <!---------------------- SCRIPT ------------------------->
 <script setup>
-import { shallowRef, ref, onMounted, onUnmounted } from 'vue'
 import * as THREE from 'three'
-import { useGameEngine } from './core/useGameEngine.js'
-import { usePlayerControls } from './core/usePlayerControls.js'
-import { initWorld } from './world/initWorld.js'
-import { initUser } from './user/initUser.js'
-import { useCamera } from './core/useCamera.js'
-import { gEngine, gScene, gPlayer, gUser } from './core/globals.js'
+import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
+
+import { alpacaHandling } from './components/alpacaHandling.js'
+import { useEditMode } from './components/editMode.js'
 import { alpacaConfig, useShop } from './components/shop.js'
 import { spawnItems } from "./components/spawnItems.js"
+import { addDebugCoins } from './core/debug.js'
+import { gAlpacas, gEngine, gPlayer, gScene, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
-import { useAuthStore } from '../stores/auth.js'
+import { handleAnimation } from './core/useAnimation.js'
+import { useCamera } from './core/useCamera.js'
+import { useGameEngine } from './core/useGameEngine.js'
+import { usePlayerControls } from './core/usePlayerControls.js'
 import { watchChanges } from './core/watchChanges.js'
+
+import { initUser } from './user/initUser.js'
+
+import { initWorld } from './world/initWorld.js'
+
+import { useAuthStore } from '../stores/auth.js'
+
+import { CONST } from './config/constants.js'
+
 import './game.css'
 
 const gameContainer = ref(null)
@@ -130,14 +141,14 @@ let cameraUpdate = null
 let stopMyWatcher
 
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { openShopMenu, buyAlpaca, addDebugCoins, editModeOn, editModeOff, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera } = useShop()
+const { openShopMenu, buyAlpaca, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera } = useShop()
 const { spawnShopItem } = spawnItems()
 const { isAuthenticated } = useAuthStore()
+const { moveToTarget, moveAlpaca } = alpacaHandling()
+const {editModeOn, editModeOff } =  useEditMode()
 
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
-
-
 
 onMounted(async () => {
   if (!isAuthenticated)
@@ -182,8 +193,20 @@ const gameLoop = () => {
     }
   }
 
-  if (mixer) {
-    mixer.update(delta)
+  // update all mixer and moving to targets
+  for (let i = 0; gAlpacas.value[i]; i++){
+    if (gAlpacas.value[i] && gAlpacas.value[i].mixer) {
+      moveToTarget(gAlpacas.value[i].model)
+      if (gAlpacas.value[i].model.id !== player.id) // only update other alpacas, not the player
+      {
+        moveAlpaca(gAlpacas.value[i].model)
+        let dir = 0 // not moving
+        if (gAlpacas.value[i].model.isMoving)
+          dir = 1
+        handleAnimation(gAlpacas.value[i].model, gAlpacas.value[i].mixer, gAlpacas.value[i].animations, dir, CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset)
+      }
+      gAlpacas.value[i].mixer.update(delta)
+    }
   }
 
   gEngine.value.renderer.render(

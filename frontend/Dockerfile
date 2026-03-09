@@ -1,6 +1,6 @@
 # Frontend Dockerfile (Development)
 # @owner fankahou, LukasStefanek
-# @issue https://github.com/ValGSgit/Cleanscendence/issues/1
+# @issue https://github.com/ValGSgit/AlpacaParty/issues/1
 
 FROM node:20-alpine
 

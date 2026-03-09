@@ -1,7 +1,7 @@
 /**
  * Auth Controller — handles registration, login, logout, token refresh, OAuth
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/8
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import User from '../models/User.js';
 import Achievement from '../models/Achievement.js';
