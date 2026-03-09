@@ -34,6 +34,9 @@ RUN npm install --omit=dev && npm cache clean --force
 # Copy application from builder
 COPY --from=builder --chown=nodejs:nodejs /app/src ./src
 
+# Create uploads directory with correct ownership
+RUN mkdir -p /app/uploads && chown -R nodejs:nodejs /app/uploads
+
 # Switch to non-root user
 USER nodejs
 
