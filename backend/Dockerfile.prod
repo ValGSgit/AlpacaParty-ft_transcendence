@@ -20,8 +20,6 @@ COPY . .
 # ── Stage 2: Production runtime ──────────────────────────────
 FROM node:20-alpine
 
-# Install runtime dependencies for native modules
-RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
@@ -41,9 +39,6 @@ USER nodejs
 
 # Expose backend port
 EXPOSE 3000
-
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
 
 # Run in production mode
 CMD ["node", "src/index.js"]

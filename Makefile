@@ -140,17 +140,19 @@ dev-frontend:
 
 # ── SHELLS ──────────────────────────────────────────────────
 shell-backend:
-	docker exec -it cleanscendence_backend  sh
+	$(DC) exec backend sh
 
 shell-frontend:
-	docker exec -it cleanscendence_frontend sh
+	$(DC) exec frontend sh
 
 shell-db:
-	docker exec -it cleanscendence_db psql -U $${DB_USER:-cleanscendence} -d $${DB_NAME:-cleanscendence}
+	$(DC) exec postgres psql -U $${DB_USER:-cleanscendence} -d $${DB_NAME:-cleanscendence}
 
 # ── CLEANUP ─────────────────────────────────────────────────
 clean:
-	$(DC) down --rmi local --remove-orphans
+	$(DC) down --rmi all --remove-orphans
+	$(DC_PROD) down --rmi all --remove-orphans
 
 clean-volumes:
-	$(DC) down --rmi local --volumes --remove-orphans
+	$(DC) down --rmi all --volumes --remove-orphans
+	$(DC_PROD) down --rmi all --volumes --remove-orphans

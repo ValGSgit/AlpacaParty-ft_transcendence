@@ -9,14 +9,15 @@ import App from './App.vue'
 import { useAuthStore } from './stores/auth.js'
 import './style.css'
 
+import router from './router'
+
 const app = createApp(App)
 const pinia = createPinia()
 app.use(pinia)
 
-const authStore = useAuthStore()
-await authStore.fetchUser()
-
-import router from './router'
-app.use(router)
-
-app.mount('#app')
+;(async () => {
+  const authStore = useAuthStore()
+  await authStore.fetchUser()
+  app.use(router)
+  app.mount('#app')
+})()
