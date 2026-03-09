@@ -15,6 +15,7 @@ import notificationRoutes from './notifications.js';
 import uploadRoutes from './uploads.js';
 import adminRoutes from './admin.js';
 import publicRoutes from './public.js';
+import helpRoutes from './help.js';
 
 const router = express.Router();
 
@@ -40,5 +41,6 @@ router.use('/notifications', notificationRoutes);
 router.use('/uploads', uploadRoutes);
 router.use('/admin', adminRoutes);
 router.use('/public', publicRoutes);
+router.use('/help', helpRoutes);
 
 export default router;
