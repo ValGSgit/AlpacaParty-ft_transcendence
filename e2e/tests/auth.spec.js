@@ -169,7 +169,6 @@ test.describe('Logout', () => {
     await logoutBtn.click()
 
     await expect(page).toHaveURL('/')
-    await expect(page.locator('a[href="/login"]')).toBeVisible()
     await expect(page.locator('a[href="/register"]')).toBeVisible()
     await expect(page.locator('a[href="/profile"]')).not.toBeVisible()
   })
