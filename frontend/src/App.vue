@@ -19,6 +19,7 @@
             <router-link to="/game"     class="nav-link">Game</router-link>
             <router-link to="/profile"  class="nav-link">Profile</router-link>
             <router-link to="/settings" class="nav-link">Settings</router-link>
+            <router-link to="/help" class="nav-link" style="color:#4ecdc4">Help</router-link>
             <button class="nav-link nav-btn" @click="handleLogout">Logout</button>
           </template>
           <template v-else>

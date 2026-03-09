@@ -1,0 +1,213 @@
+/**
+ * Help.vue Unit Tests
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+
+// Mock the api service
+vi.mock('../../../src/services/api.js', () => ({
+  default: {
+    post: vi.fn(),
+    get: vi.fn(),
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() },
+    },
+  },
+}))
+
+// Mock fetch globally
+const mockFetch = vi.fn()
+globalThis.fetch = mockFetch
+
+import Help from '../../../src/views/Help.vue'
+import api from '../../../src/services/api.js'
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  localStorage.clear()
+})
+
+describe('Help.vue', () => {
+  it('renders the help page container', () => {
+    const wrapper = mount(Help)
+    expect(wrapper.find('.help-page').exists()).toBe(true)
+  })
+
+  it('renders the header with title', () => {
+    const wrapper = mount(Help)
+    expect(wrapper.find('h1').text()).toContain('Help Desk')
+  })
+
+  it('renders the subtitle', () => {
+    const wrapper = mount(Help)
+    expect(wrapper.find('.help-subtitle').text()).toContain('Alpaca Party')
+  })
+
+  it('shows empty state when no messages', () => {
+    const wrapper = mount(Help)
+    expect(wrapper.find('.empty-state').exists()).toBe(true)
+    expect(wrapper.find('.empty-state').text()).toContain('No messages yet')
+  })
+
+  it('renders suggestion buttons', () => {
+    const wrapper = mount(Help)
+    const buttons = wrapper.findAll('.suggestion-btn')
+    expect(buttons.length).toBe(4)
+    expect(buttons[0].text()).toContain('friends')
+  })
+
+  it('renders the input field', () => {
+    const wrapper = mount(Help)
+    const input = wrapper.find('.chat-input-bar input')
+    expect(input.exists()).toBe(true)
+    expect(input.attributes('placeholder')).toContain('Type your question')
+  })
+
+  it('renders the send button', () => {
+    const wrapper = mount(Help)
+    expect(wrapper.find('.send-btn').exists()).toBe(true)
+  })
+
+  it('disables send button when input is empty', () => {
+    const wrapper = mount(Help)
+    const sendBtn = wrapper.find('.send-btn')
+    expect(sendBtn.attributes('disabled')).toBeDefined()
+  })
+
+  it('enables send button when input has text', async () => {
+    const wrapper = mount(Help)
+    const input = wrapper.find('.chat-input-bar input')
+    await input.setValue('Hello')
+    const sendBtn = wrapper.find('.send-btn')
+    expect(sendBtn.attributes('disabled')).toBeUndefined()
+  })
+
+  it('adds user message on submit', async () => {
+    // Mock a successful streaming response that ends immediately
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi.fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode('data: {"token":"Hi"}\n\ndata: [DONE]\n\n'),
+            })
+            .mockResolvedValueOnce({ done: true }),
+        }),
+      },
+    })
+
+    const wrapper = mount(Help)
+    const input = wrapper.find('.chat-input-bar input')
+    await input.setValue('How do I add friends?')
+    await wrapper.find('.chat-input-bar').trigger('submit')
+
+    // User message should appear
+    const messages = wrapper.findAll('.message.user')
+    expect(messages.length).toBe(1)
+    expect(messages[0].text()).toContain('How do I add friends?')
+  })
+
+  it('clears input after sending a message', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi.fn().mockResolvedValueOnce({ done: true }),
+        }),
+      },
+    })
+
+    const wrapper = mount(Help)
+    const input = wrapper.find('.chat-input-bar input')
+    await input.setValue('Test message')
+    await wrapper.find('.chat-input-bar').trigger('submit')
+
+    expect(input.element.value).toBe('')
+  })
+
+  it('sends auth token with fetch request', async () => {
+    localStorage.setItem('accessToken', 'test-token-123')
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi.fn().mockResolvedValueOnce({ done: true }),
+        }),
+      },
+    })
+
+    const wrapper = mount(Help)
+    await wrapper.find('.chat-input-bar input').setValue('Hello')
+    await wrapper.find('.chat-input-bar').trigger('submit')
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/help/chat/stream',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token-123',
+        }),
+      }),
+    )
+  })
+
+  it('falls back to non-streaming when stream fails', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
+    api.post.mockResolvedValueOnce({ data: { reply: 'Fallback answer' } })
+
+    const wrapper = mount(Help)
+    await wrapper.find('.chat-input-bar input').setValue('Help me')
+    await wrapper.find('.chat-input-bar').trigger('submit')
+
+    // Wait for async operations
+    await vi.waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/help/chat', expect.objectContaining({
+        messages: expect.any(Array),
+      }))
+    })
+  })
+
+  it('sends suggestion text when suggestion button is clicked', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi.fn().mockResolvedValueOnce({ done: true }),
+        }),
+      },
+    })
+
+    const wrapper = mount(Help)
+    const suggestionBtn = wrapper.findAll('.suggestion-btn')[0]
+    await suggestionBtn.trigger('click')
+
+    const messages = wrapper.findAll('.message.user')
+    expect(messages.length).toBe(1)
+    expect(messages[0].text()).toContain('friends')
+  })
+
+  it('does not submit when input is empty', async () => {
+    const wrapper = mount(Help)
+    await wrapper.find('.chat-input-bar').trigger('submit')
+
+    expect(wrapper.findAll('.message').length).toBe(0)
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it('shows error message when request throws', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network error'))
+
+    const wrapper = mount(Help)
+    await wrapper.find('.chat-input-bar input').setValue('Test')
+    await wrapper.find('.chat-input-bar').trigger('submit')
+
+    await vi.waitFor(() => {
+      const assistantMsgs = wrapper.findAll('.message.assistant')
+      expect(assistantMsgs.length).toBeGreaterThan(0)
+      expect(assistantMsgs[0].text()).toContain('went wrong')
+    })
+  })
+})

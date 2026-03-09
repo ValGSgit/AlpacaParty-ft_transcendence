@@ -17,6 +17,7 @@ const Friends  = () => import('../views/Friends.vue')
 const Messages = () => import('../views/Messages.vue')
 const Game     = () => import('../games/Game.vue')
 const Settings = () => import('../views/Settings.vue')
+const Help     = () => import('../views/Help.vue')
 const NotFound = () => import('../views/NotFound.vue')
 const OAuthCallback = () => import('../views/OAuthCallback.vue')
 
@@ -73,6 +74,12 @@ const routes = [
     path: '/settings',
     name: 'Settings',
     component: Settings,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/help',
+    name: 'Help',
+    component: Help,
     meta: { requiresAuth: true },
   },
   {
