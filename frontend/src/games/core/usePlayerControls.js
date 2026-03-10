@@ -12,7 +12,7 @@ export function usePlayerControls() {
     let speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
     const rotation = CONST.PLAYER_ROTATION + gPlayer.value.rotationOffset
     let dir = 0, dx = 0, dz = 0
-    let isMoving = false // needed to be locally, not in gPlayer; the one in gPlayer is for doubleClick moving
+    let isMoving = false
     let nextRotY = player.rotation.y
 
     if (keys.w && !gPlayer.value.model.isMoving) { dir = 1; isMoving = true } // !gPlayer.value.model.isMoving => disable the wasd when doubleClick moving
