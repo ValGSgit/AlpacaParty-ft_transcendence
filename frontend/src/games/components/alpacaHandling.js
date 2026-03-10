@@ -6,7 +6,8 @@ import { MATERIALS as MATS } from '../config/materials.js'
 import { gAlpacas, gPlayer, gScene } from "../core/globals.js"
 import { getRandomPos } from '../utils/randomValues.js'
 
-const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const worldPoint = new THREE.Vector3();
 
 export function alpacaHandling() {
 
@@ -67,7 +68,7 @@ export function alpacaHandling() {
   const moveToTarget = (alpaca) => {
     if (!alpaca || !alpaca.target) return;
 
-    const speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
+    const speed = CONST.PLAYER_FORWARD_SPEED + alpaca.speedOffset
     const stopDistance = 0.5; // Don't jitter when we arrive
 
     // 1. Calculate direction vector
@@ -116,7 +117,9 @@ export function spawnAlpaca(color, name, scale) {
   const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
   clonedModel.name = name ?? "NewAlpaca"
   clonedModel.color = finalColor
+  clonedModel.rotation.set(0, 0, 0)
 
+  model.quaternion.identity()
   initFlags(clonedModel)
   applyNewColor(clonedModel, finalColor)
   const newAlpaca = createAlpacaData(clonedModel, originalAlpaca.animations, scale)
@@ -149,12 +152,10 @@ const findAlpaca = (alpaca) => {
   return null
 }
 
-const initFlags = (model) => {
-  model.rotation.set(0, 0, 0)
-  model.quaternion.identity()
-  model.isMoving = false
+export function initFlags(model) {
+  model.isMoving = false // this one is for doubleClick moving, not wasd
   model.isJumping = false
-  model.isDead = 0
+  model.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
   model.isFalling = false
   model.currentAction = null
   model.target = null

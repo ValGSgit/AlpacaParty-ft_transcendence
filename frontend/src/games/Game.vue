@@ -158,7 +158,7 @@ onMounted(async () => {
   gEngine.value = init()
 
   if (!gEngine.value) {
-    console.error("Init failed: Scene not returned from globalEngine.")
+    console.error('Init failed: Scene not returned from globalEngine.')
   }
   else
   {
@@ -166,7 +166,7 @@ onMounted(async () => {
     cameraUpdate = updateCamera
     gUser.value = initUser()
 
-    await initWorld(gScene.value)
+    await initWorld(gScene.value, isAuthenticated)
     gameIsReady.value = true
     stopMyWatcher = watchChanges()
     gameLoop()
