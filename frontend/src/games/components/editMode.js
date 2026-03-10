@@ -1,10 +1,10 @@
 import * as THREE from 'three'
-import { gAlpacas, gEngine, gItems, gScene, gSelectable } from '../core/globals.js'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
-import { MATERIALS as MATS } from '../config/materials.js'
 import { CONST } from '../config/constants.js'
-import { usePhysics, usePos } from '../core/usePhysics.js'
+import { MATERIALS as MATS } from '../config/materials.js'
+import { gAlpacas, gEngine, gItems, gScene, gSelectable } from '../core/globals.js'
 import { saveGame } from '../core/saveLoadGame.js'
+import { usePhysics, usePos } from '../core/usePhysics.js'
 import { spendCoins } from './coins.js'
 
 const pointer = new THREE.Vector2()
@@ -49,6 +49,9 @@ export function useEditMode() {
     const intersects = raycaster.intersectObjects(gSelectable.value, true)
     if (intersects.length > 0) {
       gScene.value.selected = findItem(intersects[0].object)
+      if (gScene.value.selected) {
+        gScene.value.selected.visible = true
+      }
       storePos(gScene.value.selected)
       if (hoveredItem) {
         removeHighlight(hoveredItem)
@@ -56,7 +59,7 @@ export function useEditMode() {
       }
       gEngine.value.controls.enabled = false
       const ghost = cloneGhost(gScene.value.selected)
-      ghost.visible = false;
+      ghost.visible = false
       gScene.value.add(ghost)
     }
   }
@@ -105,18 +108,27 @@ export function useEditMode() {
   const moveItem = (e) => {
     updateRaycaster(e)
     const ghost = gScene.value.selectedGhost
+    const selected = gScene.value.selected
+    if (!selected) return
 
-    // move around
     if (raycaster.ray.intersectPlane(floorPlane, worldPoint)) {
-      if (checkWithinBounds(worldPoint.x, worldPoint.z) && !checkCollision(gScene.value.selected, worldPoint.x, worldPoint.z)) {
-        gScene.value.selected.visible = true
-        ghost.visible = false;
+      const validMove = checkWithinBounds(worldPoint.x, worldPoint.z) && !checkCollision(selected, worldPoint.x, worldPoint.z)
+
+      if (validMove) {
+        selected.visible = true
+        if (ghost) ghost.visible = false
+
+        selected.position.x = worldPoint.x
+        selected.position.z = worldPoint.z
+        selected.updateMatrixWorld(true)
       }
       else {
-        gScene.value.selected.visible = false
-        ghost.visible = true;
-        ghost.position.x = worldPoint.x
-        ghost.position.z = worldPoint.z
+        selected.visible = false
+        if (ghost) {
+          ghost.visible = true
+          ghost.position.x = worldPoint.x
+          ghost.position.z = worldPoint.z
+        }
       }
     }
   }

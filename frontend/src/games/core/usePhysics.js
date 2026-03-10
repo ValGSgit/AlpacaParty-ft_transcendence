@@ -1,7 +1,7 @@
 import { OBB } from 'three/addons/math/OBB.js'
-import { gAlpacas, gItems } from './globals.js'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
+import { gAlpacas, gItems } from './globals.js'
 
 const sourceOBB = new OBB()
 const obstacleOBB = new OBB()
@@ -20,7 +20,8 @@ export function usePhysics() {
 
     for (const obstacle of objects) {
       const obstacleModel = obstacle.model || obstacle
-      if (obstacleModel.uuid === sourceObj.uuid) continue
+      if (!obstacleModel) continue
+      if (obstacleModel === sourceObj || obstacleModel.uuid === sourceObj.uuid || obstacleModel.id === sourceObj.id) continue
 
       const obstacleCollider = obstacleModel.userData.collider
       if (!obstacleCollider || !obstacleCollider.userData.baseOBB) continue
