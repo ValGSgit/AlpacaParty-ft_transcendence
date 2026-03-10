@@ -1,11 +1,11 @@
 
+import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import * as THREE from 'three'
-import { MATERIALS as MATS } from '../config/materials.js'
+import { OBB } from 'three/addons/math/OBB.js';
 import { CONST } from '../config/constants.js';
-import { OBB } from 'three/addons/math/OBB.js'
+import { MATERIALS as MATS } from '../config/materials.js';
 
-export async function loadGLTF(path) {
+export async function loadGLTF(path, isCollidable) {
   const loader = new GLTFLoader();
   try {
     const gltf = await loader.loadAsync(path);
@@ -26,12 +26,14 @@ export async function loadGLTF(path) {
       }
     })
 
-    if (!collider) {
-      collider = generateCollider(model)
+    if (isCollidable) {
+      if (!collider) {
+        collider = generateCollider(model)
+      }
+      model.userData.collider = collider
+      model.add(collider)
+      setupOBB(collider)
     }
-    model.userData.collider = collider
-    model.add(collider)
-    setupOBB(collider)
 
     // Setup Animations (if any)
     let mixer = null

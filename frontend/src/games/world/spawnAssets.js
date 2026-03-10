@@ -17,6 +17,30 @@ export async function initializeAlpacas(scene, user) {
   }
 }
 
+async function loadAlpaca(scene, savedData) {
+  const { model, mixer, animations } = await loadGLTF('/models/alpaca.glb');
+
+  if (mixer && animations.length > 1) {
+    mixer.clipAction(animations[1]).play();
+  }
+
+  model.name = "Alpaca";
+  let speedOffset = 0;
+  let rotationOffset = 0;
+
+  if (savedData) {
+    applySaveData(model, savedData);
+    speedOffset = savedData.speedOffset;
+    rotationOffset = savedData.rotationOffset;
+  }
+
+  setupAlpacaMesh(model);
+  initFlags(model);
+  scene.add(model);
+
+  return { model, mixer, animations, speedOffset, rotationOffset };
+}
+
 function applyTreeColliderData(tree, baseTreeOBB) {
   tree.traverse((child) => {
     if (child.isMesh && child.name === 'Collider') {
@@ -48,30 +72,6 @@ export async function spawnTrees(savedItems) {
     spawnRandomTrees(model, amount, treesGroup, baseTreeOBB);
   }
   gScene.value.add(treesGroup);
-}
-
-async function loadAlpaca(scene, savedData) {
-  const { model, mixer, animations } = await loadGLTF('/models/alpaca.glb');
-
-  if (mixer && animations.length > 1) {
-    mixer.clipAction(animations[1]).play();
-  }
-
-  model.name = "Alpaca";
-  let speedOffset = 0;
-  let rotationOffset = 0;
-
-  if (savedData) {
-    applySaveData(model, savedData);
-    speedOffset = savedData.speedOffset;
-    rotationOffset = savedData.rotationOffset;
-  }
-
-  setupAlpacaMesh(model);
-  initFlags(model);
-  scene.add(model);
-
-  return { model, mixer, animations, speedOffset, rotationOffset };
 }
 
 function applySaveData(model, data) {
