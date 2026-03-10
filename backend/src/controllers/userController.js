@@ -6,6 +6,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { InferenceClient } from '@huggingface/inference';
 import User from '../models/User.js';
 import AuthService from '../services/authService.js';
 import DataExportService from '../services/dataExportService.js';
@@ -247,51 +248,24 @@ async function _callHuggingFace(req, res, mode) {
     ? `cute cartoon alpaca avatar, profile picture, circular frame, colorful, ${safePrompt}, digital art, simple background`.slice(0, 500)
     : safePrompt || 'a beautiful landscape with alpacas';
 
-  const hfUrl = 'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell';
-  const hfBody = JSON.stringify({ inputs: fullPrompt });
-  const hfHeaders = {
-    'Authorization': `Bearer ${apiKey}`,
-    'Content-Type': 'application/json',
-  };
-
-  let response;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    response = await fetch(hfUrl, {
-      method: 'POST',
-      headers: hfHeaders,
-      body: hfBody,
-      signal: AbortSignal.timeout(120_000),
+  try {
+    const client = new InferenceClient(apiKey);
+    const blob = await client.textToImage({
+      provider: 'nscale',
+      model: 'black-forest-labs/FLUX.1-schnell',
+      inputs: fullPrompt,
+      parameters: { num_inference_steps: 5 },
     });
 
-    if (response.ok) break;
+    const arrayBuffer = await blob.arrayBuffer();
+    const ext = blob.type === 'image/png' ? '.png'
+      : blob.type === 'image/jpeg' ? '.jpg'
+      : '.webp';
 
-    if (response.status === 503 && attempt < 2) {
-      let wait = 20_000;
-      try {
-        const body = await response.json();
-        if (body.estimated_time) wait = Math.min(body.estimated_time * 1000, 60_000);
-      } catch { /* use default wait */ }
-      console.log(`HuggingFace model loading, retrying in ${wait / 1000}s (attempt ${attempt + 1})`);
-      await new Promise(r => setTimeout(r, wait));
-      continue;
-    }
-
-    const errText = await response.text();
-    console.error('HuggingFace API error:', response.status, errText);
+    return { buffer: Buffer.from(arrayBuffer), ext };
+  } catch (err) {
+    console.error('HuggingFace API error:', err.message);
     res.status(502).json({ error: { message: 'Image generation service temporarily unavailable' } });
     return null;
   }
-
-  if (!response.ok) {
-    res.status(502).json({ error: { message: 'Image generation service temporarily unavailable — model may still be loading, try again shortly' } });
-    return null;
-  }
-
-  // Detect file extension from Content-Type
-  const contentType = response.headers.get('content-type') || '';
-  const extMap = { 'image/webp': '.webp', 'image/png': '.png', 'image/jpeg': '.jpg' };
-  const ext = extMap[contentType] || '.webp';
-
-  const arrayBuffer = await response.arrayBuffer();
-  return { buffer: Buffer.from(arrayBuffer), ext };
 }
