@@ -1,7 +1,7 @@
 # ============================================================================
-# CLEANSCENDENCE — Makefile
+# ALPACAPARTY — Makefile
 # @owner   ValGSgit
-# @issue   https://github.com/ValGSgit/Cleanscendence/issues/6
+# @issue   https://github.com/ValGSgit/AlpacaParty/issues/6
 # ============================================================================
 
 # ── Colours ─────────────────────────────────────────────────
@@ -17,6 +17,7 @@ DC_PROD := docker compose -f docker-compose.prod.yml
 .DEFAULT_GOAL := help
 .PHONY: help up down build logs restart ps \
         prod-up prod-down prod-build prod-logs \
+        generate-secrets \
         clean clean-volumes \
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
@@ -26,7 +27,7 @@ DC_PROD := docker compose -f docker-compose.prod.yml
 # ── HELP ────────────────────────────────────────────────────
 help:
 	@echo ""
-	@echo "$(CYAN)========== Cleanscendence ===========$(RESET)"
+	@echo "$(CYAN)========== AlpacaParty ===========$(RESET)"
 	@echo ""
 	@echo "$(YELLOW)Docker Development$(RESET)"
 	@echo "  $(GREEN)make up$(RESET)             Start all containers (dev mode)"
@@ -37,10 +38,11 @@ help:
 	@echo "  $(GREEN)make ps$(RESET)             Show container status"
 	@echo ""
 	@echo "$(YELLOW)Docker Production$(RESET)"
-	@echo "  $(GREEN)make prod-up$(RESET)        Start production containers"
-	@echo "  $(GREEN)make prod-down$(RESET)      Stop production containers"
-	@echo "  $(GREEN)make prod-build$(RESET)     Build production images"
-	@echo "  $(GREEN)make prod-logs$(RESET)      View production logs"
+	@echo "  $(GREEN)make prod-up$(RESET)           Start production containers"
+	@echo "  $(GREEN)make prod-down$(RESET)         Stop production containers"
+	@echo "  $(GREEN)make prod-build$(RESET)        Build production images"
+	@echo "  $(GREEN)make prod-logs$(RESET)         View production logs"
+	@echo "  $(GREEN)make generate-secrets$(RESET)  Rotate DB_PASSWORD + JWT_SECRET in .env"
 	@echo ""
 	@echo "$(YELLOW)Local Dev (no Docker)$(RESET)"
 	@echo "  $(GREEN)make install$(RESET)        npm install in backend & frontend"
@@ -80,14 +82,37 @@ restart:
 ps:
 	$(DC) ps
 
+# ── SECRETS ─────────────────────────────────────────────────
+# Generates .env from .env.example with cryptographically random
+# DB_PASSWORD and JWT_SECRET.  Run once before first prod deploy,
+# or explicitly to rotate secrets (requires DB re-initialisation).
+generate-secrets:
+	@if [ ! -f .env ]; then \
+	  cp .env.example .env; \
+	  echo "$(GREEN)✓ Created .env from .env.example$(RESET)"; \
+	fi
+	@DB_PASS=$$(openssl rand -hex 24) && \
+	  sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$$DB_PASS|" .env && \
+	  echo "$(GREEN)✓ DB_PASSWORD randomised$(RESET)"
+	@JWT=$$(openssl rand -hex 40) && \
+	  sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$$JWT|" .env && \
+	  echo "$(GREEN)✓ JWT_SECRET randomised$(RESET)"
+	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
+
+# Ensure .env exists with real secrets before any prod command.
+# Does NOT regenerate if .env already exists (keeps DB password stable).
+.env:
+	@echo "$(YELLOW)No .env found — generating one with random secrets…$(RESET)"
+	@$(MAKE) --no-print-directory generate-secrets
+
 # ── PRODUCTION ──────────────────────────────────────────────
-prod-up:
+prod-up: .env
 	$(DC_PROD) up -d --build
 
 prod-down:
 	$(DC_PROD) down
 
-prod-build:
+prod-build: .env
 	$(DC_PROD) build --no-cache
 
 prod-logs:
@@ -115,17 +140,19 @@ dev-frontend:
 
 # ── SHELLS ──────────────────────────────────────────────────
 shell-backend:
-	docker exec -it cleanscendence_backend  sh
+	$(DC) exec backend sh
 
 shell-frontend:
-	docker exec -it cleanscendence_frontend sh
+	$(DC) exec frontend sh
 
 shell-db:
-	docker exec -it cleanscendence_db psql -U $${DB_USER:-cleanscendence} -d $${DB_NAME:-cleanscendence}
+	$(DC) exec postgres psql -U $${DB_USER:-alpacaparty} -d $${DB_NAME:-alpacaparty}
 
 # ── CLEANUP ─────────────────────────────────────────────────
 clean:
-	$(DC) down --rmi local --remove-orphans
+	$(DC) down --rmi all --remove-orphans
+	$(DC_PROD) down --rmi all --remove-orphans
 
 clean-volumes:
-	$(DC) down --rmi local --volumes --remove-orphans
+	$(DC) down --rmi all --volumes --remove-orphans
+	$(DC_PROD) down --rmi all --volumes --remove-orphans

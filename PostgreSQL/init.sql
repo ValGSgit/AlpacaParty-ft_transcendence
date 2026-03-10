@@ -1,7 +1,7 @@
 -- ==========================================================================
 -- PostgreSQL Initialisation Script
 -- @owner   DavidPoetsch, ValGSgit
--- @issue   https://github.com/ValGSgit/Cleanscendence/issues/10
+-- @issue   https://github.com/ValGSgit/AlpacaParty/issues/10
 --
 -- This file is mounted into the postgres container via docker-entrypoint-initdb.d
 -- and runs automatically on first start (when the data volume is empty).
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     items         JSONB        DEFAULT '[]'::jsonb,
     coins         INT          DEFAULT 10,
     upgrades      INT          DEFAULT 0,
-    status        VARCHAR(255) DEFAULT 'Hey there! I am using Cleanscendence',
+    status        VARCHAR(255) DEFAULT 'Hey there! I am using AlpacaParty',
     is_public     BOOLEAN      DEFAULT TRUE,
     is_online     BOOLEAN      DEFAULT FALSE,
     is_admin      BOOLEAN      DEFAULT FALSE,

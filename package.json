@@ -1,7 +1,7 @@
 {
-  "name": "cleanscendence",
+  "name": "alpacaparty",
   "version": "0.0.1",
-  "description": "Cleanscendence — 42 Transcendence project (Vue 3 + Express + PostgreSQL)",
+  "description": "AlpacaParty — 42 Transcendence project (Vue 3 + Express + PostgreSQL)",
   "private": true,
   "type": "module",
   "scripts": {
@@ -21,7 +21,7 @@
     "docker:logs": "docker compose logs -f",
     "clean": "rm -rf node_modules backend/node_modules frontend/node_modules shared/node_modules e2e/node_modules"
   },
-  "keywords": ["cleanscendence", "transcendence", "42", "vue", "express", "postgresql"],
+  "keywords": ["alpacaparty", "transcendence", "42", "vue", "express", "postgresql"],
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"

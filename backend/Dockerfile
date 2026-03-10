@@ -1,6 +1,6 @@
 # Backend Dockerfile (Development)
 # @owner ValGSgit
-# @issue https://github.com/ValGSgit/Cleanscendence/issues/3
+# @issue https://github.com/ValGSgit/AlpacaParty/issues/3
 
 FROM node:20-alpine
 

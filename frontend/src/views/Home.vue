@@ -4,7 +4,7 @@
 <template>
   <div class="home">
     <div class="hero">
-      <h1 class="hero-title">🦙 Cleanscendence</h1>
+      <h1 class="hero-title">Alpaca Party!</h1>
       <p class="hero-sub">Raise and customise your alpaca farm in a 3D world.</p>
 
       <div class="cta-group">
@@ -19,8 +19,8 @@
     </div>
 <!--
     You must be wondering what this is
---> 
     <FakeAd /> 
+--> 
 
     <div class="features">
       <div class="feature-card">
@@ -147,5 +147,3 @@ kbd {
   font-size: 0.85em;
 }
 </style>
-
-

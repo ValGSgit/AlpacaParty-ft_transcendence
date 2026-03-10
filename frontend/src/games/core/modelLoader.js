@@ -10,6 +10,7 @@ export async function loadGLTF(path) {
   try {
     const gltf = await loader.loadAsync(path);
     const model = gltf.scene
+    model.userData.cost = 1 //get this from Database
 
     let collider = null
 
@@ -19,18 +20,13 @@ export async function loadGLTF(path) {
           collider = child
           collider.name = "Collider"
           child.visible = false
-          // FOR DEBUGGING
-          // child.visible = true
-          // child.material.wireframe = true
         }
         child.castShadow = true
         child.receiveShadow = true
       }
     })
 
-    // generate Collision if none was included
     if (!collider) {
-      //console.warn(`NO UCX collider found in ${model.name}, generating collider...`)
       collider = generateCollider(model)
     }
     model.userData.collider = collider

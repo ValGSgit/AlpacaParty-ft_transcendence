@@ -1,7 +1,7 @@
 /**
  * PostgreSQL Database Connection
  * @owner DavidPoetsch, ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/7
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/7
  *
  * Uses the 'pg' driver with a connection pool.
  * Tables are initialised in PostgreSQL/init.sql (Issue #10).

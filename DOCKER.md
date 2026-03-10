@@ -1,6 +1,6 @@
 # 🐳 Docker Deployment Guide
 
-This guide explains how to run Cleanscendence in a fully containerized environment without requiring any local dependencies or sudo access.
+This guide explains how to run AlpacaParty in a fully containerized environment without requiring any local dependencies or sudo access.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ This guide explains how to run Cleanscendence in a fully containerized environme
 
 1. **Clone and navigate to the project:**
    ```bash
-   cd /path/to/Cleanscendence
+   cd /path/to/AlpacaParty
    ```
 
 2. **Configure environment (optional):**
@@ -178,7 +178,7 @@ docker compose up -d
 
 ```bash
 # Wait for database to be ready
-docker compose exec postgres pg_isready -U cleanscendence
+docker compose exec postgres pg_isready -U alpacaparty
 
 # Check database logs
 docker compose logs postgres
@@ -246,17 +246,17 @@ docker compose up -d --build
 
 ### Backup Database
 ```bash
-docker compose exec postgres pg_dump -U cleanscendence cleanscendence > backup.sql
+docker compose exec postgres pg_dump -U alpacaparty alpacaparty > backup.sql
 ```
 
 ### Restore Database
 ```bash
-cat backup.sql | docker compose exec -T postgres psql -U cleanscendence cleanscendence
+cat backup.sql | docker compose exec -T postgres psql -U alpacaparty alpacaparty
 ```
 
 ### Backup Volume
 ```bash
-docker run --rm -v cleanscendence_pg_data:/data -v $(pwd):/backup alpine tar czf /backup/db-backup.tar.gz /data
+docker run --rm -v alpacaparty_pg_data:/data -v $(pwd):/backup alpine tar czf /backup/db-backup.tar.gz /data
 ```
 
 ## Environment Variables Reference
@@ -266,7 +266,7 @@ See `.env.example` for complete documentation of all environment variables.
 ## Support
 
 For issues and questions:
-- GitHub Issues: https://github.com/ValGSgit/Cleanscendence/issues
+- GitHub Issues: https://github.com/ValGSgit/AlpacaParty/issues
 - Check existing issues before creating new ones
 
 ## License

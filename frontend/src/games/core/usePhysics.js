@@ -71,6 +71,24 @@ export function usePhysics() {
   return { checkCollision, checkCollisionWith, checkWithinBounds }
 }
 
+export function usePos() {
+
+  const storePos = (model) => {
+    model.userData.originalPos = model.position.clone()
+    model.userData.originalRotY = model.rotation.y
+  }
+
+  const restorePos = (model) => {
+    if (model.userData.originalPos) {
+      model.position.x = model.userData.originalPos.x;
+      model.position.z = model.userData.originalPos.z;
+      model.rotation.y = model.userData.originalRotY;
+    }
+  }
+
+  return { storePos, restorePos }
+}
+
 function drawDebugBox(hitMesh) {
   hitMesh.material = MATS.collider_hit
   hitMesh.visible = true
