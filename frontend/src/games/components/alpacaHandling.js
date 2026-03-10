@@ -11,18 +11,18 @@ const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 export function alpacaHandling() {
 
   const moveAlpaca = (player, raycaster) => {
+    if (!player) return;
     const worldPoint = new THREE.Vector3();
-    // 1. Check player.model.target and player.model.readyToMove
-    if (!raycaster && !player.model.target && player.model.readyToMove) {
+    if (!raycaster && !player.target && player.readyToMove) {
       worldPoint.x = getRandomPos()
       worldPoint.y = 0
       worldPoint.z = getRandomPos()
-      player.model.target = worldPoint // 2. Assign to player.model
+      player.target = worldPoint
     }
     else if (raycaster) // doubleClick
     {
       raycaster.ray.intersectPlane(floorPlane, worldPoint)
-      player.model.target = worldPoint // 3. Assign to player.model
+      player.target = worldPoint
     }
   }
 

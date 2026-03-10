@@ -40,7 +40,7 @@ describe('POST /api/auth/register', () => {
     mockQuery.mockResolvedValueOnce({ rows: [] });
     // User.create → new user row
     mockQuery.mockResolvedValueOnce({
-      rows: [{ id: 1, username: 'newuser', email: 'new@example.com', avatar: '/avatars/default.png', is_admin: false, created_at: new Date().toISOString() }],
+      rows: [{ id: 1, username: 'newuser', email: 'new@example.com', avatar: '/avatars/default.svg', is_admin: false, created_at: new Date().toISOString() }],
     });
 
     const res = await request.post('/api/auth/register').send(validBody);

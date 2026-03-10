@@ -67,13 +67,13 @@ export function initializeSocket(httpServer, corsOrigins) {
   // ── Presence tracking ────────────────────────────────────────
   const onlineSockets = new Map(); // userId -> Set<socketId>
 
-  async function markOnline(userId) {
+  async function markOnline(userId, socketId) {
     if (!onlineSockets.has(userId)) {
       onlineSockets.set(userId, new Set());
       await User.setOnline(userId, true);
       io.emit('presence', { userId, isOnline: true });
     }
-    onlineSockets.get(userId).add(userId); // track by userId in set
+    onlineSockets.get(userId).add(socketId);
   }
 
   async function markOffline(userId, socketId) {
@@ -94,7 +94,7 @@ export function initializeSocket(httpServer, corsOrigins) {
 
     // Join personal room
     socket.join(`user:${user.id}`);
-    await markOnline(user.id);
+    await markOnline(user.id, socket.id);
 
     // Join all group chat rooms the user belongs to
     const rooms = await ChatRoom.getUserRooms(user.id);

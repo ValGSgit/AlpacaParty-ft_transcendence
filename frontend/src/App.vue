@@ -16,10 +16,15 @@
           <template v-if="authStore.isAuthenticated">
             <router-link to="/friends"  class="nav-link">Friends</router-link>
             <router-link to="/messages" class="nav-link">Messages</router-link>
+            <router-link to="/feed"     class="nav-link">Feed</router-link>
             <router-link to="/game"     class="nav-link">Game</router-link>
             <router-link to="/profile"  class="nav-link">Profile</router-link>
             <router-link to="/settings" class="nav-link">Settings</router-link>
             <router-link to="/help" class="nav-link" style="color:#4ecdc4">Help</router-link>
+            <router-link v-if="authStore.user?.is_admin" to="/admin" class="nav-link" style="color:#ff6b6b">Admin</router-link>
+            <button class="nav-link nav-btn notification-btn" @click="toggleNotifications" title="Notifications">
+              🔔<span v-if="unreadCount" class="notif-badge">{{ unreadCount }}</span>
+            </button>
             <button class="nav-link nav-btn" @click="handleLogout">Logout</button>
           </template>
           <template v-else>
@@ -44,16 +49,61 @@
 </template>
 
 <script setup>
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth.js'
+import api from './services/api.js'
+import { connectSocket, disconnectSocket, getSocket } from './services/socket.js'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const unreadCount = ref(0)
+const showNotifPanel = ref(false)
+const notifications = ref([])
 
 async function handleLogout() {
+  disconnectSocket()
   await authStore.logout()
   router.push('/')
 }
+
+function toggleNotifications() {
+  showNotifPanel.value = !showNotifPanel.value
+  if (showNotifPanel.value) fetchNotifications()
+}
+
+async function fetchNotifications() {
+  try {
+    const { data } = await api.get('/notifications')
+    notifications.value = data.notifications || []
+    unreadCount.value = notifications.value.filter(n => !n.is_read).length
+  } catch {}
+}
+
+async function fetchUnreadCount() {
+  try {
+    const { data } = await api.get('/notifications')
+    const notifs = data.notifications || []
+    unreadCount.value = notifs.filter(n => !n.is_read).length
+  } catch {}
+}
+
+// Connect socket when authenticated
+watch(() => authStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+      const sock = connectSocket(token)
+      sock.on('notification', () => {
+        unreadCount.value++
+      })
+    }
+    fetchUnreadCount()
+  } else {
+    disconnectSocket()
+    unreadCount.value = 0
+  }
+}, { immediate: true })
 </script>
 
 <style scoped>
@@ -108,6 +158,24 @@ async function handleLogout() {
   cursor: pointer;
   font-size: inherit;
   padding: 0;
+}
+
+.notification-btn {
+  position: relative;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: #ff5050;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  min-width: 14px;
+  text-align: center;
 }
 
 .main-content {

@@ -17,7 +17,7 @@ DC_PROD := docker compose -f docker-compose.prod.yml
 .DEFAULT_GOAL := help
 .PHONY: help up down build logs restart ps \
         prod-up prod-down prod-build prod-logs \
-        generate-secrets \
+        generate-secrets ssl-certs \
         clean clean-volumes \
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
@@ -43,6 +43,7 @@ help:
 	@echo "  $(GREEN)make prod-build$(RESET)        Build production images"
 	@echo "  $(GREEN)make prod-logs$(RESET)         View production logs"
 	@echo "  $(GREEN)make generate-secrets$(RESET)  Rotate DB_PASSWORD + JWT_SECRET in .env"
+	@echo "  $(GREEN)make ssl-certs$(RESET)          Generate self-signed SSL certificate"
 	@echo ""
 	@echo "$(YELLOW)Local Dev (no Docker)$(RESET)"
 	@echo "  $(GREEN)make install$(RESET)        npm install in backend & frontend"
@@ -64,7 +65,7 @@ help:
 	@echo ""
 
 # ── DOCKER ──────────────────────────────────────────────────
-up:
+up: ssl-certs
 	$(DC) up -d
 
 down:
@@ -99,6 +100,21 @@ generate-secrets:
 	  echo "$(GREEN)✓ JWT_SECRET randomised$(RESET)"
 	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
 
+# ── SSL CERTIFICATES ────────────────────────────────────────
+# Generates a self-signed certificate for local HTTPS development.
+ssl-certs:
+	@mkdir -p nginx/ssl
+	@if [ ! -f nginx/ssl/cert.pem ]; then \
+	  openssl req -x509 -newkey rsa:2048 -nodes \
+	    -keyout nginx/ssl/key.pem \
+	    -out nginx/ssl/cert.pem \
+	    -days 365 \
+	    -subj '/CN=localhost' 2>/dev/null && \
+	  echo "$(GREEN)✓ Self-signed certificate generated in nginx/ssl/$(RESET)"; \
+	else \
+	  echo "$(YELLOW)  Certificate already exists — skipping$(RESET)"; \
+	fi
+
 # Ensure .env exists with real secrets before any prod command.
 # Does NOT regenerate if .env already exists (keeps DB password stable).
 .env:
@@ -106,7 +122,7 @@ generate-secrets:
 	@$(MAKE) --no-print-directory generate-secrets
 
 # ── PRODUCTION ──────────────────────────────────────────────
-prod-up: .env
+prod-up: .env ssl-certs
 	$(DC_PROD) up -d --build
 
 prod-down:

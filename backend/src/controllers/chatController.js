@@ -51,6 +51,7 @@ export const createRoom = async (req, res, next) => {
   try {
     const { name, isPrivate } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: { message: 'Room name is required' } });
+    if (name.length > 100) return res.status(400).json({ error: { message: 'Room name must be 100 characters or fewer' } });
     const room = await ChatRoom.create({ name: name.trim(), ownerId: req.user.id, isPrivate: !!isPrivate });
     res.status(201).json({ room });
   } catch (err) { next(err); }

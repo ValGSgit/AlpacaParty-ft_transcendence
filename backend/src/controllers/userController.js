@@ -3,11 +3,15 @@
  * @owner ValGSgit
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/9
  */
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
 import User from '../models/User.js';
 import AuthService from '../services/authService.js';
 import DataExportService from '../services/dataExportService.js';
 import DataRequest from '../models/DataRequest.js';
 import NotificationService from '../services/notificationService.js';
+import config from '../config/index.js';
 
 /**
  * GET /api/users/me — alias handled via auth/me, but also available here
@@ -185,3 +189,109 @@ export const listDataRequests = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * POST /api/users/me/generate-avatar — generate avatar via Hugging Face
+ */
+export const generateAvatar = async (req, res, next) => {
+  try {
+    const result = await _callHuggingFace(req, res, 'avatar');
+    if (!result) return; // response already sent
+
+    const { buffer, ext } = result;
+    const filename = `avatar-${req.user.id}-${crypto.randomBytes(8).toString('hex')}${ext}`;
+    const filepath = path.join(config.uploads.dir, filename);
+    fs.mkdirSync(config.uploads.dir, { recursive: true });
+    fs.writeFileSync(filepath, buffer);
+
+    const avatarUrl = `/uploads/${filename}`;
+    const updatedUser = await User.update(req.user.id, { avatar: avatarUrl });
+    res.json({ user: updatedUser, avatarUrl });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /api/users/me/generate-image — generate a full image via Hugging Face
+ */
+export const generateImage = async (req, res, next) => {
+  try {
+    const result = await _callHuggingFace(req, res, 'image');
+    if (!result) return;
+
+    const { buffer, ext } = result;
+    const filename = `generated-${req.user.id}-${crypto.randomBytes(8).toString('hex')}${ext}`;
+    const filepath = path.join(config.uploads.dir, filename);
+    fs.mkdirSync(config.uploads.dir, { recursive: true });
+    fs.writeFileSync(filepath, buffer);
+
+    const imageUrl = `/uploads/${filename}`;
+    res.json({ imageUrl });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/** Shared helper for HuggingFace image generation */
+async function _callHuggingFace(req, res, mode) {
+  const apiKey = process.env.HUGGINGFACE_API_KEY;
+  if (!apiKey) {
+    res.status(503).json({ error: { message: 'Image generation service is not configured' } });
+    return null;
+  }
+
+  const { prompt } = req.body;
+  const safePrompt = typeof prompt === 'string' ? prompt.slice(0, 200) : '';
+  const fullPrompt = mode === 'avatar'
+    ? `cute cartoon alpaca avatar, profile picture, circular frame, colorful, ${safePrompt}, digital art, simple background`.slice(0, 500)
+    : safePrompt || 'a beautiful landscape with alpacas';
+
+  const hfUrl = 'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell';
+  const hfBody = JSON.stringify({ inputs: fullPrompt });
+  const hfHeaders = {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+  };
+
+  let response;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    response = await fetch(hfUrl, {
+      method: 'POST',
+      headers: hfHeaders,
+      body: hfBody,
+      signal: AbortSignal.timeout(120_000),
+    });
+
+    if (response.ok) break;
+
+    if (response.status === 503 && attempt < 2) {
+      let wait = 20_000;
+      try {
+        const body = await response.json();
+        if (body.estimated_time) wait = Math.min(body.estimated_time * 1000, 60_000);
+      } catch { /* use default wait */ }
+      console.log(`HuggingFace model loading, retrying in ${wait / 1000}s (attempt ${attempt + 1})`);
+      await new Promise(r => setTimeout(r, wait));
+      continue;
+    }
+
+    const errText = await response.text();
+    console.error('HuggingFace API error:', response.status, errText);
+    res.status(502).json({ error: { message: 'Image generation service temporarily unavailable' } });
+    return null;
+  }
+
+  if (!response.ok) {
+    res.status(502).json({ error: { message: 'Image generation service temporarily unavailable — model may still be loading, try again shortly' } });
+    return null;
+  }
+
+  // Detect file extension from Content-Type
+  const contentType = response.headers.get('content-type') || '';
+  const extMap = { 'image/webp': '.webp', 'image/png': '.png', 'image/jpeg': '.jpg' };
+  const ext = extMap[contentType] || '.webp';
+
+  const arrayBuffer = await response.arrayBuffer();
+  return { buffer: Buffer.from(arrayBuffer), ext };
+}

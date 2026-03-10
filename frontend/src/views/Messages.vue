@@ -17,7 +17,7 @@
         </div>
         <ul class="conv-list">
           <li v-for="c in conversations" :key="c.other_user_id" :class="['conv-item', { active: selected?.type === 'dm' && selected.id === c.other_user_id }]" @click="selectDm(c)">
-            <img :src="c.avatar || '/avatars/default.png'" class="mini-avatar" alt="" />
+            <img :src="c.avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
             <div class="conv-info">
               <span class="conv-name">{{ c.username }}</span>
               <span class="conv-preview">{{ c.last_message || '…' }}</span>
@@ -221,20 +221,27 @@ function setupSocket() {
   socket.on('connect_error', (err) => {
     msgError.value = `Socket error: ${err.message}`
   })
-  socket.on('dm:received', ({ message }) => {
+  socket.on('dm:message', (data) => {
+    const message = data.id ? data : data.message
     if (
       selected.value?.type === 'dm' &&
       (message.sender_id === selected.value.id || message.receiver_id === selected.value.id)
     ) {
-      messages.value.push(message)
-      scrollToBottom()
+      // Avoid duplicates (sender echo)
+      if (!messages.value.some(m => m.id === message.id)) {
+        messages.value.push(message)
+        scrollToBottom()
+      }
     }
     fetchConversations()
   })
-  socket.on('room:message', ({ message }) => {
+  socket.on('room:message', (data) => {
+    const message = data.id ? data : data.message
     if (selected.value?.type === 'room' && message.room_id === selected.value.id) {
-      messages.value.push(message)
-      scrollToBottom()
+      if (!messages.value.some(m => m.id === message.id)) {
+        messages.value.push(message)
+        scrollToBottom()
+      }
     }
   })
 }
@@ -282,11 +289,13 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  socket.off('connect')
-  socket.off('disconnect')
-  socket.off('connect_error')
-  socket.off('dm:received')
-  socket.off('room:message')
+  if (socket) {
+    socket.off('connect')
+    socket.off('disconnect')
+    socket.off('connect_error')
+    socket.off('dm:message')
+    socket.off('room:message')
+  }
   disconnectSocket()
 })
 </script>
