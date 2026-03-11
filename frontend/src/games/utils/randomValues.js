@@ -3,7 +3,7 @@ import { CONST } from '../config/constants.js';
 import { gScene } from '../core/globals.js';
 
 export function getRandomPos() {
-  const angle = Math.random() * Math.PI * 2;
+  const angle = getRandomRot();
   const radius = CONST.MAX_MOVE_RADIUS * Math.sqrt(Math.random());
 
   const x = Math.cos(angle) * radius;
@@ -12,13 +12,27 @@ export function getRandomPos() {
   return new THREE.Vector3(x, 0, z)
 }
 
+export function getRandomRot() {
+  const angle = Math.random() * Math.PI * 2;
+  return angle;
+}
+
+export function getRandomScale() {
+  const base = 1.0;
+  const offset = 0.2;
+  const lower = base - offset;
+  const upper = base + offset;
+  const scale = Math.random() * (upper - lower) + lower;
+  return scale;
+}
+
 export const spawnAtRandom = (model) => {
   const pos = getRandomPos();
 
   model.position.copy(pos);
-  model.rotation.y = Math.random() * Math.PI * 2;
+  model.rotation.y = getRandomRot();
 
-  const scale = 0.7 + Math.random() * 0.3;
+  const scale = getRandomPos();
   model.scale.multiplyScalar(scale);
 
   gScene.value.add(model);

@@ -1,12 +1,12 @@
 import { CONST } from '../config/constants.js'
-import { useInput } from './useInput.js'
-import { usePhysics } from './usePhysics.js'
 import { gPlayer } from './globals.js'
 import { handleAnimation } from './useAnimation.js'
+import { useInput } from './useInput.js'
+import { checkWithinBounds, usePhysics } from './usePhysics.js'
 
 export function usePlayerControls() {
   const { keys } = useInput()
-  const { checkCollision, checkWithinBounds } = usePhysics()
+  const { checkCollision } = usePhysics()
 
   const handleMovement = (player) => {
     let speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset

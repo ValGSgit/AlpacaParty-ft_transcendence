@@ -4,12 +4,11 @@ import { CONST } from '../config/constants.js'
 import { gScene } from '../core/globals.js'
 import * as GRADIENT from "../utils/createGradient.js"
 
-
-
 export function setupEnvironment(scene) {
   scene.background = GRADIENT.Linear('#4abdff', '#142191')
   setupLighting(scene)
-  createFloor(scene)}
+  createFloor(scene)
+}
 
 function setupLighting(scene) {
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)

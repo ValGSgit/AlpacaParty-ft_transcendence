@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import { OBB } from 'three/addons/math/OBB.js'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
@@ -63,13 +64,13 @@ export function usePhysics() {
     return hasCollision
   }
 
-  const checkWithinBounds = (x, z) => {
-    const distance = Math.sqrt(x * x + z * z)
-    const withinBounds = distance < CONST.MAX_MOVE_RADIUS
-    return withinBounds
-  }
+  return { checkCollision, checkCollisionWith }
+}
 
-  return { checkCollision, checkCollisionWith, checkWithinBounds }
+export function checkWithinBounds(x, z) {
+  const distance = Math.sqrt(x * x + z * z)
+  const withinBounds = distance < CONST.MAX_MOVE_RADIUS
+  return withinBounds
 }
 
 export function usePos() {

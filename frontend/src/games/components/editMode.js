@@ -2,9 +2,9 @@ import * as THREE from 'three'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
-import { gAlpacas, gEngine, gItems, gScene, gSelectable } from '../core/globals.js'
+import { gAlpacas, gEditables, gEngine, gItems, gScene } from '../core/globals.js'
 import { saveGame } from '../core/saveLoadGame.js'
-import { usePhysics, usePos } from '../core/usePhysics.js'
+import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
 import { spendCoins } from './coins.js'
 
 const pointer = new THREE.Vector2()
@@ -13,7 +13,7 @@ const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 const worldPoint = new THREE.Vector3()
 
 export function useEditMode() {
-  const { checkCollision, checkWithinBounds } = usePhysics()
+  const { checkCollision, } = usePhysics()
   const { storePos, restorePos } = usePos()
   let hoveredItem = null
 
@@ -35,9 +35,9 @@ export function useEditMode() {
 
   const findItem = (obj) => {
     while (obj) {
-      for (let i = 0; i < gSelectable.value.length; ++i) {
-        if (obj.id === gSelectable.value[i].id) {
-          return gSelectable.value[i]
+      for (let i = 0; i < gEditables.length; ++i) {
+        if (obj.id === gEditables[i].id) {
+          return gEditables[i]
         }
       }
       obj = obj.parent
@@ -46,7 +46,7 @@ export function useEditMode() {
 
   const selectItem = (e) => {
     updateRaycaster(e)
-    const intersects = raycaster.intersectObjects(gSelectable.value, true)
+    const intersects = raycaster.intersectObjects(gEditables, true)
     if (intersects.length > 0) {
       gScene.value.selected = findItem(intersects[0].object)
       if (gScene.value.selected) {
@@ -88,7 +88,7 @@ export function useEditMode() {
 
   const highlightItem = (e) => {
     updateRaycaster(e)
-    const intersects = raycaster.intersectObjects(gSelectable.value, true)
+    const intersects = raycaster.intersectObjects(gEditable, true)
     if (intersects.length > 0) {
       const item = findItem(intersects[0].object)
       if (hoveredItem !== item) {
@@ -171,8 +171,8 @@ export function useEditMode() {
 
     if (selected.userData.isNew) {
       gScene.value.remove(selected);
-      gAlpacas.value = gAlpacas.value.filter(alpaca => alpaca.model !== selected);
-      gItems.value = gItems.value.filter(item => item !== selected);
+      gAlpacas = gAlpacas.filter(alpaca => alpaca.model !== selected);
+      gItems = gItems.filter(item => item !== selected);
     } else {
       restorePos(selected)
       selected.visible = true;
