@@ -1,8 +1,7 @@
-import * as THREE from 'three'
 import { OBB } from 'three/addons/math/OBB.js'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
-import { gAlpacas, gItems } from './globals.js'
+import { gCollidable } from './globals.js'
 
 const sourceOBB = new OBB()
 const obstacleOBB = new OBB()
@@ -51,10 +50,7 @@ export function usePhysics() {
     if (nextRotY !== undefined) player.rotation.y = nextRotY
     player.updateMatrixWorld(true)
 
-    let hasCollision = checkCollisionWith(player, gAlpacas.value)
-    if (!hasCollision) {
-      hasCollision = checkCollisionWith(player, gItems.value)
-    }
+    let hasCollision = checkCollisionWith(player, gCollidable)
     if (hasCollision) {
       player.position.x = oldX
       player.position.z = oldZ

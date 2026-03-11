@@ -1,11 +1,10 @@
 import * as THREE from 'three'
-import { reactive, onMounted, onUnmounted } from 'vue'
-import { gEngine, gScene, gUser, gPlayer } from './globals.js'
+import { onMounted, onUnmounted, reactive, watch } from 'vue'
 import { alpacaHandling } from '../components/alpacaHandling.js'
-import { saveGame } from './saveLoadGame.js'
+import { useEditMode } from '../components/editMode.js'
 import { useShop } from '../components/shop.js'
 import { printDebug } from './debug.js'
-import { useEditMode } from '../components/editMode.js'
+import { gEditState, gEngine, gPlayer, gScene, gUI } from './globals.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions
 const keys = reactive({
@@ -41,7 +40,7 @@ export function useInput() {
   }
 
   const onWheel = (e) => {
-    if (gScene.value.selected) {
+    if (gUI.edit && gEditState.selected) {
       rotateItem(e)
     }
   }
@@ -63,8 +62,9 @@ export function useInput() {
 
   const handleMouseMove = (e) => {
     // item selected to move
-    if (gScene.value.edit || gScene.value.selected) {
-      if (gUser.value && gScene.value.selected) {
+    if (!gEngine.value) return;
+    if (gUI.edit || gEditState.selected) {
+      if (gEditState.selected) {
         moveItem(e)
       }
       else {
@@ -76,8 +76,8 @@ export function useInput() {
   const onPointerDown = (e) => {
     keys.pointer = true
     // Select item in edit mode
-    if (gScene.value.edit || gScene.value.selected) {
-      if (gScene.value.selected) {
+    if (gUI.edit || gEditState.selected) {
+      if (gEditState.selected) {
         placeItem()
       } else {
         selectItem(e)
@@ -91,38 +91,47 @@ export function useInput() {
 
   //Close all UI Menus
   const handleEscapeKey = () => {
-    gScene.value.pause = false
-    gScene.value.lightMenu = false
-    if (gScene.value.alpacaMenu) alpacaMenuOff()
-    if (gScene.value.itemMenu) itemShopOff()
+    gUI.pause = false
+    gUI.lightMenu = false
+    if (gUI.alpacaMenu) alpacaMenuOff()
+    if (gUI.itemMenu) itemShopOff()
 
-    if (gScene.value.selected) {
+    if (gEditState.selected) {
       cancelPlacement()
     }
-    if (gScene.value.edit) {
+    if (gUI.edit) {
       removeHighlight()
       editModeOff()
     }
   }
+
+
+  watch(() => gEngine.value, (engine) => {
+
+    if (engine && engine.renderer) {
+      const canvas = engine.renderer.domElement;
+      canvas.addEventListener('dblclick', onDoubleClick)
+      canvas.addEventListener('pointerdown', onPointerDown)
+      canvas.addEventListener('pointerup', onPointerUp)
+    }
+  }, { immediate: true })
 
   onMounted(() => {
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('wheel', onWheel)
-    gEngine.value.renderer.domElement.addEventListener('dblclick', onDoubleClick)
-    gEngine.value.renderer.domElement.addEventListener('pointerdown', onPointerDown)
-    gEngine.value.renderer.domElement.addEventListener('pointerup', onPointerUp)
   })
 
   onUnmounted(() => {
+    const canvas = gEngine.value.renderer.domElement;
     window.removeEventListener('keydown', onKeyDown)
     window.removeEventListener('keyup', onKeyUp)
     window.removeEventListener('mousemove', handleMouseMove);
     window.removeEventListener('wheel', onWheel);
-    gEngine.value.renderer.domElement.removeEventListener('dblclick', onDoubleClick)
-    gEngine.value.renderer.domElement.removeEventListener('pointerdown', onPointerDown)
-    gEngine.value.renderer.domElement.removeEventListener('pointerup', onPointerUp)
+    canvas.removeEventListener('dblclick', onDoubleClick)
+    canvas.removeEventListener('pointerdown', onPointerDown)
+    canvas.removeEventListener('pointerup', onPointerUp)
   })
 
   return { keys }

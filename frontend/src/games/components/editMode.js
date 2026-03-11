@@ -2,7 +2,8 @@ import * as THREE from 'three'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
-import { gAlpacas, gEditables, gEngine, gItems, gScene } from '../core/globals.js'
+import { removeObject } from '../core/createObjects.js'
+import { gEditables, gEditState, gEngine, gScene, gUI } from '../core/globals.js'
 import { saveGame } from '../core/saveLoadGame.js'
 import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
 import { spendCoins } from './coins.js'
@@ -18,12 +19,14 @@ export function useEditMode() {
   let hoveredItem = null
 
   const editModeOn = () => {
-    gScene.value.edit = true
+    gUI.edit = true
+    gEngine.value.controls.enabled = false
   }
 
   const editModeOff = () => {
-    gScene.value.edit = false
-    gScene.value.selected = null
+    gUI.edit = false
+    gEditState.selected = null
+    gEngine.value.controls.enabled = true
   }
 
   const updateRaycaster = (e) => {
@@ -48,17 +51,16 @@ export function useEditMode() {
     updateRaycaster(e)
     const intersects = raycaster.intersectObjects(gEditables, true)
     if (intersects.length > 0) {
-      gScene.value.selected = findItem(intersects[0].object)
-      if (gScene.value.selected) {
-        gScene.value.selected.visible = true
+      gEditState.selected = findItem(intersects[0].object)
+      if (gEditState.selected) {
+        gEditState.selected.visible = true
       }
-      storePos(gScene.value.selected)
+      storePos(gEditState.selected)
       if (hoveredItem) {
         removeHighlight(hoveredItem)
         hoveredItem = null
       }
-      gEngine.value.controls.enabled = false
-      const ghost = cloneGhost(gScene.value.selected)
+      const ghost = cloneGhost(gEditState.selected)
       ghost.visible = false
       gScene.value.add(ghost)
     }
@@ -88,7 +90,7 @@ export function useEditMode() {
 
   const highlightItem = (e) => {
     updateRaycaster(e)
-    const intersects = raycaster.intersectObjects(gEditable, true)
+    const intersects = raycaster.intersectObjects(gEditables, true)
     if (intersects.length > 0) {
       const item = findItem(intersects[0].object)
       if (hoveredItem !== item) {
@@ -107,8 +109,8 @@ export function useEditMode() {
 
   const moveItem = (e) => {
     updateRaycaster(e)
-    const ghost = gScene.value.selectedGhost
-    const selected = gScene.value.selected
+    const ghost = gEditState.ghost
+    const selected = gEditState.selected
     if (!selected) return
 
     if (raycaster.ray.intersectPlane(floorPlane, worldPoint)) {
@@ -135,18 +137,18 @@ export function useEditMode() {
 
   const rotateItem = (e) => {
     const direction = e.deltaY > 0 ? 1 : -1
-    const steps = 36
+    const steps = 18
     const rotationAmount = (Math.PI / steps) * direction
-    gScene.value.selected.rotation.y += rotationAmount
-    if (gScene.value.selectedGhost) {
-      gScene.value.selectedGhost.rotation.y += rotationAmount
+    gEditState.selected.rotation.y += rotationAmount
+    if (gEditState.ghost) {
+      gEditState.ghost.rotation.y += rotationAmount
     }
     moveItem(e)
   }
 
   const placeItem = () => {
-    let selected = gScene.value.selected
-    let ghost = gScene.value.selectedGhost
+    let selected = gEditState.selected
+    let ghost = gEditState.ghost
 
     if (ghost)
       gScene.value.remove(ghost)
@@ -160,19 +162,17 @@ export function useEditMode() {
   }
 
   const cancelPlacement = () => {
-    if (!gScene.value.selected) return;
+    if (!gEditState.selected) return;
 
-    let selected = gScene.value.selected;
-    let ghost = gScene.value.selectedGhost;
+    let selected = gEditState.selected;
+    let ghost = gEditState.ghost;
 
     if (ghost) {
       gScene.value.remove(ghost);
     }
 
     if (selected.userData.isNew) {
-      gScene.value.remove(selected);
-      gAlpacas = gAlpacas.filter(alpaca => alpaca.model !== selected);
-      gItems = gItems.filter(item => item !== selected);
+      removeObject(selected);
     } else {
       restorePos(selected)
       selected.visible = true;
@@ -183,13 +183,13 @@ export function useEditMode() {
 }
 
 function resetSelected() {
-  gScene.value.selected = null;
-  gScene.value.selectedGhost = null;
+  gEditState.selected = null;
+  gEditState.ghost = null;
   gEngine.value.controls.enabled = true;
 }
 
 export function setupPlacement(model) {
-  gScene.value.selected = model
+  gEditState.selected = model
   gEngine.value.controls.enabled = false
 
   const ghost = cloneGhost(model)
@@ -203,7 +203,7 @@ export function setupPlacement(model) {
 
 export function cloneGhost(selected) {
   const ghost = SkeletonUtils.clone(selected)
-  gScene.value.selectedGhost = ghost
+  gEditState.ghost = ghost
   ghost.traverse((child) => {
     if (child.isMesh) {
       if (child.name !== "Collider")

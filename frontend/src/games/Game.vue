@@ -9,13 +9,12 @@
   </div>
   <div ref="gameContainer" class="scene-container"></div>
   <div v-if="!gameIsReady" class="modal-overlay">Loading...</div>
-  <!-- Components -->
+  
   <div v-if="gameIsReady">
-    <!-- Game HUD -->
     <div class="hud-left">
       <div class="stat"><span>💰 {{ gUser.coins }}</span></div>
     </div>
-    <!-- Side Buttons -->
+    
     <div class="hud-right">
       <button class="hud-btn" @click="addDebugCoins" title="DEBUG: +1 Coin" style="background: #ffd700; color: #000;">🤑</button>
       <button class="hud-btn" @click="openShopMenu" title="Shop">💰</button>
@@ -23,17 +22,17 @@
       <button class="hud-btn" @click="editLight(0)" title="Edit Light">🌟</button>
       <button class="hud-btn" @click="changeCamera" title="Change Camera">🎥</button>
     </div>
-    <!-- Shop UI -->
-    <div v-if="gScene.pause" class="modal-overlay">
+    
+    <div v-if="gUI.pause" class="modal-overlay">
       <div class="shop-title">Mini Shop
         <button class="shop-btn" @click="increaseFarmSize" title="Increase Farm Size">💰 Increase Farm Size</button>
         <button class="shop-btn" @click="alpacaMenuOn" title="Buy Alpaca">💰 Buy Alpaca</button>
         <button class="shop-btn" @click="itemShopOn(true)" title="Buy Item">💰 Buy Item</button>
-        <button class="close-btn" @click="gScene.pause = false" title="Close">✖️</button>
+        <button class="close-btn" @click="gUI.pause = false" title="Close">✖️</button>
       </div>
     </div>
-    <!-- Alpaca Menu -->
-    <div v-if="gScene.alpacaMenu && gScene.newAlpaca" class="modal-overlay">
+    
+    <div v-if="gUI.alpacaMenu && gUI.newAlpaca" class="modal-overlay">
       <div class="shop-title">Buy Alpaca
         <div class="input-group">
           <label>Name</label>
@@ -59,8 +58,8 @@
         <button class="close-btn" @click="alpacaMenuOff" title="Close">✖️</button>
       </div>
     </div>
-    <!-- Alpaca Stat -->
-    <div v-if="gScene.alpacaMenu && !gScene.newAlpaca" class="modal-overlay">
+    
+    <div v-if="gUI.alpacaMenu && !gUI.newAlpaca" class="modal-overlay">
       <div class="shop-title">Alpaca Stats
         <div class="alpaca-stat">
           <div v-if="!gPlayer.speedOffset">Speed: Normal</div>
@@ -69,22 +68,27 @@
            <button class="stat-btn" @click="changeSpeed(-1)" title="Speed--">-</button>
            <button class="stat-btn" @click="changeSpeed(1)" title="Speed++">+</button>
         </div>
-        <button class="close-btn" @click="gScene.alpacaMenu = false" title="Close">✖️</button>
+        <button class="close-btn" @click="gUI.alpacaMenu = false" title="Close">✖️</button>
       </div>
     </div>
-    <!-- Item Menu -->
-    <div v-if="gScene.itemMenu" class="modal-overlay">
+    
+    <div v-if="gUI.itemMenu" class="modal-overlay">
         <div class="shop-title">Select Item
           <button class="shop-btn" @click="spawnShopItem()" title="Tree">🌳</button>
           <button class="close-btn" @click="itemShopOff" title="Close">✖️</button>
         </div>
     </div>
-    <!-- Edit Mode -->
-     <div v-if="gScene.edit" class="edit-mode">
+    
+    <div v-if="gUI.edit" class="edit-mode">
         Click and Drag Item <button class="close-btn" @click="editModeOff" title="Close">✖️</button>
     </div>
-    <!-- Light Menu -->
-    <div v-if="gScene.lightMenu && !gScene.edit" class="edit-mode-light">
+
+    <div v-if="gUI.edit && gEditState.selected" class="edit-actions" style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10;">
+        <button class="shop-btn" @click="deleteSelectedItem" style="background: #ff4444; color: white; border: 2px solid #cc0000;">🗑️ Delete Item</button>
+        <button class="shop-btn" @click="gEditState.selected = null">✖️ Deselect</button>
+    </div>
+
+    <div v-if="gUI.lightMenu && !gUI.edit" class="edit-mode-light">
         <div class="shop-title">Edit Light
           <div class="alpaca-stat">
            <button class="stat-btn" @click="editLight(0x555555)" title="--">1</button>
@@ -93,7 +97,7 @@
            <button class="stat-btn" @click="editLight(0xcccccc)" title="+">4</button>
            <button class="stat-btn" @click="editLight(0xffffff)" title="++">5</button>
           </div>
-          <button class="close-btn" @click="gScene.lightMenu = false" title="Close">✖️</button>
+          <button class="close-btn" @click="gUI.lightMenu = false" title="Close">✖️</button>
         </div>
     </div>
   </div>
@@ -109,9 +113,8 @@ import { useEditMode } from './components/editMode.js'
 import { alpacaConfig, useShop } from './components/shop.js'
 import { spawnItems } from "./components/spawnItems.js"
 import { addDebugCoins } from './core/debug.js'
-import { gAlpacas, gEngine, gPlayer, gScene, gUser } from './core/globals.js'
+import { gAlpacas, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
-import { handleAnimation } from './core/useAnimation.js'
 import { useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
 import { usePlayerControls } from './core/usePlayerControls.js'
@@ -123,17 +126,12 @@ import { initWorld } from './world/initWorld.js'
 
 import { useAuthStore } from '../stores/auth.js'
 
-import { CONST } from './config/constants.js'
 
 import './game.css'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
 const clock = new THREE.Clock()
-
-let player = null
-let mixer = null
-let animations = null
 
 let animationFrameId
 let cameraUpdate = null
@@ -146,6 +144,7 @@ const { spawnShopItem } = spawnItems()
 const { isAuthenticated } = useAuthStore()
 const { moveToTarget, moveAlpaca } = alpacaHandling()
 const {editModeOn, editModeOff } =  useEditMode()
+const { updatePlayer } = usePlayerControls() //moved here
 
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
@@ -174,39 +173,44 @@ onMounted(async () => {
   window.addEventListener('resize', onResize)
 })
 
-// put it down here so the gEngine exists already in onMounted function in usePlayerControls
-const { updatePlayer } = usePlayerControls()
 
 const gameLoop = () => {
   animationFrameId = requestAnimationFrame(gameLoop)
-  player = gPlayer.value.model
-  mixer = gPlayer.value.mixer
-  animations = gPlayer.value.animations
-
+  
   const delta = clock.getDelta()
+  const player = gPlayer.value
 
   if (player) {
-    updatePlayer(player, mixer, animations)
-    if (cameraUpdate && !gScene.value.selected)
-    {
-      cameraUpdate(player)
+    updatePlayer(player)
+    // if (cameraUpdate && !gEditState.selected) {
+    //   cameraUpdate(player)
+    // }
+  }
+
+  // 2. Loop through ALL alpacas (both Player and AI)
+  for (let i = 0; i < gAlpacas.length; i++) {
+    const alpaca = gAlpacas[i]
+
+    // A. Update the animation frame safely
+    if (alpaca.mixer) {
+      alpaca.mixer.update(delta)
+    }
+
+    // B. Handle AI Logic (Skip the player since updatePlayer() handles them)
+    if (player && alpaca.model.uuid !== player.model.uuid) {
+      
+      // moveToTarget(alpaca.model)
+      // moveAlpaca(alpaca.model)
+      
+      // Use the clean new handleAnimation!
+      // let animDir = alpaca.model.isMoving ? 1 : 0
+      // const speed = CONST.PLAYER_FORWARD_SPEED + alpaca.speedOffset
+      // handleAnimation(alpaca, animDir, speed)
     }
   }
 
-  // update all mixer and moving to targets
-  for (let i = 0; gAlpacas.value[i]; i++){
-    if (gAlpacas.value[i] && gAlpacas.value[i].mixer) {
-      moveToTarget(gAlpacas.value[i].model)
-      if (gAlpacas.value[i].model.id !== player.id) // only update other alpacas, not the player
-      {
-        moveAlpaca(gAlpacas.value[i].model)
-        let dir = 0 // not moving
-        if (gAlpacas.value[i].model.isMoving)
-          dir = 1
-        handleAnimation(gAlpacas.value[i].model, gAlpacas.value[i].mixer, gAlpacas.value[i].animations, dir, CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset)
-      }
-      gAlpacas.value[i].mixer.update(delta)
-    }
+  if (gEngine.value?.controls) {
+    gEngine.value.controls.update()
   }
 
   gEngine.value.renderer.render(

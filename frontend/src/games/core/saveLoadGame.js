@@ -11,7 +11,7 @@ export async function saveGame() {
     return
   }
   
-  const saveAlpacas = gAlpacas.value.map(alpaca => {
+  const saveAlpacas = gAlpacas.map(alpaca => {
     return {
       position: alpaca.model.position.toArray(), // [x, y, z]
       rotation: alpaca.model.rotation.y,          // Just the Y axis
@@ -23,7 +23,7 @@ export async function saveGame() {
     };
   });
 
-  const saveItems = gItems.value.map(item => {
+  const saveItems = gItems.map(item => {
     return {
       position: item.position.toArray(), // [x, y, z]
       rotation: item.rotation.y,          // Just the Y axis

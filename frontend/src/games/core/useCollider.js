@@ -22,7 +22,6 @@ export function attachCollider(model) {
 
   if (!collider) {
     collider = generateCollider(model);
-    model.add(collider);
   }
 
   model.userData.collider = collider;
@@ -41,16 +40,20 @@ function setupOBB(colliderMesh) {
 }
 
 function generateCollider(model) {
-  const boundingBox = new THREE.Box3().setFromObject(model)
-
   let size = new THREE.Vector3()
   const center = new THREE.Vector3()
+  const boundingBox = new THREE.Box3().setFromObject(model)
+
   boundingBox.getSize(size)
   boundingBox.getCenter(center)
   size.multiplyScalar(CONST.COLLIDER_SIZE)
   const geo = new THREE.BoxGeometry(size.x, size.y, size.z)
   const mat = CONST.DEBUG ? MATS.debug : MATS.collider
   const collider = new THREE.Mesh(geo, mat)
+
+  model.add(collider)
+  model.worldToLocal(center)
+
   collider.position.copy(center)
   collider.name = "Collider"
 

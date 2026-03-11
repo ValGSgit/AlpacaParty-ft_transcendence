@@ -16,13 +16,13 @@ export const CONST = {
   MIN_ZOOM: 10.0,
   MAX_ZOOM: 200.0,
 
-  DEBUG: 0,
+  DEBUG: 1,
   COLLIDER_SIZE: 0.8,
 
   MAX_UPGRADES: 5,
 
   get ALPACA_COST() {
-    return gAlpacas.value.length
+    return gAlpacas.length
   },
 
   get UPGRADE_COST() {

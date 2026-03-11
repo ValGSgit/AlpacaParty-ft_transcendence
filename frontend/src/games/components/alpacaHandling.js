@@ -27,7 +27,7 @@ export function alpacaHandling() {
     if (!alpacaToSwitch) // no alpaca found, walk to obj
       return false
     else if (gPlayer.value === alpacaToSwitch) // open menu for clicking self
-      gScene.value.alpacaMenu = true
+      GUI.alpacaMenu = true
     else
       gPlayer.value = alpacaToSwitch
     return true
@@ -48,7 +48,7 @@ export function alpacaHandling() {
     const beam = createLaserBeam(origin, direction, far);
     gScene.value.add(beam);
 
-    const targets = gAlpacas.value.map(a => a.model);
+    const targets = gAlpacas.map(a => a.model);
     const hits = raycaster.intersectObjects(targets, true);
 
     if (hits.length > 0) {
@@ -112,7 +112,7 @@ export function alpacaHandling() {
 }
 
 export function spawnAlpaca(color, name, scale) {
-  const originalAlpaca = gAlpacas.value[0]
+  const originalAlpaca = gAlpacas[0]
   const finalColor = color ?? originalAlpaca.model.color
   const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
   clonedModel.name = name ?? "NewAlpaca"
@@ -124,7 +124,7 @@ export function spawnAlpaca(color, name, scale) {
   applyNewColor(clonedModel, finalColor)
   const newAlpaca = createAlpacaData(clonedModel, originalAlpaca.animations, scale)
   setupPlacement(newAlpaca.model)
-  gAlpacas.value.push(newAlpaca)
+  gAlpacas.push(newAlpaca)
 }
 
 // -----------------------------------------------------------------------------------------------
@@ -141,10 +141,10 @@ const createLaserBeam = (origin, direction, length) => {
 
 const findAlpaca = (alpaca) => {
   while (alpaca) {
-    for (let i = 0; i < gAlpacas.value.length; ++i) {
-      if (alpaca.id === gAlpacas.value[i].model.id) {
+    for (let i = 0; i < gAlpacas.length; ++i) {
+      if (alpaca.id === gAlpacas[i].model.id) {
         //console.log("Found:", alpaca.name);
-        return gAlpacas.value[i]
+        return gAlpacas[i]
       }
     }
     alpaca = alpaca.parent

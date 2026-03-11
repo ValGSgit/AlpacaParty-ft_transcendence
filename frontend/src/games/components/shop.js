@@ -1,7 +1,7 @@
-import { gUser, gPlayer, gScene, gEngine } from '../core/globals.js'
-import { spawnAlpaca } from './alpacaHandling.js'
-import { CONST } from '../config/constants.js'
 import { reactive } from 'vue'
+import { CONST } from '../config/constants.js'
+import { gEngine, gPlayer, gScene, gUI, gUser } from '../core/globals.js'
+import { spawnAlpaca } from './alpacaHandling.js'
 import { useEditMode } from './editMode.js'
 
 const { editModeOff } = useEditMode()
@@ -10,7 +10,7 @@ export function useShop() {
 
   const openShopMenu = () => {
     editModeOff()
-    gScene.value.pause = true
+    gUI.pause = true
   }
 
   const buyAlpaca = (color) => {
@@ -18,9 +18,9 @@ export function useShop() {
       spawnAlpaca(color, alpacaConfig.name, alpacaConfig.scale)
     else
       alert('Not enough coins!')
-    gScene.value.pause = false
-    gScene.value.alpacaMenu = false
-    gScene.value.newAlpaca = false // reset flag
+    gUI.pause = false
+    gUI.alpacaMenu = false
+    gUI.newAlpaca = false // reset flag
   }
 
   const increaseFarmSize = () => {
@@ -40,37 +40,37 @@ export function useShop() {
 
   const closeShop = () => {
     gUser.value.shop = false
-    gScene.value.itemMenu = false
+    gUI.itemMenu = false
   }
 
   const editLight = (light) => {
-    gScene.value.lightMenu = true
+    gUI.lightMenu = true
     if (light === 0)
       return
-    gScene.value.ambientLight.color.set(light)
-    gScene.value.sunLight.color.set(light)
+    gUI.ambientLight.color.set(light)
+    gUI.sunLight.color.set(light)
   }
 
   const alpacaMenuOn = (newAlpaca) => {
-    gScene.value.alpacaMenu = true
-    gScene.value.pause = false
-    gScene.value.newAlpaca = newAlpaca // flag for creating new Alpaca
+    gUI.alpacaMenu = true
+    gUI.pause = false
+    gUI.newAlpaca = newAlpaca // flag for creating new Alpaca
   }
 
   const alpacaMenuOff = () => {
-    gScene.value.alpacaMenu = false
-    gScene.value.pause = true
-    gScene.value.newAlpaca = false // flag for creating new Alpaca
+    gUI.alpacaMenu = false
+    gUI.pause = true
+    gUI.newAlpaca = false // flag for creating new Alpaca
   }
 
   const itemShopOn = () => {
-    gScene.value.itemMenu = true
-    gScene.value.pause = false
+    gUI.itemMenu = true
+    gUI.pause = false
   }
 
   const itemShopOff = () => {
-    gScene.value.itemMenu = false
-    gScene.value.pause = true
+    gUI.itemMenu = false
+    gUI.pause = true
   }
 
   const changeSpeed = (speed) => {

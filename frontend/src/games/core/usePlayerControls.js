@@ -1,54 +1,65 @@
 import { CONST } from '../config/constants.js'
-import { gPlayer } from './globals.js'
 import { handleAnimation } from './useAnimation.js'
 import { useInput } from './useInput.js'
 import { checkWithinBounds, usePhysics } from './usePhysics.js'
+
 
 export function usePlayerControls() {
   const { keys } = useInput()
   const { checkCollision } = usePhysics()
 
-  const handleMovement = (player) => {
-    let speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
-    const rotation = CONST.PLAYER_ROTATION + gPlayer.value.rotationOffset
-    let dir = 0, dx = 0, dz = 0
+  const updatePlayer = (player) => {
+    if (!player || !player.model) return
+
+    const { model, speedOffset, rotationOffset } = player
+    let speed = CONST.PLAYER_FORWARD_SPEED + speedOffset
+    const rotSpeed = CONST.PLAYER_ROTATION + rotationOffset
+    let dir = 0
     let isMoving = false
-    let nextRotY = player.rotation.y
+    let nextRotY = model.rotation.y
 
-    if (keys.w && !gPlayer.value.model.isMoving) { dir = 1; isMoving = true } // !gPlayer.value.model.isMoving => disable the wasd when doubleClick moving
-    if (keys.s && !gPlayer.value.model.isMoving) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isMoving = true }
-    if (keys.a && !gPlayer.value.model.isMoving) { nextRotY += rotation; isMoving = true }
-    if (keys.d && !gPlayer.value.model.isMoving) { nextRotY -= rotation; isMoving = true }
-    if (keys.space && player.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) { player.position.y += CONST.JUMPING_SPEED; isMoving = true; player.isJumping = true }
-    if (player.position.y > 0 && (!keys.space || player.isFalling)) { player.position.y -= CONST.JUMPING_SPEED; player.isJumping = true }
-    if (player.position.y < 0) player.position.y = 0 // reset y if it goes below the ground
-    if (player.position.y === 0) { player.isJumping = false; if (!keys.space) player.isFalling = false }
-    if (player.position.y >= CONST.JUMPING_MAX_HEIGHT) player.isFalling = true
+    //
+    if (keys.w && !model.isMoving) { dir = 1; isMoving = true }
+    if (keys.s && !model.isMoving) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isMoving = true }
+    if (keys.a && !model.isMoving) { nextRotY += rotSpeed; isMoving = true }
+    if (keys.d && !model.isMoving) { nextRotY -= rotSpeed; isMoving = true }
 
+    //
+    if (keys.space && model.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) {
+      model.position.y += CONST.JUMPING_SPEED; isMoving = true; player.isJumping = true
+    }
+    if (model.position.y > 0 && (!keys.space || player.isFalling)) {
+      model.position.y -= CONST.JUMPING_SPEED; player.isJumping = true
+    }
+    if (model.position.y <= 0) {
+      model.position.y = 0; player.isJumping = false; if (!keys.space) player.isFalling = false
+    }
+    if (model.position.y >= CONST.JUMPING_MAX_HEIGHT) player.isFalling = true
+
+    //
     if (isMoving) {
-      dx = Math.sin(nextRotY) * speed * dir
-      dz = Math.cos(nextRotY) * speed * dir
+      const dx = Math.sin(nextRotY) * speed * dir
+      const dz = Math.cos(nextRotY) * speed * dir
 
-      let nextX = player.position.x + dx
-      let nextZ = player.position.z + dz
+      const nextX = model.position.x + dx
+      const nextZ = model.position.z + dz
 
       if (checkWithinBounds(nextX, nextZ)) {
-        checkCollision(player, nextX, nextZ, nextRotY)
+        checkCollision(model, nextX, nextZ, nextRotY)
       }
     }
-    return { isMoving, speed }
-  }
-
-  const updatePlayer = (player, mixer, animations) => {
-    if (!player) return
-    let { isMoving, speed } = handleMovement(player)
-    let animDir = 0 // not moving
-    if (isMoving) // wasd
-      animDir = keys.w ? 1 : -1
-    else if (player.isMoving) // doubleClickMoving
-      animDir = 1
-    handleAnimation(player, mixer, animations, animDir, speed)
+    handleAnimation(player, getAnimDir(isMoving, model, keys), speed)
   }
 
   return { updatePlayer }
+}
+
+function getAnimDir(isMoving, model, keys) {
+  let animDir = 0
+  if (isMoving) {
+    animDir = keys.s ? -1 : 1
+  } else if (model.isMoving) {
+    animDir = 1
+  }
+  return animDir
 }
