@@ -1,7 +1,6 @@
 import { useEditMode } from "../components/editMode";
 import { gEngine, gUI } from "./globals";
 
-
 export function useUIManager() {
 
   const { removeHighlight, cancelPlacement } = useEditMode()
@@ -11,6 +10,7 @@ export function useUIManager() {
     if (gUI.itemShop) closeItemShop();
     if (gUI.lightMenu) closeLightMenu();
     if (gUI.editMode) closeEditMode();
+    if (gUI.shopMenu) closeShopMenu();
   }
 
   const openEditMode = () => {
@@ -28,34 +28,30 @@ export function useUIManager() {
   const openShopMenu = () => {
     closeEditMode()
     gUI.shopMenu = true
-    gUI.pause = true
   }
 
   const closeShopMenu = () => {
-    //gUser.value.shop = false
     gUI.shopMenu = false
   }
 
   const openAlpacaShop = (newAlpaca) => {
     gUI.alpacaShop = true
-    gUI.pause = false
-    gUI.newAlpaca = newAlpaca // flag for creating new Alpaca
+    gUI.shopMenu = false
   }
 
   const closeAlpacaShop = () => {
     gUI.alpacaShop = false
-    gUI.pause = true
-    gUI.newAlpaca = false // flag for creating new Alpaca
+    gUI.shopMenu = true
   }
 
   const openItemShop = () => {
     gUI.itemShop = true
-    gUI.pause = false
+    gUI.shopMenu = false
   }
 
   const closeItemShop = () => {
     gUI.itemShop = false
-    gUI.pause = true
+    gUI.shopMenu = true
   }
 
   const openLightMenu = () => {

@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
-import { gEditables, gEditState, gEngine, gScene } from '../core/globals.js'
+import { gAlpacas, gEditables, gEditState, gEngine, gScene } from '../core/globals.js'
 import { removeObject } from '../core/removeObjects.js'
 import { saveGame } from '../core/saveLoadGame.js'
 import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
@@ -171,6 +171,12 @@ export function useEditMode() {
 
   const deleteItem = () => {
     if (!gEditState.selected) return;
+
+    if (gAlpacas.length === 1) {
+      alert("Can't delete last alpaca!");
+      cancelPlacement();
+      return;
+    }
 
     const selected = gEditState.selected
     if (gEditState.ghost) {

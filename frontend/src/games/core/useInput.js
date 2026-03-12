@@ -86,7 +86,7 @@ export function useInput() {
   }
 
   const handleEscapeKey = () => {
-    gUI.pause = false
+    gUI.shopMenu = false
     closeMenus()
   }
 

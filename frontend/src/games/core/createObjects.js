@@ -1,16 +1,24 @@
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import { gCollidable } from './globals.js';
 import { getModel } from './modelCache.js';
 import { registerEntity } from './registerEntity.js';
 import { attachCollider } from './useCollider.js';
 
-export async function createAlpaca(path, position, color, name) {
+export async function createAlpaca(
+  path,
+  position = [0, 0, 0],
+  rotation = 0,
+  scale = [1, 1, 1],
+  color = 0xffffff,
+  name = "Alpaca"
+) {
   const { model, animations } = await getModel(path);
 
   const clone = SkeletonUtils.clone(model);
-  clone.position.copy(position);
-  clone.name = name ?? "NewAlpaca";
+  clone.position.set(...position);
+  clone.rotation.set(0, rotation, 0);
+  clone.scale.set(...scale);
+  clone.name = name;
 
   if (color) {
     clone.traverse((child) => {
@@ -37,30 +45,40 @@ export async function createAlpaca(path, position, color, name) {
   return alpaca;
 }
 
-export async function createItem(path, position, scale = 1, rotationY = 0) {
+export async function createItem(
+  path,
+  position = [0, 0, 0],
+  rotation = 0,
+  scale = [1, 1, 1],
+) {
   const { model } = await getModel(path);
-
   const clone = model.clone();
-  clone.position.copy(position);
-  clone.scale.set(scale, scale, scale);
-  clone.rotation.y = rotationY;
+
+  clone.position.set(...position);
+  clone.rotation.set(0, rotation, 0);
+  clone.scale.set(...scale);
   clone.updateMatrixWorld(true);
 
   attachCollider(clone);
-
   registerEntity(clone, 'item');
+
   return clone;
 }
 
-export async function createDecoration(path, position, scale = 1, rotationY = 0) {
+export async function createDecoration(
+  path,
+  position = [0, 0, 0],
+  rotation = 0,
+  scale = [1, 1, 1],
+) {
   const { model } = await getModel(path);
 
   const clone = model.clone();
-  clone.position.copy(position);
-  clone.scale.set(scale, scale, scale);
-  clone.rotation.y = rotationY;
+  clone.position.set(...position);
+  clone.rotation.set(0, rotation, 0);
+  clone.scale.set(...scale);
+  clone.updateMatrixWorld(true);
 
   registerEntity(clone, 'decoration');
   return clone;
 }
-

@@ -5,11 +5,18 @@ import { gScene } from '../core/globals.js';
 export function getRandomPos() {
   const angle = getRandomRot();
   const radius = CONST.MAX_MOVE_RADIUS * Math.sqrt(Math.random());
-
   const x = Math.cos(angle) * radius;
   const z = Math.sin(angle) * radius;
 
   return new THREE.Vector3(x, 0, z)
+}
+
+export function getRandomVal() {
+  const angle = getRandomRot();
+  const radius = CONST.MAX_MOVE_RADIUS * Math.sqrt(Math.random());
+  const random = Math.cos(angle) * radius;
+
+  return random;
 }
 
 export function getRandomRot() {

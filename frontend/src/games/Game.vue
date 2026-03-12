@@ -23,16 +23,16 @@
       <button class="hud-btn" @click="changeCamera()" title="Change Camera">🎥</button>
     </div>
     
-    <div v-if="gUI.pause" class="modal-overlay">
+    <div v-if="gUI.shopMenu" class="modal-overlay">
       <div class="shop-title">Mini Shop
         <button class="shop-btn" @click="increaseFarmSize()" title="Increase Farm Size">💰 Increase Farm Size</button>
         <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca">💰 Buy Alpaca</button>
         <button class="shop-btn" @click="openItemShop(true)" title="Buy Item">💰 Buy Item</button>
-        <button class="close-btn" @click="gUI.pause = false" title="Close">✖️</button>
+        <button class="close-btn" @click="gUI.shopMenu = false" title="Close">✖️</button>
       </div>
     </div>
     
-    <div v-if="gUI.alpacaShop && gUI.newAlpaca" class="modal-overlay">
+    <div v-if="gUI.alpacaShop" class="modal-overlay">
       <div class="shop-title">Buy Alpaca
         <div class="input-group">
           <label>Name</label>
@@ -59,7 +59,7 @@
       </div>
     </div>
     
-    <!-- <div v-if="gUI.alpacaShop && !gUI.newAlpaca" class="modal-overlay">
+    <div v-if="gUI.alpacaStats && !gUI.alpacaShop" class="modal-overlay">
       <div class="shop-title">Alpaca Stats
         <div class="alpaca-stat">
           <div v-if="!gPlayer.speedOffset">Speed: Normal</div>
@@ -68,13 +68,13 @@
            <button class="stat-btn" @click="changeSpeed(-1)" title="Speed--">-</button>
            <button class="stat-btn" @click="changeSpeed(1)" title="Speed++">+</button>
         </div>
-        <button class="close-btn" @click="gUI.alpacaShop = false" title="Close">✖️</button>
+        <button class="close-btn" @click="gUI.Stats = false" title="Close">✖️</button>
       </div>
-    </div> -->
+    </div>
     
     <div v-if="gUI.itemShop" class="modal-overlay">
         <div class="shop-title">Select Item
-          <button class="shop-btn" @click="spawnShopItem()" title="Tree">🌳</button>
+          <button class="shop-btn" @click="spawnShopItem('/models/tree.glb')" title="Tree">🌳</button>
           <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
         </div>
     </div>
@@ -110,14 +110,14 @@ import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 
 import { useAuthStore } from '../stores/auth.js'
 import { alpacaHandling } from './components/alpacaHandling.js'
+import { buyItems } from "./components/buyItems.js"
 import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
 import { alpacaConfig, useShop } from './components/shop.js'
-import { spawnItems } from "./components/spawnItems.js"
 import { addDebugCoins } from './core/debug.js'
 import { gAlpacas, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
-import { useCamera } from './core/useCamera.js'
+import { changeCamera, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
 import { useInput } from './core/useInput.js'
 import { usePlayerControls } from './core/usePlayerControls.js'
@@ -136,7 +136,7 @@ const { setLight } = editLight()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { buyAlpaca, increaseFarmSize, changeSpeed } = useShop()
-const { spawnShopItem } = spawnItems()
+const { spawnShopItem } = buyItems()
 const { isAuthenticated } = useAuthStore()
 const { moveToTarget, moveAlpaca } = alpacaHandling()
 const { cancelPlacement, deleteItem} =  useEditMode()
@@ -174,7 +174,6 @@ onMounted(async () => {
   window.addEventListener('resize', onResize)
 })
 
-
 const gameLoop = () => {
   animationFrameId = requestAnimationFrame(gameLoop)
   
@@ -183,9 +182,9 @@ const gameLoop = () => {
 
   if (player) {
     updatePlayer(player)
-    // if (cameraUpdate && !gEditState.selected) {
-    //   cameraUpdate(player)
-    // }
+    if (cameraUpdate && !gUI.editMode) {
+      cameraUpdate(player)
+    }
   }
 
   // 2. Loop through ALL alpacas (both Player and AI)

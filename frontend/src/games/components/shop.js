@@ -11,7 +11,7 @@ export function useShop() {
       spawnAlpaca(color, alpacaConfig.name, alpacaConfig.scale)
     else
       alert('Not enough coins!')
-    gUI.pause = false
+    gUI.shopMenu = false
     gUI.alpacaMenu = false
     gUI.newAlpaca = false // reset flag
   }
