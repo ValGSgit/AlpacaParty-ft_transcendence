@@ -16,7 +16,7 @@
     </div>
     
     <div class="hud-right">
-      <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: +1 Coin" style="background: #ffd700; color: #000;">🤑</button>
+      <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🤑</button>
       <button class="hud-btn" @click="openShopMenu()" title="Shop">💰</button>
       <button class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
       <button class="hud-btn" @click="openLightMenu()" title="Edit Light">🌟</button>

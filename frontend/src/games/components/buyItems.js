@@ -6,7 +6,7 @@ export function buyItems() {
   const { closeMenus } = useUIManager()
 
   async function spawnShopItem(path) {
-    const model = createItem(path);
+    const model = await createItem(path);
     closeMenus();
     setupPlacement(model);
   }

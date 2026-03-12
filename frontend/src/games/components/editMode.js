@@ -172,7 +172,9 @@ export function useEditMode() {
   const deleteItem = () => {
     if (!gEditState.selected) return;
 
-    if (gAlpacas.length === 1) {
+    const isAlpaca = gAlpacas.some(alpaca => alpaca.model === gEditState.selected)
+
+    if (isAlpaca && gAlpacas.length === 1) {
       alert("Can't delete last alpaca!");
       cancelPlacement();
       return;

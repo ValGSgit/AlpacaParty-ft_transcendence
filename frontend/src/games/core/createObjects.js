@@ -9,7 +9,7 @@ export async function createAlpaca(
   position = [0, 0, 0],
   rotation = 0,
   scale = [1, 1, 1],
-  color = 0xffffff,
+  color = null,
   name = "Alpaca"
 ) {
   const { model, animations } = await getModel(path);
