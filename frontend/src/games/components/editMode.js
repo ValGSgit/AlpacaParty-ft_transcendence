@@ -2,8 +2,8 @@ import * as THREE from 'three'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
-import { removeObject } from '../core/createObjects.js'
-import { gEditables, gEditState, gEngine, gScene, gUI } from '../core/globals.js'
+import { gEditables, gEditState, gEngine, gScene } from '../core/globals.js'
+import { removeObject } from '../core/removeObjects.js'
 import { saveGame } from '../core/saveLoadGame.js'
 import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
 import { spendCoins } from './coins.js'
@@ -17,17 +17,6 @@ export function useEditMode() {
   const { checkCollision, } = usePhysics()
   const { storePos, restorePos } = usePos()
   let hoveredItem = null
-
-  const editModeOn = () => {
-    gUI.edit = true
-    gEngine.value.controls.enabled = false
-  }
-
-  const editModeOff = () => {
-    gUI.edit = false
-    gEditState.selected = null
-    gEngine.value.controls.enabled = true
-  }
 
   const updateRaycaster = (e) => {
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
@@ -179,7 +168,19 @@ export function useEditMode() {
     }
     resetSelected()
   }
-  return { editModeOn, editModeOff, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement }
+
+  const deleteItem = () => {
+    if (!gEditState.selected) return;
+
+    const selected = gEditState.selected
+    if (gEditState.ghost) {
+      gScene.value.remove(gEditState.ghost);
+    }
+    resetSelected();
+    removeObject(selected);
+  }
+
+  return { deleteItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement }
 }
 
 function resetSelected() {

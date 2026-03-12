@@ -16,23 +16,23 @@
     </div>
     
     <div class="hud-right">
-      <button class="hud-btn" @click="addDebugCoins" title="DEBUG: +1 Coin" style="background: #ffd700; color: #000;">🤑</button>
-      <button class="hud-btn" @click="openShopMenu" title="Shop">💰</button>
-      <button class="hud-btn" @click="editModeOn" title="Edit Scene">✏️</button>
-      <button class="hud-btn" @click="editLight(0)" title="Edit Light">🌟</button>
-      <button class="hud-btn" @click="changeCamera" title="Change Camera">🎥</button>
+      <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: +1 Coin" style="background: #ffd700; color: #000;">🤑</button>
+      <button class="hud-btn" @click="openShopMenu()" title="Shop">💰</button>
+      <button class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
+      <button class="hud-btn" @click="openLightMenu()" title="Edit Light">🌟</button>
+      <button class="hud-btn" @click="changeCamera()" title="Change Camera">🎥</button>
     </div>
     
     <div v-if="gUI.pause" class="modal-overlay">
       <div class="shop-title">Mini Shop
-        <button class="shop-btn" @click="increaseFarmSize" title="Increase Farm Size">💰 Increase Farm Size</button>
-        <button class="shop-btn" @click="alpacaMenuOn" title="Buy Alpaca">💰 Buy Alpaca</button>
-        <button class="shop-btn" @click="itemShopOn(true)" title="Buy Item">💰 Buy Item</button>
+        <button class="shop-btn" @click="increaseFarmSize()" title="Increase Farm Size">💰 Increase Farm Size</button>
+        <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca">💰 Buy Alpaca</button>
+        <button class="shop-btn" @click="openItemShop(true)" title="Buy Item">💰 Buy Item</button>
         <button class="close-btn" @click="gUI.pause = false" title="Close">✖️</button>
       </div>
     </div>
     
-    <div v-if="gUI.alpacaMenu && gUI.newAlpaca" class="modal-overlay">
+    <div v-if="gUI.alpacaShop && gUI.newAlpaca" class="modal-overlay">
       <div class="shop-title">Buy Alpaca
         <div class="input-group">
           <label>Name</label>
@@ -55,11 +55,11 @@
           <button class="shop-btn" @click="buyAlpaca(alpacaConfig.color)" title="Custom">Buy Custom</button>
         </div>
 
-        <button class="close-btn" @click="alpacaMenuOff" title="Close">✖️</button>
+        <button class="close-btn" @click="closeAlpacaShop()" title="Close">✖️</button>
       </div>
     </div>
     
-    <div v-if="gUI.alpacaMenu && !gUI.newAlpaca" class="modal-overlay">
+    <!-- <div v-if="gUI.alpacaShop && !gUI.newAlpaca" class="modal-overlay">
       <div class="shop-title">Alpaca Stats
         <div class="alpaca-stat">
           <div v-if="!gPlayer.speedOffset">Speed: Normal</div>
@@ -68,36 +68,36 @@
            <button class="stat-btn" @click="changeSpeed(-1)" title="Speed--">-</button>
            <button class="stat-btn" @click="changeSpeed(1)" title="Speed++">+</button>
         </div>
-        <button class="close-btn" @click="gUI.alpacaMenu = false" title="Close">✖️</button>
+        <button class="close-btn" @click="gUI.alpacaShop = false" title="Close">✖️</button>
       </div>
-    </div>
+    </div> -->
     
-    <div v-if="gUI.itemMenu" class="modal-overlay">
+    <div v-if="gUI.itemShop" class="modal-overlay">
         <div class="shop-title">Select Item
           <button class="shop-btn" @click="spawnShopItem()" title="Tree">🌳</button>
-          <button class="close-btn" @click="itemShopOff" title="Close">✖️</button>
+          <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
         </div>
     </div>
     
-    <div v-if="gUI.edit" class="edit-mode">
-        Click and Drag Item <button class="close-btn" @click="editModeOff" title="Close">✖️</button>
+    <div v-if="gUI.editMode" class="edit-mode">
+        Click and Move Item <button class="close-btn" @click="closeEditMode()" title="Close">✖️</button>
     </div>
 
-    <div v-if="gUI.edit && gEditState.selected" class="edit-actions" style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10;">
-        <button class="shop-btn" @click="deleteSelectedItem" style="background: #ff4444; color: white; border: 2px solid #cc0000;">🗑️ Delete Item</button>
-        <button class="shop-btn" @click="gEditState.selected = null">✖️ Deselect</button>
+    <div v-if="gUI.editMode && gEditState.selected" class="edit-actions" style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10;">
+        <button class="shop-btn" @click="cancelPlacement()">✖️ Cancel</button>
+        <button class="shop-btn" @click="deleteItem()" style="background: #ff4444; color: white; border: 2px solid #cc0000;">🗑️ Delete Item</button>
     </div>
 
-    <div v-if="gUI.lightMenu && !gUI.edit" class="edit-mode-light">
+    <div v-if="gUI.lightMenu" class="edit-mode-light">
         <div class="shop-title">Edit Light
           <div class="alpaca-stat">
-           <button class="stat-btn" @click="editLight(0x555555)" title="--">1</button>
-           <button class="stat-btn" @click="editLight(0x888888)" title="-">2</button>
-           <button class="stat-btn" @click="editLight(0xaaaaaa)" title="normal">3</button>
-           <button class="stat-btn" @click="editLight(0xcccccc)" title="+">4</button>
-           <button class="stat-btn" @click="editLight(0xffffff)" title="++">5</button>
+           <button class="stat-btn" @click="setLight(0x555555)" title="--">1</button>
+           <button class="stat-btn" @click="setLight(0x888888)" title="-">2</button>
+           <button class="stat-btn" @click="setLight(0xaaaaaa)" title="normal">3</button>
+           <button class="stat-btn" @click="setLight(0xcccccc)" title="+">4</button>
+           <button class="stat-btn" @click="setLight(0xffffff)" title="++">5</button>
           </div>
-          <button class="close-btn" @click="gUI.lightMenu = false" title="Close">✖️</button>
+          <button class="close-btn" @click="closeLightMenu()" title="Close">✖️</button>
         </div>
     </div>
   </div>
@@ -108,7 +108,9 @@
 import * as THREE from 'three'
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 
+import { useAuthStore } from '../stores/auth.js'
 import { alpacaHandling } from './components/alpacaHandling.js'
+import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
 import { alpacaConfig, useShop } from './components/shop.js'
 import { spawnItems } from "./components/spawnItems.js"
@@ -117,37 +119,35 @@ import { gAlpacas, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './co
 import { saveGame } from './core/saveLoadGame.js'
 import { useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
+import { useInput } from './core/useInput.js'
 import { usePlayerControls } from './core/usePlayerControls.js'
+import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
-
-import { initUser } from './user/initUser.js'
-
-import { initWorld } from './world/initWorld.js'
-
-import { useAuthStore } from '../stores/auth.js'
-
-
 import './game.css'
+import { initUser } from './user/initUser.js'
+import { initWorld } from './world/initWorld.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
 const clock = new THREE.Clock()
 
-let animationFrameId
-let cameraUpdate = null
-
-let stopMyWatcher
-
+const { initInput } = useInput()
+const { setLight } = editLight()
+const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { openShopMenu, buyAlpaca, increaseFarmSize, editLight, alpacaMenuOn, alpacaMenuOff, itemShopOn, itemShopOff, changeSpeed, changeCamera } = useShop()
+const { buyAlpaca, increaseFarmSize, changeSpeed } = useShop()
 const { spawnShopItem } = spawnItems()
 const { isAuthenticated } = useAuthStore()
 const { moveToTarget, moveAlpaca } = alpacaHandling()
-const {editModeOn, editModeOff } =  useEditMode()
-const { updatePlayer } = usePlayerControls() //moved here
-
+const { cancelPlacement, deleteItem} =  useEditMode()
+const { updatePlayer } = usePlayerControls()
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
+
+let animationFrameId
+let cameraUpdate = null
+let stopMyWatcher
+
 
 onMounted(async () => {
   if (!isAuthenticated)
@@ -161,6 +161,7 @@ onMounted(async () => {
   }
   else
   {
+    initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
     gUser.value = initUser()

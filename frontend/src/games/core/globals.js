@@ -7,9 +7,10 @@ export const gUser = ref(null)
 
 export const gUI = reactive({
   pause: false,
-  edit: false,
-  itemMenu: false,
-  alpacaMenu: false,
+  editMode: false,
+  shopMenu: false,
+  itemShop: false,
+  alpacaShop: false,
   newAlpaca: false,
   lightMenu: false,
   cameraMode: 0
