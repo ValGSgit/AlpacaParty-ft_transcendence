@@ -7,12 +7,15 @@ import { gAlpacas, gEditables, gEditState, gEngine, gScene, gUI } from '../core/
 import { removeObject } from '../core/removeObjects.js'
 import { saveGame } from '../core/saveLoadGame.js'
 import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
+import { useUIManager } from '../core/useUIManager.js'
 import { spendCoins } from './coins.js'
+
 
 const pointer = new THREE.Vector2()
 const raycaster = new THREE.Raycaster()
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 const worldPoint = new THREE.Vector3()
+const { closeMenus } = useUIManager()
 
 export function useEditMode() {
   const { checkCollision, } = usePhysics()
@@ -146,7 +149,8 @@ export function useEditMode() {
     selected.visible = true
     if (selected.userData.isNew) {
       spendCoins(selected.userData.cost)
-      selected.userData.isNew = false
+      selected.userData.isNew = false;
+      closeMenus();
     }
     resetSelected()
     saveGame()
@@ -197,7 +201,6 @@ function resetSelected() {
   gEditState.selected = null;
   gEditState.ghost = null;
   gEngine.value.controls.enabled = true;
-
 }
 
 export function setupPlacement(model) {

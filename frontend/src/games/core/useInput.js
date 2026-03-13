@@ -14,7 +14,7 @@ const keys = reactive({
 export function useInput() {
   const { switchAlpaca, moveAlpaca, spit } = alpacaHandling()
   const { selectItem, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement } = useEditMode()
-  const { closeMenus } = useUIManager()
+  const { closeMenus, openAlpacaShop } = useUIManager()
 
   const onKeyDown = (e) => {
     switch (e.code) {
@@ -87,7 +87,9 @@ export function useInput() {
 
   const handleEscapeKey = () => {
     if (gEditState.selected) {
-      cancelPlacement()
+      if (gEditState.selected.userData.isNew)
+        closeMenus();
+      cancelPlacement();
     } else {
       closeMenus()
     }
