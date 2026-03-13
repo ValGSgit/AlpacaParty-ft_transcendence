@@ -106,7 +106,6 @@
 <script setup>
 import * as THREE from 'three'
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
-
 import { useAuthStore } from '../stores/auth.js'
 import { alpacaHandling } from './components/alpacaHandling.js'
 import { alpacaConfig, alpacaShop } from './components/alpacaShop.js'
@@ -117,6 +116,7 @@ import { useShop } from './components/shop.js'
 import { addDebugCoins } from './core/debug.js'
 import { gAlpacas, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
+import { cleanupStats, initStats } from './core/stats.js'
 import { changeCamera, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
 import { useInput } from './core/useInput.js'
@@ -146,8 +146,9 @@ const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
 
 let animationFrameId
-let cameraUpdate = null
+let cameraUpdate = null;
 let stopMyWatcher
+let stats;
 
 
 onMounted(async () => {
@@ -162,6 +163,7 @@ onMounted(async () => {
   }
   else
   {
+    stats = initStats(gameContainer.value);
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
@@ -176,6 +178,7 @@ onMounted(async () => {
 })
 
 const gameLoop = () => {
+  if (stats) stats.begin();
   animationFrameId = requestAnimationFrame(gameLoop)
   
   const delta = clock.getDelta()
@@ -218,6 +221,7 @@ const gameLoop = () => {
     gEngine.value.scene,
     gEngine.value.camera
   )
+  if (stats) stats.end();
 }
 
 onUnmounted(() => {
@@ -225,6 +229,7 @@ onUnmounted(() => {
   stopMyWatcher()
   cancelAnimationFrame(animationFrameId)
   window.removeEventListener('resize', onResize)
+  cleanupStats(stats, gameContainer.value);
   cleanup()
 })
 </script>

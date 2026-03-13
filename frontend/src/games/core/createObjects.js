@@ -56,6 +56,7 @@ export async function createItem(
 ) {
   const { model } = await getModel(path);
   const clone = model.clone();
+  markRaw(clone);
 
   clone.position.set(...position);
   clone.rotation.set(0, rotation, 0);
@@ -77,6 +78,8 @@ export async function createDecoration(
   const { model } = await getModel(path);
 
   const clone = model.clone();
+  markRaw(clone);
+
   clone.position.set(...position);
   clone.rotation.set(0, rotation, 0);
   clone.scale.set(...scale);
