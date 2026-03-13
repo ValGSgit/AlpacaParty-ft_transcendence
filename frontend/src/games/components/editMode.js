@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
-import { gAlpacas, gEditables, gEditState, gEngine, gScene } from '../core/globals.js'
+import { gAlpacas, gEditables, gEditState, gEngine, gScene, gUI } from '../core/globals.js'
 import { removeObject } from '../core/removeObjects.js'
 import { saveGame } from '../core/saveLoadGame.js'
 import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
@@ -42,6 +42,7 @@ export function useEditMode() {
     if (intersects.length > 0) {
       gEditState.selected = findItem(intersects[0].object)
       if (gEditState.selected) {
+        gEngine.value.controls.enabled = false
         gEditState.selected.visible = true
       }
       storePos(gEditState.selected)
@@ -200,6 +201,7 @@ function resetSelected() {
 export function setupPlacement(model) {
   gEditState.selected = model
   gEngine.value.controls.enabled = false
+  gUI.editMode = true
 
   const ghost = cloneGhost(model)
   ghost.visible = false
