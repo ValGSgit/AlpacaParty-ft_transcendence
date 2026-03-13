@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { CONST } from '../config/constants.js';
 import { gEngine, gUI } from './globals.js';
-import { useInput } from './useInput.js';
 
 const offset = new THREE.Vector3();
 const lookAt = new THREE.Vector3();
@@ -10,7 +9,6 @@ const savedOrbitOffset = new THREE.Vector3(0, 10, 15);
 let isTransitioningToOrbit = false;
 
 export function useCamera(camera, controls) {
-  const { keys } = useInput()
 
   const updateCamera = (player) => {
     if (!controls || !player) return
@@ -69,9 +67,7 @@ export function useCamera(camera, controls) {
     currentPosition.lerpVectors(camera.position, offset, t)
     lookAt.lerpVectors(controls.target, lookAt, t)
 
-    if (!keys.pointer) {
-      camera.position.copy(currentPosition)
-    }
+    camera.position.copy(currentPosition)
     controls.target.copy(lookAt)
     controls.update()
   }
