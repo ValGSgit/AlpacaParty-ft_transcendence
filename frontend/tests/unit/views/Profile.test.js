@@ -45,7 +45,7 @@ describe('Profile.vue', () => {
     store.user = {
       username: 'tester',
       email: 'test@test.com',
-      avatar: '/avatars/default.png',
+      avatar: '/avatars/default.svg',
       bio: 'Hello world',
       status: 'online',
       created_at: '2025-01-01T00:00:00Z',
@@ -76,7 +76,7 @@ describe('Profile.vue', () => {
     store.user = {
       username: 'u',
       email: 'e@e.com',
-      avatar: '/avatars/default.png',
+      avatar: '/avatars/default.svg',
       bio: '',
       status: 's',
       created_at: '2025-01-01T00:00:00Z',

@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     username      VARCHAR(32)  UNIQUE NOT NULL,
     email         VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255),                  -- NULL for OAuth-only accounts
-    avatar        VARCHAR(512) DEFAULT '/avatars/default.png',
+    avatar        VARCHAR(512) DEFAULT '/avatars/default.svg',
     bio           TEXT         DEFAULT '',
     alpacas       JSONB        DEFAULT '[]'::jsonb,
     items         JSONB        DEFAULT '[]'::jsonb,
@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS organizations (
     id          SERIAL PRIMARY KEY,
     name        VARCHAR(100) UNIQUE NOT NULL,
     description TEXT DEFAULT '',
-    avatar      VARCHAR(512) DEFAULT '/avatars/default-org.png',
+    avatar      VARCHAR(512) DEFAULT '/avatars/default-org.svg',
     owner_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at  TIMESTAMPTZ DEFAULT NOW(),
     updated_at  TIMESTAMPTZ DEFAULT NOW()

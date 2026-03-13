@@ -17,10 +17,6 @@
         </template>
       </div>
     </div>
-<!--
-    You must be wondering what this is
-    <FakeAd /> 
---> 
 
     <div class="features">
       <div class="feature-card">

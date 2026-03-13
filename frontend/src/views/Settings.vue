@@ -29,13 +29,14 @@
           <input v-model="profileForm.status" type="text" placeholder="What are you up to?" />
         </div>
         <div class="form-row">
-          <label>Avatar URL</label>
-          <input v-model="profileForm.avatar" type="text" placeholder="/avatars/custom.png" />
+          <label>Avatar</label>
+          <div class="avatar-current" v-if="profileForm.avatar">
+            <img :src="profileForm.avatar" class="avatar-preview" alt="current avatar" />
+            <span class="avatar-path">{{ profileForm.avatar }}</span>
+          </div>
+          <p v-else class="field-hint">No custom avatar set — using default. Visit the <router-link to="/help" class="inline-link">Help page</router-link> to generate an AI alpaca avatar.</p>
         </div>
-        <div class="form-row preview-row" v-if="profileForm.avatar">
-          <label>Preview</label>
-          <img :src="profileForm.avatar" class="avatar-preview" alt="avatar preview" />
-        </div>
+
         <button type="submit" class="btn-primary" :disabled="savingProfile">
           {{ savingProfile ? 'Saving…' : 'Save Profile' }}
         </button>
@@ -263,6 +264,14 @@ h2 { font-size: 1.1rem; color: var(--primary, #00f0ff); margin: 0 0 1rem; }
 .form-row input:focus, .form-row textarea:focus { outline: none; border-color: var(--primary, #00f0ff); }
 .preview-row { flex-direction: row; align-items: center; gap: 1rem; }
 .avatar-preview { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary, #00f0ff); }
+
+.avatar-current { display: flex; align-items: center; gap: 0.75rem; }
+.avatar-path { font-size: 0.8rem; color: #666; word-break: break-all; }
+.generate-row { display: flex; gap: 0.5rem; }
+.generate-row input { flex: 1; }
+.field-hint { font-size: 0.8rem; color: #666; margin-top: 0.2rem; }
+.inline-link { color: var(--primary, #00f0ff); text-decoration: none; }
+.inline-link:hover { text-decoration: underline; }
 
 .toggle-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 .toggle-label { font-weight: 500; }

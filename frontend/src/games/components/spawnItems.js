@@ -9,6 +9,7 @@ export function spawnItems() {
   async function spawnShopItem() {
     const { model } = await loadGLTF('/models/tree.glb')
     model.name = "tree"
+    model.position.y = 4.5 // match the y-offset used by randomly spawned trees (model pivot is below ground)
 
     setupPlacement(model)
     closeShop()

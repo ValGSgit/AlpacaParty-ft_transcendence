@@ -19,7 +19,7 @@ let app;
 let request;
 let validToken;
 
-const authUser = { id: 1, username: 'authed', email: 'a@b.com', avatar: '/avatars/default.png', bio: '', status: 'online', is_online: true, is_admin: false };
+const authUser = { id: 1, username: 'authed', email: 'a@b.com', avatar: '/avatars/default.svg', bio: '', status: 'online', is_online: true, is_admin: false };
 
 beforeEach(async () => {
   mockQuery.mockReset();

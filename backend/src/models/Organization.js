@@ -11,7 +11,7 @@ const Organization = {
       await client.query('BEGIN');
       const { rows } = await client.query(
         `INSERT INTO organizations (name, description, owner_id, avatar)
-         VALUES ($1, $2, $3, COALESCE($4, '/avatars/default-org.png')) RETURNING *`,
+         VALUES ($1, $2, $3, COALESCE($4, '/avatars/default-org.svg')) RETURNING *`,
         [name, description, ownerId, avatar],
       );
       const org = rows[0];

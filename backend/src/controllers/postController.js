@@ -29,7 +29,11 @@ export const createPost = async (req, res, next) => {
   try {
     const { content, imageUrl, isPublic = true } = req.body;
     if (!content?.trim()) return res.status(400).json({ error: { message: 'content is required' } });
-    const post = await Post.create({ authorId: req.user.id, content: content.trim(), imageUrl, isPublic });
+    if (content.length > 5000) return res.status(400).json({ error: { message: 'content must be 5000 characters or fewer' } });
+    if (imageUrl && (typeof imageUrl !== 'string' || imageUrl.length > 2048)) {
+      return res.status(400).json({ error: { message: 'invalid imageUrl' } });
+    }
+    const post = await Post.create({ authorId: req.user.id, content: content.trim(), imageUrl: imageUrl || null, isPublic: !!isPublic });
     await GamificationService.checkPostAchievements(req.user.id);
     res.status(201).json({ post });
   } catch (err) { next(err); }
@@ -48,8 +52,14 @@ export const getPost = async (req, res, next) => {
 export const updatePost = async (req, res, next) => {
   try {
     const { content, imageUrl, isPublic } = req.body;
+    if (content !== undefined && (!content?.trim() || content.length > 5000)) {
+      return res.status(400).json({ error: { message: 'content must be between 1 and 5000 characters' } });
+    }
+    if (imageUrl !== undefined && imageUrl !== null && (typeof imageUrl !== 'string' || imageUrl.length > 2048)) {
+      return res.status(400).json({ error: { message: 'invalid imageUrl' } });
+    }
     const post = await Post.update(Number(req.params.id), req.user.id, {
-      content, image_url: imageUrl, is_public: isPublic,
+      content: content?.trim(), image_url: imageUrl, is_public: isPublic,
     });
     if (!post) return res.status(404).json({ error: { message: 'Post not found or not yours' } });
     res.json({ post });

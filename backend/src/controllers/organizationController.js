@@ -40,7 +40,10 @@ export const createOrg = async (req, res, next) => {
   try {
     const { name, description, avatar } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: { message: 'Organization name is required' } });
-    const org = await Organization.create({ name: name.trim(), description, ownerId: req.user.id, avatar });
+    if (name.length > 100) return res.status(400).json({ error: { message: 'Organization name must be 100 characters or fewer' } });
+    if (description && description.length > 2000) return res.status(400).json({ error: { message: 'Description must be 2000 characters or fewer' } });
+    if (avatar && (typeof avatar !== 'string' || avatar.length > 2048)) return res.status(400).json({ error: { message: 'Invalid avatar URL' } });
+    const org = await Organization.create({ name: name.trim(), description: description?.trim() || null, ownerId: req.user.id, avatar: avatar || null });
     await GamificationService.checkOrgAchievements(req.user.id);
     res.status(201).json({ organization: org });
   } catch (err) { next(err); }
@@ -53,7 +56,17 @@ export const updateOrg = async (req, res, next) => {
     if (!membership || !['owner', 'admin'].includes(membership.role)) {
       return res.status(403).json({ error: { message: 'Insufficient permissions' } });
     }
-    const org = await Organization.update(Number(req.params.id), req.body);
+    const { name, description, avatar } = req.body;
+    if (name !== undefined && (!name?.trim() || name.length > 100)) {
+      return res.status(400).json({ error: { message: 'Name must be between 1 and 100 characters' } });
+    }
+    if (description !== undefined && description !== null && description.length > 2000) {
+      return res.status(400).json({ error: { message: 'Description must be 2000 characters or fewer' } });
+    }
+    if (avatar !== undefined && avatar !== null && (typeof avatar !== 'string' || avatar.length > 2048)) {
+      return res.status(400).json({ error: { message: 'Invalid avatar URL' } });
+    }
+    const org = await Organization.update(Number(req.params.id), { name: name?.trim(), description: description?.trim(), avatar });
     res.json({ organization: org });
   } catch (err) { next(err); }
 };

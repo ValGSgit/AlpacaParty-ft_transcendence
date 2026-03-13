@@ -34,7 +34,7 @@
       <ul v-if="friends.length" class="user-list">
         <li v-for="f in friends" :key="f.id" class="user-row">
           <span class="online-dot" :class="{ online: f.is_online }"></span>
-          <img :src="f.avatar || '/avatars/default.png'" class="mini-avatar" alt="" />
+          <img :src="f.avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
           <span class="username">{{ f.username }}</span>
           <div class="actions">
             <button class="btn-sm btn-danger" @click="removeFriend(f.id)">Remove</button>
@@ -50,7 +50,7 @@
       <h3>Received</h3>
       <ul v-if="received.length" class="user-list">
         <li v-for="r in received" :key="r.id" class="user-row">
-          <img :src="r.sender_avatar || '/avatars/default.png'" class="mini-avatar" alt="" />
+          <img :src="r.sender_avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
           <span class="username">{{ r.sender_username }}</span>
           <div class="actions">
             <button class="btn-sm btn-primary" @click="acceptRequest(r.id)">Accept</button>
@@ -63,7 +63,7 @@
       <h3 style="margin-top:1.5rem">Sent</h3>
       <ul v-if="sent.length" class="user-list">
         <li v-for="r in sent" :key="r.id" class="user-row">
-          <img :src="r.receiver_avatar || '/avatars/default.png'" class="mini-avatar" alt="" />
+          <img :src="r.receiver_avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
           <span class="username">{{ r.receiver_username }}</span>
           <span class="status-tag">Pending</span>
         </li>
@@ -75,7 +75,7 @@
     <div v-if="activeTab === 'blocked' && !loading">
       <ul v-if="blocked.length" class="user-list">
         <li v-for="b in blocked" :key="b.id" class="user-row">
-          <img :src="b.avatar || '/avatars/default.png'" class="mini-avatar" alt="" />
+          <img :src="b.avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
           <span class="username">{{ b.username }}</span>
           <button class="btn-sm" @click="unblockUser(b.id)">Unblock</button>
         </li>

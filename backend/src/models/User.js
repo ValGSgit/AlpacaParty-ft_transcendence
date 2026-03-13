@@ -36,7 +36,7 @@ const User = {
     // Create new OAuth user
     const { rows } = await query(
       `INSERT INTO users (username, email, oauth_provider, oauth_id, avatar, password_hash)
-       VALUES ($1, $2, $3, $4, COALESCE($5, '/avatars/default.png'), '')
+       VALUES ($1, $2, $3, $4, COALESCE($5, '/avatars/default.svg'), '')
        ON CONFLICT (email) DO UPDATE SET oauth_provider = $3, oauth_id = $4
        RETURNING ${SAFE_FIELDS}`,
       [username, email, provider, oauthId, avatar],
