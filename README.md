@@ -40,13 +40,21 @@
 
 ## Project Management
 
+### Current Status
+- ✅ **19/26 Issues Complete** (73% done)
+- 🔄 **2 In Progress** (Performance optimization)
+- 📋 **5 In Backlog** (Advanced features + technical debt)
+- **23 Module Points** achieved (164% of 42 curriculum requirement)
+- See [ISSUES.md](ISSUES.md) for comprehensive tracking, team assignments, and backlog
+
 ### How We Organized Work
 - **Task Distribution**: Features were divided by domain expertise — backend/infra (ValGSgit, DavidPoetsch) and frontend/game (fankahou, LukasStefanek).
+- **File Ownership**: Each developer owns core files with assigned backups. See [ISSUES.md](ISSUES.md) for detailed ownership map.
 - **Meetings**: Weekly team syncs to review progress, resolve blockers, and plan the next sprint.
 - **Work Breakdown**: Major features were broken into GitHub Issues with clear acceptance criteria.
 
 ### Tools Used
-- **GitHub Issues** — Task tracking, backlog, and bug reports
+- **GitHub Issues** — Task tracking, backlog, and bug reports (see [ISSUES.md](ISSUES.md))
 - **Git** — Version control with feature branches and pull requests
 - **Discord** — Daily team communication and quick decisions
 
