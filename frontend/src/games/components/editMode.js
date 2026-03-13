@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
+import { markRaw } from 'vue'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
 import { gAlpacas, gEditables, gEditState, gEngine, gScene, gUI } from '../core/globals.js'
@@ -208,12 +209,13 @@ export function setupPlacement(model) {
 
   model.userData.isNew = true
 
-  gScene.value.add(ghost)
   gScene.value.add(model)
+  gScene.value.add(ghost)
 }
 
 export function cloneGhost(selected) {
   const ghost = SkeletonUtils.clone(selected)
+  markRaw(ghost);
   gEditState.ghost = ghost
   ghost.traverse((child) => {
     if (child.isMesh) {

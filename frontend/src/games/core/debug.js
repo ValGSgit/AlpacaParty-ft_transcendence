@@ -6,7 +6,7 @@ export function printDebug() {
   console.log("gCoins.length = ", gCoins.length)
   console.log("gCollidable.length = ", gCollidable.length)
   console.log("gEditables.length = ", gEditables.length)
-  resetValues()
+  //resetValues()
 }
 
 function resetValues() {

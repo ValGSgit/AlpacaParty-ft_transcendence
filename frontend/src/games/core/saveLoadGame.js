@@ -12,13 +12,13 @@ export async function saveGame() {
 
   const saveAlpacas = gAlpacas.map(alpaca => {
     return {
+      name: alpaca.model.name,
+      color: alpaca.model.color,
       position: alpaca.model.position.toArray(),
       rotation: alpaca.model.rotation.y,
       scale: alpaca.model.scale.toArray(),
       speedOffset: alpaca.speedOffset,
       rotationOffset: alpaca.rotationOffset,
-      name: alpaca.model.name,
-      color: alpaca.model.color
     };
   });
 

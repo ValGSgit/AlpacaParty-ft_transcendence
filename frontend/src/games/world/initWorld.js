@@ -29,17 +29,16 @@ export async function initAlpacas(scene, user) {
     let newAlpaca;
     if (savedData) {
       newAlpaca = await createAlpaca(
-        '/models/alpaca.glb',
+        savedData.name,
+        savedData.color,
         savedData.position,
         savedData.rotation,
-        savedData.scale,
-        savedData.color,
-        savedData.name
+        savedData.scale
       );
       newAlpaca.speedOffset = savedData.speedOffset;
       newAlpaca.rotationOffset = savedData.rotationOffset;
     } else {
-      newAlpaca = await createAlpaca('/models/alpaca.glb');
+      newAlpaca = await createAlpaca();
     }
     if (!gPlayer.value) gPlayer.value = newAlpaca;
     alpacaGroup.add(newAlpaca.model)
@@ -85,7 +84,7 @@ async function initRandomTrees(itemsGroup) {
     dummyTree.scale.set(scale, scale, scale);
     dummyTree.rotation.y = rot;
 
-    while (isColliding && attempts < 50) {
+    while (isColliding && attempts < 100) {
       pos.copy(getRandomPos());
       dummyTree.position.set(...pos);
       dummyTree.updateMatrixWorld(true);

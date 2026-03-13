@@ -111,21 +111,21 @@ export function alpacaHandling() {
   return { switchAlpaca, moveAlpaca, spit, moveToTarget }
 }
 
-export function spawnAlpaca(color, name, scale) {
-  const originalAlpaca = gAlpacas[0]
-  const finalColor = color ?? originalAlpaca.model.color
-  const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
-  clonedModel.name = name ?? "NewAlpaca"
-  clonedModel.color = finalColor
-  clonedModel.rotation.set(0, 0, 0)
+// export function spawnAlpaca(color, name, scale) {
+//   const originalAlpaca = gAlpacas[0]
+//   const finalColor = color ?? originalAlpaca.model.color
+//   const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
+//   clonedModel.name = name ?? "NewAlpaca"
+//   clonedModel.color = finalColor
+//   clonedModel.rotation.set(0, 0, 0)
 
-  model.quaternion.identity()
-  initFlags(clonedModel)
-  applyNewColor(clonedModel, finalColor)
-  const newAlpaca = createAlpacaData(clonedModel, originalAlpaca.animations, scale)
-  setupPlacement(newAlpaca.model)
-  gAlpacas.push(newAlpaca)
-}
+//   model.quaternion.identity()
+//   initFlags(clonedModel)
+//   applyNewColor(clonedModel, finalColor)
+//   const newAlpaca = createAlpacaData(clonedModel, originalAlpaca.animations, scale)
+//   setupPlacement(newAlpaca.model)
+//   gAlpacas.push(newAlpaca)
+// }
 
 // -----------------------------------------------------------------------------------------------
 

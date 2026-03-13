@@ -27,8 +27,8 @@
       <div class="shop-title">Mini Shop
         <button class="shop-btn" @click="increaseFarmSize()" title="Increase Farm Size">💰 Increase Farm Size</button>
         <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca">💰 Buy Alpaca</button>
-        <button class="shop-btn" @click="openItemShop(true)" title="Buy Item">💰 Buy Item</button>
-        <button class="close-btn" @click="gUI.shopMenu = false" title="Close">✖️</button>
+        <button class="shop-btn" @click="openItemShop()" title="Buy Item">💰 Buy Item</button>
+        <button class="close-btn" @click="closeShopMenu()" title="Close">✖️</button>
       </div>
     </div>
     
@@ -42,17 +42,16 @@
           <label>Size </label>
           <input type="range" v-model.number="alpacaConfig.scale" min="0.75" max="1.25" step="0.05" />
         </div>
-
-        <div class="color-grid">
-          <button class="shop-btn" @click="buyAlpaca()" title="Original">Original</button>
-          <button class="shop-btn" @click="buyAlpaca(0x111111)" title="Black">Black</button>
-          <button class="shop-btn" @click="buyAlpaca(0x555555)" title="Grey">Grey</button>
-          <button class="shop-btn" @click="buyAlpaca(0xeeeeee)" title="White">White</button>
+          <div class="color-grid">
+          <button class="shop-btn" @click="alpacaConfig.color = '#634632'; buyAlpaca()" title="Brown">Brown</button>
+          <button class="shop-btn" @click="alpacaConfig.color = '#111111'; buyAlpaca()" title="Black">Black</button>
+          <button class="shop-btn" @click="alpacaConfig.color = '#555555'; buyAlpaca()" title="Grey">Grey</button>
+          <button class="shop-btn" @click="alpacaConfig.color = '#ffffff'; buyAlpaca()" title="White">White</button>
         </div>
 
         <div class="custom-color-row">
           <input type="color" v-model="alpacaConfig.color" class="custom-picker" />
-          <button class="shop-btn" @click="buyAlpaca(alpacaConfig.color)" title="Custom">Buy Custom</button>
+          <button class="shop-btn" @click="buyAlpaca()" title="Custom">Custom</button>
         </div>
 
         <button class="close-btn" @click="closeAlpacaShop()" title="Close">✖️</button>
@@ -74,7 +73,7 @@
     
     <div v-if="gUI.itemShop" class="modal-overlay">
         <div class="shop-title">Select Item
-          <button class="shop-btn" @click="spawnShopItem('/models/tree.glb')" title="Tree">🌳</button>
+          <button class="shop-btn" @click="buyItem('/models/tree.glb')" title="Tree">🌳</button>
           <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
         </div>
     </div>
@@ -110,10 +109,11 @@ import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 
 import { useAuthStore } from '../stores/auth.js'
 import { alpacaHandling } from './components/alpacaHandling.js'
-import { buyItems } from "./components/buyItems.js"
+import { alpacaConfig, alpacaShop } from './components/alpacaShop.js'
 import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
-import { alpacaConfig, useShop } from './components/shop.js'
+import { itemShop } from './components/itemShop.js'
+import { useShop } from './components/shop.js'
 import { addDebugCoins } from './core/debug.js'
 import { gAlpacas, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
@@ -133,10 +133,11 @@ const clock = new THREE.Clock()
 
 const { initInput } = useInput()
 const { setLight } = editLight()
+const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { buyAlpaca, increaseFarmSize, changeSpeed } = useShop()
-const { spawnShopItem } = buyItems()
+const { increaseFarmSize } = useShop()
+const { buyItem } = itemShop()
 const { isAuthenticated } = useAuthStore()
 const { moveToTarget, moveAlpaca } = alpacaHandling()
 const { cancelPlacement, deleteItem} =  useEditMode()
