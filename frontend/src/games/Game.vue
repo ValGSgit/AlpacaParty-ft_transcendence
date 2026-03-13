@@ -107,16 +107,18 @@
 import * as THREE from 'three'
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
-import { alpacaHandling } from './components/alpacaHandling.js'
+import { alpacaAI } from './components/alpacaAI.js'
 import { alpacaConfig, alpacaShop } from './components/alpacaShop.js'
 import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
 import { itemShop } from './components/itemShop.js'
 import { useShop } from './components/shop.js'
+import { CONST } from './config/constants.js'
 import { addDebugCoins } from './core/debug.js'
 import { gAlpacas, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
 import { cleanupStats, initStats } from './core/stats.js'
+import { handleAnimation } from './core/useAnimation.js'
 import { changeCamera, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
 import { useInput } from './core/useInput.js'
@@ -139,7 +141,7 @@ const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = useShop()
 const { buyItem } = itemShop()
 const { isAuthenticated } = useAuthStore()
-const { moveToTarget, moveAlpaca } = alpacaHandling()
+const { updateAI } = alpacaAI()
 const { cancelPlacement, deleteItem} =  useEditMode()
 const { updatePlayer } = usePlayerControls()
 const showLoginWarning = ref(false);
@@ -191,25 +193,16 @@ const gameLoop = () => {
     }
   }
 
-  // 2. Loop through ALL alpacas (both Player and AI)
   for (let i = 0; i < gAlpacas.length; i++) {
     const alpaca = gAlpacas[i]
-
-    // A. Update the animation frame safely
     if (alpaca.mixer) {
       alpaca.mixer.update(delta)
     }
-
-    // B. Handle AI Logic (Skip the player since updatePlayer() handles them)
     if (player && alpaca.model.uuid !== player.model.uuid) {
-      
-      // moveToTarget(alpaca.model)
-      // moveAlpaca(alpaca.model)
-      
-      // Use the clean new handleAnimation!
-      // let animDir = alpaca.model.isMoving ? 1 : 0
-      // const speed = CONST.PLAYER_FORWARD_SPEED + alpaca.speedOffset
-      // handleAnimation(alpaca, animDir, speed)
+      updateAI(alpaca, delta);
+      const speed = CONST.PLAYER_FORWARD_SPEED + alpaca.speedOffset;
+      let animDir = alpaca.isMoving ? 1 : 0;
+      handleAnimation(alpaca, animDir, speed)
     }
   }
 

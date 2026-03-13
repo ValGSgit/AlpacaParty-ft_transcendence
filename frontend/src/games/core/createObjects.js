@@ -42,7 +42,18 @@ export async function createAlpaca(
     mixer.clipAction(animations[1]).play();
   }
 
-  const alpaca = { model: clone, mixer, animations, speedOffset: 0, rotationOffset: 0 };
+  const alpaca = {
+    model: clone,
+    mixer,
+    animations,
+    speedOffset: 0,
+    rotationOffset: 0,
+    ai: {
+      state: 'idle',
+      target: new THREE.Vector3(),
+      timer: Math.random() * 5
+    }
+  };
   initFlags(alpaca.model);
   registerEntity(alpaca, 'alpaca');
 
@@ -97,5 +108,5 @@ const initFlags = (model) => {
   model.isFalling = false
   model.currentAction = null
   model.target = null
-  model.readyToMove = false
+  model.readyToMove = true
 }

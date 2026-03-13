@@ -1,24 +1,19 @@
-import * as THREE from 'three'
-import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
-import { setupPlacement } from '../components/editMode.js'
-import { CONST } from '../config/constants.js'
-import { MATERIALS as MATS } from '../config/materials.js'
-import { gAlpacas, gPlayer, gScene } from "../core/globals.js"
-import { getRandomPos } from '../utils/randomValues.js'
+import * as THREE from 'three';
+import { MATERIALS as MATS } from '../config/materials.js';
+import { gAlpacas, gPlayer, gScene } from "../core/globals.js";
+
 
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const worldPoint = new THREE.Vector3();
 
 export function alpacaHandling() {
 
-  const moveAlpaca = (player, raycaster) => {
-    if (!raycaster && !player.model.target && player.model.readyToMove) {
-      player.model.target = getRandomPos()
-    }
-    else if (raycaster) // doubleClick
+
+  const setMoveLocation = (model, raycaster) => {
+    if (raycaster) // double Click
     {
       raycaster.ray.intersectPlane(floorPlane, worldPoint)
-      player.model.target = worldPoint.clone()
+      model.target = worldPoint.clone()
     }
   }
 
@@ -65,50 +60,7 @@ export function alpacaHandling() {
     }, 200);
   }
 
-  const moveToTarget = (alpaca) => {
-    if (!alpaca || !alpaca.target) return;
-
-    const speed = CONST.PLAYER_FORWARD_SPEED + alpaca.speedOffset
-    const stopDistance = 0.5; // Don't jitter when we arrive
-
-    // 1. Calculate direction vector
-    const moveVec = new THREE.Vector3().subVectors(alpaca.target, alpaca.position);
-    const distance = moveVec.length();
-
-    if (distance > stopDistance) {
-      // 2. Normalize and move
-      moveVec.normalize();
-
-      // Check collisions BEFORE moving (optional but recommended)
-      const nextX = alpaca.position.x + moveVec.x * speed;
-      const nextZ = alpaca.position.z + moveVec.z * speed;
-
-      //if (!checkCollision(alpaca.model, nextX, nextZ)) {
-      alpaca.position.x = nextX;
-      alpaca.position.z = nextZ;
-
-      // 3. Rotate to face the target smoothly
-      const targetRotation = Math.atan2(moveVec.x, moveVec.z);
-      alpaca.rotation.y = THREE.MathUtils.lerp(
-        alpaca.rotation.y,
-        targetRotation,
-        0.1
-      );
-      //}
-
-      alpaca.isMoving = true;
-    } else {
-      // We arrived!
-      alpaca.target = null;
-      alpaca.isMoving = false;
-      alpaca.readyToMove = false
-      setTimeout(() => {
-        alpaca.readyToMove = true
-      }, Math.random() * 10000)
-    }
-  };
-
-  return { switchAlpaca, moveAlpaca, spit, moveToTarget }
+  return { switchAlpaca, setMoveLocation, spit }
 }
 
 // -----------------------------------------------------------------------------------------------
@@ -127,7 +79,6 @@ const findAlpaca = (alpaca) => {
   while (alpaca) {
     for (let i = 0; i < gAlpacas.length; ++i) {
       if (alpaca.id === gAlpacas[i].model.id) {
-        //console.log("Found:", alpaca.name);
         return gAlpacas[i]
       }
     }

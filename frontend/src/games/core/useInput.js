@@ -12,7 +12,7 @@ const keys = reactive({
 })
 
 export function useInput() {
-  const { switchAlpaca, moveAlpaca, spit } = alpacaHandling()
+  const { switchAlpaca, setMoveLocation, spit } = alpacaHandling()
   const { selectItem, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement } = useEditMode()
   const { closeMenus, openAlpacaShop } = useUIManager()
 
@@ -46,6 +46,7 @@ export function useInput() {
   }
 
   const onDoubleClick = (e) => {
+    console.log("double Click!");
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
     const pointer = new THREE.Vector2()
     pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
@@ -56,7 +57,7 @@ export function useInput() {
 
     const intersects = raycaster.intersectObjects(gScene.value.children, true)
     if (intersects.length > 0 && !switchAlpaca(intersects[0].object, raycaster)) {
-      moveAlpaca(gPlayer.value.model, raycaster) // move alpaca if it didnt hit another one
+      setMoveLocation(gPlayer.value.model, raycaster) // move alpaca if it didnt hit another one
     }
   }
 
