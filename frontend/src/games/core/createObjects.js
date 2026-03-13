@@ -43,6 +43,7 @@ export async function createAlpaca(
   }
 
   const alpaca = { model: clone, mixer, animations, speedOffset: 0, rotationOffset: 0 };
+  initFlags(alpaca.model);
   registerEntity(alpaca, 'alpaca');
 
   return alpaca;
@@ -87,4 +88,14 @@ export async function createDecoration(
 
   registerEntity(clone, 'decoration');
   return clone;
+}
+
+const initFlags = (model) => {
+  model.isMoving = false // this one is for doubleClick moving, not wasd
+  model.isJumping = false
+  model.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
+  model.isFalling = false
+  model.currentAction = null
+  model.target = null
+  model.readyToMove = false
 }

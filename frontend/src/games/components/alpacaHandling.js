@@ -111,22 +111,6 @@ export function alpacaHandling() {
   return { switchAlpaca, moveAlpaca, spit, moveToTarget }
 }
 
-// export function spawnAlpaca(color, name, scale) {
-//   const originalAlpaca = gAlpacas[0]
-//   const finalColor = color ?? originalAlpaca.model.color
-//   const clonedModel = SkeletonUtils.clone(originalAlpaca.model)
-//   clonedModel.name = name ?? "NewAlpaca"
-//   clonedModel.color = finalColor
-//   clonedModel.rotation.set(0, 0, 0)
-
-//   model.quaternion.identity()
-//   initFlags(clonedModel)
-//   applyNewColor(clonedModel, finalColor)
-//   const newAlpaca = createAlpacaData(clonedModel, originalAlpaca.animations, scale)
-//   setupPlacement(newAlpaca.model)
-//   gAlpacas.push(newAlpaca)
-// }
-
 // -----------------------------------------------------------------------------------------------
 
 const createLaserBeam = (origin, direction, length) => {
@@ -150,29 +134,6 @@ const findAlpaca = (alpaca) => {
     alpaca = alpaca.parent
   }
   return null
-}
-
-export function initFlags(model) {
-  model.isMoving = false // this one is for doubleClick moving, not wasd
-  model.isJumping = false
-  model.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
-  model.isFalling = false
-  model.currentAction = null
-  model.target = null
-  model.readyToMove = false
-}
-
-const createAlpacaData = (model, animations, scale = 1) => {
-  model.position.set(0, 0, 0)
-  model.scale.set(scale, scale, scale)
-
-  return {
-    model: model,
-    mixer: new THREE.AnimationMixer(model),
-    animations: animations,
-    speedOffset: 0,
-    rotationOffset: 0
-  }
 }
 
 const applyNewColor = (model, color) => {

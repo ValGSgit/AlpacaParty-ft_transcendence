@@ -197,6 +197,7 @@ function resetSelected() {
   gEditState.selected = null;
   gEditState.ghost = null;
   gEngine.value.controls.enabled = true;
+
 }
 
 export function setupPlacement(model) {

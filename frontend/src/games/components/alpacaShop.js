@@ -10,7 +10,6 @@ export function alpacaShop() {
 
   async function buyAlpaca() {
     if (gUser.value.coins >= CONST.ALPACA_COST) {
-      console.log("buy alpaca!");
       const pos = [0, 0, 0];
       const s = alpacaConfig.scale;
       const scale = [s, s, s];
@@ -21,21 +20,13 @@ export function alpacaShop() {
         0,
         scale);
       alpaca.model.userData.cost = 1;
-      resetAlpacaConfig();
       closeMenus();
+      resetAlpacaConfig();
       setupPlacement(alpaca.model);
-
-      // const model = await createItem('/models/tree.glb');
-      // model.userData.cost = 1;
-      // closeMenus();
-      // setupPlacement(model);
-
     }
     else
       alert('Not enough coins!')
-    //closeMenus();
   }
-
   return { buyAlpaca }
 }
 
