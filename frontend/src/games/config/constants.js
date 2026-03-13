@@ -12,7 +12,7 @@ export const CONST = {
   CALIBRATION: 25, // Change this for animation speed
 
   CAMERA_OFFSET: { x: 0, y: 3, z: 0 },
-  CAMERA_LERP: 0.1,
+  CAMERA_LERP: 0.025,
   MIN_ZOOM: 10.0,
   MAX_ZOOM: 200.0,
 
