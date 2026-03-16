@@ -135,7 +135,7 @@ const gameIsReady= shallowRef(false)
 const clock = new THREE.Clock()
 
 const { changeSpeed, updateVue } = alpacaStats()
-const { initInput } = useInput()
+const { initInput, cleanupInput} = useInput()
 const { setLight } = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
@@ -213,6 +213,7 @@ onUnmounted(() => {
   cancelAnimationFrame(animationFrameId)
   window.removeEventListener('resize', onResize)
   cleanupStats(stats, gameContainer.value);
+  cleanupInput();
   cleanup()
 })
 </script>

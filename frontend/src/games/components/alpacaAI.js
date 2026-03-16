@@ -9,10 +9,11 @@ export function alpacaAI() {
 
   const handleIdle = (alpaca, delta) => {
     const ai = alpaca.ai;
+    const target = alpaca.target;
 
     ai.timer -= delta;
     if (ai.timer <= 0) {
-      ai.target.copy(getRandomPos());
+      target.copy(getRandomPos());
       ai.state = 'moving';
     }
   };
@@ -20,17 +21,18 @@ export function alpacaAI() {
   const handleMoving = (alpaca, delta) => {
     const ai = alpaca.ai;
     const model = alpaca.model;
+    const target = alpaca.target;
 
-    const distance = model.position.distanceTo(ai.target);
+    const distance = model.position.distanceTo(target);
 
     if (distance < 0.5) {
       ai.state = 'idle';
       ai.timer = getRandomTimer();
     } else {
-      const direction = new THREE.Vector3().subVectors(ai.target, model.position).normalize();
+      const direction = new THREE.Vector3().subVectors(target, model.position).normalize();
 
       dummy.position.copy(model.position);
-      dummy.lookAt(ai.target);
+      dummy.lookAt(target);
       model.quaternion.slerp(dummy.quaternion, 5 * delta);
 
       const speed = alpaca.speed;

@@ -9,18 +9,17 @@ const { openAlpacaStats } = useUIManager();
 
 export function alpacaHandling() {
 
-  const setMoveLocation = (model, raycaster) => {
-    if (raycaster) // double Click
-    {
-      raycaster.ray.intersectPlane(floorPlane, worldPoint)
-      model.target = worldPoint.clone()
-    }
+  const setMoveLocation = (raycaster) => {
+    raycaster.ray.intersectPlane(floorPlane, worldPoint)
+    gPlayer.value.target = worldPoint.clone()
+    gPlayer.value.isAutoMoving = true;
   }
 
-  const switchAlpaca = (obj) => {
+  const switchAlpaca = (obj, raycaster) => {
     let alpacaToSwitch = findAlpaca(obj)
-    if (!alpacaToSwitch) // no alpaca found, walk to obj
-      return false
+    if (!alpacaToSwitch && raycaster) {
+      setMoveLocation(raycaster)
+    }
     else if (gPlayer.value === alpacaToSwitch) // open menu for clicking self
       openAlpacaStats();
     else
@@ -60,7 +59,7 @@ export function alpacaHandling() {
     }, 200);
   }
 
-  return { switchAlpaca, setMoveLocation, spit }
+  return { switchAlpaca, spit }
 }
 
 // -----------------------------------------------------------------------------------------------

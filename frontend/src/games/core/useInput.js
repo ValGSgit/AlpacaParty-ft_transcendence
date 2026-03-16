@@ -1,9 +1,9 @@
 import * as THREE from 'three'
-import { onUnmounted, reactive } from 'vue'
+import { reactive } from 'vue'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { useEditMode } from '../components/editMode.js'
 import { printDebug } from './debug.js'
-import { gEditState, gEngine, gPlayer, gScene, gUI } from './globals.js'
+import { gEditState, gEngine, gScene, gUI } from './globals.js'
 import { useUIManager } from './useUIManager.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions
@@ -56,8 +56,8 @@ export function useInput() {
     raycaster.setFromCamera(pointer, gEngine.value.camera)
 
     const intersects = raycaster.intersectObjects(gScene.value.children, true)
-    if (intersects.length > 0 && !switchAlpaca(intersects[0].object, raycaster)) {
-      setMoveLocation(gPlayer.value.model, raycaster) // move alpaca if it didnt hit another one
+    if (intersects.length > 0) {
+      switchAlpaca(intersects[0].object, raycaster)
     }
   }
 
@@ -107,8 +107,8 @@ export function useInput() {
     canvas.addEventListener('pointerdown', onPointerDown)
   }
 
-  onUnmounted(() => {
-    const canvas = gEngine.value.render.domElement;
+  const cleanupInput = () => {
+    const canvas = gEngine.value.renderer.domElement;
 
     window.removeEventListener('keydown', onKeyDown)
     window.removeEventListener('keyup', onKeyUp)
@@ -116,7 +116,7 @@ export function useInput() {
     window.removeEventListener('wheel', onWheel);
     canvas.removeEventListener('dblclick', onDoubleClick)
     canvas.removeEventListener('pointerdown', onPointerDown)
-  })
+  }
 
-  return { keys, initInput }
+  return { keys, initInput, cleanupInput }
 }

@@ -36,9 +36,10 @@ export class Alpaca {
     this.speedOffset = 0;
     this.rotationOffset = 0;
     this.isMoving = false;
+    this.isAutoMoving = false;
+    this.target = new THREE.Vector3();
     this.ai = {
       state: 'idle',
-      target: new THREE.Vector3(),
       timer: Math.random() * 3
     };
   }
