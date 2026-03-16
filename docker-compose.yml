@@ -94,8 +94,8 @@ services:
       dockerfile: Dockerfile
     container_name: alpacaparty_nginx
     ports:
-      - "8080:443"
-      - "8000:80"
+      - "8080:8443"
+      - "8000:8080"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
@@ -147,7 +147,7 @@ services:
       dockerfile: Dockerfile
     container_name: alpacaparty_e2e
     environment:
-      E2E_BASE_URL: http://nginx:80
+      E2E_BASE_URL: http://nginx:8080
       PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium-browser
     depends_on:
       - nginx

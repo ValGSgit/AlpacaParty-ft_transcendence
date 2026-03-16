@@ -13,14 +13,11 @@ ENV MODSEC_RULE_ENGINE=On \
     MODSEC_REQ_BODY_ACCESS=On \
     MODSEC_RESP_BODY_ACCESS=Off \
     MODSEC_REQ_BODY_LIMIT=10485760 \
-    MODSEC_AUDIT_LOG=/var/log/modsecurity/audit.log \
+    MODSEC_AUDIT_LOG=/proc/self/fd/2 \
     ANOMALY_INBOUND=10 \
     ANOMALY_OUTBOUND=4 \
-    PORT=80 \
-    SSL_PORT=443
+    PORT=8080 \
+    SSL_PORT=8443
 
 # Copy our tuning override (applied after CRS rules)
 COPY modsecurity/modsecurity.conf /etc/modsecurity.d/99-alpacaparty.conf
-
-# Ensure audit log dir exists
-RUN mkdir -p /var/log/modsecurity && chown nginx:nginx /var/log/modsecurity

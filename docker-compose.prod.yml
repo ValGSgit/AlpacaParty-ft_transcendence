@@ -97,8 +97,8 @@ services:
       dockerfile: Dockerfile
     container_name: alpacaparty_nginx_prod
     ports:
-      - "${NGINX_PORT:-8080}:443"
-      - "8000:80"
+      - "${NGINX_PORT:-8080}:8443"
+      - "8000:8080"
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
@@ -111,7 +111,7 @@ services:
     networks:
       - alpacaparty_net
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--no-check-certificate", "https://localhost/"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--no-check-certificate", "https://localhost:8443/"]
       interval: 30s
       timeout: 10s
       retries: 3
