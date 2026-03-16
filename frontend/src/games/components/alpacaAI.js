@@ -19,6 +19,8 @@ export function alpacaAI() {
   };
 
   const handleMoving = (alpaca, delta) => {
+    if (alpaca.isDead)
+      return
     const ai = alpaca.ai;
     const model = alpaca.model;
     const target = alpaca.target;
@@ -28,6 +30,7 @@ export function alpacaAI() {
     if (distance < 0.5) {
       ai.state = 'idle';
       ai.timer = getRandomTimer();
+      alpaca.isAutoMoving = false
     } else {
       const direction = new THREE.Vector3().subVectors(target, model.position).normalize();
 
@@ -45,6 +48,7 @@ export function alpacaAI() {
       if (!isWithinBounds || isColliding) {
         ai.state = 'idle';
         ai.timer = 1;
+        alpaca.isAutoMoving = false
       } else {
         model.position.x = nextX;
         model.position.z = nextZ;
@@ -68,5 +72,5 @@ export function alpacaAI() {
     alpaca.isMoving = (alpaca.ai.state === 'moving');
   };
 
-  return { updateAI };
+  return { updateAI, handleMoving };
 }

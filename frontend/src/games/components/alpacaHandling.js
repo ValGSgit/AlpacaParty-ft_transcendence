@@ -6,6 +6,7 @@ import { useUIManager } from '../core/useUIManager.js';
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const worldPoint = new THREE.Vector3();
 const { openAlpacaStats } = useUIManager();
+const activeSpits = []; // Keep track of projectiles in flight
 
 export function alpacaHandling() {
 
@@ -28,41 +29,63 @@ export function alpacaHandling() {
   }
 
   const spit = () => {
-    const origin = new THREE.Vector3().copy(gPlayer.value.model.position)
-    let dx = Math.sin(gPlayer.value.model.rotation.y)
-    let dz = Math.cos(gPlayer.value.model.rotation.y)
-    origin.y += 5 // make it higher
-    origin.x += dx * 3 // head offset
-    origin.z += dz * 3
-    const direction = new THREE.Vector3(dx, 0, dz)
-    const near = 0
-    const far = 10
-    const raycaster = new THREE.Raycaster(origin, direction, near, far)
-
-    const beam = createLaserBeam(origin, direction, far);
+    const origin = new THREE.Vector3().copy(gPlayer.value.model.position);
+    let dx = Math.sin(gPlayer.value.model.rotation.y);
+    let dz = Math.cos(gPlayer.value.model.rotation.y);
+    
+    // Setup initial position
+    origin.y += 5;
+    origin.x += dx * 3;
+    origin.z += dz * 3;
+    
+    const direction = new THREE.Vector3(dx, -0.4, dz).normalize();
+    const beam = createLaserBeam(origin, direction, 1); // Start small
     gScene.value.add(beam);
 
-    const targets = gAlpacas.map(a => a.model);
-    const hits = raycaster.intersectObjects(targets, true);
+    // Add to our tracking array instead of doing hit logic here
+    activeSpits.push({
+        mesh: beam,
+        direction: direction,
+        currentPos: origin,
+        distanceTraveled: 0,
+        maxDistance: 15,
+        speed: 0.5 // Adjust this to make it slower or faster
+    });
+  };
 
-    if (hits.length > 0) {
-      // If we hit something, make the beam shorter so it stops at the target
-      const hitDistance = hits[0].distance;
-      beam.scale.y = hitDistance / far; // Shrink the beam to the hit point
-      const hitAlpaca = findAlpaca(hits[0].object)
-      hitAlpaca.model.isDead = -1 // being hit
+  const updateSpits = () => {
+  
+    for (let i = activeSpits.length - 1; i >= 0; i--) {
+        const s = activeSpits[i];
+        
+        // 1. Move the projectile forward
+        const step = s.direction.clone().multiplyScalar(s.speed);
+        s.currentPos.add(step);
+        s.mesh.position.copy(s.currentPos);
+        s.distanceTraveled += s.speed;
+
+        // 2. Raycast from current position to check for hits in this "frame"
+        const raycaster = new THREE.Raycaster(s.currentPos, s.direction, 0, s.speed);
+        const targets = gAlpacas.map(a => a.model);
+        const hits = raycaster.intersectObjects(targets, true);
+
+        if (hits.length > 0 || s.distanceTraveled > s.maxDistance) {
+            // Logic for hitting an alpaca
+            if (hits.length > 0) {
+                const hitAlpaca = findAlpaca(hits[0].object);
+                hitAlpaca.beingHit()
+            }
+
+            // Cleanup
+            gScene.value.remove(s.mesh);
+            s.mesh.geometry.dispose();
+            activeSpits.splice(i, 1);
+        }
     }
+  };
 
-    setTimeout(() => {
-      gScene.value.remove(beam);
-      beam.geometry.dispose();
-    }, 200);
-  }
-
-  return { switchAlpaca, spit }
+  return { switchAlpaca, spit , updateSpits }
 }
-
-// -----------------------------------------------------------------------------------------------
 
 const createLaserBeam = (origin, direction, length) => {
   const geo = new THREE.CylinderGeometry(0.05, 0.05, length, 8);

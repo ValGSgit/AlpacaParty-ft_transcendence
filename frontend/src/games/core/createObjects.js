@@ -22,7 +22,6 @@ export async function createAlpaca(
   });
 
   attachCollider(alpaca.model);
-  initFlags(alpaca.model);
   registerEntity(alpaca, 'alpaca');
 
   return markRaw(alpaca);
@@ -60,12 +59,3 @@ export async function createDecoration(
   return markRaw(deco);
 }
 
-const initFlags = (model) => {
-  model.isMoving = false // this one is for doubleClick moving, not wasd
-  model.isJumping = false
-  model.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
-  model.isFalling = false
-  model.currentAction = null
-  model.target = null
-  model.readyToMove = true
-}

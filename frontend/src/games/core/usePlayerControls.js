@@ -1,6 +1,7 @@
 import { CONST } from '../config/constants.js'
 import { useInput } from './useInput.js'
 import { checkWithinBounds, usePhysics } from './usePhysics.js'
+import { alpacaAI } from '../components/alpacaAI.js';
 
 export function usePlayerControls() {
   const { keys } = useInput()
@@ -64,17 +65,20 @@ export function usePlayerControls() {
     }
   }
 
-  const updatePlayer = (player) => {
+  const updatePlayer = (player, delta) => {
     if (!player || !player.model) return;
 
     const { model } = player;
     const isJumping = handleJumping(player);
     const { dir, speed, nextRotY, isWalking } = handleWalking(player);
+    const { handleMoving } = alpacaAI(); // for double click moving
 
     if (isWalking) {
       checkMovement(model, dir, speed, nextRotY);
     }
-    player.isMoving = isWalking || isJumping;
+    else if (player.isAutoMoving)
+      handleMoving(player, delta)
+    player.isMoving = isWalking || isJumping || player.isAutoMoving;
     player.animDir = keys.s ? -1 : (player.isMoving ? 1 : 0);
   }
 

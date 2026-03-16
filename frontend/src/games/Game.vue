@@ -129,6 +129,7 @@ import { watchChanges } from './core/watchChanges.js'
 import './game.css'
 import { initUser } from './user/initUser.js'
 import { initWorld } from './world/initWorld.js'
+import { alpacaHandling } from './components/alpacaHandling.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -146,6 +147,7 @@ const { isAuthenticated } = useAuthStore()
 const { cancelPlacement, deleteItem} =  useEditMode()
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
+const { updateSpits } = alpacaHandling()
 
 let animationFrameId
 let cameraUpdate = null;
@@ -195,6 +197,8 @@ const gameLoop = () => {
     const alpaca = gAlpacas[i]
     alpaca.update(delta);
   }
+
+  updateSpits()
 
   if (gEngine.value?.controls) {
     gEngine.value.controls.update()

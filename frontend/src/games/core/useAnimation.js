@@ -18,8 +18,8 @@ export function handleAnimation(player, animDir, speed) {
   if (player.isDead === -1 || player.isDead === 1) {
     newAction = deadAction
     newAction.setLoop(THREE.LoopOnce)
-    player.isDead = 0
-    //player.isDead = 1 // dead
+    if (player.isDead === -1)
+      player.isDead = 0 // not dead yet
     if (player.isDead)
       newAction.clampWhenFinished = true
   }

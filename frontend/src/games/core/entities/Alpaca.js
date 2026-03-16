@@ -43,6 +43,8 @@ export class Alpaca {
       state: 'idle',
       timer: Math.random() * 3
     };
+    this.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
+    this.life = 5 // life of Alpaca
   }
 
   setColor(color) {
@@ -82,13 +84,20 @@ export class Alpaca {
     if (gUI.editMode) {
       this.isMoving = false;
       this.animDir = 0;
-    }
-    else if (!isPlayer) {
+    } else if (!isPlayer) {
       updateAI(this, delta);
       this.animDir = this.isMoving ? 1 : 0;
     } else {
-      updatePlayer(this);
+        updatePlayer(this, delta);
     }
     handleAnimation(this, this.animDir, this.speed);
+  }
+
+  beingHit() {
+    this.life--
+    if (this.life === 0)
+      this.isDead = 1 // dead
+    else
+      this.isDead = -1 // dying
   }
 }
