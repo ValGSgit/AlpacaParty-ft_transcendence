@@ -15,7 +15,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { requireApiKey } from '../middleware/apiKey.js';
 import {
-  listUsers, getUser, getLeaderboard, getPosts, listOrganizations,
+  listUsers, getUser, getLeaderboard, getPosts, listOrganizations, getMockDataset,
 } from '../controllers/publicApiController.js';
 
 const router = express.Router();
@@ -45,5 +45,6 @@ router.get('/users/:id', getUser);
 router.get('/leaderboard', getLeaderboard);
 router.get('/posts', getPosts);
 router.get('/organizations', listOrganizations);
+router.get('/mock', getMockDataset);
 
 export default router;

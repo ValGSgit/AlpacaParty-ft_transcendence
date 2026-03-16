@@ -6,7 +6,7 @@
 import { query } from '../config/database.js';
 
 const SAFE_FIELDS = `id, username, email, avatar, bio, status, is_public, is_online,
-       is_admin, oauth_provider, xp, level, last_seen, created_at, updated_at, coins, upgrades, items, alpacas`;
+  is_admin, oauth_provider, xp, level, last_seen, created_at, updated_at, coins, alpacas, items, upgrades`;
 
 const User = {
   /**
@@ -92,7 +92,7 @@ const User = {
    * Update a user's profile fields.
    */
   async update(id, fields) {
-    const allowed = ['username', 'email', 'avatar', 'bio', 'status', 'coins', 'upgrades', 'items', 'alpacas'];
+    const allowed = ['username', 'email', 'avatar', 'bio', 'status', 'coins', 'is_public', 'alpacas', 'items', 'upgrades'];
     const sets = [];
     const values = [];
     let idx = 1;

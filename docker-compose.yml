@@ -54,6 +54,7 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - backend_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -116,6 +117,7 @@ services:
 
 volumes:
   pg_data:
+  backend_uploads:
 
 networks:
   alpacaparty_net:

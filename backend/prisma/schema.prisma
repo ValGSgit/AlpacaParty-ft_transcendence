@@ -1,0 +1,417 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FriendRequestStatus {
+  pending
+  accepted
+  declined
+}
+
+enum ChatRoomRole {
+  owner
+  admin
+  member
+}
+
+enum GameStatus {
+  waiting
+  playing
+  finished
+  cancelled
+}
+
+enum DataRequestType {
+  export
+  delete
+}
+
+enum DataRequestStatus {
+  pending
+  processing
+  completed
+  cancelled
+}
+
+model User {
+  id               Int       @id @default(autoincrement())
+  username         String    @unique @db.VarChar(32)
+  email            String    @unique @db.VarChar(255)
+  passwordHash     String?   @map("password_hash") @db.VarChar(255)
+  avatar           String    @default("/avatars/default.svg") @db.VarChar(512)
+  bio              String    @default("")
+  alpacas          Json      @default("[]")
+  items            Json      @default("[]")
+  coins            Int       @default(10)
+  upgrades         Int       @default(0)
+  status           String    @default("Hey there! I am using AlpacaParty") @db.VarChar(255)
+  isPublic         Boolean   @default(true) @map("is_public")
+  isOnline         Boolean   @default(false) @map("is_online")
+  isAdmin          Boolean   @default(false) @map("is_admin")
+  twoFactorEnabled Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret  String?   @map("two_factor_secret") @db.VarChar(255)
+  oauthProvider    String?   @map("oauth_provider") @db.VarChar(20)
+  oauthId          String?   @map("oauth_id") @db.VarChar(255)
+  xp               Int       @default(0)
+  level            Int       @default(1)
+  lastSeen         DateTime  @default(now()) @map("last_seen") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  sentFriendRequests      FriendRequest[]      @relation("friend_request_sender")
+  receivedFriendRequests  FriendRequest[]      @relation("friend_request_receiver")
+  friends                 Friend[]             @relation("friend_user")
+  friendOf                Friend[]             @relation("friend_friend")
+  blockedUsers            BlockedUser[]        @relation("blocked_by_user")
+  blockedByUsers          BlockedUser[]        @relation("blocked_target_user")
+  sentMessages            Message[]            @relation("dm_sender")
+  receivedMessages        Message[]            @relation("dm_receiver")
+  ownedChatRooms          ChatRoom[]
+  chatRoomMemberships     ChatRoomMember[]
+  chatRoomMessages        ChatRoomMessage[]
+  player1Games            Game[]               @relation("game_player1")
+  player2Games            Game[]               @relation("game_player2")
+  winnerGames             Game[]               @relation("game_winner")
+  gameStats               GameStat[]
+  userAchievements        UserAchievement[]
+  userDailyChallenges     UserDailyChallenge[]
+  notifications           Notification[]
+  posts                   Post[]
+  postLikes               PostLike[]
+  ownedOrganizations      Organization[]
+  organizationMemberships OrganizationMember[]
+  files                   File[]
+  alpacaFarm              AlpacaFarm?
+  passwordResetTokens     PasswordResetToken[]
+  dataRequests            DataRequest[]
+
+  @@map("users")
+}
+
+model FriendRequest {
+  id         Int                 @id @default(autoincrement())
+  senderId   Int                 @map("sender_id")
+  receiverId Int                 @map("receiver_id")
+  status     FriendRequestStatus @default(pending)
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime            @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  sender   User @relation("friend_request_sender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("friend_request_receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId], map: "idx_friend_requests_receiver")
+  @@map("friend_requests")
+}
+
+model Friend {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  friendId  Int      @map("friend_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user   User @relation("friend_user", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("friend_friend", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@map("friends")
+}
+
+model BlockedUser {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  blockedUserId Int      @map("blocked_user_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user        User @relation("blocked_by_user", fields: [userId], references: [id], onDelete: Cascade)
+  blockedUser User @relation("blocked_target_user", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, blockedUserId])
+  @@map("blocked_users")
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  senderId   Int      @map("sender_id")
+  receiverId Int      @map("receiver_id")
+  content    String
+  isRead     Boolean  @default(false) @map("is_read")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  sender   User @relation("dm_sender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("dm_receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId], map: "idx_messages_sender")
+  @@index([receiverId], map: "idx_messages_receiver")
+  @@map("messages")
+}
+
+model ChatRoom {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  ownerId   Int      @map("owner_id")
+  isPrivate Boolean  @default(false) @map("is_private")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  owner    User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members  ChatRoomMember[]
+  messages ChatRoomMessage[]
+
+  @@map("chat_rooms")
+}
+
+model ChatRoomMember {
+  id       Int          @id @default(autoincrement())
+  roomId   Int          @map("room_id")
+  userId   Int          @map("user_id")
+  role     ChatRoomRole @default(member)
+  joinedAt DateTime     @default(now()) @map("joined_at") @db.Timestamptz(6)
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@map("chat_room_members")
+}
+
+model ChatRoomMessage {
+  id        Int      @id @default(autoincrement())
+  roomId    Int      @map("room_id")
+  senderId  Int      @map("sender_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([roomId], map: "idx_chat_room_msgs_room")
+  @@map("chat_room_messages")
+}
+
+model Game {
+  id           Int       @id @default(autoincrement())
+  player1Id    Int       @map("player1_id")
+  player2Id    Int?      @map("player2_id")
+  winnerId     Int?      @map("winner_id")
+  player1Score Int       @default(0) @map("player1_score")
+  player2Score Int       @default(0) @map("player2_score")
+  status       GameStatus @default(waiting)
+  gameType     String    @default("pong") @map("game_type") @db.VarChar(30)
+  gameData     Json      @default("{}") @map("game_data")
+  startedAt    DateTime? @map("started_at") @db.Timestamptz(6)
+  finishedAt   DateTime? @map("finished_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  player1 User @relation("game_player1", fields: [player1Id], references: [id], onDelete: Cascade)
+  player2 User? @relation("game_player2", fields: [player2Id], references: [id], onDelete: SetNull)
+  winner  User? @relation("game_winner", fields: [winnerId], references: [id], onDelete: SetNull)
+
+  @@index([player1Id], map: "idx_games_player1")
+  @@index([player2Id], map: "idx_games_player2")
+  @@map("games")
+}
+
+model GameStat {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  gameType  String   @default("pong") @map("game_type") @db.VarChar(30)
+  wins      Int      @default(0)
+  losses    Int      @default(0)
+  draws     Int      @default(0)
+  elo       Int      @default(1000)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameType])
+  @@index([userId], map: "idx_game_stats_user")
+  @@map("game_stats")
+}
+
+model Achievement {
+  id          Int               @id @default(autoincrement())
+  key         String            @unique @db.VarChar(60)
+  name        String            @db.VarChar(120)
+  description String            @default("")
+  icon        String            @default("") @db.VarChar(512)
+  xpReward    Int               @default(0) @map("xp_reward")
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  achievementId Int      @map("achievement_id")
+  unlockedAt    DateTime @default(now()) @map("unlocked_at") @db.Timestamptz(6)
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model DailyChallenge {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(120)
+  description String   @default("")
+  xpReward    Int      @default(0) @map("xp_reward")
+  activeDate  DateTime @default(now()) @map("active_date") @db.Date
+
+  userDailyChallenges UserDailyChallenge[]
+
+  @@map("daily_challenges")
+}
+
+model UserDailyChallenge {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  challengeId Int       @map("challenge_id")
+  completed   Boolean   @default(false)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, challengeId])
+  @@map("user_daily_challenges")
+}
+
+model Notification {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  type          String   @db.VarChar(50)
+  title         String   @default("") @db.VarChar(255)
+  message       String
+  isRead        Boolean  @default(false) @map("is_read")
+  referenceType String?  @map("reference_type") @db.VarChar(50)
+  referenceId   Int?     @map("reference_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_notifications_user")
+  @@map("notifications")
+}
+
+model Post {
+  id         Int      @id @default(autoincrement())
+  authorId   Int      @map("author_id")
+  content    String
+  imageUrl   String?  @map("image_url") @db.VarChar(512)
+  isPublic   Boolean  @default(true) @map("is_public")
+  likesCount Int      @default(0) @map("likes_count")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  author User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes  PostLike[]
+
+  @@index([authorId], map: "idx_posts_author")
+  @@map("posts")
+}
+
+model PostLike {
+  id        Int      @id @default(autoincrement())
+  postId    Int      @map("post_id")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+model Organization {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String   @default("")
+  avatar      String   @default("/avatars/default-org.svg") @db.VarChar(512)
+  ownerId     Int      @map("owner_id")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  owner   User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members OrganizationMember[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id       Int          @id @default(autoincrement())
+  orgId    Int          @map("org_id")
+  userId   Int          @map("user_id")
+  role     ChatRoomRole @default(member)
+  joinedAt DateTime     @default(now()) @map("joined_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([userId], map: "idx_org_members_user")
+  @@map("organization_members")
+}
+
+model File {
+  id           Int      @id @default(autoincrement())
+  uploaderId   Int      @map("uploader_id")
+  originalName String   @map("original_name") @db.VarChar(512)
+  storedName   String   @map("stored_name") @db.VarChar(512)
+  mimeType     String   @map("mime_type") @db.VarChar(100)
+  sizeBytes    BigInt   @map("size_bytes")
+  url          String   @db.VarChar(1024)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  uploader User @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([uploaderId], map: "idx_files_uploader")
+  @@map("files")
+}
+
+model AlpacaFarm {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  farmData  Json     @default("{\"alpacas\":[],\"resources\":{\"gold\":100,\"food\":50},\"level\":1}") @map("farm_data")
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("alpaca_farms")
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model DataRequest {
+  id          Int               @id @default(autoincrement())
+  userId      Int               @map("user_id")
+  type        DataRequestType
+  status      DataRequestStatus @default(pending)
+  fileUrl     String?           @map("file_url") @db.VarChar(1024)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt DateTime?         @map("completed_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_data_requests_user")
+  @@map("data_requests")
+}

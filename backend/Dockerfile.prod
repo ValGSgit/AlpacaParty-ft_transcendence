@@ -2,22 +2,6 @@
 # @owner ValGSgit
 # @issue https://github.com/ValGSgit/AlpacaParty/issues/3
 
-# ── Stage 1: Build dependencies ──────────────────────────────
-FROM node:20-alpine AS builder
-
-# Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++
-
-WORKDIR /app
-
-# Copy package files and install ALL dependencies (including dev)
-COPY package*.json ./
-RUN npm install && npm cache clean --force
-
-# Copy application source
-COPY . .
-
-# ── Stage 2: Production runtime ──────────────────────────────
 FROM node:20-alpine
 
 
@@ -27,14 +11,14 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Copy package files and install production dependencies only
+# Copy package files and install dependencies needed to generate Prisma client
 COPY package*.json ./
-RUN npm install --omit=dev && npm cache clean --force
+RUN npm ci --no-audit --no-fund --loglevel=error
 
-RUN npm install @huggingface/inference
-
-# Copy application from builder
-COPY --from=builder --chown=nodejs:nodejs /app/src ./src
+# Copy Prisma schema and application source, then generate the client
+COPY --chown=nodejs:nodejs ./prisma ./prisma
+COPY --chown=nodejs:nodejs ./src ./src
+RUN npx prisma generate && npm prune --omit=dev
 
 # Create uploads directory with correct ownership
 RUN mkdir -p /app/uploads && chown -R nodejs:nodejs /app/uploads

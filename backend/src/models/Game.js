@@ -121,11 +121,13 @@ const Game = {
 
   // ── Leaderboard ────────────────────────────────────────────
 
-  async getLeaderboard(gameType = 'pong', { limit = 20, offset = 0 } = {}) {
+  async getLeaderboard(gameType = 'pong', { limit = 20, offset = 0, publicOnly = false } = {}) {
+    const publicFilter = publicOnly ? 'AND u.is_public = TRUE' : '';
     const { rows } = await query(
       `SELECT gs.*, u.username, u.avatar, u.level
        FROM game_stats gs JOIN users u ON u.id = gs.user_id
-       WHERE gs.game_type = $1 ORDER BY gs.elo DESC LIMIT $2 OFFSET $3`,
+       WHERE gs.game_type = $1 ${publicFilter}
+       ORDER BY gs.elo DESC LIMIT $2 OFFSET $3`,
       [gameType, limit, offset],
     );
     return rows;

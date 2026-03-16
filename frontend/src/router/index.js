@@ -25,6 +25,7 @@ const NotFound = () => import('../views/NotFound.vue')
 const OAuthCallback = () => import('../views/OAuthCallback.vue')
 const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
 const TermsOfService = () => import('../views/TermsOfService.vue')
+const PublicShowcase = () => import('../views/PublicShowcase.vue')
 
 const routes = [
   {
@@ -122,6 +123,12 @@ const routes = [
     name: 'Admin',
     component: Admin,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/showcase',
+    name: 'PublicShowcase',
+    component: PublicShowcase,
+    meta: { requiresAuth: false },
   },
   {
     path: '/:pathMatch(.*)*',

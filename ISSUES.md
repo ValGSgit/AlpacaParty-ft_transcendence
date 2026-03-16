@@ -97,6 +97,31 @@
 | 📋 **TODO** | 5 | Backlog |
 | **TOTAL** | **26** | - |
 
+### Requested Status Snapshot (March 16, 2026)
+
+| Feature | Issue | Owner(s) | Current Status | Notes |
+|---|---|---|---|---|
+| Real-time WebSockets (Socket.io) | #12 | ValGSgit | ✅ Done | Socket.IO is integrated and used by chat/notifications/game flows |
+| Socket Events | #13 | fankahou, ValGSgit | ✅ Done | Event handlers and room flows are implemented |
+| Advanced 3D Graphics | #15 | fankahou, LukasStefanek | ✅ Done | Three.js rendering and gameplay visuals are in place |
+| Remote Players | - | - | 📋 Todo | Multiplayer robustness still tracked under game roadmap |
+| Profile System | #1 | fankahou, LukasStefanek | ✅ Done | Profile read/update and avatar support available |
+| Friends System | #2 | ValGSgit | ✅ Done | Requests/accept/decline/list implemented |
+| Organization System (Groups/Chatrooms CRUD) | #6 | ValGSgit | ✅ Done | Organization CRUD and member roles implemented |
+| Feed System | #5 | fankahou | ✅ Done | Post feed with create/read interactions is implemented |
+| Design System with reusable components | #25 | fankahou | 📋 Todo | Planned in backlog |
+| File Upload/Download (Import/Export) | #9 | DavidPoetsch | ✅ Done | Upload flow is implemented; export paths exist in GDPR/public APIs |
+| Game statistics & Match History | #20 | DavidPoetsch | ✅ Done | Stats and leaderboard data model/endpoints exist |
+| Game Customization | - | - | 📋 Todo | Not fully shipped as a standalone tracked milestone |
+| Gamification/Reward/Achievement System | #19 | ValGSgit | ✅ Done | XP/achievements/challenges foundations are implemented |
+| User Analytics Dashboard | #18 | DavidPoetsch, ValGSgit | 📋 Todo | Dashboard still open |
+| GDPR Compliance | #17 | ValGSgit | ✅ Done | Export/delete request flows implemented |
+| Multi-Browser Support | #29 | fankahou | 📋 Todo | Still pending dedicated testing pass |
+| Configure PostgreSQL connection pooling | #7 | DavidPoetsch, ValGSgit | 🔄 In Progress | Active optimization work |
+| Postgre tables | #10 | DavidPoetsch, ValGSgit | 🔄 In Progress | Schema/index refinement ongoing |
+| API Endpoints auth/* users/* friends/* chat/* games/* v1/*/* | #9 | ValGSgit | 🔄 In Progress | Core endpoints exist; ongoing expansion/consistency work |
+| Game Core | #14 | fankahou, LukasStefanek | 🔄 In Progress | Playable core exists; remaining enhancements in progress |
+
 ---
 
 ## ✅ COMPLETED ISSUES (19)

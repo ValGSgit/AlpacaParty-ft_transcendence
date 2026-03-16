@@ -7,6 +7,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
   },
@@ -19,17 +22,20 @@
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.0",
     "helmet": "^8.0.0",
+    "@huggingface/inference": "^4.8.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.0",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.13.0",
+    "@prisma/client": "^6.5.0",
     "socket.io": "^4.8.0"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",
     "jest": "^30.0.0",
+    "prisma": "^6.5.0",
     "supertest": "^7.0.0"
   }
 }

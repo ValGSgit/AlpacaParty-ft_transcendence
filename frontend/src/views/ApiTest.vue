@@ -578,13 +578,14 @@ const sections = computed(() => [
   {
     title: '🔑 Public API (needs X-API-Key)',
     endpoints: [
-      { label: 'Docs',               path: '/public',               headers: () => apiKeyHeaders(), expectStatus: 401 },
-      { label: 'Public Users',       path: '/public/users',         headers: () => apiKeyHeaders(), expectStatus: 401 },
+      { label: 'Docs',               path: '/public',               headers: () => apiKeyHeaders(), expectStatus: 200 },
+      { label: 'Public Users',       path: '/public/users',         headers: () => apiKeyHeaders(), expectStatus: 200 },
       { label: 'Public User',        path: () => `/public/users/${targetUserId.value}`,
-        headers: () => apiKeyHeaders(), params: ['userId'], expectStatus: 401 },
-      { label: 'Public Leaderboard', path: '/public/leaderboard',  headers: () => apiKeyHeaders(), expectStatus: 401 },
-      { label: 'Public Posts',       path: '/public/posts',        headers: () => apiKeyHeaders(), expectStatus: 401 },
-      { label: 'Public Orgs',        path: '/public/organizations', headers: () => apiKeyHeaders(), expectStatus: 401 },
+        headers: () => apiKeyHeaders(), params: ['userId'], expectStatus: 200 },
+      { label: 'Public Leaderboard', path: '/public/leaderboard',  headers: () => apiKeyHeaders(), expectStatus: 200 },
+      { label: 'Public Posts',       path: '/public/posts',        headers: () => apiKeyHeaders(), expectStatus: 200 },
+      { label: 'Public Orgs',        path: '/public/organizations', headers: () => apiKeyHeaders(), expectStatus: 200 },
+      { label: 'Mock Dataset',       path: '/public/mock',         headers: () => apiKeyHeaders(), expectStatus: 200 },
     ],
   },
   {

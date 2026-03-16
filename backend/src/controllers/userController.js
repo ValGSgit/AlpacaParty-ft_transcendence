@@ -12,7 +12,32 @@ import AuthService from '../services/authService.js';
 import DataExportService from '../services/dataExportService.js';
 import DataRequest from '../models/DataRequest.js';
 import NotificationService from '../services/notificationService.js';
+import Friend from '../models/Friend.js';
 import config from '../config/index.js';
+
+function sanitizeUserForViewer(user, viewer) {
+  const isOwner = viewer.id === user.id;
+  const isAdmin = Boolean(viewer.is_admin);
+
+  if (isOwner || isAdmin) {
+    return user;
+  }
+
+  return {
+    id: user.id,
+    username: user.username,
+    avatar: user.avatar,
+    bio: user.bio,
+    status: user.status,
+    is_public: user.is_public,
+    is_online: user.is_online,
+    xp: user.xp,
+    level: user.level,
+    last_seen: user.last_seen,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+  };
+}
 
 /**
  * GET /api/users/me — alias handled via auth/me, but also available here
@@ -26,7 +51,15 @@ export const getMe = async (req, res) => {
  */
 export const updateMe = async (req, res, next) => {
   try {
-    const { username, email, bio, status, avatar, is_public, coins, upgrades, items, alpacas } = req.body;
+    const { username, email, bio, status, avatar, is_public, coins } = req.body;
+
+    if (bio !== undefined && String(bio).length > 500) {
+      return res.status(400).json({ error: { message: 'Bio must be 500 characters or fewer' } });
+    }
+
+    if (status !== undefined && String(status).length > 200) {
+      return res.status(400).json({ error: { message: 'Status must be 200 characters or fewer' } });
+    }
 
     // Check username uniqueness if changing
     if (username && username !== req.user.username) {
@@ -44,6 +77,9 @@ export const updateMe = async (req, res, next) => {
 
     // Check email uniqueness if changing
     if (email && email !== req.user.email) {
+      if (email.length > 254) {
+        return res.status(400).json({ error: { message: 'Email must be 254 characters or fewer' } });
+      }
       const existing = await User.findByEmail(email);
       if (existing) {
         return res.status(409).json({ error: { message: 'Email already registered' } });
@@ -51,7 +87,7 @@ export const updateMe = async (req, res, next) => {
     }
 
     const updatedUser = await User.update(req.user.id, {
-    username, email, bio, status, avatar, is_public, coins, upgrades, items, alpacas,
+      username, email, bio, status, avatar, is_public, coins,
   });
 
     res.json({ user: updatedUser });
@@ -100,11 +136,18 @@ export const getUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ error: { message: 'User not found' } });
     }
-    // Only the owner or admins can see non-public profiles
-    if (!user.is_public && user.id !== req.user.id && !req.user.is_admin) {
-      return res.status(404).json({ error: { message: 'User not found' } });
+
+    const isOwner = user.id === req.user.id;
+    const isAdmin = Boolean(req.user.is_admin);
+
+    if (!user.is_public && !isOwner && !isAdmin) {
+      const areFriends = await Friend.areFriends(req.user.id, user.id);
+      if (!areFriends) {
+        return res.status(403).json({ error: { message: 'This profile is private' } });
+      }
     }
-    res.json({ user });
+
+    res.json({ user: sanitizeUserForViewer(user, req.user) });
   } catch (err) {
     next(err);
   }
@@ -188,6 +231,22 @@ export const listDataRequests = async (req, res, next) => {
     res.json({ requests });
   } catch (err) {
     next(err);
+  }
+};
+
+/**
+ * DELETE /api/users/me
+ * Immediate account deletion for authenticated user.
+ */
+export const deleteMe = async (req, res, next) => {
+  try {
+    const deleted = await User.deleteById(req.user.id);
+    if (!deleted) {
+      return res.status(404).json({ error: { message: 'User not found' } });
+    }
+    return res.json({ message: 'Account deleted', logout: true });
+  } catch (err) {
+    return next(err);
   }
 };
 
