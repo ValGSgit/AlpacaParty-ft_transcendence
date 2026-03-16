@@ -3,10 +3,10 @@
 -- Run via: make seed-admins
 UPDATE users
 SET is_admin = TRUE
-WHERE username IN ('ValGSgit', 'DavidPoetsch', 'fankahou', 'LukasStefanek');
+WHERE username IN ('Val', 'David', 'Kahou', 'Lukas');
 
 -- Show result so the caller can verify.
 SELECT id, username, email, is_admin
 FROM users
-WHERE username IN ('ValGSgit', 'DavidPoetsch', 'fankahou', 'LukasStefanek')
+WHERE username IN ('Val', 'David', 'Kahou', 'Lukas')
 ORDER BY username;
