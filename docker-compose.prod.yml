@@ -56,10 +56,15 @@ services:
       API_KEYS: ${API_KEYS:-test-api-key}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
+      # Vault connection
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN}
     volumes:
       - backend_uploads:/app/uploads
     depends_on:
       postgres:
+        condition: service_healthy
+      vault:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1"]
@@ -85,9 +90,11 @@ services:
     networks:
       - alpacaparty_net
 
-  # ── nginx reverse proxy ────────────────────────────────────
+  # ── nginx + ModSecurity WAF ────────────────────────────────
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     container_name: alpacaparty_nginx_prod
     ports:
       - "${NGINX_PORT:-8080}:443"
@@ -110,10 +117,46 @@ services:
       retries: 3
       start_period: 40s
 
+  # ── HashiCorp Vault ────────────────────────────────────────
+  vault:
+    image: hashicorp/vault:1.16
+    container_name: alpacaparty_vault_prod
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        ui            = true
+        disable_mlock = true
+        storage "file" { path = "/vault/data" }
+        listener "tcp" {
+          address     = "0.0.0.0:8200"
+          tls_disable = 1
+        }
+      VAULT_LOG_LEVEL: warn
+    volumes:
+      - vault_data:/vault/data
+      - ./vault/init:/vault/init:ro
+    # Port is NOT exposed externally in prod; backend reaches it via container network.
+    # Remove the comment below to expose the UI behind a VPN/bastion.
+    # ports:
+    #   - "8200:8200"
+    command: vault server -config=/vault/config
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8200/v1/sys/health?standbyok=true&sealedcode=200&uninitcode=200"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: always
+    networks:
+      - alpacaparty_net
+
 volumes:
   pg_data:
     driver: local
   backend_uploads:
+    driver: local
+  vault_data:
     driver: local
 
 networks:

@@ -23,7 +23,8 @@ DC_PROD := docker compose -f docker-compose.prod.yml
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
         shell-backend shell-frontend shell-db \
-        test seed-admins
+        test seed-admins \
+        vault-status vault-secrets vault-shell waf-logs
 
 # ── HELP ────────────────────────────────────────────────────
 help:
@@ -62,6 +63,12 @@ help:
 	@echo ""
 	@echo "$(YELLOW)Database$(RESET)"
 	@echo "  $(GREEN)make seed-admins$(RESET)    Promote developer accounts to admin"
+	@echo ""
+	@echo "$(YELLOW)Security$(RESET)"
+	@echo "  $(GREEN)make vault-status$(RESET)   Show Vault seal/HA status"
+	@echo "  $(GREEN)make vault-secrets$(RESET)  List secrets stored in Vault (dev)"
+	@echo "  $(GREEN)make vault-shell$(RESET)    Open interactive Vault shell"
+	@echo "  $(GREEN)make waf-logs$(RESET)       Tail ModSecurity audit log"
 	@echo ""
 	@echo "$(YELLOW)Cleanup$(RESET)"
 	@echo "  $(GREEN)make clean$(RESET)          Stop containers & remove images"
@@ -182,6 +189,21 @@ seed-admins:
 	  -U $${DB_USER:-alpacaparty} \
 	  -d $${DB_NAME:-alpacaparty} \
 	  -f /dev/stdin < scripts/seed-admins.sql
+
+# ── SECURITY ────────────────────────────────────────────────────────────────
+vault-status:
+	$(DC) exec vault vault status
+
+vault-secrets:
+	$(DC) exec vault vault kv get secret/alpacaparty
+
+vault-shell:
+	$(DC) exec -e VAULT_ADDR=http://127.0.0.1:8200 \
+	           -e VAULT_TOKEN=$${VAULT_DEV_TOKEN:-alpacaparty-dev-token} \
+	           vault sh
+
+waf-logs:
+	$(DC) exec nginx tail -f /var/log/modsecurity/audit.log
 
 # ── CLEANUP ─────────────────────────────────────────────────
 clean:

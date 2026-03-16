@@ -51,12 +51,17 @@ services:
       API_KEYS: ${API_KEYS:-test-api-key}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
+      # Vault connection (dev mode)
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_DEV_TOKEN:-alpacaparty-dev-token}
     volumes:
       - ./backend:/app
       - /app/node_modules
       - backend_uploads:/app/uploads
     depends_on:
       postgres:
+        condition: service_healthy
+      vault:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -82,9 +87,11 @@ services:
     networks:
       - alpacaparty_net
 
-  # ── nginx reverse proxy (HTTPS) ────────────────────────────
+  # ── nginx + ModSecurity WAF ──────────────────────────────
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     container_name: alpacaparty_nginx
     ports:
       - "8080:443"
@@ -95,6 +102,40 @@ services:
     depends_on:
       - frontend
       - backend
+    restart: unless-stopped
+    networks:
+      - alpacaparty_net
+
+  # ── HashiCorp Vault (dev mode — auto-unsealed) ─────────────
+  vault:
+    image: hashicorp/vault:1.16
+    container_name: alpacaparty_vault
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_TOKEN:-alpacaparty-dev-token}
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      VAULT_LOG_LEVEL: warn
+    ports:
+      - "8200:8200"
+    volumes:
+      - ./vault/init:/vault/init:ro
+    command: >-
+      sh -c '
+        vault server -dev &
+        sleep 2 &&
+        VAULT_ADDR=http://127.0.0.1:8200
+        VAULT_TOKEN=${VAULT_DEV_TOKEN:-alpacaparty-dev-token}
+        export VAULT_ADDR VAULT_TOKEN &&
+        sh /vault/init/seed.sh &&
+        wait
+      '
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8200/v1/sys/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
     networks:
       - alpacaparty_net

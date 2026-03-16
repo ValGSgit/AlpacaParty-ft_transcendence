@@ -30,4 +30,4 @@ USER nodejs
 EXPOSE 3000
 
 # Run in production mode
-CMD ["node", "src/index.js"]
+CMD ["node", "src/server.js"]
