@@ -1,18 +1,17 @@
-import { CONST } from "../config/constants"
-import { gPlayer } from "../core/globals"
+import { ref } from 'vue';
+import { gPlayer } from "../core/globals";
+
+const updateVue = ref(0);
 
 export function alpacaStats() {
 
-  const changeSpeed = (speed) => {
-    const newSpeed = gPlayer.value.speedOffset + speed * 0.1
-    if (newSpeed < -0.1 || newSpeed > 0.1) // range check
-      alert("speed out of range")
-    else
-      gPlayer.value.speedOffset = newSpeed
+  const changeSpeed = (amount) => {
+    if (gPlayer.value) {
+      gPlayer.value.changeSpeed(amount * 0.1);
+    }
+    updateVue.value++;
   }
 
+  return { changeSpeed, updateVue };
 }
 
-export function getAlpacaSpeed() {
-  return CONST.PLAYER_FORWARD_SPEED + alpaca.speedOffset;
-}

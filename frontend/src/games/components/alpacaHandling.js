@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { MATERIALS as MATS } from '../config/materials.js';
 import { gAlpacas, gPlayer, gScene } from "../core/globals.js";
-
+import { useUIManager } from '../core/useUIManager.js';
 
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const worldPoint = new THREE.Vector3();
+const { openAlpacaStats } = useUIManager();
 
 export function alpacaHandling() {
 
@@ -21,7 +22,7 @@ export function alpacaHandling() {
     if (!alpacaToSwitch) // no alpaca found, walk to obj
       return false
     else if (gPlayer.value === alpacaToSwitch) // open menu for clicking self
-      GUI.alpacaMenu = true
+      openAlpacaStats();
     else
       gPlayer.value = alpacaToSwitch
     return true
@@ -86,15 +87,4 @@ const findAlpaca = (alpaca) => {
   return null
 }
 
-const applyNewColor = (model, color) => {
-  model.traverse((child) => {
-    if (child.isMesh) {
-      if (child.name === 'Collider') {
-        model.userData.collider = child
-      } else if (child.name === 'Cylinder') {
-        child.material = child.material.clone()
-        child.material.color.set(color)
-      }
-    }
-  })
-}
+

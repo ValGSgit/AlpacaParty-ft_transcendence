@@ -61,11 +61,15 @@ export class Alpaca {
     return CONST.PLAYER_ROTATION + this.rotationOffset;
   }
 
+  // CONST.PLAYER_FORWARD_SPEED = 0.2
   changeSpeed(amount) {
-    if (amount >= CONST.PLAYER_FORWARD_SPEED) {
-      amount = -CONST.PLAYER_FORWARD_SPEED + 0.1;
+    if (this.speedOffset + amount < -0.1) {
+      this.speedOffset = -0.1
+    } else if (this.speedOffset + amount > 0.1) {
+      this.speedOffset = 0.1
+    } else {
+      this.speedOffset += amount;
     }
-    this.speedOffset += amount;
   }
 
   update(delta) {

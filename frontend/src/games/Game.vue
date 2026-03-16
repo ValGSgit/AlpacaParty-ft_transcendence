@@ -58,18 +58,22 @@
       </div>
     </div>
     
-    <div v-if="gUI.alpacaStats && !gUI.alpacaShop" class="modal-overlay">
-      <div class="shop-title">Alpaca Stats
-        <div class="alpaca-stat">
-          <div v-if="!gPlayer.speedOffset">Speed: Normal</div>
-           <div v-if="gPlayer.speedOffset > 0">Speed: Fast</div>
-           <div v-if="gPlayer.speedOffset < 0">Speed: Slow</div>
-           <button class="stat-btn" @click="changeSpeed(-1)" title="Speed--">-</button>
-           <button class="stat-btn" @click="changeSpeed(1)" title="Speed++">+</button>
+  <div v-if="gUI.alpacaStats" class="modal-overlay">
+        <div class="shop-title">Alpaca Stats
+          
+          <div class="alpaca-stat" :key="updateVue">
+            
+            <div v-if="gPlayer.speedOffset === 0">Speed: Normal</div>
+            <div v-if="gPlayer.speedOffset > 0">Speed: Fast</div>
+            <div v-if="gPlayer.speedOffset < 0">Speed: Slow</div>
+            
+            <button class="stat-btn" @click="changeSpeed(-1)" title="Speed--">-</button>
+            <button class="stat-btn" @click="changeSpeed(1)" title="Speed++">+</button>
+          </div>
+          
+          <button class="close-btn" @click="closeAlpacaStats()" title="Close">✖️</button>
         </div>
-        <button class="close-btn" @click="gUI.Stats = false" title="Close">✖️</button>
       </div>
-    </div>
     
     <div v-if="gUI.itemShop" class="modal-overlay">
         <div class="shop-title">Select Item
@@ -108,6 +112,7 @@ import * as THREE from 'three'
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
 import { alpacaConfig, alpacaShop } from './components/alpacaShop.js'
+import { alpacaStats } from './components/alpacaStats.js'
 import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
 import { itemShop } from './components/itemShop.js'
@@ -129,10 +134,11 @@ const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
 const clock = new THREE.Clock()
 
+const { changeSpeed, updateVue } = alpacaStats()
 const { initInput } = useInput()
 const { setLight } = editLight()
 const { buyAlpaca } = alpacaShop()
-const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
+const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = useShop()
 const { buyItem } = itemShop()

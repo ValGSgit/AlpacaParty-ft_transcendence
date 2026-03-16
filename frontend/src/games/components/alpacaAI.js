@@ -51,7 +51,6 @@ export function alpacaAI() {
   };
 
   const updateAI = (alpaca, delta) => {
-    console.log("AI");
     switch (alpaca.ai.state) {
       case 'idle':
         handleIdle(alpaca, delta);

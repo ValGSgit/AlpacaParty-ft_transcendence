@@ -34,7 +34,7 @@ export function useUIManager() {
     gUI.shopMenu = false
   }
 
-  const openAlpacaShop = (newAlpaca) => {
+  const openAlpacaShop = () => {
     gUI.alpacaShop = true
     gUI.shopMenu = false
   }
@@ -42,6 +42,14 @@ export function useUIManager() {
   const closeAlpacaShop = () => {
     gUI.alpacaShop = false
     gUI.shopMenu = true
+  }
+
+  const openAlpacaStats = () => {
+    gUI.alpacaStats = true
+  }
+
+  const closeAlpacaStats = () => {
+    gUI.alpacaStats = false
   }
 
   const openItemShop = () => {
@@ -63,5 +71,19 @@ export function useUIManager() {
     gUI.lightMenu = false
   }
 
-  return { closeMenus, openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, openItemShop, closeItemShop, openLightMenu, closeLightMenu }
+  return {
+    closeMenus,
+    openEditMode,
+    closeEditMode,
+    openShopMenu,
+    closeShopMenu,
+    openAlpacaShop,
+    closeAlpacaShop,
+    openAlpacaStats,
+    closeAlpacaStats,
+    openItemShop,
+    closeItemShop,
+    openLightMenu,
+    closeLightMenu
+  }
 }
