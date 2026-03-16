@@ -1,6 +1,7 @@
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { markRaw } from 'vue';
 import { Alpaca } from './entities/Alpaca.js';
+import { Item } from './entities/Item.js';
 import { getModel } from './modelCache.js';
 import { registerEntity } from './registerEntity.js';
 import { attachCollider } from './useCollider.js';
@@ -33,39 +34,30 @@ export async function createItem(
   rotation = 0,
   scale = [1, 1, 1],
 ) {
-  const { model } = await getModel(path);
-  const clone = model.clone();
-  markRaw(clone);
+  const { model, animations } = await getModel(path);
+  const clone = SkeletonUtils.clone(model);
+  const item = new Item(clone, animations, { position, rotation, scale });
 
-  clone.position.set(...position);
-  clone.rotation.set(0, rotation, 0);
-  clone.scale.set(...scale);
-  clone.updateMatrixWorld(true);
+  attachCollider(item.model);
+  registerEntity(item, 'item');
 
-  attachCollider(clone);
-  registerEntity(clone, 'item');
-
-  return clone;
+  return markRaw(item);
 }
 
+// WIP: uses Item aswell (testing atm)
 export async function createDecoration(
   path,
   position = [0, 0, 0],
   rotation = 0,
   scale = [1, 1, 1],
 ) {
-  const { model } = await getModel(path);
+  const { model, animations } = await getModel(path);
+  const clone = SkeletonUtils.clone(model);
+  const deco = new Item(clone, animations, { position, rotation, scale });
 
-  const clone = model.clone();
-  markRaw(clone);
-
-  clone.position.set(...position);
-  clone.rotation.set(0, rotation, 0);
-  clone.scale.set(...scale);
-  clone.updateMatrixWorld(true);
-
-  registerEntity(clone, 'decoration');
-  return clone;
+  attachCollider(deco.model);
+  registerEntity(deco, 'decoration');
+  return markRaw(deco);
 }
 
 const initFlags = (model) => {

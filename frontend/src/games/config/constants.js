@@ -34,7 +34,7 @@ export const CONST = {
   },
 
   get MAX_MOVE_RADIUS() {
-    return this.FLOOR_RADIUS - 2.0
+    return this.FLOOR_RADIUS - 2
   },
 
   get PLAYER_BACKWARD_SPEED() {

@@ -35,6 +35,7 @@ export class Alpaca {
 
     this.speedOffset = 0;
     this.rotationOffset = 0;
+    this.woolLevel = 1;
     this.isMoving = false;
     this.isAutoMoving = false;
     this.target = new THREE.Vector3();

@@ -78,10 +78,9 @@ async function initRandomTrees(itemsGroup) {
     let isColliding = true;
     let attempts = 0;
     let pos = new THREE.Vector3();
-    let scaleVal = getRandomScale();
-    let scale = [scaleVal, scaleVal, scaleVal];
+    let scale = getRandomScale();
     let rot = getRandomRot();
-    dummyTree.scale.set(scaleVal, scaleVal, scaleVal);
+    dummyTree.scale.copy(scale);
     dummyTree.rotation.y = rot;
 
     while (isColliding && attempts < 100) {
@@ -92,8 +91,9 @@ async function initRandomTrees(itemsGroup) {
       attempts++;
     }
     if (!isColliding) {
-      const tree = await createItem('/models/tree.glb', pos, rot, scale);
-      itemsGroup.add(tree);
+      console.log("add tree")
+      const tree = await createItem('/models/tree.glb', pos.toArray(), rot, scale.toArray());
+      itemsGroup.add(tree.model);
     }
   }
 }

@@ -131,7 +131,7 @@ export function useEditMode() {
 
   const rotateItem = (e) => {
     const direction = e.deltaY > 0 ? 1 : -1
-    const steps = 18
+    const steps = 16
     const rotationAmount = (Math.PI / steps) * direction
     gEditState.selected.rotation.y += rotationAmount
     if (gEditState.ghost) {

@@ -30,7 +30,7 @@ export function getRandomScale() {
   const lower = base - offset;
   const upper = base + offset;
   const scale = Math.random() * (upper - lower) + lower;
-  return scale;
+  return new THREE.Vector3(scale, scale, scale);
 }
 
 export function getRandomTimer() {
