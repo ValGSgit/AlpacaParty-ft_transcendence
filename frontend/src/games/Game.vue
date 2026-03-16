@@ -77,7 +77,7 @@
     
     <div v-if="gUI.itemShop" class="modal-overlay">
         <div class="shop-title">Select Item
-          <button class="shop-btn" @click="buyItem('/models/coin.gltf')" title="Tree">🌳</button>
+          <button class="shop-btn" @click="buyItem('/models/tree.glb')" title="Tree">🌳</button>
           <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
         </div>
     </div>
