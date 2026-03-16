@@ -152,7 +152,6 @@ let cameraUpdate = null;
 let stopMyWatcher
 let stats;
 
-
 onMounted(async () => {
   if (!isAuthenticated)
     showLoginWarning.value = true
@@ -168,7 +167,7 @@ onMounted(async () => {
     stats = initStats(gameContainer.value);
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
-    cameraUpdate = updateCamera
+    cameraUpdate = updateCamera()
     gUser.value = initUser()
 
     await initWorld(gScene.value, isAuthenticated)

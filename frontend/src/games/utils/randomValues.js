@@ -33,6 +33,10 @@ export function getRandomScale() {
   return scale;
 }
 
+export function getRandomTimer() {
+  return 2 + Math.random() * 5;
+}
+
 export const spawnAtRandom = (model) => {
   const pos = getRandomPos();
 

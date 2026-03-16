@@ -81,17 +81,19 @@ async function initRandomTrees(itemsGroup) {
     let scaleVal = getRandomScale();
     let scale = [scaleVal, scaleVal, scaleVal];
     let rot = getRandomRot();
-    dummyTree.scale.set(scale, scale, scale);
+    dummyTree.scale.set(scaleVal, scaleVal, scaleVal);
     dummyTree.rotation.y = rot;
 
     while (isColliding && attempts < 100) {
       pos.copy(getRandomPos());
-      dummyTree.position.set(...pos);
+      dummyTree.position.copy(pos);
       dummyTree.updateMatrixWorld(true);
       isColliding = checkCollisionWith(dummyTree, gCollidable);
       attempts++;
     }
-    const tree = await createItem('/models/tree.glb', pos, rot, scale);
-    itemsGroup.add(tree);
+    if (!isColliding) {
+      const tree = await createItem('/models/tree.glb', pos, rot, scale);
+      itemsGroup.add(tree);
+    }
   }
 }

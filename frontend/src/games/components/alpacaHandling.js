@@ -8,7 +8,6 @@ const worldPoint = new THREE.Vector3();
 
 export function alpacaHandling() {
 
-
   const setMoveLocation = (model, raycaster) => {
     if (raycaster) // double Click
     {

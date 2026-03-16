@@ -1,5 +1,5 @@
+import { CONST } from "../config/constants"
 import { gPlayer } from "../core/globals"
-
 
 export function alpacaStats() {
 
@@ -13,3 +13,6 @@ export function alpacaStats() {
 
 }
 
+export function getAlpacaSpeed() {
+  return CONST.PLAYER_FORWARD_SPEED + alpaca.speedOffset;
+}
