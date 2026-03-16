@@ -100,8 +100,7 @@ services:
       - "${NGINX_PORT:-8080}:8443"
       - "8000:8080"
     volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/nginx.prod.conf:/etc/nginx/templates/conf.d/default.conf.template:ro
     depends_on:
       frontend:
         condition: service_started
@@ -111,7 +110,7 @@ services:
     networks:
       - alpacaparty_net
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "--no-check-certificate", "https://localhost:8443/"]
+      test: ["CMD-SHELL", "nginx -t"]
       interval: 30s
       timeout: 10s
       retries: 3

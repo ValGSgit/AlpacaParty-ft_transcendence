@@ -19,7 +19,7 @@ DC_PROD := docker compose -f docker-compose.prod.yml
 .PHONY: help up down build logs restart ps \
         prod-up prod-down prod-build prod-logs \
         generate-secrets ssl-certs \
-	clean clean-volumes fclean \
+	clean clean-volumes fclean deep-clean \
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
         shell-backend shell-frontend shell-db \
@@ -73,7 +73,8 @@ help:
 	@echo "$(YELLOW)Cleanup$(RESET)"
 	@echo "  $(GREEN)make clean$(RESET)          Stop containers & remove images"
 	@echo "  $(GREEN)make clean-volumes$(RESET)  Also remove persistent volumes"
-	@echo "  $(GREEN)make fclean$(RESET)         Full cleanup + prune dangling Docker artifacts"
+	@echo "  $(GREEN)make fclean$(RESET)         Project full cleanup + dangling prune"
+	@echo "  $(GREEN)make deep-clean$(RESET)     Aggressive global Docker prune (ALL unused)"
 	@echo ""
 
 # ── DOCKER ──────────────────────────────────────────────────
@@ -217,7 +218,18 @@ clean-volumes:
 fclean:
 	$(DC) down --rmi all --volumes --remove-orphans
 	$(DC_PROD) down --rmi all --volumes --remove-orphans
+	@docker network ls --format '{{.ID}} {{.Name}}' | awk '$$2=="$(COMPOSE_PROJECT)_alpacaparty_net" {print $$1}' | xargs -r docker network rm >/dev/null 2>&1 || true
 	@docker volume ls -q --filter "label=com.docker.compose.project=$(COMPOSE_PROJECT)" | xargs -r docker volume rm -f >/dev/null 2>&1 || true
+	@docker volume prune -f >/dev/null
+	@docker network prune -f >/dev/null
 	@docker image prune -f >/dev/null
 	@docker builder prune -f >/dev/null
 	@echo "$(GREEN)✓ Full Docker cleanup complete for project $(COMPOSE_PROJECT)$(RESET)"
+
+deep-clean:
+	@echo "$(YELLOW)Running aggressive Docker cleanup (global).$(RESET)"
+	$(DC) down --rmi all --volumes --remove-orphans || true
+	$(DC_PROD) down --rmi all --volumes --remove-orphans || true
+	@docker system prune -af --volumes
+	@docker builder prune -af
+	@echo "$(GREEN)✓ Aggressive Docker cleanup complete$(RESET)"
