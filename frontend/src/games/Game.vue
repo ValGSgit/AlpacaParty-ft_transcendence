@@ -107,22 +107,18 @@
 import * as THREE from 'three'
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
-import { alpacaAI } from './components/alpacaAI.js'
 import { alpacaConfig, alpacaShop } from './components/alpacaShop.js'
 import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
 import { itemShop } from './components/itemShop.js'
 import { useShop } from './components/shop.js'
-import { CONST } from './config/constants.js'
 import { addDebugCoins } from './core/debug.js'
 import { gAlpacas, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
 import { cleanupStats, initStats } from './core/stats.js'
-import { handleAnimation } from './core/useAnimation.js'
 import { changeCamera, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
 import { useInput } from './core/useInput.js'
-import { usePlayerControls } from './core/usePlayerControls.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
@@ -141,9 +137,7 @@ const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = useShop()
 const { buyItem } = itemShop()
 const { isAuthenticated } = useAuthStore()
-const { updateAI } = alpacaAI()
 const { cancelPlacement, deleteItem} =  useEditMode()
-const { updatePlayer } = usePlayerControls()
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
 
@@ -186,7 +180,6 @@ const gameLoop = () => {
   const player = gPlayer.value
 
   if (player) {
-    updatePlayer(player)
     if (cameraUpdate && !gUI.editMode) {
       cameraUpdate(player)
     }
@@ -194,15 +187,7 @@ const gameLoop = () => {
 
   for (let i = 0; i < gAlpacas.length; i++) {
     const alpaca = gAlpacas[i]
-    if (alpaca.mixer) {
-      alpaca.mixer.update(delta)
-    }
-    if (player && alpaca.model.uuid !== player.model.uuid) {
-      updateAI(alpaca, delta);
-      const speed = CONST.PLAYER_FORWARD_SPEED + alpaca.speedOffset;
-      let animDir = alpaca.isMoving ? 1 : 0;
-      handleAnimation(alpaca, animDir, speed)
-    }
+    alpaca.update(delta);
   }
 
   if (gEngine.value?.controls) {

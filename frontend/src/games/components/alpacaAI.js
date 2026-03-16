@@ -1,8 +1,6 @@
 import * as THREE from 'three';
-import { CONST } from '../config/constants.js';
 import { checkWithinBounds, usePhysics } from '../core/usePhysics.js';
 import { getRandomPos, getRandomTimer } from '../utils/randomValues.js';
-import { getAlpacaSpeed } from './alpacaStats.js';
 
 const dummy = new THREE.Object3D();
 
@@ -35,8 +33,7 @@ export function alpacaAI() {
       dummy.lookAt(ai.target);
       model.quaternion.slerp(dummy.quaternion, 5 * delta);
 
-      const speed = getAlpacaSpeed();
-
+      const speed = alpaca.speed;
       const nextX = model.position.x + (direction.x * speed);
       const nextZ = model.position.z + (direction.z * speed);
 
@@ -54,6 +51,7 @@ export function alpacaAI() {
   };
 
   const updateAI = (alpaca, delta) => {
+    console.log("AI");
     switch (alpaca.ai.state) {
       case 'idle':
         handleIdle(alpaca, delta);

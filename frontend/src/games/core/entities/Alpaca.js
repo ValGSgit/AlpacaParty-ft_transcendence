@@ -1,5 +1,12 @@
 import * as THREE from 'three';
+import { alpacaAI } from '../../components/alpacaAI.js';
 import { CONST } from '../../config/constants.js';
+import { gPlayer } from '../globals.js';
+import { handleAnimation } from '../useAnimation.js';
+import { usePlayerControls } from '../usePlayerControls.js';
+
+const { updateAI } = alpacaAI();
+const { updatePlayer } = usePlayerControls();
 
 export class Alpaca {
   constructor(model, animations, options = {}) {
@@ -46,9 +53,12 @@ export class Alpaca {
     });
   }
 
-
   get speed() {
     return CONST.PLAYER_FORWARD_SPEED + this.speedOffset;
+  }
+
+  get rotationSpeed() {
+    return CONST.PLAYER_ROTATION + this.rotationOffset;
   }
 
   changeSpeed(amount) {
@@ -56,5 +66,20 @@ export class Alpaca {
       amount = -CONST.PLAYER_FORWARD_SPEED + 0.1;
     }
     this.speedOffset += amount;
+  }
+
+  update(delta) {
+    const player = gPlayer.value;
+    const isPlayer = (player && this.model.uuid === player.model.uuid);
+
+    if (this.mixer) this.mixer.update(delta);
+
+    if (!isPlayer) {
+      updateAI(this, delta);
+      this.animDir = this.isMoving ? 1 : 0;
+    } else {
+      updatePlayer(this);
+    }
+    handleAnimation(this, this.animDir, this.speed);
   }
 }

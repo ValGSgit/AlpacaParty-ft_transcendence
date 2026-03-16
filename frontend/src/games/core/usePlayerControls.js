@@ -1,65 +1,82 @@
 import { CONST } from '../config/constants.js'
-import { handleAnimation } from './useAnimation.js'
 import { useInput } from './useInput.js'
 import { checkWithinBounds, usePhysics } from './usePhysics.js'
-
 
 export function usePlayerControls() {
   const { keys } = useInput()
   const { checkCollision } = usePhysics()
 
-  const updatePlayer = (player) => {
-    if (!player || !player.model) return
+  const handleJumping = (player) => {
+    const { model } = player;
+    let isVerticalMoving = false;
 
-    const { model, speedOffset, rotationOffset } = player
-    let speed = CONST.PLAYER_FORWARD_SPEED + speedOffset
-    const rotSpeed = CONST.PLAYER_ROTATION + rotationOffset
-    let dir = 0
-    let isMoving = false
-    let nextRotY = model.rotation.y
-
-    //
-    if (keys.w && !model.isMoving) { dir = 1; isMoving = true }
-    if (keys.s && !model.isMoving) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isMoving = true }
-    if (keys.a && !model.isMoving) { nextRotY += rotSpeed; isMoving = true }
-    if (keys.d && !model.isMoving) { nextRotY -= rotSpeed; isMoving = true }
-
-    //
+    // Jump up
     if (keys.space && model.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) {
-      model.position.y += CONST.JUMPING_SPEED; isMoving = true; player.isJumping = true
+      model.position.y += CONST.JUMPING_SPEED;
+      player.isJumping = true;
+      isVerticalMoving = true;
     }
+    // Fall down
     if (model.position.y > 0 && (!keys.space || player.isFalling)) {
-      model.position.y -= CONST.JUMPING_SPEED; player.isJumping = true
+      model.position.y -= CONST.JUMPING_SPEED;
+      player.isJumping = true;
     }
+    // Hit the ground
     if (model.position.y <= 0) {
-      model.position.y = 0; player.isJumping = false; if (!keys.space) player.isFalling = false
+      model.position.y = 0;
+      player.isJumping = false;
+      if (!keys.space) player.isFalling = false;
     }
-    if (model.position.y >= CONST.JUMPING_MAX_HEIGHT) player.isFalling = true
-
-    //
-    if (isMoving) {
-      const dx = Math.sin(nextRotY) * speed * dir
-      const dz = Math.cos(nextRotY) * speed * dir
-
-      const nextX = model.position.x + dx
-      const nextZ = model.position.z + dz
-
-      if (checkWithinBounds(nextX, nextZ)) {
-        checkCollision(model, nextX, nextZ, nextRotY)
-      }
+    // Hit the ceiling/max height of jump
+    if (model.position.y >= CONST.JUMPING_MAX_HEIGHT) {
+      player.isFalling = true;
     }
-    handleAnimation(player, getAnimDir(isMoving, model, keys), speed)
+
+    return isVerticalMoving;
+  }
+
+  const handleWalking = (player) => {
+    const { model } = player;
+
+    const rotSpeed = player.rotationSpeed;
+    let speed = player.speed;
+    let dir = 0;
+    let nextRotY = model.rotation.y;
+    let isWalking = false;
+
+    if (keys.w) { dir = 1; isWalking = true; }
+    if (keys.s) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isWalking = true; }
+    if (keys.a) { nextRotY += rotSpeed; isWalking = true; }
+    if (keys.d) { nextRotY -= rotSpeed; isWalking = true; }
+
+    return { dir, speed, nextRotY, isWalking };
+  }
+
+  const checkMovement = (model, dir, speed, nextRotY) => {
+    const dx = Math.sin(nextRotY) * speed * dir;
+    const dz = Math.cos(nextRotY) * speed * dir;
+
+    const nextX = model.position.x + dx;
+    const nextZ = model.position.z + dz;
+
+    if (checkWithinBounds(nextX, nextZ)) {
+      checkCollision(model, nextX, nextZ, nextRotY);
+    }
+  }
+
+  const updatePlayer = (player) => {
+    if (!player || !player.model) return;
+
+    const { model } = player;
+    const isJumping = handleJumping(player);
+    const { dir, speed, nextRotY, isWalking } = handleWalking(player);
+
+    if (isWalking) {
+      checkMovement(model, dir, speed, nextRotY);
+    }
+    player.isMoving = isWalking || isJumping;
+    player.animDir = keys.s ? -1 : (player.isMoving ? 1 : 0);
   }
 
   return { updatePlayer }
-}
-
-function getAnimDir(isMoving, model, keys) {
-  let animDir = 0
-  if (isMoving) {
-    animDir = keys.s ? -1 : 1
-  } else if (model.isMoving) {
-    animDir = 1
-  }
-  return animDir
 }
