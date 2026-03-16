@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { alpacaAI } from '../../components/alpacaAI.js';
 import { CONST } from '../../config/constants.js';
-import { gPlayer } from '../globals.js';
+import { gPlayer, gUI } from '../globals.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
 
@@ -73,8 +73,11 @@ export class Alpaca {
     const isPlayer = (player && this.model.uuid === player.model.uuid);
 
     if (this.mixer) this.mixer.update(delta);
-
-    if (!isPlayer) {
+    if (gUI.editMode) {
+      this.isMoving = false;
+      this.animDir = 0;
+    }
+    else if (!isPlayer) {
       updateAI(this, delta);
       this.animDir = this.isMoving ? 1 : 0;
     } else {
