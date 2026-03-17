@@ -1,20 +1,39 @@
-import { gAlpacas, gCoins, gCollidable, gEditables, gItems, gScene } from "./globals";
+import { gAlpacas, gCollectables, gCollidables, gEditables, gItems } from "./globals";
 
-export function removeObject(model) {
-  const alpacaIndex = gAlpacas.findIndex(alpaca => alpaca.model === model);
-  if (alpacaIndex > -1) gAlpacas.splice(alpacaIndex, 1);
+export function removeObject(entity) {
+  const classInstance = entity;
+  const model = entity.model ? entity.model : entity;
 
-  const itemIndex = gItems.indexOf(model);
-  if (itemIndex > -1) gItems.splice(itemIndex, 1);
+  removeFromRegistry(classInstance, gAlpacas);
+  removeFromRegistry(classInstance, gItems);
+  removeFromRegistry(classInstance, gCollectables);
 
-  const editIndex = gEditables.indexOf(model);
-  if (editIndex > -1) gEditables.splice(editIndex, 1);
+  removeFromRegistry(model, gCollidables);
+  removeFromRegistry(model, gEditables);
 
-  const colliderIndex = gCollidable.indexOf(model);
-  if (colliderIndex > -1) gCollidable.splice(colliderIndex, 1);
+  if (model && model.parent) {
+    console.log("removing entity");
+    model.removeFromParent()
+    removeMatsAndGeo(model);
+  }
+}
 
-  const coinIndex = gCoins.indexOf(model)
-  if (coinIndex > -1) gCoins.splice(coinIndex, 1);
+function removeFromRegistry(item, array) {
+  const index = array.indexOf(item);
+  if (index > -1) {
+    array.splice(index, 1);
+  }
+}
 
-  gScene.value.remove(model);
+function removeMatsAndGeo(model) {
+  model.traverse((child) => {
+    if (child.isMesh) {
+      child.geometry.dispose();
+      if (child.material.isMaterial) {
+        child.material.dispose();
+      } else if (Array.isArray(child.material)) {
+        child.material.forEach(mat => mat.dispose());
+      }
+    }
+  });
 }

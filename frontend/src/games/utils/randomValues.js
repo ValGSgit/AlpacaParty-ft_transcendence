@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { CONST } from '../config/constants.js';
-import { gScene } from '../core/globals.js';
 
 export function getRandomPos() {
   const angle = getRandomRot();
@@ -35,16 +34,4 @@ export function getRandomScale() {
 
 export function getRandomTimer() {
   return 2 + Math.random() * 5;
-}
-
-export const spawnAtRandom = (model) => {
-  const pos = getRandomPos();
-
-  model.position.copy(pos);
-  model.rotation.y = getRandomRot();
-
-  const scale = getRandomPos();
-  model.scale.multiplyScalar(scale);
-
-  gScene.value.add(model);
 }

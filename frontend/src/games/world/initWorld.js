@@ -1,10 +1,7 @@
 import * as THREE from 'three'
 import { createAlpaca, createItem } from '../core/createObjects.js'
-import { gCollidable, gPlayer } from '../core/globals.js'
-import { getModel } from '../core/modelCache.js'
-import { attachCollider } from '../core/useCollider.js'
-import { usePhysics } from '../core/usePhysics.js'
-import { getRandomPos, getRandomRot, getRandomScale } from '../utils/randomValues.js'
+import { gPlayer } from '../core/globals.js'
+import { spawnObjectRandomly } from '../utils/spawnRandomly.js'
 import { loadGameData } from './dataLoader.js'
 import { setupEnvironment } from './sceneBuilder.js'
 
@@ -47,53 +44,22 @@ export async function initAlpacas(scene, user) {
 }
 
 export async function initItems(scene, savedItems) {
-  const itemsGroup = new THREE.Group();
+  let itemsGroup = new THREE.Group();
 
   if (savedItems && savedItems.length > 0) {
-    await initSavedItems(savedItems, itemsGroup);
+    itemsGroup = await initSavedItems(savedItems);
   } else {
-    initRandomTrees(itemsGroup)
+    itemsGroup.add(await spawnObjectRandomly('/models/tree.glb', 5, 'item'))
   }
-
   scene.add(itemsGroup);
 }
 
-async function initSavedItems(savedItems, itemsGroup) {
-
+async function initSavedItems(savedItems) {
+  const loadedItems = new THREE.Group()
   for (const item of savedItems) {
-    const loadedItem = await createItem('/models/tree.glb', item.position, item.rotation, item.scale);
+    const loadedItem = await createItem(item.path, item.position, item.rotation, item.scale);
     loadedItem.name = item.name;
-    itemsGroup.add(loadedItem);
+    loadedItems.add(loadedItem);
   }
-}
-
-async function initRandomTrees(itemsGroup) {
-  const { checkCollisionWith } = usePhysics();
-  const { model } = await getModel('/models/tree.glb');
-  const dummyTree = model.clone();
-  attachCollider(dummyTree);
-
-  const amount = 5;
-  for (let i = 0; i < amount; i++) {
-    let isColliding = true;
-    let attempts = 0;
-    let pos = new THREE.Vector3();
-    let scale = getRandomScale();
-    let rot = getRandomRot();
-    dummyTree.scale.copy(scale);
-    dummyTree.rotation.y = rot;
-
-    while (isColliding && attempts < 100) {
-      pos.copy(getRandomPos());
-      dummyTree.position.copy(pos);
-      dummyTree.updateMatrixWorld(true);
-      isColliding = checkCollisionWith(dummyTree, gCollidable);
-      attempts++;
-    }
-    if (!isColliding) {
-      console.log("add tree")
-      const tree = await createItem('/models/tree.glb', pos.toArray(), rot, scale.toArray());
-      itemsGroup.add(tree.model);
-    }
-  }
+  return loadedItems;
 }

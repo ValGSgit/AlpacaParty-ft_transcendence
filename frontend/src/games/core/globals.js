@@ -22,8 +22,8 @@ export const gEditState = shallowReactive({
 });
 
 export const gAlpacas = []
-export const gCoins = []
-export const gCollidable = []
+export const gCollectables = []
+export const gCollidables = []
 export const gEditables = []
 export const gItems = []
 

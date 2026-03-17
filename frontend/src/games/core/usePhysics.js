@@ -1,7 +1,7 @@
 import { OBB } from 'three/addons/math/OBB.js'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
-import { gCollidable } from './globals.js'
+import { gCollidables } from './globals.js'
 
 const sourceOBB = new OBB()
 const obstacleOBB = new OBB()
@@ -50,7 +50,7 @@ export function usePhysics() {
     if (nextRotY !== undefined) player.rotation.y = nextRotY
     player.updateMatrixWorld(true)
 
-    let hasCollision = checkCollisionWith(player, gCollidable)
+    let hasCollision = checkCollisionWith(player, gCollidables)
     if (hasCollision) {
       player.position.x = oldX
       player.position.z = oldZ

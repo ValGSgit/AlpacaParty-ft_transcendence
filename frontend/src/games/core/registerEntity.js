@@ -1,37 +1,38 @@
-import { gAlpacas, gCoins, gCollidable, gEditables, gItems } from './globals.js';
+import { gAlpacas, gCollectables, gCollidables, gEditables, gItems } from './globals.js';
 
 export function registerEntity(entity, type) {
 
+  const classInstance = entity;
   const model = entity.model ? entity.model : entity;
   model.userData.entityType = type;
 
   switch (type) {
     case 'alpaca':
       model.userData.isEditable = true;
-      gAlpacas.push(entity);
-      gCollidable.push(model);
+      gAlpacas.push(classInstance);
+      gCollidables.push(model);
       gEditables.push(model);
       break;
 
     case 'item':
       model.userData.isEditable = true;
       model.userData.isCollider = true;
-      gItems.push(model);
-      gCollidable.push(model);
+      gItems.push(classInstance);
+      gCollidables.push(model);
       gEditables.push(model);
       break;
 
     case 'decoration':
       model.userData.isEditable = true;
       model.userData.isCollider = false;
-      gItems.push(model);
+      gItems.push(classInstance);
       gEditables.push(model);
       break;
 
-    case 'coin':
+    case 'collectable':
       model.userData.isEditable = false;
       model.userData.isCollider = false;
-      gCoins.push(model);
+      gCollectables.push(classInstance);
       break;
 
     default:

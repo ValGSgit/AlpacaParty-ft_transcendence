@@ -1,6 +1,7 @@
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { markRaw } from 'vue';
 import { Alpaca } from './entities/Alpaca.js';
+import { Collectable } from './entities/Collectable.js';
 import { Item } from './entities/Item.js';
 import { getModel } from './modelCache.js';
 import { registerEntity } from './registerEntity.js';
@@ -36,6 +37,7 @@ export async function createItem(
   const { model, animations } = await getModel(path);
   const clone = SkeletonUtils.clone(model);
   const item = new Item(clone, animations, { position, rotation, scale });
+  item.path = path;
 
   attachCollider(item.model);
   registerEntity(item, 'item');
@@ -53,9 +55,24 @@ export async function createDecoration(
   const { model, animations } = await getModel(path);
   const clone = SkeletonUtils.clone(model);
   const deco = new Item(clone, animations, { position, rotation, scale });
+  deco.path = path;
 
   attachCollider(deco.model);
   registerEntity(deco, 'decoration');
   return markRaw(deco);
 }
 
+export async function createCollectable(
+  path,
+  position = [0, 0, 0],
+  rotation = 0,
+  scale = [1, 1, 1],
+) {
+  const { model, animations } = await getModel(path);
+  const clone = SkeletonUtils.clone(model);
+  const collectable = new Collectable(clone, animations, { position, rotation, scale });
+
+  attachCollider(collectable.model);
+  registerEntity(collectable, 'collectable');
+  return markRaw(collectable);
+}

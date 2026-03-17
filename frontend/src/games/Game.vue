@@ -78,6 +78,7 @@
     <div v-if="gUI.itemShop" class="modal-overlay">
         <div class="shop-title">Select Item
           <button class="shop-btn" @click="buyItem('/models/tree.glb')" title="Tree">🌳</button>
+          <button class="shop-btn" @click="buyItem('/models/coin.glb')" title="Coin">🌳</button>
           <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
         </div>
     </div>
@@ -111,14 +112,16 @@
 import * as THREE from 'three'
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
+import { alpacaHandling } from './components/alpacaHandling.js'
 import { alpacaConfig, alpacaShop } from './components/alpacaShop.js'
 import { alpacaStats } from './components/alpacaStats.js'
+import { spawnCoins } from './components/coins.js'
 import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
 import { itemShop } from './components/itemShop.js'
 import { useShop } from './components/shop.js'
 import { addDebugCoins } from './core/debug.js'
-import { gAlpacas, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
+import { gAlpacas, gCollectables, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
 import { cleanupStats, initStats } from './core/stats.js'
 import { changeCamera, useCamera } from './core/useCamera.js'
@@ -129,7 +132,6 @@ import { watchChanges } from './core/watchChanges.js'
 import './game.css'
 import { initUser } from './user/initUser.js'
 import { initWorld } from './world/initWorld.js'
-import { alpacaHandling } from './components/alpacaHandling.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -198,6 +200,14 @@ const gameLoop = () => {
     alpaca.update(delta);
   }
 
+    if (player && player.model) {
+      for (let i = gCollectables.length - 1; i >= 0; i--) {
+        const coin = gCollectables[i];
+        if (coin.update) coin.update(delta);
+      }
+    }
+
+  spawnCoins(delta);
   updateSpits()
 
   if (gEngine.value?.controls) {
