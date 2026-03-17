@@ -15,6 +15,8 @@ export function alpacaAI() {
     if (ai.timer <= 0) {
       target.copy(getRandomPos());
       ai.state = 'moving';
+      if (!alpaca.isDead)
+        alpaca.spit()
     }
   };
 

@@ -4,9 +4,13 @@ import { CONST } from '../../config/constants.js';
 import { gPlayer, gUI } from '../globals.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
+import { alpacaHandling } from '../../components/alpacaHandling.js'
 
 const { updateAI } = alpacaAI();
 const { updatePlayer } = usePlayerControls();
+const { makeSpit } = alpacaHandling()
+
+const activeSpits = []; // Keep track of projectiles in flight
 
 export class Alpaca {
   constructor(model, animations, options = {}) {
@@ -92,6 +96,10 @@ export class Alpaca {
         updatePlayer(this, delta);
     }
     handleAnimation(this, this.animDir, this.speed);
+  }
+
+  spit() {
+    makeSpit(this)
   }
 
   beingHit() {

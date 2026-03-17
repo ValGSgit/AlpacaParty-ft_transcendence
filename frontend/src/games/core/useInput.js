@@ -3,7 +3,7 @@ import { reactive } from 'vue'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { useEditMode } from '../components/editMode.js'
 import { printDebug } from './debug.js'
-import { gEditState, gEngine, gScene, gUI } from './globals.js'
+import { gEditState, gEngine, gScene, gPlayer, gUI } from './globals.js'
 import { useUIManager } from './useUIManager.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions
@@ -12,7 +12,7 @@ const keys = reactive({
 })
 
 export function useInput() {
-  const { switchAlpaca, setMoveLocation, spit } = alpacaHandling()
+  const { switchAlpaca } = alpacaHandling()
   const { selectItem, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement } = useEditMode()
   const { closeMenus, openAlpacaShop } = useUIManager()
 
@@ -23,7 +23,7 @@ export function useInput() {
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
       case 'Space': keys.space = true; break
-      case 'KeyF': spit(); break
+      case 'KeyF': gPlayer.value.spit(); break
       case 'KeyP': printDebug(); break
       case 'Escape': handleEscapeKey(); break
     }

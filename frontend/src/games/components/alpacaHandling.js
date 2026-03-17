@@ -28,10 +28,10 @@ export function alpacaHandling() {
     return true
   }
 
-  const spit = () => {
-    const origin = new THREE.Vector3().copy(gPlayer.value.model.position);
-    let dx = Math.sin(gPlayer.value.model.rotation.y);
-    let dz = Math.cos(gPlayer.value.model.rotation.y);
+  const makeSpit = (alpaca) => {
+    const origin = new THREE.Vector3().copy(alpaca.model.position);
+    let dx = Math.sin(alpaca.model.rotation.y);
+    let dz = Math.cos(alpaca.model.rotation.y);
     
     // Setup initial position
     origin.y += 5;
@@ -84,7 +84,7 @@ export function alpacaHandling() {
     }
   };
 
-  return { switchAlpaca, spit , updateSpits }
+  return { switchAlpaca, makeSpit , updateSpits }
 }
 
 const createLaserBeam = (origin, direction, length) => {
