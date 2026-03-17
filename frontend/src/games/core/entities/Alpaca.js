@@ -21,6 +21,7 @@ export class Alpaca {
 
     this.model.position.set(...pos);
     this.model.rotation.set(0, rotation, 0);
+    this.model.rotation.reorder('YXZ'); // force calculate the left/right turn (Y) first
     this.model.scale.set(...scale);
     this.model.updateMatrixWorld(true);
 
@@ -44,7 +45,7 @@ export class Alpaca {
       timer: Math.random() * 3
     };
     this.isDead = 0 // 0 == normal, -1 == dying, 1 == dead
-    this.life = 5 // life of Alpaca
+    this.hp = CONST.HP // hp of Alpaca
   }
 
   setColor(color) {
@@ -94,9 +95,14 @@ export class Alpaca {
   }
 
   beingHit() {
-    this.life--
-    if (this.life === 0)
+    this.hp--
+    if (this.hp === 0)
       this.isDead = 1 // dead
+    else if (this.hp < 0)
+    {
+      this.hp = CONST.HP // resurrection
+      this.isDead = 0
+    }
     else
       this.isDead = -1 // dying
   }

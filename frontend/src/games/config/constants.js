@@ -20,6 +20,7 @@ export const CONST = {
   COLLIDER_SIZE: 0.8,
 
   MAX_UPGRADES: 5,
+  HP: 3,
 
   get ALPACA_COST() {
     return gAlpacas.length
