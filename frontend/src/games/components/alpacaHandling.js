@@ -29,6 +29,8 @@ export function alpacaHandling() {
   }
 
   const makeSpit = (alpaca) => {
+    if (alpaca.isDead)
+      return
     const origin = new THREE.Vector3().copy(alpaca.model.position);
     let dx = Math.sin(alpaca.model.rotation.y);
     let dz = Math.cos(alpaca.model.rotation.y);

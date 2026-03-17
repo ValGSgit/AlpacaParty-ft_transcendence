@@ -66,7 +66,7 @@ export function usePlayerControls() {
   }
 
   const updatePlayer = (player, delta) => {
-    if (!player || !player.model) return;
+    if (!player || !player.model || player.isDead) return;
 
     const { model } = player;
     const isJumping = handleJumping(player);
