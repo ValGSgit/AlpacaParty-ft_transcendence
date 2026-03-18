@@ -1,53 +1,55 @@
 /**
- * Notification Model
+ * Notification Model — Prisma data access layer
  * @owner ValGSgit
  */
-import { query } from '../config/database.js';
+import prisma from '../config/prisma.js';
 
 const Notification = {
   async create({ userId, type, title, message, referenceType, referenceId }) {
-    const { rows } = await query(
-      `INSERT INTO notifications (user_id, type, title, message, reference_type, reference_id)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [userId, type, title || '', message, referenceType || null, referenceId || null],
-    );
-    return rows[0];
+    return prisma.notification.create({
+      data: {
+        userId: Number(userId),
+        type,
+        title: title || '',
+        message,
+        referenceType: referenceType || null,
+        referenceId: referenceId ? Number(referenceId) : null,
+      },
+    });
   },
 
   async getForUser(userId, { limit = 30, offset = 0, unreadOnly = false } = {}) {
-    let q = `SELECT * FROM notifications WHERE user_id = $1`;
-    if (unreadOnly) q += ` AND is_read = FALSE`;
-    q += ` ORDER BY created_at DESC LIMIT $2 OFFSET $3`;
-    const { rows } = await query(q, [userId, limit, offset]);
-    return rows;
+    return prisma.notification.findMany({
+      where: { userId: Number(userId), ...(unreadOnly ? { isRead: false } : {}) },
+      orderBy: { createdAt: 'desc' },
+      take: Number(limit),
+      skip: Number(offset),
+    });
   },
 
   async markRead(id, userId) {
-    const { rows } = await query(
-      `UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2 RETURNING *`,
-      [id, userId],
-    );
-    return rows[0];
+    return prisma.notification.updateMany({
+      where: { id: Number(id), userId: Number(userId) },
+      data: { isRead: true },
+    }).then((r) => (r.count > 0 ? prisma.notification.findUnique({ where: { id: Number(id) } }) : null));
   },
 
   async markAllRead(userId) {
-    await query(`UPDATE notifications SET is_read = TRUE WHERE user_id = $1 AND is_read = FALSE`, [userId]);
+    await prisma.notification.updateMany({
+      where: { userId: Number(userId), isRead: false },
+      data: { isRead: true },
+    });
   },
 
   async countUnread(userId) {
-    const { rows } = await query(
-      `SELECT COUNT(*)::int AS total FROM notifications WHERE user_id = $1 AND is_read = FALSE`,
-      [userId],
-    );
-    return rows[0].total;
+    return prisma.notification.count({ where: { userId: Number(userId), isRead: false } });
   },
 
   async delete(id, userId) {
-    const { rowCount } = await query(
-      `DELETE FROM notifications WHERE id = $1 AND user_id = $2`,
-      [id, userId],
-    );
-    return rowCount > 0;
+    const { count } = await prisma.notification.deleteMany({
+      where: { id: Number(id), userId: Number(userId) },
+    });
+    return count > 0;
   },
 };
 

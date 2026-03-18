@@ -1,47 +1,46 @@
 /**
- * DataRequest Model — GDPR data export/delete requests
+ * DataRequest Model — Prisma data access layer (GDPR)
  * @owner ValGSgit
  */
-import { query } from '../config/database.js';
+import prisma from '../config/prisma.js';
 
 const DataRequest = {
   async create({ userId, type }) {
-    const { rows } = await query(
-      `INSERT INTO data_requests (user_id, type) VALUES ($1, $2) RETURNING *`,
-      [userId, type],
-    );
-    return rows[0];
+    return prisma.dataRequest.create({
+      data: { userId: Number(userId), type },
+    });
   },
 
   async findById(id) {
-    const { rows } = await query(`SELECT * FROM data_requests WHERE id = $1`, [id]);
-    return rows[0] || null;
+    return prisma.dataRequest.findUnique({ where: { id: Number(id) } });
   },
 
   async getByUser(userId) {
-    const { rows } = await query(
-      `SELECT * FROM data_requests WHERE user_id = $1 ORDER BY created_at DESC`,
-      [userId],
-    );
-    return rows;
+    return prisma.dataRequest.findMany({
+      where: { userId: Number(userId) },
+      orderBy: { createdAt: 'desc' },
+    });
   },
 
   async updateStatus(id, status, fileUrl = null) {
-    const { rows } = await query(
-      `UPDATE data_requests SET status = $1, file_url = COALESCE($2, file_url),
-              completed_at = CASE WHEN $1 IN ('completed','cancelled') THEN NOW() ELSE NULL END
-       WHERE id = $3 RETURNING *`,
-      [status, fileUrl, id],
-    );
-    return rows[0];
+    const isTerminal = status === 'completed' || status === 'cancelled';
+    return prisma.dataRequest.update({
+      where: { id: Number(id) },
+      data: {
+        status,
+        ...(fileUrl ? { fileUrl } : {}),
+        ...(isTerminal ? { completedAt: new Date() } : { completedAt: null }),
+      },
+    });
   },
 
   async getPending() {
-    const { rows } = await query(
-      `SELECT dr.*, u.username FROM data_requests dr JOIN users u ON u.id = dr.user_id
-       WHERE dr.status IN ('pending', 'processing') ORDER BY dr.created_at`,
-    );
-    return rows;
+    const rows = await prisma.dataRequest.findMany({
+      where: { status: { in: ['pending', 'processing'] } },
+      include: { user: { select: { username: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map((r) => ({ ...r, username: r.user.username, user: undefined }));
   },
 };
 

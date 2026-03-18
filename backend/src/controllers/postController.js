@@ -6,7 +6,7 @@ import Post from '../models/Post.js';
 import NotificationService from '../services/notificationService.js';
 import GamificationService from '../services/gamificationService.js';
 
-/** GET /api/posts — public feed */
+/** GET /api/posts */
 export const getFeed = async (req, res, next) => {
   try {
     const { limit = 20, offset = 0 } = req.query;
@@ -15,7 +15,7 @@ export const getFeed = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-/** GET /api/posts/user/:userId — user's posts */
+/** GET /api/posts/user/:userId */
 export const getUserPosts = async (req, res, next) => {
   try {
     const { limit = 20, offset = 0 } = req.query;
@@ -57,11 +57,12 @@ export const updatePost = async (req, res, next) => {
     if (content !== undefined && (!content?.trim() || content.length > 5000)) {
       return res.status(400).json({ error: { message: 'content must be between 1 and 5000 characters' } });
     }
-    if (normalizedImageUrl !== undefined && normalizedImageUrl !== null && (typeof normalizedImageUrl !== 'string' || normalizedImageUrl.length > 2048)) {
+    if (normalizedImageUrl !== undefined && normalizedImageUrl !== null &&
+        (typeof normalizedImageUrl !== 'string' || normalizedImageUrl.length > 2048)) {
       return res.status(400).json({ error: { message: 'invalid imageUrl' } });
     }
     const post = await Post.update(Number(req.params.id), req.user.id, {
-      content: content?.trim(), image_url: normalizedImageUrl, is_public: isPublic,
+      content: content?.trim(), imageUrl: normalizedImageUrl, isPublic,
     });
     if (!post) return res.status(404).json({ error: { message: 'Post not found or not yours' } });
     res.json({ post });
@@ -72,7 +73,7 @@ export const updatePost = async (req, res, next) => {
 export const deletePost = async (req, res, next) => {
   try {
     const deleted = await Post.delete(Number(req.params.id), req.user.id);
-    if (!deleted && !req.user.is_admin) return res.status(404).json({ error: { message: 'Post not found or not yours' } });
+    if (!deleted && !req.user.isAdmin) return res.status(404).json({ error: { message: 'Post not found or not yours' } });
     res.json({ message: 'Post deleted' });
   } catch (err) { next(err); }
 };
@@ -83,8 +84,8 @@ export const likePost = async (req, res, next) => {
     const post = await Post.findById(Number(req.params.id));
     if (!post) return res.status(404).json({ error: { message: 'Post not found' } });
     await Post.like(post.id, req.user.id);
-    if (post.author_id !== req.user.id) {
-      NotificationService.postLiked(post.author_id, req.user.username, post.id).catch(() => {});
+    if (post.authorId !== req.user.id) {
+      NotificationService.postLiked(post.authorId, req.user.username, post.id).catch(() => {});
     }
     res.json({ message: 'Liked' });
   } catch (err) { next(err); }

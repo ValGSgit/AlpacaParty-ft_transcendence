@@ -58,7 +58,7 @@ export const acceptRequest = async (req, res, next) => {
   try {
     const request = await Friend.acceptRequest(Number(req.params.id), req.user.id);
     if (!request) return res.status(404).json({ error: { message: 'Request not found' } });
-    await NotificationService.friendAccepted(request.sender_id, req.user.username);
+    await NotificationService.friendAccepted(request.senderId, req.user.username);
     await GamificationService.checkSocialAchievements(req.user.id);
     res.json({ request });
   } catch (err) { next(err); }

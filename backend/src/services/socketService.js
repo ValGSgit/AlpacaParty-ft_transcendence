@@ -116,11 +116,11 @@ export function initializeSocket(httpServer, corsOrigins) {
         // Send to receiver's personal room
         io.to(`user:${receiverId}`).emit('dm:message', {
           ...msg,
-          sender_username: user.username,
-          sender_avatar: user.avatar,
+          senderUsername: user.username,
+          senderAvatar: user.avatar,
         });
         // Echo back to sender
-        socket.emit('dm:message', { ...msg, sender_username: user.username, sender_avatar: user.avatar });
+        socket.emit('dm:message', { ...msg, senderUsername: user.username, senderAvatar: user.avatar });
 
         // Notification (non-blocking)
         NotificationService.newMessage(receiverId, user.username).catch(() => {});
@@ -156,8 +156,8 @@ export function initializeSocket(httpServer, corsOrigins) {
         const msg = await ChatRoom.sendMessage({ roomId, senderId: user.id, content: content.trim() });
         io.to(`room:${roomId}`).emit('room:message', {
           ...msg,
-          sender_username: user.username,
-          sender_avatar: user.avatar,
+          senderUsername: user.username,
+          senderAvatar: user.avatar,
         });
         ack?.({ ok: true, messageId: msg.id });
       } catch (err) {
@@ -189,7 +189,7 @@ export function initializeSocket(httpServer, corsOrigins) {
     // ── Game: state sync (authoritative server relay) ──
     socket.on('game:state', async ({ gameId, state }) => {
       const game = await Game.findById(gameId);
-      if (!game || ![game.player1_id, game.player2_id].includes(user.id)) return;
+      if (!game || ![game.player1Id, game.player2Id].includes(user.id)) return;
       socket.to(`game:${gameId}`).emit('game:state', { from: user.id, state });
     });
 
@@ -201,25 +201,25 @@ export function initializeSocket(httpServer, corsOrigins) {
         const finished = await Game.finishGame(gameId, { winnerId, player1Score, player2Score });
 
         // Determine results for both players
-        const p1Result = winnerId === game.player1_id ? 'win' : winnerId === game.player2_id ? 'loss' : 'draw';
+        const p1Result = winnerId === game.player1Id ? 'win' : winnerId === game.player2Id ? 'loss' : 'draw';
         const p2Result = p1Result === 'win' ? 'loss' : p1Result === 'loss' ? 'win' : 'draw';
 
         // Update stats & award XP
-        if (game.player2_id) {
+        if (game.player2Id) {
           const [p1Stats, p2Stats] = await Promise.all([
-            Game.getStats(game.player1_id, game.game_type),
-            Game.getStats(game.player2_id, game.game_type),
+            Game.getStats(game.player1Id, game.gameType),
+            Game.getStats(game.player2Id, game.gameType),
           ]);
           const newP1Elo = calcElo(p1Stats.elo, p2Stats.elo, p1Result);
           const newP2Elo = calcElo(p2Stats.elo, p1Stats.elo, p2Result);
 
           await Promise.all([
-            Game.updateStats(game.player1_id, game.game_type, p1Result),
-            Game.updateStats(game.player2_id, game.game_type, p2Result),
-            Game.updateElo(game.player1_id, game.game_type, newP1Elo),
-            Game.updateElo(game.player2_id, game.game_type, newP2Elo),
-            GamificationService.processGameEnd(game.player1_id, p1Result, game.game_type),
-            GamificationService.processGameEnd(game.player2_id, p2Result, game.game_type),
+            Game.updateStats(game.player1Id, game.gameType, p1Result),
+            Game.updateStats(game.player2Id, game.gameType, p2Result),
+            Game.updateElo(game.player1Id, game.gameType, newP1Elo),
+            Game.updateElo(game.player2Id, game.gameType, newP2Elo),
+            GamificationService.processGameEnd(game.player1Id, p1Result, game.gameType),
+            GamificationService.processGameEnd(game.player2Id, p2Result, game.gameType),
           ]);
         }
 
@@ -234,12 +234,12 @@ export function initializeSocket(httpServer, corsOrigins) {
       try {
         const game = await Game.findById(gameId);
         if (!game) return ack?.({ error: 'Game not found' });
-        const opponent = game.player1_id === user.id ? game.player2_id : game.player1_id;
+        const opponent = game.player1Id === user.id ? game.player2Id : game.player1Id;
         if (opponent) {
           await Game.finishGame(gameId, {
             winnerId: opponent,
-            player1Score: game.player1_score,
-            player2Score: game.player2_score,
+            player1Score: game.player1Score,
+            player2Score: game.player2Score,
           });
           io.to(`game:${gameId}`).emit('game:finished', { reason: 'forfeit', forfeiter: user.id });
         } else {

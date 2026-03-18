@@ -25,8 +25,8 @@ const toPublicUser = (user, anonymize = false) => ({
   status: anonymize ? 'Anonymized' : user.status,
   level: user.level,
   xp: user.xp,
-  is_online: user.is_online,
-  created_at: user.created_at,
+  isOnline: user.isOnline,
+  createdAt: user.createdAt,
 });
 
 /** GET /api/public/users?search=&limit=20&offset=0 */
@@ -41,7 +41,7 @@ export const listUsers = async (req, res, next) => {
       users = await User.findAll({ limit: Number(limit), offset: Number(offset) });
     }
     // Strip private profiles and remove sensitive fields.
-    res.json({ users: users.filter((u) => u.is_public).map((u) => toPublicUser(u, anonymize)) });
+    res.json({ users: users.filter((u) => u.isPublic).map((u) => toPublicUser(u, anonymize)) });
   } catch (err) { next(err); }
 };
 
@@ -50,7 +50,7 @@ export const getUser = async (req, res, next) => {
   try {
     const anonymize = ['1', 'true', 'yes'].includes(String(req.query.anonymized || '').toLowerCase());
     const user = await User.findById(Number(req.params.id));
-    if (!user || !user.is_public) return res.status(404).json({ error: { message: 'User not found' } });
+    if (!user || !user.isPublic) return res.status(404).json({ error: { message: 'User not found' } });
     res.json({ user: toPublicUser(user, anonymize) });
   } catch (err) { next(err); }
 };
@@ -63,7 +63,7 @@ export const getLeaderboard = async (req, res, next) => {
     const leaderboard = await Game.getLeaderboard(gameType, { limit: Number(limit), offset: Number(offset), publicOnly: true });
     const shaped = leaderboard.map((row) => ({
       ...row,
-      username: anonymize ? anonymizeName(row.user_id) : row.username,
+      username: anonymize ? anonymizeName(row.userId) : row.username,
       avatar: anonymize ? maskAvatar : row.avatar,
     }));
     res.json({ leaderboard: shaped });
@@ -78,8 +78,8 @@ export const getPosts = async (req, res, next) => {
     const posts = await Post.getFeed({ limit: Number(limit), offset: Number(offset) });
     const shaped = posts.map((p) => ({
       ...p,
-      author_username: anonymize ? anonymizeName(p.author_id) : p.author_username,
-      author_avatar: anonymize ? maskAvatar : p.author_avatar,
+      authorUsername: anonymize ? anonymizeName(p.authorId) : p.authorUsername,
+      authorAvatar: anonymize ? maskAvatar : p.authorAvatar,
       content: anonymize ? '[anonymized post content]' : p.content,
     }));
     res.json({ posts: shaped });
@@ -112,10 +112,10 @@ export const getMockDataset = async (req, res, next) => {
     ]);
 
     res.json({
-      users: users.filter((u) => u.is_public).map((u) => toPublicUser(u, true)),
+      users: users.filter((u) => u.isPublic).map((u) => toPublicUser(u, true)),
       leaderboard: leaderboard.map((row) => ({
-        user_id: row.user_id,
-        username: anonymizeName(row.user_id),
+        userId: row.userId,
+        username: anonymizeName(row.userId),
         avatar: maskAvatar,
         elo: row.elo,
         wins: row.wins,
@@ -124,12 +124,12 @@ export const getMockDataset = async (req, res, next) => {
       })),
       posts: posts.map((p) => ({
         id: p.id,
-        author_id: p.author_id,
-        author_username: anonymizeName(p.author_id),
-        author_avatar: maskAvatar,
+        authorId: p.authorId,
+        authorUsername: anonymizeName(p.authorId),
+        authorAvatar: maskAvatar,
         content: '[anonymized post content]',
-        created_at: p.created_at,
-        likes_count: p.likes_count,
+        createdAt: p.createdAt,
+        likesCount: p.likesCount,
       })),
       organizations: organizations.map((org) => ({
         id: org.id,
