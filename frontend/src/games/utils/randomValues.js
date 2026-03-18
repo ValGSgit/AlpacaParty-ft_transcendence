@@ -25,7 +25,7 @@ export function getRandomRot() {
 
 export function getRandomScale() {
   const base = 1.0;
-  const offset = 0.2;
+  const offset = 0.25;
   const lower = base - offset;
   const upper = base + offset;
   const scale = Math.random() * (upper - lower) + lower;

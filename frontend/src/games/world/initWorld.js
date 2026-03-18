@@ -50,6 +50,12 @@ export async function initItems(scene, savedItems) {
     itemsGroup = await initSavedItems(savedItems);
   } else {
     itemsGroup.add(await spawnObjectRandomly('/models/tree.glb', 5, 'item'))
+    itemsGroup.add(await spawnObjectRandomly('/models/grass.glb', 30, 'decoration'))
+    itemsGroup.add(await spawnObjectRandomly('/models/stones.glb', 4, 'decoration'))
+    itemsGroup.add(await spawnObjectRandomly('/models/wheat.glb', 5, 'decoration'))
+    itemsGroup.add(await spawnObjectRandomly('/models/barrel.glb', 1, 'item'))
+    itemsGroup.add(await spawnObjectRandomly('/models/fence.glb', 1, 'item'))
+    itemsGroup.add(await spawnObjectRandomly('/models/fence_end.glb', 1, 'item'))
   }
   scene.add(itemsGroup);
 }
