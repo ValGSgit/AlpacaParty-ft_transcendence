@@ -14,7 +14,7 @@
       <form @submit.prevent="saveProfile" class="settings-form">
         <div class="form-row">
           <label>Username</label>
-          <input v-model="profileForm.username" type="text" autocomplete="username" />
+          <input v-model="profileForm.username" type="text" autocomplete="username" maxlength="32" />
         </div>
         <div class="form-row">
           <label>Email</label>
@@ -22,11 +22,13 @@
         </div>
         <div class="form-row">
           <label>Bio</label>
-          <textarea v-model="profileForm.bio" rows="3" placeholder="Tell us about yourself…"></textarea>
+          <textarea v-model="profileForm.bio" rows="3" placeholder="Tell us about yourself…" maxlength="500"></textarea>
+          <small class="field-hint">{{ (profileForm.bio || '').length }}/500</small>
         </div>
         <div class="form-row">
           <label>Status</label>
-          <input v-model="profileForm.status" type="text" placeholder="What are you up to?" />
+          <input v-model="profileForm.status" type="text" placeholder="What are you up to?" maxlength="200" />
+          <small class="field-hint">{{ (profileForm.status || '').length }}/200</small>
         </div>
         <div class="form-row">
           <label>Avatar</label>
@@ -231,10 +233,12 @@ async function confirmDelete() {
   if (!window.confirm('Are you sure? This will permanently delete your account.')) return
   requestingData.value = true
   try {
-    await api.post('/users/me/delete-request')
-    flash('Delete request submitted. Account deletion will be processed by an admin.')
+    await api.delete('/users/me')
+    await authStore.logout()
+    flash('Account deleted.')
+    await router.push('/login')
   } catch (e) {
-    flash(e.response?.data?.error?.message || 'Failed to request deletion.', 'error')
+    flash(e.response?.data?.error?.message || 'Failed to delete account.', 'error')
   } finally {
     requestingData.value = false
   }

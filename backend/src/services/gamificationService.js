@@ -42,7 +42,7 @@ const GamificationService = {
   async tryUnlock(userId, achievementKey) {
     const result = await Achievement.unlock(userId, achievementKey);
     if (result) {
-      const xp = result.achievement.xp_reward || 0;
+      const xp = result.achievement.xpReward || 0;
       if (xp > 0) await User.addXp(userId, xp);
       await NotificationService.achievementUnlocked(userId, result.achievement.name);
     }

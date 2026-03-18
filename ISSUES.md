@@ -1,6 +1,6 @@
 # AlpacaParty - Issues & Project Management
 
-**Last Updated**: March 13, 2026  
+**Last Updated**: March 18, 2026
 **Product Owner**: ValGSgit  
 **Status**: Active Development (23 Module Points - 9 Points Above Requirement)
 
@@ -32,19 +32,22 @@
 | `/controllers/userController.js` | **ValGSgit** | DavidPoetsch |
 | `/controllers/publicApiController.js` | **ValGSgit** | - |
 | `/controllers/adminController.js` | **ValGSgit** | - |
-| `/controllers/chatController.js` | **LukasStefanek** | ValGSgit |
+| `/controllers/chatController.js` | **ValGSgit** | DavidPoetsch |
 | `/controllers/friendController.js` | **ValGSgit** | - |
 | `/controllers/notificationController.js` | **ValGSgit** | - |
 | `/controllers/organizationController.js` | **ValGSgit** | - |
-| `/controllers/postController.js` | **fankahou** | ValGSgit |
-| `/controllers/gameController.js` | **LukasStefanek** | DavidPoetsch |
+| `/controllers/postController.js` | **ValGSgit** | DavidPoetsch |
+| `/controllers/gameController.js` | **DavidPoetsch** | ValGSgit |
 | `/controllers/uploadController.js` | **DavidPoetsch** | ValGSgit |
 | `/controllers/helpController.js` | **ValGSgit** | - |
 | `/models/` | **DavidPoetsch** | ValGSgit |
+| `/config/prisma.js` | **DavidPoetsch** | ValGSgit |
+| `/config/vault.js` | **ValGSgit** | DavidPoetsch |
+| `/utils/` | **ValGSgit** | DavidPoetsch |
 | `/services/authService.js` | **ValGSgit** | DavidPoetsch |
 | `/services/gamificationService.js` | **ValGSgit** | - |
-| `/services/notificationService.js` | **ValGSgit** | LukasStefanek |
-| `/services/socketService.js` | **LukasStefanek** | ValGSgit |
+| `/services/notificationService.js` | **ValGSgit** | DavidPoetsch |
+| `/services/socketService.js` | **ValGSgit** | DavidPoetsch |
 | `/services/uploadService.js` | **DavidPoetsch** | - |
 | `/services/dataExportService.js` | **ValGSgit** | - |
 | `/services/oauthService.js` | **ValGSgit** | - |
@@ -55,18 +58,33 @@
 | Directory | Owner | Backup |
 |-----------|-------|--------|
 | `/components/` | **fankahou** | LukasStefanek |
-| `/views/Home.vue` | **fankahou** | - |
+| `/views/Home.vue` | **fankahou** | LukasStefanek |
 | `/views/Login.vue` | **LukasStefanek** | fankahou |
 | `/views/Register.vue` | **LukasStefanek** | fankahou |
-| `/views/Profile.vue` | **fankahou** | ValGSgit |
-| `/views/Messages.vue` | **LukasStefanek** | - |
+| `/views/Profile.vue` | **fankahou** | LukasStefanek |
+| `/views/UserProfile.vue` | **fankahou** | LukasStefanek |
+| `/views/Messages.vue` | **LukasStefanek** | fankahou |
 | `/views/Friends.vue` | **fankahou** | LukasStefanek |
-| `/views/Feed.vue` | **fankahou** | ValGSgit |
-| `/views/AdminDashboard.vue` | **ValGSgit** | fankahou |
-| `/views/Settings.vue` | **fankahou** | ValGSgit |
+| `/views/Feed.vue` | **fankahou** | LukasStefanek |
+| `/views/Admin.vue` | **fankahou** | LukasStefanek |
+| `/views/SecurityDashboard.vue` | **fankahou** | LukasStefanek |
+| `/views/Settings.vue` | **fankahou** | LukasStefanek |
+| `/views/Game.vue` | **LukasStefanek** | fankahou |
 | `/views/Organizations.vue` | **fankahou** | LukasStefanek |
-| `/views/ChatRooms.vue` | **LukasStefanek** | fankahou |
+| `/views/Help.vue` | **fankahou** | LukasStefanek |
+| `/views/ApiTest.vue` | **fankahou** | LukasStefanek |
+| `/views/PublicShowcase.vue` | **fankahou** | LukasStefanek |
+| `/views/OAuthCallback.vue` | **LukasStefanek** | fankahou |
+| `/views/PrivacyPolicy.vue` | **fankahou** | LukasStefanek |
+| `/views/TermsOfService.vue` | **fankahou** | LukasStefanek |
+| `/views/NotFound.vue` | **LukasStefanek** | fankahou |
 | `/games/` (3D Game) | **LukasStefanek** | fankahou |
+| `/games/core/` | **LukasStefanek** | fankahou |
+| `/games/world/` | **fankahou** | LukasStefanek |
+| `/games/user/` | **LukasStefanek** | fankahou |
+| `/games/components/` | **fankahou** | LukasStefanek |
+| `/games/utils/` | **LukasStefanek** | fankahou |
+| `/games/config/` | **fankahou** | LukasStefanek |
 | `/router/` | **fankahou** | LukasStefanek |
 | `/stores/` | **fankahou** | LukasStefanek |
 | `/services/` | **LukasStefanek** | fankahou |
@@ -76,13 +94,19 @@
 
 | File/Folder | Owner | Backup |
 |-------------|-------|--------|
-| `/Dockerfile` (both) | **DavidPoetsch** | ValGSgit |
-| `/nginx/nginx.conf` | **DavidPoetsch** | - |
-| `/nginx/nginx.prod.conf` | **DavidPoetsch** | - |
+| `/backend/Dockerfile` | **DavidPoetsch** | ValGSgit |
+| `/backend/Dockerfile.prod` | **DavidPoetsch** | ValGSgit |
+| `/frontend/Dockerfile` | **fankahou** | LukasStefanek |
+| `/frontend/Dockerfile.prod` | **fankahou** | LukasStefanek |
+| `/nginx/` | **DavidPoetsch** | ValGSgit |
+| `/vault/` | **ValGSgit** | DavidPoetsch |
+| `/scripts/` | **ValGSgit** | DavidPoetsch |
 | `/docker-compose.yml` | **ValGSgit** | DavidPoetsch |
 | `/docker-compose.prod.yml` | **ValGSgit** | DavidPoetsch |
 | `/Makefile` | **ValGSgit** | DavidPoetsch |
 | `/PostgreSQL/init.sql` | **DavidPoetsch** | ValGSgit |
+| `/shared/` | **ValGSgit** | DavidPoetsch |
+| `/e2e/` | **ValGSgit** | DavidPoetsch |
 
 ---
 
@@ -93,9 +117,34 @@
 | Status | Count | Target Completion |
 |--------|-------|---|
 | ✅ **COMPLETED** | 19 | - |
-| 🔄 **IN PROGRESS** | 2 | Next Sprint |
+| 🔄 **IN PROGRESS** | 4 | Sprint 5 |
 | 📋 **TODO** | 5 | Backlog |
-| **TOTAL** | **26** | - |
+| **TOTAL** | **28** | - |
+
+### Requested Status Snapshot (March 16, 2026)
+
+| Feature | Issue | Owner(s) | Current Status | Notes |
+|---|---|---|---|---|
+| Real-time WebSockets (Socket.io) | #12 | ValGSgit | ✅ Done | Socket.IO is integrated and used by chat/notifications/game flows |
+| Socket Events | #13 | ValGSgit, LukasStefanek | ✅ Done | Event handlers and room flows are implemented |
+| Advanced 3D Graphics | #15 | fankahou, LukasStefanek | ✅ Done | Three.js rendering and gameplay visuals are in place |
+| Remote Players | - | - | 📋 Todo | Multiplayer robustness still tracked under game roadmap |
+| Profile System | #1 | fankahou, LukasStefanek | ✅ Done | Profile read/update and avatar support available |
+| Friends System | #2 | ValGSgit | ✅ Done | Requests/accept/decline/list implemented |
+| Organization System (Groups/Chatrooms CRUD) | #6 | ValGSgit | ✅ Done | Organization CRUD and member roles implemented |
+| Feed System | #5 | fankahou | ✅ Done | Post feed with create/read interactions is implemented |
+| Design System with reusable components | #25 | fankahou | 📋 Todo | Planned in backlog |
+| File Upload/Download (Import/Export) | #9 | DavidPoetsch | ✅ Done | Upload flow is implemented; export paths exist in GDPR/public APIs |
+| Game statistics & Match History | #20 | DavidPoetsch | ✅ Done | Stats and leaderboard data model/endpoints exist |
+| Game Customization | - | - | 📋 Todo | Not fully shipped as a standalone tracked milestone |
+| Gamification/Reward/Achievement System | #19 | ValGSgit | ✅ Done | XP/achievements/challenges foundations are implemented |
+| User Analytics Dashboard | #18 | DavidPoetsch, ValGSgit | 📋 Todo | Dashboard still open |
+| GDPR Compliance | #17 | ValGSgit | ✅ Done | Export/delete request flows implemented |
+| Multi-Browser Support | #29 | fankahou | 📋 Todo | Still pending dedicated testing pass |
+| Configure PostgreSQL connection pooling | #7 | DavidPoetsch, ValGSgit | 🔄 In Progress | Active optimization work |
+| Postgre tables | #10 | DavidPoetsch, ValGSgit | 🔄 In Progress | Schema/index refinement ongoing |
+| API Endpoints auth/* users/* friends/* chat/* games/* v1/*/* | #9 | ValGSgit | 🔄 In Progress | Core endpoints exist; ongoing expansion/consistency work |
+| Game Core | #14 | fankahou, LukasStefanek | 🔄 In Progress | Playable core exists; remaining enhancements in progress |
 
 ---
 
@@ -152,12 +201,14 @@
 
 ---
 
-## 🔄 IN PROGRESS (2)
+## 🔄 IN PROGRESS (4)
 
 | # | Issue | Description | Owner | Target Sprint | Blockers |
 |---|-------|-------------|-------|---|---|
 | **#7** | PostgreSQL Connection Pooling | Implement connection pool with pgBouncer, optimize for prod | DavidPoetsch | Sprint 5 | Performance testing pending |
 | **#11** | Audit & Performance Optimization | Review all endpoints, add indexes, optimize slow queries | DavidPoetsch | Sprint 5 | Code review in progress |
+| **#30** | ORM Migration (Prisma) | Refactor raw SQL queries to Prisma ORM for type safety and maintainability | DavidPoetsch, ValGSgit | Sprint 5 | Active — `feat/vaultAndPrismaRework` branch |
+| **#31** | Security Hardening (Vault + WAF) | HashiCorp Vault for secret management, ModSecurity WAF integration | ValGSgit, DavidPoetsch | Sprint 5 | Active — nginx WAF config, vault init in progress |
 
 ---
 
@@ -190,7 +241,6 @@
 | # | Issue | Description | Owner | Est. Points | Impact | Notes |
 |---|-------|-------------|-------|---|---|
 | **#29** | Multi-Browser Support Testing | Full testing on Firefox, Safari, Edge, mobile browsers | fankahou | 1 | MED | Accessibility audit needed |
-| **#30** | ORM Migration | Refactor SQL queries to Prisma or Sequelize for safety | DavidPoetsch | 3 | HIGH | Large refactor, high priority if increasing team |
 
 ---
 
@@ -199,13 +249,15 @@
 ```
 HIGH IMPACT, URGENT        │ LOW IMPACT, URGENT
 ─────────────────────────  ─────────────────────────
-#7 (Pooling)              │ #29 (Multi-browser)
+#7  (Pooling)             │ #29 (Multi-browser)
 #11 (Optimization)        │ #25 (Design System)
+#30 (Prisma ORM) 🔄       │
+#31 (Vault + WAF) 🔄      │
                           │
 ─────────────────────────  ─────────────────────────
 HIGH IMPACT, NOT URGENT    │ LOW IMPACT, NOT URGENT
 ─────────────────────────  ─────────────────────────
-#26 (3+ Players)          │ #30 (ORM)
+#26 (3+ Players)          │
 #27 (2nd Game)            │
 #28 (Analytics)           │
 ```
@@ -227,10 +279,10 @@ HIGH IMPACT, NOT URGENT    │ LOW IMPACT, NOT URGENT
 
 | Owner | Files Assigned | Primary Focus |
 |---|---|---|
-| **ValGSgit** | 15 backend + 1 frontend | Auth, APIs, Gamification, Infrastructure |
-| **DavidPoetsch** | 8 backend + nginx | Database, Services, Deployment |
-| **fankahou** | 9 frontend + CSS | UI/UX, Frontend Views, Design |
-| **LukasStefanek** | 8 frontend + 3D game | Messages, Game Logic, Real-time |
+| **ValGSgit** | 15+ backend files, vault, infra | Auth, APIs, Gamification, Infrastructure, Secret Management |
+| **DavidPoetsch** | 8 backend + nginx | Database, Prisma ORM, Services, Deployment |
+| **fankahou** | 20+ frontend views + components + CSS | UI/UX, Frontend Views, Design, Game World |
+| **LukasStefanek** | 10+ frontend views + 3D game core | Messages, Game Core Logic, Real-time, Camera |
 
 ---
 
@@ -254,6 +306,8 @@ HIGH IMPACT, NOT URGENT    │ LOW IMPACT, NOT URGENT
 ### v1.1 (Next Release)
 - #7 PostgreSQL pooling
 - #11 Query optimization
+- #30 Prisma ORM migration
+- #31 Vault + WAF hardening
 - #24 Advanced search
 
 ### v2.0 (Future Roadmap)
@@ -289,4 +343,5 @@ HIGH IMPACT, NOT URGENT    │ LOW IMPACT, NOT URGENT
 | Date | Author | Changes |
 |------|--------|---------|
 | 2024-03-13 | ValGSgit (PO) | Created initial ISSUES.md with file ownership, status tracking, and backlog |
+| 2026-03-18 | ValGSgit (PO) | Corrected ownership separation: backend (ValGSgit, DavidPoetsch) / frontend (fankahou, LukasStefanek). Added new files: vault.js, prisma.js, utils/, 10+ new frontend views, games sub-dirs, vault/, scripts/, shared/. Moved #30 ORM Migration and added #31 Vault+WAF to In Progress. Created .github/CODEOWNERS. |
 

@@ -14,6 +14,7 @@ import routes from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { initializeSocket } from './services/socketService.js';
 import { initializePassport } from './services/oauthService.js';
+import prisma from './config/prisma.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -96,8 +97,23 @@ initializeSocket(httpServer, config.cors.origins);
 
 // Start server
 const PORT = config.port;
-httpServer.listen(PORT, () => {
+const server = httpServer.listen(PORT, () => {
   console.log(`[server] AlpacaParty API running on port ${PORT} (${config.nodeEnv})`);
 });
+
+const shutdown = async (signal) => {
+  console.log(`[server] ${signal} received, shutting down gracefully...`);
+  server.close(async () => {
+    try {
+      await prisma.$disconnect();
+    } catch (err) {
+      console.error('[prisma] disconnect error:', err.message);
+    }
+    process.exit(0);
+  });
+};
+
+process.on('SIGINT', () => { shutdown('SIGINT'); });
+process.on('SIGTERM', () => { shutdown('SIGTERM'); });
 
 export default app;

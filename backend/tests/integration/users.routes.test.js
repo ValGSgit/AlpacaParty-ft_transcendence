@@ -20,6 +20,7 @@ let request;
 let validToken;
 
 const authUser = { id: 1, username: 'authed', email: 'a@b.com', avatar: '/avatars/default.svg', bio: '', status: 'online', is_online: true, is_admin: false };
+const adminUser = { ...authUser, id: 99, username: 'admin', email: 'admin@test.com', is_admin: true };
 
 beforeEach(async () => {
   mockQuery.mockReset();
@@ -31,6 +32,10 @@ beforeEach(async () => {
 /** Helper: mock the authenticate middleware's findById call */
 function mockAuth() {
   mockQuery.mockResolvedValueOnce({ rows: [authUser] });
+}
+
+function mockAdminAuth() {
+  mockQuery.mockResolvedValueOnce({ rows: [adminUser] });
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -48,6 +53,34 @@ describe('GET /api/users/me', () => {
   test('401 — without token', async () => {
     const res = await request.get('/api/users/me');
     expect(res.status).toBe(401);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────
+// DELETE /api/users/me
+// ────────────────────────────────────────────────────────────────
+describe('DELETE /api/users/me', () => {
+  test('200 — deletes authenticated user account', async () => {
+    mockAuth();
+    mockQuery.mockResolvedValueOnce({ rowCount: 1 });
+
+    const res = await request
+      .delete('/api/users/me')
+      .set('Authorization', `Bearer ${validToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.logout).toBe(true);
+  });
+
+  test('404 — returns not found when user is already deleted', async () => {
+    mockAuth();
+    mockQuery.mockResolvedValueOnce({ rowCount: 0 });
+
+    const res = await request
+      .delete('/api/users/me')
+      .set('Authorization', `Bearer ${validToken}`);
+
+    expect(res.status).toBe(404);
   });
 });
 
@@ -216,6 +249,38 @@ describe('GET /api/users/:id', () => {
 
     const res = await request.get('/api/users/999').set('Authorization', `Bearer ${validToken}`);
     expect(res.status).toBe(404);
+  });
+
+  test('403 — private profile blocked for non-friends', async () => {
+    mockAuth();
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: 2, username: 'private', is_public: false }] });
+    mockQuery.mockResolvedValueOnce({ rows: [] }); // Friend.areFriends
+
+    const res = await request.get('/api/users/2').set('Authorization', `Bearer ${validToken}`);
+    expect(res.status).toBe(403);
+  });
+
+  test('200 — private profile visible to friends (email redacted)', async () => {
+    mockAuth();
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 2, username: 'private', email: 'private@test.com', is_public: false, avatar: '/a.png', bio: 'x', status: 's', is_online: false, xp: 10, level: 1, last_seen: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }],
+    });
+    mockQuery.mockResolvedValueOnce({ rows: [{ '?column?': 1 }] }); // Friend.areFriends
+
+    const res = await request.get('/api/users/2').set('Authorization', `Bearer ${validToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.user.email).toBeUndefined();
+    expect(res.body.user.username).toBe('private');
+  });
+
+  test('200 — private profile visible to admins', async () => {
+    const adminToken = AuthService.generateAccessToken({ id: 99, username: 'admin', is_admin: true });
+    mockAdminAuth();
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: 2, username: 'private', email: 'private@test.com', is_public: false }] });
+
+    const res = await request.get('/api/users/2').set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.user.email).toBe('private@test.com');
   });
 });
 

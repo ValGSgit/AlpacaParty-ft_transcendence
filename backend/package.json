@@ -2,34 +2,41 @@
   "name": "alpacaparty-backend",
   "version": "0.1.0",
   "description": "AlpacaParty Express.js backend",
-  "main": "src/index.js",
+  "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "node --watch src/index.js",
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
   },
   "keywords": ["alpacaparty", "backend", "express", "postgresql"],
   "license": "MIT",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.4.2",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.0",
     "helmet": "^8.0.0",
+    "@huggingface/inference": "^4.8.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.0",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.13.0",
+    "@prisma/client": "^7.4.2",
     "socket.io": "^4.8.0"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",
     "jest": "^30.0.0",
+    "prisma": "^7.4.2",
     "supertest": "^7.0.0"
   }
 }

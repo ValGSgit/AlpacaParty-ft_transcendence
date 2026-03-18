@@ -4,9 +4,8 @@
  */
 import Message from '../models/Message.js';
 import ChatRoom from '../models/ChatRoom.js';
-import User from '../models/User.js';
 
-// ── Direct Messages ─────────────────────────────────────────
+// ── Direct Messages ──────────────────────────────────────────────────────────
 
 /** GET /api/chat/conversations */
 export const listConversations = async (req, res, next) => {
@@ -36,7 +35,7 @@ export const getUnreadCount = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// ── Group Rooms ─────────────────────────────────────────────
+// ── Group Rooms ───────────────────────────────────────────────────────────────
 
 /** GET /api/chat/rooms */
 export const listRooms = async (req, res, next) => {
@@ -93,7 +92,7 @@ export const deleteRoom = async (req, res, next) => {
   try {
     const room = await ChatRoom.findById(Number(req.params.id));
     if (!room) return res.status(404).json({ error: { message: 'Room not found' } });
-    if (room.owner_id !== req.user.id && !req.user.is_admin) {
+    if (room.ownerId !== req.user.id && !req.user.isAdmin) {
       return res.status(403).json({ error: { message: 'Not the room owner' } });
     }
     await ChatRoom.delete(room.id);

@@ -29,7 +29,7 @@ const AuthService = {
    */
   generateAccessToken(user) {
     return jwt.sign(
-      { id: user.id, username: user.username, is_admin: user.is_admin },
+      { id: user.id, username: user.username, isAdmin: user.isAdmin },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn },
     );

@@ -43,6 +43,7 @@ export const createOrg = async (req, res, next) => {
     if (name.length > 100) return res.status(400).json({ error: { message: 'Organization name must be 100 characters or fewer' } });
     if (description && description.length > 2000) return res.status(400).json({ error: { message: 'Description must be 2000 characters or fewer' } });
     if (avatar && (typeof avatar !== 'string' || avatar.length > 2048)) return res.status(400).json({ error: { message: 'Invalid avatar URL' } });
+
     const org = await Organization.create({ name: name.trim(), description: description?.trim() || null, ownerId: req.user.id, avatar: avatar || null });
     await GamificationService.checkOrgAchievements(req.user.id);
     res.status(201).json({ organization: org });
@@ -76,7 +77,7 @@ export const deleteOrg = async (req, res, next) => {
   try {
     const org = await Organization.findById(Number(req.params.id));
     if (!org) return res.status(404).json({ error: { message: 'Organization not found' } });
-    if (org.owner_id !== req.user.id && !req.user.is_admin) {
+    if (org.ownerId !== req.user.id && !req.user.isAdmin) {
       return res.status(403).json({ error: { message: 'Only the owner can delete an organization' } });
     }
     await Organization.delete(org.id);
@@ -104,7 +105,6 @@ export const addMember = async (req, res, next) => {
 export const removeMember = async (req, res, next) => {
   try {
     const targetId = Number(req.params.userId);
-    // Allow self-removal, otherwise require owner/admin
     if (targetId !== req.user.id) {
       const membership = await Organization.isMember(Number(req.params.id), req.user.id);
       if (!membership || !['owner', 'admin'].includes(membership.role)) {

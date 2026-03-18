@@ -11,6 +11,7 @@ CYAN   := \033[0;36m
 RESET  := \033[0m
 
 # ── Docker ──────────────────────────────────────────────────
+COMPOSE_PROJECT := $(notdir $(CURDIR))
 DC := docker compose
 DC_PROD := docker compose -f docker-compose.prod.yml
 
@@ -18,11 +19,12 @@ DC_PROD := docker compose -f docker-compose.prod.yml
 .PHONY: help up down build logs restart ps \
         prod-up prod-down prod-build prod-logs \
         generate-secrets ssl-certs \
-        clean clean-volumes \
+	clean clean-volumes fclean deep-clean \
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
         shell-backend shell-frontend shell-db \
-        test
+        test seed-admins \
+        vault-status vault-secrets vault-shell waf-logs
 
 # ── HELP ────────────────────────────────────────────────────
 help:
@@ -59,9 +61,20 @@ help:
 	@echo "$(YELLOW)Testing$(RESET)"
 	@echo "  $(GREEN)make test$(RESET)           Run backend tests in container"
 	@echo ""
+	@echo "$(YELLOW)Database$(RESET)"
+	@echo "  $(GREEN)make seed-admins$(RESET)    Promote developer accounts to admin"
+	@echo ""
+	@echo "$(YELLOW)Security$(RESET)"
+	@echo "  $(GREEN)make vault-status$(RESET)   Show Vault seal/HA status"
+	@echo "  $(GREEN)make vault-secrets$(RESET)  List secrets stored in Vault (dev)"
+	@echo "  $(GREEN)make vault-shell$(RESET)    Open interactive Vault shell"
+	@echo "  $(GREEN)make waf-logs$(RESET)       Tail ModSecurity audit log"
+	@echo ""
 	@echo "$(YELLOW)Cleanup$(RESET)"
 	@echo "  $(GREEN)make clean$(RESET)          Stop containers & remove images"
 	@echo "  $(GREEN)make clean-volumes$(RESET)  Also remove persistent volumes"
+	@echo "  $(GREEN)make fclean$(RESET)         Project full cleanup + dangling prune"
+	@echo "  $(GREEN)make deep-clean$(RESET)     Aggressive global Docker prune (ALL unused)"
 	@echo ""
 
 # ── DOCKER ──────────────────────────────────────────────────
@@ -92,12 +105,18 @@ generate-secrets:
 	  cp .env.example .env; \
 	  echo "$(GREEN)✓ Created .env from .env.example$(RESET)"; \
 	fi
-	@DB_PASS=$$(openssl rand -hex 24) && \
+	@DB_NAME=$$(grep '^DB_NAME=' .env | cut -d= -f2-); \
+	  DB_NAME=$${DB_NAME:-alpacaparty}; \
+	  DB_USER=$$(grep '^DB_USER=' .env | cut -d= -f2-); \
+	  DB_USER=$${DB_USER:-alpacaparty}; \
+	  DB_PASS=$$(openssl rand -hex 24) && \
 	  sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$$DB_PASS|" .env && \
+	  sed -i "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://$$DB_USER:$$DB_PASS@postgres:5432/$$DB_NAME?schema=public|" .env && \
 	  echo "$(GREEN)✓ DB_PASSWORD randomised$(RESET)"
 	@JWT=$$(openssl rand -hex 40) && \
 	  sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$$JWT|" .env && \
 	  echo "$(GREEN)✓ JWT_SECRET randomised$(RESET)"
+	@echo "$(GREEN)✓ DATABASE_URL synced with DB credentials$(RESET)"
 	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
 
 # ── SSL CERTIFICATES ────────────────────────────────────────
@@ -164,6 +183,29 @@ shell-frontend:
 shell-db:
 	$(DC) exec postgres psql -U $${DB_USER:-alpacaparty} -d $${DB_NAME:-alpacaparty}
 
+# ── DATABASE SEEDS ──────────────────────────────────────────
+# Requires the postgres container to be running (make up / make prod-up).
+seed-admins:
+	$(DC) exec -T postgres psql \
+	  -U $${DB_USER:-alpacaparty} \
+	  -d $${DB_NAME:-alpacaparty} \
+	  -f /dev/stdin < scripts/seed-admins.sql
+
+# ── SECURITY ────────────────────────────────────────────────────────────────
+vault-status:
+	$(DC) exec vault vault status
+
+vault-secrets:
+	$(DC) exec vault vault kv get secret/alpacaparty
+
+vault-shell:
+	$(DC) exec -e VAULT_ADDR=http://127.0.0.1:8200 \
+	           -e VAULT_TOKEN=$${VAULT_DEV_TOKEN:-alpacaparty-dev-token} \
+	           vault sh
+
+waf-logs:
+	$(DC) exec nginx tail -f /var/log/modsecurity/audit.log
+
 # ── CLEANUP ─────────────────────────────────────────────────
 clean:
 	$(DC) down --rmi all --remove-orphans
@@ -172,3 +214,22 @@ clean:
 clean-volumes:
 	$(DC) down --rmi all --volumes --remove-orphans
 	$(DC_PROD) down --rmi all --volumes --remove-orphans
+
+fclean:
+	$(DC) down --rmi all --volumes --remove-orphans
+	$(DC_PROD) down --rmi all --volumes --remove-orphans
+	@docker network ls --format '{{.ID}} {{.Name}}' | awk '$$2=="$(COMPOSE_PROJECT)_alpacaparty_net" {print $$1}' | xargs -r docker network rm >/dev/null 2>&1 || true
+	@docker volume ls -q --filter "label=com.docker.compose.project=$(COMPOSE_PROJECT)" | xargs -r docker volume rm -f >/dev/null 2>&1 || true
+	@docker volume prune -f >/dev/null
+	@docker network prune -f >/dev/null
+	@docker image prune -f >/dev/null
+	@docker builder prune -f >/dev/null
+	@echo "$(GREEN)✓ Full Docker cleanup complete for project $(COMPOSE_PROJECT)$(RESET)"
+
+deep-clean:
+	@echo "$(YELLOW)Running aggressive Docker cleanup (global).$(RESET)"
+	$(DC) down --rmi all --volumes --remove-orphans || true
+	$(DC_PROD) down --rmi all --volumes --remove-orphans || true
+	@docker system prune -af --volumes
+	@docker builder prune -af
+	@echo "$(GREEN)✓ Aggressive Docker cleanup complete$(RESET)"

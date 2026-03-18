@@ -8,14 +8,14 @@ import Game from '../models/Game.js';
 import DataRequest from '../models/DataRequest.js';
 import DataExportService from '../services/dataExportService.js';
 import NotificationService from '../services/notificationService.js';
-import { query } from '../config/database.js';
+import prisma from '../config/prisma.js';
 
 /** GET /api/admin/stats — site-wide statistics */
 export const getStats = async (req, res, next) => {
   try {
     const [userTotal, usersOnline, gamesActive, postTotal, pendingRequests] = await Promise.all([
       User.count(),
-      query(`SELECT COUNT(*)::int AS c FROM users WHERE is_online = TRUE`).then((r) => r.rows[0].c),
+      prisma.user.count({ where: { isOnline: true } }),
       Game.countActive(),
       Post.count(),
       DataRequest.getPending().then((r) => r.length),
@@ -57,12 +57,14 @@ export const deleteUser = async (req, res, next) => {
 /** PUT /api/admin/users/:id/toggle-admin */
 export const toggleAdmin = async (req, res, next) => {
   try {
-    const { rows } = await query(
-      `UPDATE users SET is_admin = NOT is_admin WHERE id = $1 RETURNING id, username, is_admin`,
-      [Number(req.params.id)],
-    );
-    if (!rows[0]) return res.status(404).json({ error: { message: 'User not found' } });
-    res.json({ user: rows[0] });
+    const existing = await prisma.user.findUnique({ where: { id: Number(req.params.id) }, select: { id: true, isAdmin: true } });
+    if (!existing) return res.status(404).json({ error: { message: 'User not found' } });
+    const user = await prisma.user.update({
+      where: { id: existing.id },
+      data: { isAdmin: !existing.isAdmin },
+      select: { id: true, username: true, isAdmin: true },
+    });
+    res.json({ user });
   } catch (err) { next(err); }
 };
 
@@ -83,14 +85,14 @@ export const processDataRequest = async (req, res, next) => {
     await DataRequest.updateStatus(request.id, 'processing');
 
     if (request.type === 'export') {
-      const { data, extension, contentType } = await DataExportService.exportUserData(request.user_id, 'json');
+      const { data, extension, contentType } = await DataExportService.exportUserData(request.userId, 'json');
       // In production, upload to S3 / object store and save URL
       const fileUrl = `/api/admin/data-requests/${request.id}/download`;
       await DataRequest.updateStatus(request.id, 'completed', fileUrl);
-      await NotificationService.dataRequestCompleted(request.user_id, 'export');
+      await NotificationService.dataRequestCompleted(request.userId, 'export');
       res.json({ message: 'Export completed', fileUrl });
     } else if (request.type === 'delete') {
-      await User.deleteById(request.user_id);
+      await User.deleteById(request.userId);
       await DataRequest.updateStatus(request.id, 'completed');
       res.json({ message: 'User account deleted' });
     } else {

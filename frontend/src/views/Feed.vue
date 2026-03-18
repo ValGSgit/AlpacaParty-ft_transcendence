@@ -38,7 +38,13 @@
         <span class="post-time">{{ formatTime(post.created_at) }}</span>
       </div>
       <p class="post-content">{{ post.content }}</p>
-      <img v-if="post.image_url" :src="post.image_url" class="post-image" alt="post image" />
+      <img
+        v-if="post.image_url"
+        :src="resolveMediaUrl(post.image_url)"
+        class="post-image"
+        alt="post image"
+        @error="onPostImageError"
+      />
       <div class="post-actions">
         <button class="action-btn" :class="{ liked: post.user_liked }" @click="toggleLike(post)">
           {{ post.user_liked ? '❤️' : '🤍' }} {{ post.likes_count || 0 }}
@@ -75,6 +81,16 @@ function formatTime(ts) {
   return d.toLocaleDateString()
 }
 
+function resolveMediaUrl(url) {
+  if (!url) return ''
+  if (/^https?:\/\//i.test(url)) return url
+  return url.startsWith('/') ? url : `/${url}`
+}
+
+function onPostImageError(event) {
+  event.target.src = '/avatars/default.svg'
+}
+
 async function fetchPosts() {
   loading.value = true
   error.value = null
@@ -108,7 +124,7 @@ async function createPost() {
     }
     await api.post('/posts', {
       content: newPostContent.value.trim(),
-      image_url: imageUrl,
+      imageUrl,
     })
     newPostContent.value = ''
     selectedImage.value = null
