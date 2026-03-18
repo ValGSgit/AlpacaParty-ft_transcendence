@@ -1,0 +1,52 @@
+# CODEOWNERS — AlpacaParty
+# Automatically requests reviews from the listed owners when a PR touches these paths.
+# More specific rules override less specific ones (last match wins in GitHub).
+#
+# Team:
+#   Backend  → @ValGSgit  @DavidPoetsch
+#   Frontend → @fankahou  @LukasStefanek
+
+# ── Catch-all (fallback) ──────────────────────────────────────────────────────
+*                                           @ValGSgit @DavidPoetsch @fankahou @LukasStefanek
+
+# ── Backend ───────────────────────────────────────────────────────────────────
+/backend/                                   @ValGSgit @DavidPoetsch
+
+/backend/src/config/                        @ValGSgit @DavidPoetsch
+/backend/src/controllers/                   @ValGSgit @DavidPoetsch
+/backend/src/middleware/                    @ValGSgit @DavidPoetsch
+/backend/src/models/                        @DavidPoetsch @ValGSgit
+/backend/src/routes/                        @ValGSgit @DavidPoetsch
+/backend/src/services/                      @ValGSgit @DavidPoetsch
+/backend/src/utils/                         @ValGSgit @DavidPoetsch
+
+/backend/Dockerfile                         @DavidPoetsch @ValGSgit
+/backend/Dockerfile.prod                    @DavidPoetsch @ValGSgit
+
+# ── Frontend ──────────────────────────────────────────────────────────────────
+/frontend/                                  @fankahou @LukasStefanek
+
+/frontend/src/views/                        @fankahou @LukasStefanek
+/frontend/src/components/                   @fankahou @LukasStefanek
+/frontend/src/games/                        @LukasStefanek @fankahou
+/frontend/src/router/                       @fankahou @LukasStefanek
+/frontend/src/stores/                       @fankahou @LukasStefanek
+/frontend/src/services/                     @LukasStefanek @fankahou
+
+/frontend/Dockerfile                        @fankahou @LukasStefanek
+/frontend/Dockerfile.prod                   @fankahou @LukasStefanek
+
+# ── Infrastructure & Configuration ───────────────────────────────────────────
+/nginx/                                     @DavidPoetsch @ValGSgit
+/vault/                                     @ValGSgit @DavidPoetsch
+/PostgreSQL/                                @DavidPoetsch @ValGSgit
+/scripts/                                   @ValGSgit @DavidPoetsch
+/e2e/                                       @ValGSgit @DavidPoetsch
+
+/docker-compose.yml                         @ValGSgit @DavidPoetsch
+/docker-compose.prod.yml                    @ValGSgit @DavidPoetsch
+/Makefile                                   @ValGSgit @DavidPoetsch
+
+# ── Shared / Root configs ─────────────────────────────────────────────────────
+/shared/                                    @ValGSgit @DavidPoetsch @fankahou @LukasStefanek
+/.github/                                   @ValGSgit

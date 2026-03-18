@@ -17,6 +17,7 @@ const SYSTEM_PROMPT = `You are the friendly help assistant for **AlpacaParty** (
 - Write public posts (a social feed)
 - Earn achievements and XP
 - Customise their profile (avatar, bio, status)
+- Explain anything related to mario kart lore
 
 Your role:
 1. Answer questions about how the app works and any questions related to alpacas.
