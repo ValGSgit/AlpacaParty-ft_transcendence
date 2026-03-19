@@ -69,13 +69,19 @@ const config = {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://localhost:8080/api/auth/google/callback',
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://localhost:3000/api/auth/google/callback',
     },
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || '',
       clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
-      callbackUrl: process.env.GITHUB_CALLBACK_URL || 'https://localhost:8080/api/auth/github/callback',
+      callbackUrl: process.env.GITHUB_CALLBACK_URL || 'https://localhost:3000/api/auth/github/callback',
     },
+  },
+
+  // SSL/TLS certificates
+  ssl: {
+    certPath: process.env.SSL_CERT_PATH || path.resolve(__dirname, '../../ssl/cert.pem'),
+    keyPath: process.env.SSL_KEY_PATH || path.resolve(__dirname, '../../ssl/key.pem'),
   },
 
   // File uploads

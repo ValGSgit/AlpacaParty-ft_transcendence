@@ -11,17 +11,24 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Copy package files and install dependencies needed to generate Prisma client
-COPY package*.json ./
+# Copy package files from backend for install
+COPY backend/package*.json ./
+
+# Install dependencies (clean build)
 RUN npm install --no-audit --no-fund --loglevel=error
 
 # Copy Prisma schema and application source, then generate the client
-COPY --chown=nodejs:nodejs ./prisma ./prisma
-COPY --chown=nodejs:nodejs ./src ./src
+COPY --chown=nodejs:nodejs backend/prisma ./prisma
+COPY --chown=nodejs:nodejs backend/src ./src
 RUN npx prisma generate && npm prune --omit=dev
 
-# Create uploads directory with correct ownership
-RUN mkdir -p /app/uploads && chown -R nodejs:nodejs /app/uploads
+# Create uploads and ssl directories with correct ownership
+RUN mkdir -p /app/uploads /app/ssl && \
+    chown -R nodejs:nodejs /app/uploads /app/ssl
+
+# Copy SSL certificates with correct ownership
+COPY --chown=nodejs:nodejs nginx/ssl/cert.pem /app/ssl/cert.pem
+COPY --chown=nodejs:nodejs nginx/ssl/key.pem /app/ssl/key.pem
 
 # Switch to non-root user
 USER nodejs

@@ -56,6 +56,7 @@ export async function loadVaultSecrets() {
     return;
   }
 
+  const fetched = Object.keys(data).length;
   let injected = 0;
   for (const [vaultKey, envKey] of Object.entries(KEY_MAP)) {
     const value = data[vaultKey];
@@ -67,5 +68,5 @@ export async function loadVaultSecrets() {
       }
     }
   }
-  console.info(`[vault] Loaded ${injected} secret(s) from ${VAULT_ADDR}`);
+  console.info(`[vault] Retrieved ${fetched} secret(s) from ${VAULT_ADDR}; injected ${injected} into process env`);
 }

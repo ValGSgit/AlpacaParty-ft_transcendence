@@ -7,6 +7,9 @@
 
 FROM owasp/modsecurity-crs:nginx
 
+# Create SSL directory
+RUN mkdir -p /etc/nginx/conf
+
 # ── CRS configuration ──────────────────────────────────────────────────
 # The base image reads these env vars at startup to configure CRS.
 ENV MODSEC_RULE_ENGINE=On \
@@ -20,4 +23,8 @@ ENV MODSEC_RULE_ENGINE=On \
     SSL_PORT=8443
 
 # Copy our tuning override (applied after CRS rules)
-COPY modsecurity/modsecurity.conf /etc/modsecurity.d/99-alpacaparty.conf
+COPY nginx/modsecurity/modsecurity.conf /etc/modsecurity.d/99-alpacaparty.conf
+
+# Copy SSL certificates
+COPY nginx/ssl/cert.pem /etc/nginx/conf/server.crt
+COPY nginx/ssl/key.pem /etc/nginx/conf/server.key

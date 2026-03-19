@@ -16,8 +16,13 @@ export VAULT_ADDR VAULT_TOKEN
 echo "[vault-seed] Waiting for Vault to be ready..."
 until vault status >/dev/null 2>&1; do sleep 1; done
 
-# Enable KV v2 secrets engine (idempotent — ignore error if already enabled)
-vault secrets enable -path=secret kv-v2 2>/dev/null || true
+# Enable KV v2 secrets engine only when not already mounted.
+# Avoids noisy server-side "path is already in use" errors in logs.
+if vault secrets list | grep -q '^secret/'; then
+  echo "[vault-seed] KV mount secret/ already exists; skipping enable"
+else
+  vault secrets enable -path=secret kv-v2
+fi
 
 echo "[vault-seed] Writing AlpacaParty secrets to secret/alpacaparty ..."
 vault kv put secret/alpacaparty \

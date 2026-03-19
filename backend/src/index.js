@@ -4,7 +4,9 @@
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/2
  */
 import express from 'express';
-import { createServer } from 'http';
+import https from 'https';
+import http from 'http';
+import fs from 'fs';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -17,10 +19,52 @@ import { initializePassport } from './services/oauthService.js';
 import prisma from './config/prisma.js';
 
 const app = express();
-const httpServer = createServer(app);
+
+// Create HTTPS server with certificates
+let httpServer;
+let useHttps = false;
+
+if (config.ssl.certPath && config.ssl.keyPath) {
+  try {
+    // Verify certs exist and are readable
+    if (!fs.existsSync(config.ssl.certPath)) {
+      console.warn(`[ssl] Certificate file not found: ${config.ssl.certPath}`);
+    } else if (!fs.existsSync(config.ssl.keyPath)) {
+      console.warn(`[ssl] Key file not found: ${config.ssl.keyPath}`);
+    } else {
+      // Try to read the certificates
+      const key = fs.readFileSync(config.ssl.keyPath, 'utf8');
+      const cert = fs.readFileSync(config.ssl.certPath, 'utf8');
+      
+      httpServer = https.createServer({ key, cert }, app);
+      useHttps = true;
+      console.log('[ssl] ✓ HTTPS enabled with certificates from', config.ssl.certPath);
+    }
+  } catch (err) {
+    console.warn(`[ssl] Failed to load certificates: ${err.message}`);
+    console.warn('[ssl] Falling back to HTTP');
+  }
+}
+
+// Fallback to HTTP if certificates not loaded
+if (!useHttps) {
+  httpServer = http.createServer(app);
+  console.warn('[ssl] ⚠ Backend running on HTTP - certificates not properly configured');
+}
 
 // Trust proxy (behind nginx reverse proxy)
 app.set('trust proxy', 1);
+
+// Enforce HTTPS (check X-Forwarded-Proto header from nginx)
+app.use((req, _res, next) => {
+  const proto = req.get('X-Forwarded-Proto');
+  if (proto === 'http') {
+    console.warn(`[ssl] Non-HTTPS request received: ${req.method} ${req.path}`);
+    // In production, you might want to redirect to HTTPS here
+    // res.redirect(301, `https://${req.get('host')}${req.url}`);
+  }
+  next();
+});
 
 // Security
 app.use(helmet({

@@ -122,7 +122,7 @@ generate-secrets:
 # ── SSL CERTIFICATES ────────────────────────────────────────
 # Generates a self-signed certificate for local HTTPS development.
 ssl-certs:
-	@mkdir -p nginx/ssl
+	@mkdir -p nginx/ssl backend/ssl
 	@if [ ! -f nginx/ssl/cert.pem ]; then \
 	  openssl req -x509 -newkey rsa:2048 -nodes \
 	    -keyout nginx/ssl/key.pem \
@@ -132,6 +132,13 @@ ssl-certs:
 	  echo "$(GREEN)✓ Self-signed certificate generated in nginx/ssl/$(RESET)"; \
 	else \
 	  echo "$(YELLOW)  Certificate already exists — skipping$(RESET)"; \
+	fi
+	@if [ ! -f backend/ssl/cert.pem ]; then \
+	  cp nginx/ssl/cert.pem backend/ssl/cert.pem && \
+	  cp nginx/ssl/key.pem backend/ssl/key.pem && \
+	  echo "$(GREEN)✓ Self-signed certificate copied to backend/ssl/$(RESET)"; \
+	else \
+	  echo "$(YELLOW)  Backend certificate already exists — skipping$(RESET)"; \
 	fi
 
 # Ensure .env exists with real secrets before any prod command.
