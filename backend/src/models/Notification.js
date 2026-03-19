@@ -4,9 +4,24 @@
  */
 import prisma from '../config/prisma.js';
 
+function shapeNotification(n) {
+  if (!n) return n;
+  return {
+    id: n.id,
+    user_id: n.userId,
+    type: n.type,
+    title: n.title,
+    message: n.message,
+    is_read: n.isRead,
+    reference_type: n.referenceType,
+    reference_id: n.referenceId,
+    created_at: n.createdAt,
+  };
+}
+
 const Notification = {
   async create({ userId, type, title, message, referenceType, referenceId }) {
-    return prisma.notification.create({
+    const row = await prisma.notification.create({
       data: {
         userId: Number(userId),
         type,
@@ -16,22 +31,29 @@ const Notification = {
         referenceId: referenceId ? Number(referenceId) : null,
       },
     });
+    return shapeNotification(row);
   },
 
   async getForUser(userId, { limit = 30, offset = 0, unreadOnly = false } = {}) {
-    return prisma.notification.findMany({
+    const rows = await prisma.notification.findMany({
       where: { userId: Number(userId), ...(unreadOnly ? { isRead: false } : {}) },
       orderBy: { createdAt: 'desc' },
       take: Number(limit),
       skip: Number(offset),
     });
+    return rows.map(shapeNotification);
   },
 
   async markRead(id, userId) {
-    return prisma.notification.updateMany({
+    const result = await prisma.notification.updateMany({
       where: { id: Number(id), userId: Number(userId) },
       data: { isRead: true },
-    }).then((r) => (r.count > 0 ? prisma.notification.findUnique({ where: { id: Number(id) } }) : null));
+    });
+    if (result.count > 0) {
+      const row = await prisma.notification.findUnique({ where: { id: Number(id) } });
+      return shapeNotification(row);
+    }
+    return null;
   },
 
   async markAllRead(userId) {

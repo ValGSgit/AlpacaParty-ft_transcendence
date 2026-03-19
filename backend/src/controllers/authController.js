@@ -3,7 +3,7 @@
  * @owner ValGSgit
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
-import User from '../models/User.js';
+import User, { shapeUserForClient } from '../models/User.js';
 import Achievement from '../models/Achievement.js';
 import AuthService from '../services/authService.js';
 import { oauthTokensForUser } from '../services/oauthService.js';
@@ -42,7 +42,7 @@ export const register = async (req, res, next) => {
     const accessToken  = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
 
-    res.status(201).json({ user, accessToken, refreshToken });
+    res.status(201).json({ user: shapeUserForClient(user), accessToken, refreshToken });
   } catch (err) { next(err); }
 };
 
@@ -70,7 +70,7 @@ export const login = async (req, res, next) => {
     // Strip sensitive fields before returning
     const { passwordHash, twoFactorSecret, ...safeUser } = user;
 
-    res.json({ user: safeUser, accessToken, refreshToken });
+    res.json({ user: shapeUserForClient(safeUser), accessToken, refreshToken });
   } catch (err) { next(err); }
 };
 
@@ -104,7 +104,7 @@ export const refresh = async (req, res, next) => {
 };
 
 /** GET /api/auth/me */
-export const me = async (req, res) => res.json({ user: req.user });
+export const me = async (req, res) => res.json({ user: shapeUserForClient(req.user) });
 
 /** OAuth callback (Google / GitHub) */
 export const oauthCallback = (req, res) => {

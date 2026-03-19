@@ -27,6 +27,35 @@ const SAFE_SELECT = {
   updatedAt: true,
 };
 
+/**
+ * Map Prisma camelCase user fields to snake_case for the frontend.
+ * Omits passwordHash and twoFactorSecret.
+ */
+export function shapeUserForClient(u) {
+  if (!u) return u;
+  return {
+    id: u.id,
+    username: u.username,
+    email: u.email,
+    avatar: u.avatar,
+    bio: u.bio,
+    alpacas: u.alpacas,
+    items: u.items,
+    coins: u.coins,
+    upgrades: u.upgrades,
+    status: u.status,
+    is_public: u.isPublic,
+    is_online: u.isOnline,
+    is_admin: u.isAdmin,
+    oauth_provider: u.oauthProvider,
+    xp: u.xp,
+    level: u.level,
+    last_seen: u.lastSeen,
+    created_at: u.createdAt,
+    updated_at: u.updatedAt,
+  };
+}
+
 const User = {
   async create({ username, email, passwordHash }) {
     return prisma.user.create({

@@ -84,8 +84,8 @@ export const likePost = async (req, res, next) => {
     const post = await Post.findById(Number(req.params.id));
     if (!post) return res.status(404).json({ error: { message: 'Post not found' } });
     await Post.like(post.id, req.user.id);
-    if (post.authorId !== req.user.id) {
-      NotificationService.postLiked(post.authorId, req.user.username, post.id).catch(() => {});
+    if (post.author_id !== req.user.id) {
+      NotificationService.postLiked(post.author_id, req.user.username, post.id).catch(() => {});
     }
     res.json({ message: 'Liked' });
   } catch (err) { next(err); }

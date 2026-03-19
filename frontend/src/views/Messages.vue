@@ -275,7 +275,7 @@ async function fetchFriends() {
 
 async function fetchRecommended() {
   try {
-    const { data } = await api.get('/public/users?limit=5')
+    const { data } = await api.get('/users?limit=10')
     const friendIds = new Set(friends.value.map(f => f.id))
     friendIds.add(currentUserId.value)
     recommendedUsers.value = (data.users || []).filter(u => !friendIds.has(u.id)).slice(0, 5)

@@ -114,19 +114,27 @@ export function initializeSocket(httpServer, corsOrigins) {
         const dmRoom = `dm:${Math.min(user.id, receiverId)}-${Math.max(user.id, receiverId)}`;
         socket.join(dmRoom);
 
+        // Map to snake_case for frontend compatibility
+        const shaped = {
+          id: msg.id,
+          sender_id: msg.senderId,
+          receiver_id: msg.receiverId,
+          content: msg.content,
+          is_read: msg.isRead,
+          created_at: msg.createdAt,
+          sender_username: user.username,
+          sender_avatar: user.avatar,
+        };
+
         // Send to receiver's personal room
-        io.to(`user:${receiverId}`).emit('dm:message', {
-          ...msg,
-          senderUsername: user.username,
-          senderAvatar: user.avatar,
-        });
+        io.to(`user:${receiverId}`).emit('dm:message', shaped);
         // Echo back to sender
-        socket.emit('dm:message', { ...msg, senderUsername: user.username, senderAvatar: user.avatar });
+        socket.emit('dm:message', shaped);
 
         // Notification (non-blocking)
         NotificationService.newMessage(receiverId, user.username).catch(() => {});
 
-        ack?.({ ok: true, messageId: msg.id });
+        ack?.({ ok: true, message: shaped });
       } catch (err) {
         ack?.({ error: err.message });
       }
@@ -155,12 +163,17 @@ export function initializeSocket(httpServer, corsOrigins) {
         if (!isMember) return ack?.({ error: 'Not a member' });
 
         const msg = await ChatRoom.sendMessage({ roomId, senderId: user.id, content: content.trim() });
-        io.to(`room:${roomId}`).emit('room:message', {
-          ...msg,
-          senderUsername: user.username,
-          senderAvatar: user.avatar,
-        });
-        ack?.({ ok: true, messageId: msg.id });
+        const shaped = {
+          id: msg.id,
+          room_id: msg.roomId ?? roomId,
+          sender_id: msg.senderId,
+          content: msg.content,
+          created_at: msg.createdAt,
+          sender_username: user.username,
+          sender_avatar: user.avatar,
+        };
+        io.to(`room:${roomId}`).emit('room:message', shaped);
+        ack?.({ ok: true, message: shaped });
       } catch (err) {
         ack?.({ error: err.message });
       }

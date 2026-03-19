@@ -25,8 +25,8 @@ const toPublicUser = (user, anonymize = false) => ({
   status: anonymize ? 'Anonymized' : user.status,
   level: user.level,
   xp: user.xp,
-  isOnline: user.isOnline,
-  createdAt: user.createdAt,
+  is_online: user.isOnline,
+  created_at: user.createdAt,
 });
 
 /** GET /api/public/users?search=&limit=20&offset=0 */

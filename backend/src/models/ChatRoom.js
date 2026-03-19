@@ -13,7 +13,7 @@ const ChatRoom = {
       await tx.chatRoomMember.create({
         data: { roomId: room.id, userId: Number(ownerId), role: 'owner' },
       });
-      return room;
+      return { id: room.id, name: room.name, owner_id: room.ownerId, is_private: room.isPrivate, created_at: room.createdAt };
     });
   },
 
@@ -26,7 +26,14 @@ const ChatRoom = {
       where: { userId: Number(userId) },
       include: { room: true },
     });
-    return memberships.map((m) => ({ ...m.room, role: m.role }));
+    return memberships.map((m) => ({
+      id: m.room.id,
+      name: m.room.name,
+      owner_id: m.room.ownerId,
+      is_private: m.room.isPrivate,
+      created_at: m.room.createdAt,
+      role: m.role,
+    }));
   },
 
   async isMember(roomId, userId) {
@@ -60,7 +67,15 @@ const ChatRoom = {
     });
     return messages
       .reverse()
-      .map((m) => ({ ...m, senderUsername: m.sender.username, senderAvatar: m.sender.avatar, sender: undefined }));
+      .map((m) => ({
+        id: m.id,
+        room_id: m.roomId,
+        sender_id: m.senderId,
+        content: m.content,
+        created_at: m.createdAt,
+        sender_username: m.sender.username,
+        sender_avatar: m.sender.avatar,
+      }));
   },
 
   async sendMessage({ roomId, senderId, content }) {

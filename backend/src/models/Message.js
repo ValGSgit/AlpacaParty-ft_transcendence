@@ -67,8 +67,10 @@ const Message = {
         FROM messages m
         JOIN users s ON s.id = m.sender_id
         JOIN users r ON r.id = m.receiver_id
-        WHERE m.sender_id = ${Number(userId)} OR m.receiver_id = ${Number(userId)}
+        WHERE (m.sender_id = ${Number(userId)} OR m.receiver_id = ${Number(userId)})
+          AND m.sender_id != m.receiver_id
       ) sub
+      WHERE other_user_id != ${Number(userId)}
       ORDER BY other_user_id, created_at DESC
     `;
   },

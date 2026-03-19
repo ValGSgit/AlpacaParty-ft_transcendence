@@ -4,6 +4,18 @@
  */
 import prisma from '../config/prisma.js';
 
+/** Map a friend user object from Prisma camelCase to frontend snake_case */
+function shapeFriend(u) {
+  return {
+    id: u.id,
+    username: u.username,
+    avatar: u.avatar,
+    is_online: u.isOnline,
+    status: u.status,
+    level: u.level,
+  };
+}
+
 const Friend = {
   async sendRequest(senderId, receiverId) {
     if (senderId === receiverId) throw Object.assign(new Error('Cannot friend yourself'), { status: 400 });
@@ -62,16 +74,16 @@ const Friend = {
       take: Number(limit),
       skip: Number(offset),
     });
-    return rows.map((r) => r.friend);
+    return rows.map((r) => shapeFriend(r.friend));
   },
 
   async getOnlineFriends(userId) {
     const rows = await prisma.friend.findMany({
       where: { userId: Number(userId), friend: { isOnline: true } },
-      include: { friend: { select: { id: true, username: true, avatar: true, status: true, level: true } } },
+      include: { friend: { select: { id: true, username: true, avatar: true, status: true, level: true, isOnline: true } } },
       orderBy: { friend: { username: 'asc' } },
     });
-    return rows.map((r) => r.friend);
+    return rows.map((r) => shapeFriend(r.friend));
   },
 
   async getPendingReceived(userId) {

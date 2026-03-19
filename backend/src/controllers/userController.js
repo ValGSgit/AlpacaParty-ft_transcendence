@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { InferenceClient } from '@huggingface/inference';
-import User from '../models/User.js';
+import User, { shapeUserForClient } from '../models/User.js';
 import AuthService from '../services/authService.js';
 import DataExportService from '../services/dataExportService.js';
 import DataRequest from '../models/DataRequest.js';
@@ -21,7 +21,7 @@ function sanitizeUserForViewer(user, viewer) {
 }
 
 /** GET /api/users/me */
-export const getMe = async (req, res) => res.json({ user: req.user });
+export const getMe = async (req, res) => res.json({ user: shapeUserForClient(req.user) });
 
 /** PUT /api/users/me */
 export const updateMe = async (req, res, next) => {
@@ -58,7 +58,7 @@ export const updateMe = async (req, res, next) => {
       username, email, bio, status, avatar, coins,
       isPublic: is_public,  // body still sends is_public (frontend compat)
     });
-    res.json({ user: updatedUser });
+    res.json({ user: shapeUserForClient(updatedUser) });
   } catch (err) { next(err); }
 };
 
@@ -96,7 +96,7 @@ export const getUser = async (req, res, next) => {
       if (!areFriends) return res.status(403).json({ error: { message: 'This profile is private' } });
     }
 
-    res.json({ user: sanitizeUserForViewer(user, req.user) });
+    res.json({ user: shapeUserForClient(sanitizeUserForViewer(user, req.user)) });
   } catch (err) { next(err); }
 };
 
@@ -111,7 +111,7 @@ export const listUsers = async (req, res, next) => {
     if (!req.user.isAdmin) {
       users = users.filter((u) => u.isPublic || u.id === req.user.id);
     }
-    res.json({ users });
+    res.json({ users: users.map(shapeUserForClient) });
   } catch (err) { next(err); }
 };
 
@@ -174,7 +174,7 @@ export const generateAvatar = async (req, res, next) => {
     fs.writeFileSync(filepath, buffer);
     const avatarUrl = `/uploads/${filename}`;
     const updatedUser = await User.update(req.user.id, { avatar: avatarUrl });
-    res.json({ user: updatedUser, avatarUrl });
+    res.json({ user: shapeUserForClient(updatedUser), avatarUrl });
   } catch (err) { next(err); }
 };
 
