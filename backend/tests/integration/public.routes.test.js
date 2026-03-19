@@ -55,6 +55,54 @@ describe('GET /api/public/users', () => {
   });
 });
 
+// ── POST /api/public/posts ────────────────────────────────────
+describe('POST /api/public/posts', () => {
+  test('401 — requires API key', async () => {
+    const res = await request.post('/api/public/posts').send({ content: 'test', authorId: 1 });
+    expect(res.status).toBe(401);
+  });
+
+  test('400 — requires content', async () => {
+    const res = await request.post('/api/public/posts')
+      .set('X-API-Key', 'test-api-key')
+      .send({ authorId: 1 });
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/content/i);
+  });
+
+  test('400 — requires authorId', async () => {
+    const res = await request.post('/api/public/posts')
+      .set('X-API-Key', 'test-api-key')
+      .send({ content: 'hello' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/authorId/i);
+  });
+});
+
+// ── PUT /api/public/posts/:id ─────────────────────────────────
+describe('PUT /api/public/posts/:id', () => {
+  test('401 — requires API key', async () => {
+    const res = await request.put('/api/public/posts/1').send({ content: 'updated' });
+    expect(res.status).toBe(401);
+  });
+
+  test('400 — requires at least one field to update', async () => {
+    const res = await request.put('/api/public/posts/1')
+      .set('X-API-Key', 'test-api-key')
+      .send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/nothing to update/i);
+  });
+});
+
+// ── DELETE /api/public/posts/:id ──────────────────────────────
+describe('DELETE /api/public/posts/:id', () => {
+  test('401 — requires API key', async () => {
+    const res = await request.delete('/api/public/posts/1');
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('GET /api/public/mock', () => {
   test('200 — returns anonymized mock dataset with disclaimer', async () => {
     mockQuery

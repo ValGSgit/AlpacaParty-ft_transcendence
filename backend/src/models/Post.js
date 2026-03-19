@@ -8,11 +8,17 @@ const AUTHOR_SELECT = { select: { username: true, avatar: true } };
 
 function shapePost(p, likedIds = null) {
   return {
-    ...p,
-    authorUsername: p.author?.username,
-    authorAvatar: p.author?.avatar,
-    liked: likedIds ? likedIds.has(p.id) : false,
-    author: undefined,
+    id: p.id,
+    author_id: p.authorId,
+    content: p.content,
+    image_url: p.imageUrl,
+    is_public: p.isPublic,
+    likes_count: p.likesCount,
+    created_at: p.createdAt,
+    updated_at: p.updatedAt,
+    author_username: p.author?.username,
+    author_avatar: p.author?.avatar,
+    user_liked: likedIds ? likedIds.has(p.id) : false,
   };
 }
 

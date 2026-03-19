@@ -108,6 +108,7 @@ export function initializeSocket(httpServer, corsOrigins) {
     socket.on('dm:send', async ({ receiverId, content }, ack) => {
       try {
         if (!content?.trim()) return ack?.({ error: 'Empty message' });
+        if (Number(receiverId) === user.id) return ack?.({ error: 'Cannot send a message to yourself' });
         const msg = await Message.create({ senderId: user.id, receiverId, content: content.trim() });
 
         const dmRoom = `dm:${Math.min(user.id, receiverId)}-${Math.max(user.id, receiverId)}`;

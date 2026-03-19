@@ -26,33 +26,50 @@ const Message = {
     });
     return messages
       .reverse()
-      .map((m) => ({ ...m, senderUsername: m.sender.username, senderAvatar: m.sender.avatar, sender: undefined }));
+      .map((m) => ({
+        id: m.id,
+        sender_id: m.senderId,
+        receiver_id: m.receiverId,
+        content: m.content,
+        is_read: m.isRead,
+        created_at: m.createdAt,
+        sender_username: m.sender.username,
+        sender_avatar: m.sender.avatar,
+      }));
   },
 
   // DISTINCT ON is PostgreSQL-specific — keep as raw query
   async getConversationsList(userId) {
     return prisma.$queryRaw`
-      SELECT DISTINCT ON (partner_id)
-             partner_id,
-             partner_username,
-             partner_avatar,
-             content,
+      SELECT DISTINCT ON (other_user_id)
+             other_user_id,
+             username,
+             avatar,
+             last_message,
              created_at,
-             is_read
+             is_read,
+             unread_count
       FROM (
         SELECT
-          CASE WHEN sender_id = ${Number(userId)} THEN receiver_id ELSE sender_id END AS partner_id,
-          CASE WHEN sender_id = ${Number(userId)} THEN r.username   ELSE s.username   END AS partner_username,
-          CASE WHEN sender_id = ${Number(userId)} THEN r.avatar     ELSE s.avatar     END AS partner_avatar,
-          m.content,
+          CASE WHEN sender_id = ${Number(userId)} THEN receiver_id ELSE sender_id END AS other_user_id,
+          CASE WHEN sender_id = ${Number(userId)} THEN r.username   ELSE s.username   END AS username,
+          CASE WHEN sender_id = ${Number(userId)} THEN r.avatar     ELSE s.avatar     END AS avatar,
+          m.content AS last_message,
           m.created_at,
-          m.is_read
+          m.is_read,
+          (
+            SELECT COUNT(*)::int FROM messages u
+            WHERE u.sender_id != ${Number(userId)}
+              AND u.receiver_id = ${Number(userId)}
+              AND u.is_read = false
+              AND u.sender_id = CASE WHEN m.sender_id = ${Number(userId)} THEN m.receiver_id ELSE m.sender_id END
+          ) AS unread_count
         FROM messages m
         JOIN users s ON s.id = m.sender_id
         JOIN users r ON r.id = m.receiver_id
         WHERE m.sender_id = ${Number(userId)} OR m.receiver_id = ${Number(userId)}
       ) sub
-      ORDER BY partner_id, created_at DESC
+      ORDER BY other_user_id, created_at DESC
     `;
   },
 

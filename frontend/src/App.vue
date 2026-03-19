@@ -22,9 +22,27 @@
             <router-link to="/settings" class="nav-link">Settings</router-link>
             <router-link to="/help" class="nav-link" style="color:#4ecdc4">Help</router-link>
             <router-link v-if="authStore.user?.is_admin" to="/admin" class="nav-link" style="color:#ff6b6b">Admin</router-link>
-            <button class="nav-link nav-btn notification-btn" @click="toggleNotifications" title="Notifications">
-              🔔<span v-if="unreadCount" class="notif-badge">{{ unreadCount }}</span>
-            </button>
+            <div class="notif-wrapper">
+              <button class="nav-link nav-btn notification-btn" @click="toggleNotifications" title="Notifications">
+                🔔<span v-if="unreadCount" class="notif-badge">{{ unreadCount }}</span>
+              </button>
+              <div v-if="showNotifPanel" class="notif-panel">
+                <div class="notif-panel-header">
+                  <span>Notifications</span>
+                  <button class="notif-close" @click="showNotifPanel = false">✕</button>
+                </div>
+                <div v-if="!notifications.length" class="notif-empty">No notifications yet</div>
+                <div
+                  v-for="n in notifications"
+                  :key="n.id"
+                  :class="['notif-item', { unread: !n.is_read }]"
+                  @click="markNotifRead(n)"
+                >
+                  <span class="notif-msg">{{ n.message }}</span>
+                  <span class="notif-time">{{ formatNotifTime(n.created_at) }}</span>
+                </div>
+              </div>
+            </div>
             <button class="nav-link nav-btn" @click="handleLogout">Logout</button>
           </template>
           <template v-else>
@@ -49,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth.js'
 import api from './services/api.js'
@@ -88,6 +106,32 @@ async function fetchUnreadCount() {
   } catch {}
 }
 
+async function markNotifRead(n) {
+  if (n.is_read) return
+  try {
+    await api.put(`/notifications/${n.id}`, { is_read: true })
+    n.is_read = true
+    unreadCount.value = Math.max(0, unreadCount.value - 1)
+  } catch {}
+}
+
+function formatNotifTime(ts) {
+  if (!ts) return ''
+  const d = new Date(ts)
+  const diff = Date.now() - d
+  if (diff < 60000) return 'just now'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
+  return d.toLocaleDateString()
+}
+
+function handleOutsideClick(e) {
+  const wrapper = document.querySelector('.notif-wrapper')
+  if (wrapper && !wrapper.contains(e.target)) {
+    showNotifPanel.value = false
+  }
+}
+
 // Connect socket when authenticated
 watch(() => authStore.isAuthenticated, (isAuth) => {
   if (isAuth) {
@@ -104,6 +148,14 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
     unreadCount.value = 0
   }
 }, { immediate: true })
+
+onMounted(() => {
+  document.addEventListener('click', handleOutsideClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleOutsideClick)
+})
 </script>
 
 <style scoped>
@@ -228,5 +280,82 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 
 .footer-links a:hover {
   color: var(--primary, #00f0ff);
+}
+
+/* ── Notification panel ─────────────────────────────── */
+.notif-wrapper {
+  position: relative;
+}
+
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--bg-secondary, #12121a);
+  border: 1px solid var(--border-color, #2a2a3a);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  z-index: 1000;
+}
+
+.notif-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color, #2a2a3a);
+  font-weight: 600;
+  font-size: 0.9rem;
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary, #12121a);
+}
+
+.notif-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #a0a0b0);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+.notif-close:hover { color: var(--primary, #00f0ff); }
+
+.notif-empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--text-secondary, #a0a0b0);
+  font-size: 0.85rem;
+}
+
+.notif-item {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border-color, #2a2a3a);
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: var(--bg-tertiary, #1a1a2a); }
+.notif-item.unread {
+  background: rgba(0, 240, 255, 0.05);
+  border-left: 3px solid var(--primary, #00f0ff);
+}
+
+.notif-msg {
+  font-size: 0.85rem;
+  color: var(--text-primary, #e8e8f0);
+}
+
+.notif-time {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #a0a0b0);
 }
 </style>

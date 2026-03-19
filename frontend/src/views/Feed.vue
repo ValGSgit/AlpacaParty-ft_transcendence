@@ -20,6 +20,11 @@
             {{ posting ? 'Posting…' : 'Post' }}
           </button>
         </div>
+        <!-- Upload progress -->
+        <div v-if="uploadProgress > 0 && uploadProgress < 100" class="upload-progress">
+          <div class="upload-progress-bar" :style="{ width: uploadProgress + '%' }"></div>
+          <span class="upload-progress-label">Uploading… {{ uploadProgress }}%</span>
+        </div>
       </form>
     </div>
 
@@ -69,6 +74,7 @@ const posting = ref(false)
 const error = ref(null)
 const newPostContent = ref('')
 const selectedImage = ref(null)
+const uploadProgress = ref(0)
 
 function formatTime(ts) {
   if (!ts) return ''
@@ -104,14 +110,32 @@ async function fetchPosts() {
   }
 }
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024 // 10 MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+
 function selectImage(event) {
-  selectedImage.value = event.target.files?.[0] || null
+  const file = event.target.files?.[0] || null
+  if (file) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      error.value = 'Only JPEG, PNG, GIF, and WebP images are allowed'
+      event.target.value = ''
+      return
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      error.value = `Image is too large (max 10 MB). Your file: ${(file.size / 1024 / 1024).toFixed(1)} MB`
+      event.target.value = ''
+      return
+    }
+  }
+  selectedImage.value = file
+  error.value = null
 }
 
 async function createPost() {
   if (!newPostContent.value.trim()) return
   posting.value = true
   error.value = null
+  uploadProgress.value = 0
   try {
     let imageUrl = null
     if (selectedImage.value) {
@@ -119,8 +143,15 @@ async function createPost() {
       formData.append('files', selectedImage.value)
       const uploadRes = await api.post('/uploads', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress(evt) {
+          if (evt.total) uploadProgress.value = Math.round((evt.loaded / evt.total) * 100)
+        },
       })
       imageUrl = uploadRes.data.files?.[0]?.url
+      if (!imageUrl) {
+        error.value = 'Image upload failed — try a smaller file or different format'
+        return
+      }
     }
     await api.post('/posts', {
       content: newPostContent.value.trim(),
@@ -128,9 +159,16 @@ async function createPost() {
     })
     newPostContent.value = ''
     selectedImage.value = null
+    uploadProgress.value = 0
     await fetchPosts()
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to create post'
+    const status = e.response?.status
+    if (status === 413) {
+      error.value = 'Image is too large — please use a file under 10 MB'
+    } else {
+      error.value = e.response?.data?.error?.message || 'Failed to create post'
+    }
+    uploadProgress.value = 0
   } finally {
     posting.value = false
   }
@@ -227,6 +265,28 @@ onMounted(fetchPosts)
 }
 
 .btn-primary:disabled { opacity: 0.5; }
+
+.upload-progress {
+  margin-top: 0.5rem;
+  position: relative;
+  height: 6px;
+  background: var(--bg-tertiary, #1a1a2a);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.upload-progress-bar {
+  height: 100%;
+  background: var(--primary, #00f0ff);
+  border-radius: 3px;
+  transition: width 0.2s;
+}
+.upload-progress-label {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #a0a0b0);
+}
 
 .loading, .empty {
   text-align: center;

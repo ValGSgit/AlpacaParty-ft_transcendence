@@ -78,11 +78,48 @@ export const getPosts = async (req, res, next) => {
     const posts = await Post.getFeed({ limit: Number(limit), offset: Number(offset) });
     const shaped = posts.map((p) => ({
       ...p,
-      authorUsername: anonymize ? anonymizeName(p.authorId) : p.authorUsername,
-      authorAvatar: anonymize ? maskAvatar : p.authorAvatar,
+      author_username: anonymize ? anonymizeName(p.author_id) : p.author_username,
+      author_avatar: anonymize ? maskAvatar : p.author_avatar,
       content: anonymize ? '[anonymized post content]' : p.content,
     }));
     res.json({ posts: shaped });
+  } catch (err) { next(err); }
+};
+
+/** POST /api/public/posts — create a post via API key (service-level) */
+export const createPost = async (req, res, next) => {
+  try {
+    const { content, authorId, imageUrl } = req.body;
+    if (!content?.trim()) return res.status(400).json({ error: { message: 'content is required' } });
+    if (!authorId) return res.status(400).json({ error: { message: 'authorId is required' } });
+    const post = await Post.create({ authorId: Number(authorId), content: content.trim(), imageUrl: imageUrl || null });
+    res.status(201).json({ post });
+  } catch (err) { next(err); }
+};
+
+/** PUT /api/public/posts/:id — update a post via API key (service-level) */
+export const updatePost = async (req, res, next) => {
+  try {
+    const { content, imageUrl } = req.body;
+    const { id } = req.params;
+    if (!content?.trim() && imageUrl === undefined) {
+      return res.status(400).json({ error: { message: 'Nothing to update' } });
+    }
+    // Find post first, then update (no authorId restriction for API key ops)
+    const existing = await Post.findById(Number(id));
+    if (!existing) return res.status(404).json({ error: { message: 'Post not found' } });
+    const post = await Post.update(Number(id), existing.author_id, { content, imageUrl });
+    res.json({ post });
+  } catch (err) { next(err); }
+};
+
+/** DELETE /api/public/posts/:id — delete a post via API key (service-level) */
+export const deletePost = async (req, res, next) => {
+  try {
+    const existing = await Post.findById(Number(req.params.id));
+    if (!existing) return res.status(404).json({ error: { message: 'Post not found' } });
+    await Post.delete(Number(req.params.id), existing.author_id);
+    res.json({ message: 'Post deleted' });
   } catch (err) { next(err); }
 };
 
@@ -124,12 +161,12 @@ export const getMockDataset = async (req, res, next) => {
       })),
       posts: posts.map((p) => ({
         id: p.id,
-        authorId: p.authorId,
-        authorUsername: anonymizeName(p.authorId),
-        authorAvatar: maskAvatar,
+        author_id: p.author_id,
+        author_username: anonymizeName(p.author_id),
+        author_avatar: maskAvatar,
         content: '[anonymized post content]',
-        createdAt: p.createdAt,
-        likesCount: p.likesCount,
+        created_at: p.created_at,
+        likes_count: p.likes_count,
       })),
       organizations: organizations.map((org) => ({
         id: org.id,

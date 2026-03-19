@@ -18,11 +18,14 @@ export const listConversations = async (req, res, next) => {
 /** GET /api/chat/dm/:userId */
 export const getConversation = async (req, res, next) => {
   try {
+    const otherId = Number(req.params.userId);
+    if (isNaN(otherId)) return res.status(400).json({ error: { message: 'Invalid user ID' } });
+    if (otherId === req.user.id) return res.status(400).json({ error: { message: 'Cannot message yourself' } });
     const { limit = 50, offset = 0 } = req.query;
-    const messages = await Message.getConversation(req.user.id, Number(req.params.userId), {
+    const messages = await Message.getConversation(req.user.id, otherId, {
       limit: Number(limit), offset: Number(offset),
     });
-    await Message.markAsRead(req.user.id, Number(req.params.userId));
+    await Message.markAsRead(req.user.id, otherId);
     res.json({ messages });
   } catch (err) { next(err); }
 };
