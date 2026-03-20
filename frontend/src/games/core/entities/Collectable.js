@@ -13,8 +13,7 @@ export class Collectable {
 
     this.model.position.set(...pos);
     this.model.rotation.set(0, rotation, 0);
-    this.model.scale.set(0, 0, 0);
-    //this.model.scale.set(...scale);
+    this.model.scale.set(...scale);
     this.model.updateMatrixWorld(true);
     this.targetScale = new THREE.Vector3(1, 1, 1);
     this.new = true;
