@@ -1,130 +1,119 @@
 /**
- * Post Model — feed / social posts
+ * Post Model — Prisma data access layer
  * @owner ValGSgit
  */
-import { query, getClient } from '../config/database.js';
+import prisma from '../config/prisma.js';
+
+const AUTHOR_SELECT = { select: { username: true, avatar: true } };
+
+function shapePost(p, likedIds = null) {
+  return {
+    id: p.id,
+    author_id: p.authorId,
+    content: p.content,
+    image_url: p.imageUrl,
+    is_public: p.isPublic,
+    likes_count: p.likesCount,
+    created_at: p.createdAt,
+    updated_at: p.updatedAt,
+    author_username: p.author?.username,
+    author_avatar: p.author?.avatar,
+    user_liked: likedIds ? likedIds.has(p.id) : false,
+  };
+}
 
 const Post = {
   async create({ authorId, content, imageUrl = null, isPublic = true }) {
-    const { rows } = await query(
-      `INSERT INTO posts (author_id, content, image_url, is_public)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [authorId, content, imageUrl, isPublic],
-    );
-    return rows[0];
+    const post = await prisma.post.create({
+      data: { authorId, content, imageUrl, isPublic },
+      include: { author: AUTHOR_SELECT },
+    });
+    return shapePost(post);
   },
 
   async findById(id) {
-    const { rows } = await query(
-      `SELECT p.*, u.username AS author_username, u.avatar AS author_avatar
-       FROM posts p JOIN users u ON u.id = p.author_id WHERE p.id = $1`,
-      [id],
-    );
-    return rows[0] || null;
+    const post = await prisma.post.findUnique({
+      where: { id: Number(id) },
+      include: { author: AUTHOR_SELECT },
+    });
+    return post ? shapePost(post) : null;
   },
 
   async update(id, authorId, fields) {
-    const allowed = ['content', 'image_url', 'is_public'];
-    const sets = [];
-    const values = [];
-    let idx = 1;
+    const data = {};
+    if (fields.content !== undefined) data.content = fields.content;
+    if (fields.image_url !== undefined) data.imageUrl = fields.image_url;
+    if (fields.imageUrl !== undefined) data.imageUrl = fields.imageUrl;
+    if (fields.is_public !== undefined) data.isPublic = fields.is_public;
+    if (fields.isPublic !== undefined) data.isPublic = fields.isPublic;
+    if (Object.keys(data).length === 0) return this.findById(id);
 
-    for (const key of allowed) {
-      if (fields[key] !== undefined) {
-        sets.push(`${key} = $${idx}`);
-        values.push(fields[key]);
-        idx++;
-      }
-    }
-    if (sets.length === 0) return this.findById(id);
-    sets.push(`updated_at = NOW()`);
-    values.push(id, authorId);
-
-    const { rows } = await query(
-      `UPDATE posts SET ${sets.join(', ')} WHERE id = $${idx} AND author_id = $${idx + 1} RETURNING *`,
-      values,
-    );
-    return rows[0] || null;
+    const post = await prisma.post.update({
+      where: { id: Number(id), authorId: Number(authorId) },
+      data,
+      include: { author: AUTHOR_SELECT },
+    }).catch(() => null);
+    return post ? shapePost(post) : null;
   },
 
   async delete(id, authorId) {
-    const { rowCount } = await query(
-      `DELETE FROM posts WHERE id = $1 AND author_id = $2`,
-      [id, authorId],
-    );
-    return rowCount > 0;
+    const { count } = await prisma.post.deleteMany({
+      where: { id: Number(id), authorId: Number(authorId) },
+    });
+    return count > 0;
   },
 
-  /**
-   * Public feed — public posts from public users.
-   */
   async getFeed({ limit = 20, offset = 0, viewerId = null } = {}) {
-    const { rows } = await query(
-      `SELECT p.*, u.username AS author_username, u.avatar AS author_avatar,
-              EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $3) AS liked
-       FROM posts p JOIN users u ON u.id = p.author_id
-       WHERE p.is_public = TRUE AND u.is_public = TRUE
-       ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`,
-      [limit, offset, viewerId || 0],
-    );
-    return rows;
+    const [posts, liked] = await Promise.all([
+      prisma.post.findMany({
+        where: { isPublic: true, author: { isPublic: true } },
+        include: { author: AUTHOR_SELECT },
+        orderBy: { createdAt: 'desc' },
+        take: Number(limit),
+        skip: Number(offset),
+      }),
+      viewerId
+        ? prisma.postLike.findMany({ where: { userId: Number(viewerId) }, select: { postId: true } })
+        : Promise.resolve([]),
+    ]);
+    const likedIds = new Set(liked.map((l) => l.postId));
+    return posts.map((p) => shapePost(p, likedIds));
   },
 
-  /**
-   * User's own posts.
-   */
   async getByUser(userId, { limit = 20, offset = 0 } = {}) {
-    const { rows } = await query(
-      `SELECT p.*, u.username AS author_username, u.avatar AS author_avatar
-       FROM posts p JOIN users u ON u.id = p.author_id
-       WHERE p.author_id = $1 ORDER BY p.created_at DESC LIMIT $2 OFFSET $3`,
-      [userId, limit, offset],
-    );
-    return rows;
+    const posts = await prisma.post.findMany({
+      where: { authorId: Number(userId) },
+      include: { author: AUTHOR_SELECT },
+      orderBy: { createdAt: 'desc' },
+      take: Number(limit),
+      skip: Number(offset),
+    });
+    return posts.map((p) => shapePost(p));
   },
 
   async like(postId, userId) {
-    const client = await getClient();
-    try {
-      await client.query('BEGIN');
-      await client.query(
-        `INSERT INTO post_likes (post_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [postId, userId],
-      );
-      await client.query(
-        `UPDATE posts SET likes_count = (SELECT COUNT(*) FROM post_likes WHERE post_id = $1) WHERE id = $1`,
-        [postId],
-      );
-      await client.query('COMMIT');
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
-    }
+    await prisma.$transaction(async (tx) => {
+      try {
+        await tx.postLike.create({ data: { postId: Number(postId), userId: Number(userId) } });
+      } catch (e) {
+        if (e.code === 'P2002') return; // already liked
+        throw e;
+      }
+      const count = await tx.postLike.count({ where: { postId: Number(postId) } });
+      await tx.post.update({ where: { id: Number(postId) }, data: { likesCount: count } });
+    });
   },
 
   async unlike(postId, userId) {
-    const client = await getClient();
-    try {
-      await client.query('BEGIN');
-      await client.query(`DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2`, [postId, userId]);
-      await client.query(
-        `UPDATE posts SET likes_count = (SELECT COUNT(*) FROM post_likes WHERE post_id = $1) WHERE id = $1`,
-        [postId],
-      );
-      await client.query('COMMIT');
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
-    }
+    await prisma.$transaction(async (tx) => {
+      await tx.postLike.deleteMany({ where: { postId: Number(postId), userId: Number(userId) } });
+      const count = await tx.postLike.count({ where: { postId: Number(postId) } });
+      await tx.post.update({ where: { id: Number(postId) }, data: { likesCount: count } });
+    });
   },
 
   async count() {
-    const { rows } = await query(`SELECT COUNT(*)::int AS total FROM posts`);
-    return rows[0].total;
+    return prisma.post.count();
   },
 };
 

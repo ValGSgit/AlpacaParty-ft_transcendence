@@ -83,7 +83,11 @@ onMounted(async () => {
     const { data } = await api.get(`/users/${userId}`)
     profile.value = data.user
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'User not found'
+    if (e.response?.status === 403) {
+      error.value = 'This profile is private and visible only to friends or admins.'
+    } else {
+      error.value = e.response?.data?.error?.message || 'User not found'
+    }
   } finally {
     loading.value = false
   }

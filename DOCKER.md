@@ -49,20 +49,23 @@ This guide explains how to run AlpacaParty in a fully containerized environment 
 
 1. **Update environment for production:**
    ```bash
-   cp .env .env.production
-   nano .env.production
+   make generate-secrets
+   nano .env
    ```
    
    **Important changes for production:**
    - Set a strong `JWT_SECRET` (generate with `openssl rand -base64 32`)
    - Change `DB_PASSWORD` to a strong password
+   - Ensure `DATABASE_URL` matches `DB_USER` / `DB_PASSWORD` / `DB_NAME`
    - Set `NODE_ENV=production`
    - Update `CORS_ORIGINS` to your domain
    - Update `VITE_API_URL` if needed
 
 2. **Build and start production containers:**
    ```bash
-   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+   make prod-up
+   # OR
+   docker compose -f docker-compose.prod.yml up -d --build
    ```
 
 3. **Access the application:**
@@ -107,6 +110,7 @@ make shell-db        # Open psql in database
 
 make clean           # Stop containers and remove images
 make clean-volumes   # Also remove persistent data (⚠️ destroys DB)
+make fclean          # Full cleanup + prune dangling Docker images/build cache
 ```
 
 ### Direct Docker Compose Commands

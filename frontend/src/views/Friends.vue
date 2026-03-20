@@ -24,25 +24,75 @@
 
     <!-- ── Friends ── -->
     <div v-if="activeTab === 'friends' && !loading">
-      <div class="send-request">
-        <input v-model="newFriendId" type="number" placeholder="User ID to add" />
-        <button class="btn-primary" @click="sendRequest" :disabled="!newFriendId">
-          Send Request
-        </button>
+      <!-- Search & filter toolbar -->
+      <div class="search-toolbar">
+        <input
+          v-model="friendSearch"
+          type="text"
+          placeholder="Search friends by name…"
+          class="search-input"
+        />
+        <select v-model="friendSort" class="sort-select">
+          <option value="name">Sort: Name</option>
+          <option value="online">Sort: Online first</option>
+          <option value="level">Sort: Level</option>
+        </select>
       </div>
 
-      <ul v-if="friends.length" class="user-list">
-        <li v-for="f in friends" :key="f.id" class="user-row">
+      <ul v-if="filteredFriends.length" class="user-list">
+        <li v-for="f in filteredFriends" :key="f.id" class="user-row">
           <span class="online-dot" :class="{ online: f.is_online }"></span>
           <img :src="f.avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
-          <span class="username">{{ f.username }}</span>
+          <div class="user-info">
+            <span class="username">{{ f.username }}</span>
+            <span class="user-meta">Lv {{ f.level || 1 }} · {{ f.is_online ? 'Online' : 'Offline' }}</span>
+          </div>
           <div class="actions">
             <button class="btn-sm btn-danger" @click="removeFriend(f.id)">Remove</button>
             <button class="btn-sm" @click="blockUser(f.id)">Block</button>
           </div>
         </li>
       </ul>
-      <p v-else class="empty">No friends yet. Send a request above!</p>
+      <p v-else-if="friendSearch" class="empty">No friends matching "{{ friendSearch }}"</p>
+      <p v-else class="empty">No friends yet.</p>
+
+      <!-- Discover users -->
+      <div class="discover-section">
+        <h3>Discover Users</h3>
+        <div class="search-toolbar">
+          <input
+            v-model="userSearch"
+            type="text"
+            placeholder="Search all users…"
+            @keyup.enter="searchUsers"
+            class="search-input"
+          />
+          <button class="btn-primary btn-sm" @click="searchUsers" :disabled="searchingUsers">
+            {{ searchingUsers ? 'Searching…' : 'Search' }}
+          </button>
+        </div>
+        <ul v-if="searchResults.length" class="user-list">
+          <li v-for="u in searchResults" :key="u.id" class="user-row">
+            <img :src="u.avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
+            <div class="user-info">
+              <span class="username">{{ u.username }}</span>
+              <span class="user-meta">Lv {{ u.level || 1 }}</span>
+            </div>
+            <div class="actions">
+              <button class="btn-sm btn-primary" @click="sendRequestToUser(u.id)" :disabled="requestedIds.has(u.id)">
+                {{ requestedIds.has(u.id) ? 'Sent' : 'Add Friend' }}
+              </button>
+            </div>
+          </li>
+        </ul>
+        <!-- Pagination -->
+        <div v-if="searchTotal > searchPageSize" class="pagination">
+          <button class="btn-sm" :disabled="searchPage === 0" @click="searchPage--; searchUsers()">‹ Prev</button>
+          <span class="page-info">{{ searchPage + 1 }} / {{ Math.ceil(searchTotal / searchPageSize) }}</span>
+          <button class="btn-sm" :disabled="(searchPage + 1) * searchPageSize >= searchTotal" @click="searchPage++; searchUsers()">Next ›</button>
+        </div>
+        <p v-else-if="userSearch && !searchResults.length && !searchingUsers" class="empty">No users found.</p>
+      </div>
     </div>
 
     <!-- ── Requests ── -->
@@ -104,7 +154,34 @@ const loading  = ref(false)
 const error    = ref(null)
 const newFriendId = ref('')
 
+// Search & filter state
+const friendSearch = ref('')
+const friendSort = ref('name')
+const userSearch = ref('')
+const searchResults = ref([])
+const searchTotal = ref(0)
+const searchPage = ref(0)
+const searchPageSize = 10
+const searchingUsers = ref(false)
+const requestedIds = ref(new Set())
+
 const pendingCount = computed(() => received.value.length)
+
+const filteredFriends = computed(() => {
+  let list = [...friends.value]
+  if (friendSearch.value) {
+    const q = friendSearch.value.toLowerCase()
+    list = list.filter(f => f.username?.toLowerCase().includes(q))
+  }
+  if (friendSort.value === 'online') {
+    list.sort((a, b) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0))
+  } else if (friendSort.value === 'level') {
+    list.sort((a, b) => (b.level || 1) - (a.level || 1))
+  } else {
+    list.sort((a, b) => (a.username || '').localeCompare(b.username || ''))
+  }
+  return list
+})
 
 async function fetchFriends() {
   loading.value = true
@@ -152,6 +229,31 @@ async function sendRequest() {
     newFriendId.value = ''
     await fetchRequests()
     activeTab.value = 'requests'
+  } catch (e) {
+    error.value = e.response?.data?.error?.message || 'Failed to send request'
+  }
+}
+
+async function searchUsers() {
+  if (!userSearch.value.trim()) return
+  searchingUsers.value = true
+  try {
+    const { data } = await api.get('/users', {
+      params: { search: userSearch.value.trim(), limit: searchPageSize, offset: searchPage.value * searchPageSize },
+    })
+    searchResults.value = data.users || []
+    searchTotal.value = data.total || searchResults.value.length
+  } catch (e) {
+    error.value = e.response?.data?.error?.message || 'Search failed'
+  } finally {
+    searchingUsers.value = false
+  }
+}
+
+async function sendRequestToUser(userId) {
+  try {
+    await api.post('/friends/requests', { userId })
+    requestedIds.value = new Set([...requestedIds.value, userId])
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Failed to send request'
   }
@@ -281,6 +383,48 @@ h3 { color: var(--primary, #00f0ff); margin-bottom: 0.5rem; }
 .btn-sm.btn-primary { background: var(--primary, #00f0ff); color: #0a0a0f; border: none; }
 
 .empty { color: #666; font-style: italic; padding: 1rem 0; }
+
+/* ── Search & filter ── */
+.search-toolbar {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+.search-input {
+  flex: 1;
+  padding: 0.45rem 0.75rem;
+  background: var(--bg-tertiary, #1a1a2a);
+  border: 1px solid var(--border-color, #2a2a3a);
+  border-radius: 6px;
+  color: inherit;
+  font-size: 0.9rem;
+}
+.search-input:focus { outline: none; border-color: var(--primary, #00f0ff); }
+.sort-select {
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-tertiary, #1a1a2a);
+  border: 1px solid var(--border-color, #2a2a3a);
+  border-radius: 6px;
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.user-info { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.user-meta { font-size: 0.75rem; color: var(--text-secondary, #a0a0b0); }
+
+.discover-section { margin-top: 2rem; }
+.discover-section h3 { color: var(--primary, #00f0ff); margin-bottom: 0.75rem; }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
+  padding: 0.75rem 0;
+}
+.page-info { font-size: 0.85rem; color: var(--text-secondary, #a0a0b0); }
 .loading { color: #999; padding: 1rem 0; }
 .error-banner {
   padding: 0.6rem 1rem; margin-bottom: 1rem;

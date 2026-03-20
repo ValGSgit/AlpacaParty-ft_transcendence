@@ -1,38 +1,51 @@
 /**
- * File Model — uploaded files metadata
+ * File Model — Prisma data access layer
  * @owner ValGSgit
  */
-import { query } from '../config/database.js';
+import prisma from '../config/prisma.js';
+
+/** Convert BigInt fields to Number so JSON.stringify works. */
+function safeFile(f) {
+  if (!f) return f;
+  return { ...f, sizeBytes: f.sizeBytes != null ? Number(f.sizeBytes) : null };
+}
 
 const File = {
   async create({ uploaderId, originalName, storedName, mimeType, sizeBytes, url }) {
-    const { rows } = await query(
-      `INSERT INTO files (uploader_id, original_name, stored_name, mime_type, size_bytes, url)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [uploaderId, originalName, storedName, mimeType, sizeBytes, url],
-    );
-    return rows[0];
+    const record = await prisma.file.create({
+      data: {
+        uploaderId: Number(uploaderId),
+        originalName,
+        storedName,
+        mimeType,
+        sizeBytes: BigInt(sizeBytes),
+        url,
+      },
+    });
+    return safeFile(record);
   },
 
   async findById(id) {
-    const { rows } = await query(`SELECT * FROM files WHERE id = $1`, [id]);
-    return rows[0] || null;
+    return safeFile(await prisma.file.findUnique({ where: { id: Number(id) } }));
   },
 
   async getByUploader(uploaderId, { limit = 50, offset = 0 } = {}) {
-    const { rows } = await query(
-      `SELECT * FROM files WHERE uploader_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
-      [uploaderId, limit, offset],
-    );
-    return rows;
+    const rows = await prisma.file.findMany({
+      where: { uploaderId: Number(uploaderId) },
+      orderBy: { createdAt: 'desc' },
+      take: Number(limit),
+      skip: Number(offset),
+    });
+    return rows.map(safeFile);
   },
 
   async delete(id, uploaderId) {
-    const { rows } = await query(
-      `DELETE FROM files WHERE id = $1 AND uploader_id = $2 RETURNING stored_name`,
-      [id, uploaderId],
-    );
-    return rows[0] || null;
+    const record = await prisma.file.findFirst({
+      where: { id: Number(id), uploaderId: Number(uploaderId) },
+    });
+    if (!record) return null;
+    await prisma.file.delete({ where: { id: Number(id) } });
+    return safeFile(record);
   },
 };
 

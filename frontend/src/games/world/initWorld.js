@@ -21,7 +21,7 @@ export async function initWorld(scene) {
   setupLighting(scene)
   createFloor(scene)
 
-  if (!user || user.alpacas.length === 0) // newAlpaca or without login
+  if (!user || !user.alpacas || user.alpacas.length === 0) // newAlpaca or without login
   {
     const player = await loadPlayer(scene)
     gPlayer.value = player
@@ -35,7 +35,7 @@ export async function initWorld(scene) {
       gAlpacas.value.push(player)
     }
   }
-  if (!user || user.items.length === 0)
+  if (!user || !user.items || user.items.length === 0)
     spawnTrees(scene)
   else
     spawnTrees(scene, user.items)

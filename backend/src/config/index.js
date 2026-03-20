@@ -44,13 +44,13 @@ const config = {
   cors: {
     origins: process.env.CORS_ORIGINS
       ? process.env.CORS_ORIGINS.split(',')
-      : ['http://localhost:5173', 'http://localhost:8080'],
+      : ['http://localhost:5173', 'https://localhost:8080'],
   },
 
   // Explicit frontend URL used for OAuth post-login redirects.
   // Falls back to the first CORS origin when not set.
   frontendUrl: process.env.FRONTEND_URL
-    || (process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',')[0] : 'http://localhost:8080'),
+    || (process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',')[0] : 'https://localhost:8080'),
 
   rateLimit: {
     windowMs: 15 * 60 * 10000, // 15 minutes
@@ -69,13 +69,19 @@ const config = {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/auth/google/callback',
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://localhost:3000/api/auth/google/callback',
     },
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || '',
       clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
-      callbackUrl: process.env.GITHUB_CALLBACK_URL || 'http://localhost:3000/api/auth/github/callback',
+      callbackUrl: process.env.GITHUB_CALLBACK_URL || 'https://localhost:3000/api/auth/github/callback',
     },
+  },
+
+  // SSL/TLS certificates
+  ssl: {
+    certPath: process.env.SSL_CERT_PATH || path.resolve(__dirname, '../../ssl/cert.pem'),
+    keyPath: process.env.SSL_KEY_PATH || path.resolve(__dirname, '../../ssl/key.pem'),
   },
 
   // File uploads

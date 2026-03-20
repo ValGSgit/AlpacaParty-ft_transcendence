@@ -31,7 +31,7 @@ export const deleteFile = async (req, res, next) => {
   try {
     const record = await File.delete(Number(req.params.id), req.user.id);
     if (!record) return res.status(404).json({ error: { message: 'File not found or not yours' } });
-    await deleteFileFromDisk(record.stored_name);
+    await deleteFileFromDisk(record.storedName);
     res.json({ message: 'File deleted' });
   } catch (err) { next(err); }
 };
