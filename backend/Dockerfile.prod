@@ -2,14 +2,14 @@
 # @owner ValGSgit
 # @issue https://github.com/ValGSgit/AlpacaParty/issues/3
 
-FROM node:20-alpine
+FROM node:24-alpine3.22
 
 
 WORKDIR /app
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+  adduser -S nodejs -u 1001
 
 # Copy package files from backend for install
 COPY backend/package*.json ./
@@ -24,7 +24,7 @@ RUN npx prisma generate && npm prune --omit=dev
 
 # Create uploads and ssl directories with correct ownership
 RUN mkdir -p /app/uploads /app/ssl && \
-    chown -R nodejs:nodejs /app/uploads /app/ssl
+  chown -R nodejs:nodejs /app/uploads /app/ssl
 
 # Copy SSL certificates with correct ownership
 COPY --chown=nodejs:nodejs nginx/ssl/cert.pem /app/ssl/cert.pem

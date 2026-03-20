@@ -1,0 +1,15 @@
+
+# Frontend
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_API_URL=${VITE_API_URL}
+    container_name: alpacaparty_frontend_prod
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - alpacaparty_net

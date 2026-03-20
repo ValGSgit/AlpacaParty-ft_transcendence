@@ -12,8 +12,8 @@ RESET  := \033[0m
 
 # ── Docker ──────────────────────────────────────────────────
 COMPOSE_PROJECT := $(notdir $(CURDIR))
-DC := docker compose
-DC_PROD := docker compose -f docker-compose.prod.yml
+DC := docker compose -f compose.yaml
+DC_PROD := docker compose -f compose.prod.yaml
 
 .DEFAULT_GOAL := help
 .PHONY: help up down build logs restart ps \
@@ -122,24 +122,19 @@ generate-secrets:
 # ── SSL CERTIFICATES ────────────────────────────────────────
 # Generates a self-signed certificate for local HTTPS development.
 ssl-certs:
-	@mkdir -p nginx/ssl backend/ssl
-	@if [ ! -f nginx/ssl/cert.pem ]; then \
+	@mkdir -p ssl
+	@if [ ! -f ssl/cert.pem ]; then \
 	  openssl req -x509 -newkey rsa:2048 -nodes \
-	    -keyout nginx/ssl/key.pem \
-	    -out nginx/ssl/cert.pem \
+	    -keyout ssl/key.pem \
+	    -out ssl/cert.pem \
 	    -days 365 \
 	    -subj '/CN=localhost' 2>/dev/null && \
-	  echo "$(GREEN)✓ Self-signed certificate generated in nginx/ssl/$(RESET)"; \
+	  echo "$(GREEN)✓ Self-signed certificate generated in ssl/$(RESET)"; \
 	else \
 	  echo "$(YELLOW)  Certificate already exists — skipping$(RESET)"; \
 	fi
-	@if [ ! -f backend/ssl/cert.pem ]; then \
-	  cp nginx/ssl/cert.pem backend/ssl/cert.pem && \
-	  cp nginx/ssl/key.pem backend/ssl/key.pem && \
-	  echo "$(GREEN)✓ Self-signed certificate copied to backend/ssl/$(RESET)"; \
-	else \
-	  echo "$(YELLOW)  Backend certificate already exists — skipping$(RESET)"; \
-	fi
+	chmod +rw ssl/key.pem
+	chmod +rw ssl/cert.pem
 
 # Ensure .env exists with real secrets before any prod command.
 # Does NOT regenerate if .env already exists (keeps DB password stable).
@@ -190,6 +185,9 @@ shell-frontend:
 shell-db:
 	$(DC) exec postgres psql -U $${DB_USER:-alpacaparty} -d $${DB_NAME:-alpacaparty}
 
+backend_cmd:
+	${DC} run --rm --entrypoint /bin/sh backend -c "$(cmd)"
+
 # ── DATABASE SEEDS ──────────────────────────────────────────
 # Requires the postgres container to be running (make up / make prod-up).
 seed-admins:
@@ -217,6 +215,9 @@ waf-logs:
 clean:
 	$(DC) down --rmi all --remove-orphans
 	$(DC_PROD) down --rmi all --remove-orphans
+		sudo rm -rf backend/generated
+	sudo rm -rf backend/node_modules && \
+	mkdir backend/node_modules
 
 clean-volumes:
 	$(DC) down --rmi all --volumes --remove-orphans

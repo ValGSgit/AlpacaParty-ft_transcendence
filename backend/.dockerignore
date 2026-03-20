@@ -40,8 +40,10 @@ LICENSE
 
 # Docker
 Dockerfile*
-docker-compose*
+*compose*
 .dockerignore
 
 # Local data
 data
+generated
+prisma/migrations
