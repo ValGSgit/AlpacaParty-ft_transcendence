@@ -69,6 +69,19 @@ app.use((req, _res, next) => {
 // Security
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:', '*.googleusercontent.com', '*.githubusercontent.com', 'picsum.photos', '*.picsum.photos'],
+      connectSrc: ["'self'", 'wss:', 'ws:', 'https:'],
+      fontSrc: ["'self'", 'data:'],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'", 'blob:'],
+      frameSrc: ["'none'"],
+    },
+  },
 }));
 
 // CORS

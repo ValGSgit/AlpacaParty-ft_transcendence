@@ -200,10 +200,30 @@ async function seedSocialGraph(users) {
   return pairs;
 }
 
+const SEED_IMAGES = [
+  'https://picsum.photos/seed/alpaca1/600/400',
+  'https://picsum.photos/seed/alpaca2/600/400',
+  'https://picsum.photos/seed/alpaca3/600/400',
+  'https://picsum.photos/seed/alpaca4/600/400',
+  'https://picsum.photos/seed/alpaca5/600/400',
+  'https://picsum.photos/seed/alpaca6/600/400',
+  'https://picsum.photos/seed/alpaca7/600/400',
+  'https://picsum.photos/seed/alpaca8/600/400',
+  'https://picsum.photos/seed/alpaca9/600/400',
+  'https://picsum.photos/seed/alpaca10/600/400',
+  'https://picsum.photos/seed/party1/600/400',
+  'https://picsum.photos/seed/party2/600/400',
+  'https://picsum.photos/seed/farm1/600/400',
+  'https://picsum.photos/seed/farm2/600/400',
+  'https://picsum.photos/seed/game1/600/400',
+  'https://picsum.photos/seed/game2/600/400',
+];
+
 async function seedPostsAndLikes(userIds) {
-  const postsData = Array.from({ length: cfg.posts }, () => ({
+  const postsData = Array.from({ length: cfg.posts }, (_, i) => ({
     authorId: pick(userIds),
     content: `${makeContent('Live feed:')} [${runTag}]`,
+    imageUrl: (i % 7 === 0) ? pick(SEED_IMAGES) : null,
     isPublic: Math.random() < 0.97,
     createdAt: randomDateLastDays(),
     updatedAt: randomDateLastDays(),
@@ -308,18 +328,34 @@ async function seedRooms(userIds) {
   await prisma.chatRoomMessage.createMany({ data: roomMessages, skipDuplicates: true });
 }
 
+const ORG_NAMES = [
+  'Alpaca Riders Guild', 'Farm Defense League', 'Llama Lords', 'Woolly Warriors',
+  'Pong Masters', 'Neon Arena', 'Pixel Farmers Co', 'The Alpaca Academy',
+  'Golden Fleece Syndicate', 'Cloud Herders', 'Alpaca Party Official', 'Code Ranchers',
+  'Frontier Explorers', 'Turbo Shearers', 'Data Shepherds', 'Midnight Grazers',
+  'Alpine Collective', 'Digital Pastures', 'Thunder Herd', 'Cosmic Alpacas',
+];
+
 async function seedOrganizations(userIds) {
   const orgsData = Array.from({ length: cfg.organizations }, (_, i) => ({
-    name: `${runTag}-org-${String(i + 1).padStart(2, '0')}`,
-    description: 'Seeded organization for load-like testing',
+    name: i < ORG_NAMES.length ? ORG_NAMES[i] : `${ORG_NAMES[i % ORG_NAMES.length]} ${Math.floor(i / ORG_NAMES.length) + 1}`,
+    description: pick([
+      'A community of dedicated alpaca enthusiasts.',
+      'Competitive gaming and strategy discussions.',
+      'Casual group for farm management tips.',
+      'Elite players pushing the leaderboard.',
+      'Social club for events and meetups.',
+      'Research and development of alpaca tech.',
+    ]),
     ownerId: pick(userIds),
     createdAt: randomDateLastDays(),
     updatedAt: randomDateLastDays(),
   }));
 
   await prisma.organization.createMany({ data: orgsData, skipDuplicates: true });
+  const orgNames = orgsData.map(o => o.name);
   const orgs = await prisma.organization.findMany({
-    where: { name: { startsWith: `${runTag}-org-` } },
+    where: { name: { in: orgNames } },
     select: { id: true, ownerId: true },
   });
 

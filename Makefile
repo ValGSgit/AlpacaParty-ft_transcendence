@@ -23,7 +23,7 @@ DC_PROD := docker compose -f docker-compose.prod.yml
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
         shell-backend shell-frontend shell-db \
-	test e2e seed-admins seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
+	test e2e prod-e2e test-local seed-admins seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
         vault-status vault-secrets vault-shell waf-logs
 
 # ── HELP ────────────────────────────────────────────────────
@@ -60,7 +60,9 @@ help:
 	@echo ""
 	@echo "$(YELLOW)Testing$(RESET)"
 	@echo "  $(GREEN)make test$(RESET)           Run backend tests in container"
+	@echo "  $(GREEN)make test-local$(RESET)     Run backend tests locally (no Docker)"
 	@echo "  $(GREEN)make e2e$(RESET)            Run E2E tests against dev stack"
+	@echo "  $(GREEN)make prod-e2e$(RESET)       Seed data + run E2E tests against prod stack"
 	@echo ""
 	@echo "$(YELLOW)Database$(RESET)"
 	@echo "  $(GREEN)make seed-admins$(RESET)    Promote developer accounts to admin"
@@ -184,6 +186,16 @@ test:
 
 e2e:
 	$(DC) exec e2e npm test
+
+# Production E2E: seeds data and runs Playwright against the production build
+prod-e2e: prod-seed-live
+	@echo "$(CYAN)Running E2E tests against production build…$(RESET)"
+	cd e2e && E2E_BASE_URL=https://localhost:8080 npx playwright test
+	@echo "$(GREEN)✓ Production E2E tests complete$(RESET)"
+
+# Run unit tests locally (no Docker)
+test-local:
+	cd backend && npm test
 
 dev-frontend:
 	cd frontend && npm run dev
