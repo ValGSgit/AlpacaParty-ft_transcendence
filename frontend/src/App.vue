@@ -146,12 +146,21 @@ async function fetchUnreadCount() {
 }
 
 async function markNotifRead(n) {
-  if (n.is_read) return
-  try {
-    await api.put(`/notifications/${n.id}`, { is_read: true })
-    n.is_read = true
-    unreadCount.value = Math.max(0, unreadCount.value - 1)
-  } catch {}
+  if (!n.is_read) {
+    try {
+      await api.put(`/notifications/${n.id}/read`)
+      n.is_read = true
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
+    } catch {}
+  }
+  // Navigate based on notification type
+  showNotifPanel.value = false
+  if (n.type === 'friend_request') router.push('/friends')
+  else if (n.type === 'game_invite' || n.type === 'game_finish') router.push('/game')
+  else if (n.type === 'post_like') router.push('/feed')
+  else if (n.type === 'achievement') router.push('/profile')
+  else if (n.type === 'dm' || n.type === 'message') router.push('/messages')
+  else router.push('/profile')
 }
 
 function formatNotifTime(ts) {

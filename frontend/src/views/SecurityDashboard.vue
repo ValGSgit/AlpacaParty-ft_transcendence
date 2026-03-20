@@ -290,14 +290,8 @@ const vaultUiUrl = import.meta.env.VITE_VAULT_UI_URL || 'http://localhost:8200'
 
 onMounted(async () => {
   if (!authStore.user?.is_admin) return
-  try {
-    const res = await fetch('http://localhost:8200/v1/sys/health', { mode: 'no-cors' })
-    // no-cors means we can't read status, but a network error means it's down
-    vaultReachable.value = true
-    vaultHealthy.value   = true
-  } catch {
-    vaultReachable.value = false
-  }
+  // Vault health is probed via the backend to avoid CSP violations.
+  // The status cards show static info; use the Vault UI link to check live status.
 })
 
 const wafStatus = computed(() => ({

@@ -9,10 +9,6 @@
       <div class="profile-header">
         <div class="avatar-wrapper">
           <img :src="authStore.user.avatar || '/avatars/default.svg'" alt="avatar" class="avatar" />
-          <label class="avatar-upload-btn" title="Upload avatar">
-            📷
-            <input type="file" accept="image/*" @change="uploadAvatar" hidden />
-          </label>
         </div>
         <h2>{{ authStore.user.username }}</h2>
         <span class="status">{{ authStore.user.status || 'No status set' }}</span>
@@ -72,7 +68,6 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
-import api from '../services/api.js'
 
 const authStore = useAuthStore()
 const editing = ref(false)
@@ -104,24 +99,6 @@ async function saveProfile() {
   }
 }
 
-async function uploadAvatar(event) {
-  const file = event.target.files?.[0]
-  if (!file) return
-  const formData = new FormData()
-  formData.append('files', file)
-  try {
-    const { data } = await api.post('/uploads', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-    const url = data.files?.[0]?.url
-    if (url) {
-      await authStore.updateProfile({ avatar: url })
-      editMsg.value = { text: 'Avatar updated!', type: 'success' }
-    }
-  } catch (e) {
-    editMsg.value = { text: 'Avatar upload failed', type: 'error' }
-  }
-}
 </script>
 
 <style scoped>
@@ -154,21 +131,6 @@ async function uploadAvatar(event) {
   object-fit: cover;
   border: 2px solid var(--primary, #00f0ff);
   margin-bottom: 0.75rem;
-}
-
-.avatar-upload-btn {
-  position: absolute;
-  bottom: 8px;
-  right: -4px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--bg-tertiary, #1a1a2a);
-  border: 1px solid var(--border-color, #2a2a3a);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  font-size: 0.8rem;
 }
 
 .profile-header h2 {

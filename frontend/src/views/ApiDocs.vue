@@ -12,17 +12,16 @@
 
     <!-- Quick nav -->
     <nav class="docs-nav">
-      <button
+      <a
         v-for="section in sections"
         :key="section.id"
         class="nav-pill"
-        :class="{ active: activeSection === section.id }"
-        @click="activeSection = section.id"
-      >{{ section.label }}</button>
+        :href="'#' + section.id"
+      >{{ section.label }}</a>
     </nav>
 
     <!-- Sections -->
-    <section v-for="section in sections" :key="section.id" v-show="activeSection === section.id" class="endpoint-section">
+    <section v-for="section in sections" :key="section.id" :id="section.id" class="endpoint-section">
       <h2>{{ section.label }}</h2>
       <p class="section-desc">{{ section.description }}</p>
 
@@ -81,9 +80,6 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-
-const activeSection = ref('health')
 
 const sections = [
   {
@@ -910,13 +906,12 @@ h1 {
   cursor: pointer;
   font-size: 0.82rem;
   transition: all 0.15s;
+  text-decoration: none;
 }
-.nav-pill:hover { color: #e0e0f0; border-color: #555; }
-.nav-pill.active {
-  background: var(--primary, #00f0ff);
-  color: #000;
-  border-color: var(--primary, #00f0ff);
-  font-weight: 600;
+.nav-pill:hover {
+  color: #e0e0f0;
+  border-color: #555;
+  background: rgba(0, 240, 255, 0.1);
 }
 
 /* ── Section ────────────────────────────────────────────── */

@@ -32,11 +32,16 @@
         </div>
         <div class="form-row">
           <label>Avatar</label>
-          <div class="avatar-current" v-if="profileForm.avatar">
-            <img :src="profileForm.avatar" class="avatar-preview" alt="current avatar" />
-            <span class="avatar-path">{{ profileForm.avatar }}</span>
+          <div class="avatar-upload-row">
+            <img :src="profileForm.avatar || '/avatars/default.svg'" class="avatar-preview" alt="current avatar" />
+            <div class="avatar-actions">
+              <label class="btn-secondary avatar-upload-label">
+                Upload Image
+                <input type="file" accept="image/*" @change="uploadAvatar" hidden />
+              </label>
+              <p class="field-hint">Or visit the <router-link to="/help" class="inline-link">Help page</router-link> to generate an AI alpaca avatar.</p>
+            </div>
           </div>
-          <p v-else class="field-hint">No custom avatar set — using default. Visit the <router-link to="/help" class="inline-link">Help page</router-link> to generate an AI alpaca avatar.</p>
         </div>
 
         <button type="submit" class="btn-primary" :disabled="savingProfile">
@@ -151,6 +156,26 @@ const pwForm = ref({
 function flash(text, type = 'success') {
   globalMsg.value = { text, type }
   setTimeout(() => { globalMsg.value = null }, 4000)
+}
+
+async function uploadAvatar(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  const formData = new FormData()
+  formData.append('files', file)
+  try {
+    const { data } = await api.post('/uploads', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    const url = data.files?.[0]?.url
+    if (url) {
+      await authStore.updateProfile({ avatar: url })
+      profileForm.value.avatar = url
+      flash('Avatar updated!')
+    }
+  } catch (e) {
+    flash(e.response?.data?.error?.message || 'Avatar upload failed.', 'error')
+  }
 }
 
 onMounted(() => {
@@ -269,8 +294,9 @@ h2 { font-size: 1.1rem; color: var(--primary, #00f0ff); margin: 0 0 1rem; }
 .preview-row { flex-direction: row; align-items: center; gap: 1rem; }
 .avatar-preview { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary, #00f0ff); }
 
-.avatar-current { display: flex; align-items: center; gap: 0.75rem; }
-.avatar-path { font-size: 0.8rem; color: #666; word-break: break-all; }
+.avatar-upload-row { display: flex; align-items: center; gap: 1rem; }
+.avatar-actions { display: flex; flex-direction: column; gap: 0.4rem; }
+.avatar-upload-label { cursor: pointer; display: inline-block; }
 .generate-row { display: flex; gap: 0.5rem; }
 .generate-row input { flex: 1; }
 .field-hint { font-size: 0.8rem; color: #666; margin-top: 0.2rem; }
