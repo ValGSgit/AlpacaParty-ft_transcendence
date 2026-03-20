@@ -6,7 +6,7 @@
  */
 import { test, expect } from '@playwright/test'
 
-// Generate unique user per test run to avoidDB conflicts
+// Generate unique user per test run to avoid DB conflicts
 const ts = Date.now()
 const TEST_USER = {
   username: `e2euser${ts}`,
@@ -79,6 +79,41 @@ test.describe('Registration', () => {
     await loginLink.click()
     await expect(page).toHaveURL('/login')
   })
+
+  test('shows error for special characters in username', async ({ page }) => {
+    const uid = `bad<user>${Date.now()}`
+    await page.fill('input#username', uid)
+    await page.fill('input#email', `special${Date.now()}@test.com`)
+    await page.fill('input#password', 'SpecialChar1')
+    await page.fill('input#confirm', 'SpecialChar1')
+    await page.click('button[type="submit"]')
+
+    // Should show an error — special characters are not allowed in usernames
+    await expect(page.locator('.error-message')).toBeVisible()
+  })
+
+  test('password visibility toggle works if present', async ({ page }) => {
+    const toggleBtn = page.locator('button.toggle-password, .password-toggle, [aria-label*="password" i]').first()
+    const passwordInput = page.locator('input#password')
+
+    // Fill in a password first so the toggle is meaningful
+    await passwordInput.fill('TestPassword1')
+
+    if (await toggleBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      // Password field should start as type="password"
+      await expect(passwordInput).toHaveAttribute('type', 'password')
+
+      await toggleBtn.click()
+
+      // After toggle, should be type="text"
+      await expect(passwordInput).toHaveAttribute('type', 'text')
+
+      await toggleBtn.click()
+
+      // After toggling back, should be type="password" again
+      await expect(passwordInput).toHaveAttribute('type', 'password')
+    }
+  })
 })
 
 // ────────────────────────────────────────────────────────────────
@@ -144,6 +179,42 @@ test.describe('Login', () => {
     await expect(registerLink).toBeVisible()
     await registerLink.click()
     await expect(page).toHaveURL('/register')
+  })
+
+  test('login persists after page reload', async ({ page }) => {
+    await page.fill('input#username', registeredUser.username)
+    await page.fill('input#password', registeredUser.password)
+    await page.click('button[type="submit"]')
+    await expect(page).toHaveURL('/')
+
+    // Reload the page and verify the user is still authenticated
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+
+    await expect(page.locator('a[href="/profile"]')).toBeVisible()
+  })
+
+  test('multiple failed login attempts show errors each time', async ({ page }) => {
+    // First failed attempt
+    await page.fill('input#username', 'wronguser1')
+    await page.fill('input#password', 'WrongPass1')
+    await page.click('button[type="submit"]')
+    await expect(page.locator('.error-message')).toContainText('Invalid credentials')
+
+    // Second failed attempt
+    await page.fill('input#username', 'wronguser2')
+    await page.fill('input#password', 'WrongPass2')
+    await page.click('button[type="submit"]')
+    await expect(page.locator('.error-message')).toContainText('Invalid credentials')
+
+    // Third failed attempt
+    await page.fill('input#username', 'wronguser3')
+    await page.fill('input#password', 'WrongPass3')
+    await page.click('button[type="submit"]')
+    await expect(page.locator('.error-message')).toContainText('Invalid credentials')
+
+    // User should still be on the login page
+    await expect(page).toHaveURL('/login')
   })
 })
 

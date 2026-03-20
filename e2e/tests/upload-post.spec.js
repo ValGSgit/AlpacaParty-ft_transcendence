@@ -72,6 +72,24 @@ test.describe('Text post creation', () => {
 
     await expect(page.locator('textarea')).toHaveValue('')
   })
+
+  test('creates a text-only post with no image attached', async ({ page }) => {
+    const uniqueContent = `Text only post ${Date.now()}`
+
+    await page.fill('textarea', uniqueContent)
+
+    // Make sure no file is attached
+    const fileInput = page.locator('input[type="file"]')
+    const files = await fileInput.evaluate((el) => el.files.length)
+    expect(files).toBe(0)
+
+    await page.click('button[type="submit"]')
+
+    // Post should appear in the feed
+    await expect(
+      page.locator('.post-card, .post-content, article').filter({ hasText: uniqueContent }).first()
+    ).toBeVisible({ timeout: 8_000 })
+  })
 })
 
 // ── Image upload ──────────────────────────────────────────────────
@@ -171,5 +189,65 @@ test.describe('Upload progress indicator', () => {
         page.locator('.post-card, article').filter({ hasText: 'Progress bar test post' }).first()
       )
     ).toBeVisible({ timeout: 15_000 })
+  })
+})
+
+// ── Post appears on profile ──────────────────────────────────────
+
+test.describe('Post appears in user profile', () => {
+  test('post appears in the user profile posts section', async ({ page }) => {
+    const user = await registerAndLogin(page, `profilepost${Date.now()}`)
+    await page.goto('/')
+
+    const uniqueContent = `Profile post check ${Date.now()}`
+    await page.fill('textarea', uniqueContent)
+    await page.click('button[type="submit"]')
+
+    // Wait for the post to appear in the feed first
+    await expect(
+      page.locator('.post-card, .post-content, article').filter({ hasText: uniqueContent }).first()
+    ).toBeVisible({ timeout: 8_000 })
+
+    // Navigate to profile and check that the post shows there too
+    await page.goto('/profile')
+    await page.waitForLoadState('networkidle')
+
+    await expect(
+      page.locator('.post-card, .post-content, article, [class*="post"]').filter({ hasText: uniqueContent }).first()
+    ).toBeVisible({ timeout: 8_000 })
+  })
+})
+
+// ── Multiple posts in sequence ───────────────────────────────────
+
+test.describe('Multiple posts in sequence', () => {
+  test('creating multiple posts shows them all in the feed', async ({ page }) => {
+    await registerAndLogin(page, `multipost${Date.now()}`)
+    await page.goto('/')
+
+    const post1 = `First post ${Date.now()}`
+    const post2 = `Second post ${Date.now() + 1}`
+
+    // Create first post
+    await page.fill('textarea', post1)
+    await page.click('button[type="submit"]')
+    await expect(
+      page.locator('.post-card, .post-content, article').filter({ hasText: post1 }).first()
+    ).toBeVisible({ timeout: 8_000 })
+
+    // Create second post
+    await page.fill('textarea', post2)
+    await page.click('button[type="submit"]')
+    await expect(
+      page.locator('.post-card, .post-content, article').filter({ hasText: post2 }).first()
+    ).toBeVisible({ timeout: 8_000 })
+
+    // Both posts should be visible on the page
+    await expect(
+      page.locator('.post-card, .post-content, article').filter({ hasText: post1 }).first()
+    ).toBeVisible()
+    await expect(
+      page.locator('.post-card, .post-content, article').filter({ hasText: post2 }).first()
+    ).toBeVisible()
   })
 })

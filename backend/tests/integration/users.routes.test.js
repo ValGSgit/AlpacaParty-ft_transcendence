@@ -82,6 +82,11 @@ describe('DELETE /api/users/me', () => {
 
     expect(res.status).toBe(404);
   });
+
+  test('401 — requires auth', async () => {
+    const res = await request.delete('/api/users/me');
+    expect(res.status).toBe(401);
+  });
 });
 
 // ────────────────────────────────────────────────────────────────
@@ -171,6 +176,46 @@ describe('PUT /api/users/me', () => {
       .send({});
 
     expect(res.status).toBe(200);
+  });
+
+  test('200 — update email (available)', async () => {
+    mockAuth();
+    mockQuery.mockResolvedValueOnce({ rows: [] }); // findByEmail → available
+    mockQuery.mockResolvedValueOnce({ rows: [{ ...authUser, email: 'new@email.com' }] }); // update
+
+    const res = await request
+      .put('/api/users/me')
+      .set('Authorization', `Bearer ${validToken}`)
+      .send({ email: 'new@email.com' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.email).toBe('new@email.com');
+  });
+
+  test('200 — update status', async () => {
+    mockAuth();
+    mockQuery.mockResolvedValueOnce({ rows: [{ ...authUser, status: 'Away' }] });
+
+    const res = await request
+      .put('/api/users/me')
+      .set('Authorization', `Bearer ${validToken}`)
+      .send({ status: 'Away' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.status).toBe('Away');
+  });
+
+  test('200 — update coins', async () => {
+    mockAuth();
+    mockQuery.mockResolvedValueOnce({ rows: [{ ...authUser, coins: 500 }] });
+
+    const res = await request
+      .put('/api/users/me')
+      .set('Authorization', `Bearer ${validToken}`)
+      .send({ coins: 500 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.coins).toBe(500);
   });
 });
 
@@ -282,6 +327,18 @@ describe('GET /api/users/:id', () => {
     expect(res.status).toBe(200);
     expect(res.body.user.email).toBe('private@test.com');
   });
+
+  test('200 — returns own profile (self-view)', async () => {
+    mockAuth();
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 1, username: 'authed', email: 'a@b.com', is_public: false, avatar: '/avatars/default.svg', bio: '', status: 'online' }],
+    });
+
+    const res = await request.get('/api/users/1').set('Authorization', `Bearer ${validToken}`);
+    expect(res.status).toBe(200);
+    // Self-view should succeed even for private profiles
+    expect(res.body.user.username).toBe('authed');
+  });
 });
 
 // ────────────────────────────────────────────────────────────────
@@ -325,5 +382,23 @@ describe('GET /api/users', () => {
       .set('Authorization', `Bearer ${validToken}`);
 
     expect(res.status).toBe(200);
+  });
+
+  test('200 — search query returns multiple results', async () => {
+    mockAuth();
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 1, username: 'alpaca_lover', avatar: null, is_online: true, is_public: true },
+        { id: 2, username: 'alpaca_fan', avatar: null, is_online: false, is_public: true },
+        { id: 3, username: 'alpaca_hero', avatar: null, is_online: true, is_public: true },
+      ],
+    });
+
+    const res = await request
+      .get('/api/users?search=alpaca')
+      .set('Authorization', `Bearer ${validToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(3);
   });
 });

@@ -65,4 +65,38 @@ test.describe('Profile', () => {
     await expect(page.locator('a[href="/profile"]')).toBeVisible()
     await expect(page.locator('button.nav-btn', { hasText: 'Logout' })).toBeVisible()
   })
+
+  test('profile shows XP and level', async ({ page }) => {
+    await page.goto('/profile')
+
+    // Profile should display XP and level information
+    const profileContent = page.locator('.profile-info, .profile-stats, .profile-header, [class*="profile"]')
+    const pageText = await profileContent.allTextContents()
+    const combined = pageText.join(' ').toLowerCase()
+
+    // Check that XP and/or level are displayed somewhere on the profile
+    const hasXP = combined.includes('xp') || combined.includes('experience')
+    const hasLevel = combined.includes('level') || combined.includes('lvl')
+    expect(hasXP || hasLevel).toBe(true)
+  })
+
+  test('profile shows default bio', async ({ page }) => {
+    await page.goto('/profile')
+
+    // New users should have a default bio or bio section visible
+    const bioSection = page.locator('.profile-bio, .bio, [class*="bio"]').first()
+    if (await bioSection.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      const bioText = await bioSection.textContent()
+      // Bio section should exist and have some content (default or placeholder)
+      expect(bioText).toBeTruthy()
+    }
+  })
+
+  test('profile page has settings link', async ({ page }) => {
+    await page.goto('/profile')
+
+    // Profile should have a link or button to access settings
+    const settingsLink = page.locator('a[href="/settings"], button:has-text("Settings"), [class*="settings"]').first()
+    await expect(settingsLink).toBeVisible()
+  })
 })

@@ -70,4 +70,90 @@ describe('requireApiKey', () => {
     requireApiKey(req, res, next);
     expect(res.statusCode).toBe(401);
   });
+
+  // ── New tests ─────────────────────────────────────────────────────────────
+
+  test('trims whitespace from configured keys', async () => {
+    // The middleware trims keys via .map(k => k.trim())
+    const requireApiKey = await loadMiddleware('  spaced-key  , another-key ');
+    const req = { headers: { 'x-api-key': 'spaced-key' } };
+    const res = mockRes();
+    const next = jest.fn();
+    requireApiKey(req, res, next);
+    expect(next).toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+  });
+
+  test('does not trim whitespace from incoming request key', async () => {
+    // The middleware checks req.headers['x-api-key'] directly
+    const requireApiKey = await loadMiddleware('exact-key');
+    const req = { headers: { 'x-api-key': '  exact-key  ' } };
+    const res = mockRes();
+    const next = jest.fn();
+    requireApiKey(req, res, next);
+    // The incoming key has extra spaces, so it should NOT match
+    expect(res.statusCode).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test('keys are case-sensitive', async () => {
+    const requireApiKey = await loadMiddleware('CaseSensitive-Key');
+    const req = { headers: { 'x-api-key': 'casesensitive-key' } };
+    const res = mockRes();
+    const next = jest.fn();
+    requireApiKey(req, res, next);
+    expect(res.statusCode).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test('exact case match succeeds', async () => {
+    const requireApiKey = await loadMiddleware('CaseSensitive-Key');
+    const req = { headers: { 'x-api-key': 'CaseSensitive-Key' } };
+    const res = mockRes();
+    const next = jest.fn();
+    requireApiKey(req, res, next);
+    expect(next).toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+  });
+
+  test('rejects undefined API key header', async () => {
+    const requireApiKey = await loadMiddleware('valid-key');
+    const req = { headers: { 'x-api-key': undefined } };
+    const res = mockRes();
+    const next = jest.fn();
+    requireApiKey(req, res, next);
+    expect(res.statusCode).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test('returns proper error body on rejection', async () => {
+    const requireApiKey = await loadMiddleware('valid-key');
+    const req = { headers: {} };
+    const res = mockRes();
+    const next = jest.fn();
+    requireApiKey(req, res, next);
+    expect(res.body).toBeDefined();
+    expect(res.body.error.message).toMatch(/invalid|missing/i);
+  });
+
+  test('handles comma-separated keys with empty entries', async () => {
+    // e.g. "key1,,key2" — empty strings are filtered by .filter(Boolean)
+    const requireApiKey = await loadMiddleware('key1,,key2');
+    const next = jest.fn();
+
+    // empty string should not be a valid key
+    const req1 = { headers: { 'x-api-key': '' } };
+    requireApiKey(req1, mockRes(), next);
+    expect(next).not.toHaveBeenCalled();
+
+    // key1 should still work
+    const req2 = { headers: { 'x-api-key': 'key1' } };
+    requireApiKey(req2, mockRes(), next);
+    expect(next).toHaveBeenCalledTimes(1);
+
+    // key2 should still work
+    const req3 = { headers: { 'x-api-key': 'key2' } };
+    requireApiKey(req3, mockRes(), next);
+    expect(next).toHaveBeenCalledTimes(2);
+  });
 });

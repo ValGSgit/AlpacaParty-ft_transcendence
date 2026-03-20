@@ -227,4 +227,78 @@ test.describe('Mark notification as read', () => {
 
     await pageB.close()
   })
+
+  test('mark all as read button clears all unread notifications', async ({ browser }) => {
+    const { pageB } = await setupFriendRequestNotification(browser)
+
+    await pageB.reload()
+    await pageB.waitForLoadState('networkidle')
+
+    const bellBtn = pageB.locator('.notification-btn')
+    if (!(await bellBtn.isVisible())) {
+      await pageB.close()
+      return
+    }
+
+    await bellBtn.click()
+    await pageB.waitForTimeout(500)
+
+    const panel = pageB.locator('.notif-panel')
+    await expect(panel).toBeVisible()
+
+    // Look for a "Mark all as read" button
+    const markAllBtn = panel.locator(
+      'button:has-text("Mark all"), button:has-text("mark all"), button:has-text("Read all"), [class*="mark-all"]'
+    ).first()
+
+    if (await markAllBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      const unreadBefore = await panel.locator('.notif-item.unread').count()
+
+      await markAllBtn.click()
+      await pageB.waitForTimeout(500)
+
+      // All unread items should now be marked as read
+      const unreadAfter = await panel.locator('.notif-item.unread').count()
+      expect(unreadAfter).toBe(0)
+
+      // If there was a badge, it should be gone now
+      await expect(pageB.locator('.notif-badge')).not.toBeVisible()
+    }
+
+    await pageB.close()
+  })
+
+  test('notification count decreases after marking individual notifications as read', async ({ browser }) => {
+    const { pageB } = await setupFriendRequestNotification(browser)
+
+    await pageB.reload()
+    await pageB.waitForLoadState('networkidle')
+
+    const bellBtn = pageB.locator('.notification-btn')
+    if (!(await bellBtn.isVisible())) {
+      await pageB.close()
+      return
+    }
+
+    await bellBtn.click()
+    await pageB.waitForTimeout(500)
+
+    const panel = pageB.locator('.notif-panel')
+    await expect(panel).toBeVisible()
+
+    const unreadItems = panel.locator('.notif-item.unread')
+    const countBefore = await unreadItems.count()
+
+    if (countBefore > 0) {
+      // Click the first unread notification
+      await unreadItems.first().click()
+      await pageB.waitForTimeout(500)
+
+      // The count should have decreased
+      const countAfter = await panel.locator('.notif-item.unread').count()
+      expect(countAfter).toBeLessThan(countBefore)
+    }
+
+    await pageB.close()
+  })
 })

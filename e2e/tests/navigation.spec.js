@@ -41,6 +41,37 @@ test.describe('Navigation', () => {
     await expect(page).toHaveURL('/register')
     await expect(page.locator('h2')).toHaveText('Create Account')
   })
+
+  test('shows 404 page for unknown routes', async ({ page }) => {
+    await page.goto('/this-route-does-not-exist-at-all')
+
+    // The app should show a 404 / not-found page or redirect to home
+    const pageContent = await page.locator('body').textContent()
+    const is404 = pageContent.toLowerCase().includes('not found') ||
+                  pageContent.toLowerCase().includes('404') ||
+                  pageContent.toLowerCase().includes('does not exist')
+    const redirectedHome = page.url().endsWith('/')
+
+    // Either a 404 message is shown or the user is redirected to home
+    expect(is404 || redirectedHome).toBe(true)
+  })
+
+  test('feed page is accessible for authenticated users', async ({ page }) => {
+    // Register and login
+    const uid = `feedtest${Date.now()}`
+    await page.goto('/register')
+    await page.fill('input#username', uid)
+    await page.fill('input#email', `${uid}@test.com`)
+    await page.fill('input#password', 'FeedTest123')
+    await page.fill('input#confirm', 'FeedTest123')
+    await page.click('button[type="submit"]')
+    await page.waitForURL('/')
+
+    // The home page / feed should be accessible and show content
+    await page.goto('/')
+    await expect(page).toHaveURL('/')
+    await expect(page.locator('body')).not.toBeEmpty()
+  })
 })
 
 test.describe('Route Guards', () => {
@@ -84,6 +115,43 @@ test.describe('Route Guards', () => {
 
     await page.goto('/register')
     await expect(page).toHaveURL('/')
+  })
+
+  test('friends page requires authentication', async ({ page }) => {
+    await page.goto('/')
+    await page.evaluate(() => {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+    })
+
+    await page.goto('/friends')
+    // Should redirect to login or show unauthorized
+    const url = page.url()
+    const redirected = url.includes('/login')
+    const isHome = url.endsWith('/')
+    expect(redirected || isHome).toBe(true)
+  })
+
+  test('messages page requires authentication', async ({ page }) => {
+    await page.goto('/')
+    await page.evaluate(() => {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+    })
+
+    await page.goto('/messages')
+    await expect(page).toHaveURL(/\/login/)
+  })
+
+  test('settings page requires authentication', async ({ page }) => {
+    await page.goto('/')
+    await page.evaluate(() => {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+    })
+
+    await page.goto('/settings')
+    await expect(page).toHaveURL(/\/login/)
   })
 })
 
