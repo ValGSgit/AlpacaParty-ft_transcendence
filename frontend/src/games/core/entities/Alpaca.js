@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { alpacaAI } from '../../components/alpacaAI.js';
 import { CONST } from '../../config/constants.js';
-import { gPlayer, gUI } from '../globals.js';
+import { gPlayer, gUI, gCollidables, gUser } from '../globals.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
 import { alpacaHandling } from '../../components/alpacaHandling.js'
+import { removeFromRegistry } from '../removeObjects.js'
 
 const { updateAI } = alpacaAI();
 const { updatePlayer } = usePlayerControls();
@@ -44,6 +45,7 @@ export class Alpaca {
     this.isMoving = false;
     this.isAutoMoving = false;
     this.target = new THREE.Vector3();
+    this.point = 0;
     this.ai = {
       state: 'idle',
       timer: Math.random() * 3
@@ -102,15 +104,32 @@ export class Alpaca {
     makeSpit(this)
   }
 
-  beingHit() {
-    this.hp--
-    if (this.hp === 0)
+  beingHit(alpaca) {
+    if (this.isDead)
+      return
+    if (this.hp > 0 && gUser.value.gameMode) // only reduce hp in mini games
+      {
+        this.hp--
+        if (this === gPlayer.value)
+          gUser.value.hp--
+      }
+
+    if (this.hp === 0){
       this.isDead = 1 // dead
-    else if (this.hp < 0)
+      //remove itself from gCollidables
+      removeFromRegistry(this.model, gCollidables)
+      alpaca.point++ // credit for the spit owner
+      if (alpaca === gPlayer.value)
+        gUser.value.point++ // for display
+      if (this === gPlayer.value)
+        console.log("Gameover")
+    }
+/*     else if (this.hp < 0)
     {
       this.hp = CONST.HP // resurrection
       this.isDead = 0
-    }
+      //add itself again?
+    } */
     else
       this.isDead = -1 // dying
   }

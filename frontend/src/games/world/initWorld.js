@@ -5,6 +5,7 @@ import { spawnObjectRandomly } from '../utils/spawnRandomly.js'
 import { loadGameData } from './dataLoader.js'
 import { setupEnvironment } from './sceneBuilder.js'
 
+
 export async function initWorld(scene, isAuthenticated = false) {
   setupEnvironment(scene)
 
