@@ -23,7 +23,7 @@ DC_PROD := docker compose -f docker-compose.prod.yml
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
         shell-backend shell-frontend shell-db \
-        test seed-admins \
+	test e2e seed-admins seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
         vault-status vault-secrets vault-shell waf-logs
 
 # ── HELP ────────────────────────────────────────────────────
@@ -60,9 +60,14 @@ help:
 	@echo ""
 	@echo "$(YELLOW)Testing$(RESET)"
 	@echo "  $(GREEN)make test$(RESET)           Run backend tests in container"
+	@echo "  $(GREEN)make e2e$(RESET)            Run E2E tests against dev stack"
 	@echo ""
 	@echo "$(YELLOW)Database$(RESET)"
 	@echo "  $(GREEN)make seed-admins$(RESET)    Promote developer accounts to admin"
+	@echo "  $(GREEN)make seed-live$(RESET)      Seed high-volume sample data (dev compose)"
+	@echo "  $(GREEN)make seed-live-reset$(RESET) Reset and reseed high-volume sample data (dev compose)"
+	@echo "  $(GREEN)make prod-seed-live$(RESET) Seed high-volume sample data (prod compose)"
+	@echo "  $(GREEN)make prod-seed-live-reset$(RESET) Reset and reseed high-volume sample data (prod compose)"
 	@echo ""
 	@echo "$(YELLOW)Security$(RESET)"
 	@echo "  $(GREEN)make vault-status$(RESET)   Show Vault seal/HA status"
@@ -177,6 +182,9 @@ dev-backend:
 test:
 	$(DC) exec backend npm test
 
+e2e:
+	$(DC) exec e2e npm test
+
 dev-frontend:
 	cd frontend && npm run dev
 
@@ -197,6 +205,18 @@ seed-admins:
 	  -U $${DB_USER:-alpacaparty} \
 	  -d $${DB_NAME:-alpacaparty} \
 	  -f /dev/stdin < scripts/seed-admins.sql
+
+seed-live:
+	$(DC) exec backend npm run seed:live
+
+seed-live-reset:
+	$(DC) exec backend npm run seed:live:reset
+
+prod-seed-live:
+	$(DC_PROD) exec backend npm run seed:live
+
+prod-seed-live-reset:
+	$(DC_PROD) exec backend npm run seed:live:reset
 
 # ── SECURITY ────────────────────────────────────────────────────────────────
 vault-status:
