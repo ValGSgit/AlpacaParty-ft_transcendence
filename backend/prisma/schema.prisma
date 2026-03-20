@@ -25,8 +25,6 @@ model User {
   isPublic         Boolean?  @default(true) @map("is_public")
   isOnline         Boolean?  @default(false) @map("is_online")
   isAdmin          Boolean?  @default(false) @map("is_admin")
-  twoFactorEnabled Boolean?  @default(false) @map("two_factor_enabled")
-  twoFactorSecret  String?   @map("two_factor_secret") @db.VarChar(255)
   oauthProvider    String?   @map("oauth_provider") @db.VarChar(20)
   oauthId          String?   @map("oauth_id") @db.VarChar(255)
   xp               Int?      @default(0)

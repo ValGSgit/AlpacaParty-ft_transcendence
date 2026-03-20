@@ -4,7 +4,7 @@
  */
 import prisma from '../config/prisma.js';
 
-// Fields returned for normal (safe) user queries — no password/2FA secrets
+// Fields returned for normal (safe) user queries — no password hash
 const SAFE_SELECT = {
   id: true,
   username: true,
@@ -29,7 +29,7 @@ const SAFE_SELECT = {
 
 /**
  * Map Prisma camelCase user fields to snake_case for the frontend.
- * Omits passwordHash and twoFactorSecret.
+ * Omits passwordHash.
  */
 export function shapeUserForClient(u) {
   if (!u) return u;

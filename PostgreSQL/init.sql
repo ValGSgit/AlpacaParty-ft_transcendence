@@ -23,8 +23,6 @@ CREATE TABLE IF NOT EXISTS users (
     is_public     BOOLEAN      DEFAULT TRUE,
     is_online     BOOLEAN      DEFAULT FALSE,
     is_admin      BOOLEAN      DEFAULT FALSE,
-    two_factor_enabled BOOLEAN DEFAULT FALSE,
-    two_factor_secret  VARCHAR(255),
     oauth_provider VARCHAR(20),                  -- 'google', 'github', NULL
     oauth_id       VARCHAR(255),                 -- provider user id
     xp             INT          DEFAULT 0,

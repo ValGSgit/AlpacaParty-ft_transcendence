@@ -68,7 +68,7 @@ export const login = async (req, res, next) => {
     const refreshToken = AuthService.generateRefreshToken(user);
 
     // Strip sensitive fields before returning
-    const { passwordHash, twoFactorSecret, ...safeUser } = user;
+    const { passwordHash, ...safeUser } = user;
 
     res.json({ user: shapeUserForClient(safeUser), accessToken, refreshToken });
   } catch (err) { next(err); }

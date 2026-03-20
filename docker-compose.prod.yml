@@ -5,6 +5,12 @@
 # Usage:
 #   docker compose -f docker-compose.prod.yml up -d
 #   docker compose -f docker-compose.prod.yml down
+#
+# First-time Vault setup (after `up`):
+#   docker exec alpacaparty_vault_prod vault operator init
+#   docker exec -it alpacaparty_vault_prod vault operator unseal  (repeat 3x)
+#   docker exec alpacaparty_vault_prod sh /vault/init/seed.sh
+#   Then set VAULT_TOKEN in .env to the root token and restart backend.
 
 services:
   # ── PostgreSQL ──────────────────────────────────────────────
@@ -28,26 +34,27 @@ services:
     networks:
       - alpacaparty_net
 
-  # ── HashiCorp Vault (dev mode — auto-init, auto-unseal) ────
-  # Dev mode stores data in memory; vault-init re-seeds on every restart.
-  # VAULT_TOKEN in your .env becomes the root token.
+  # ── HashiCorp Vault (production — file storage backend) ────
+  # Uses file-based storage for persistence and encryption at rest.
+  # Requires manual init + unseal on first deployment.
   vault:
     image: hashicorp/vault:1.16
     container_name: alpacaparty_vault_prod
     cap_add:
       - IPC_LOCK
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN:-alpacaparty-root-token}
-      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
       VAULT_API_ADDR: http://vault:8200
       VAULT_LOG_LEVEL: warn
+    volumes:
+      - vault_data:/vault/data
+      - ./vault/config/vault-prod.hcl:/vault/config/vault.hcl:ro
+      - ./vault/init:/vault/init:ro
     # Port is NOT exposed externally in prod; backend reaches it via container network.
-    # Remove the comment below to expose the UI behind a VPN/bastion.
+    # Uncomment to expose the UI behind a VPN/bastion for initial setup:
     # ports:
     #   - "8200:8200"
-    command: vault server -dev
+    command: vault server -config=/vault/config/vault.hcl
     healthcheck:
-      # /v1/sys/seal-status always returns HTTP 200 when the server is up.
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8200/v1/sys/seal-status"]
       interval: 5s
       timeout: 3s
@@ -58,13 +65,15 @@ services:
       - alpacaparty_net
 
   # ── Vault init — seeds secrets after Vault is ready ────────
-  # Runs seed.sh once per stack start, then exits 0.
+  # NOTE: In production, vault-init only works AFTER manual unseal.
+  # On first deploy, run seed.sh manually instead:
+  #   docker exec alpacaparty_vault_prod sh /vault/init/seed.sh
   vault-init:
     image: hashicorp/vault:1.16
     container_name: alpacaparty_vault_init
     environment:
       VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN:-alpacaparty-root-token}
+      VAULT_TOKEN: ${VAULT_TOKEN}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_USER: ${DB_USER:-alpacaparty}
       DB_NAME: ${DB_NAME:-alpacaparty}
@@ -118,14 +127,14 @@ services:
       HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY:-}
       # Vault connection
       VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN:-alpacaparty-root-token}
+      VAULT_TOKEN: ${VAULT_TOKEN}
     volumes:
       - backend_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
-      vault-init:
-        condition: service_completed_successfully
+      vault:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --no-check-certificate --quiet --tries=1 --spider https://localhost:3000/api/health || exit 1"]
       interval: 10s
@@ -178,6 +187,8 @@ services:
 
 volumes:
   pg_data:
+    driver: local
+  vault_data:
     driver: local
   backend_uploads:
     driver: local

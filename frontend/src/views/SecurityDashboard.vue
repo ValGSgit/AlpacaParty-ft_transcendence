@@ -123,8 +123,8 @@ docker exec alpacaparty_nginx nginx -T | grep modsecurity
           <ul>
             <li>Stores all credentials (<code>DB_PASSWORD</code>, <code>JWT_SECRET</code>, OAuth keys, API keys) encrypted at rest.</li>
             <li>The backend fetches secrets at startup via the HTTP API; they are never written to disk or committed to git.</li>
-            <li>Dev mode: auto-unsealed, root token set via <code>VAULT_DEV_TOKEN</code> in <code>.env</code>.</li>
-            <li>Production: file-storage backend, requires <code>vault operator init</code> + <code>vault operator unseal</code> once after first deploy.</li>
+            <li>Dev mode: auto-unsealed, root token set via <code>VAULT_TOKEN</code> in <code>.env</code>.</li>
+            <li>Production: file-storage backend (<code>vault-prod.hcl</code>), encrypted at rest. Requires <code>vault operator init</code> + <code>vault operator unseal</code> (3/5 keys) after each restart.</li>
           </ul>
         </div>
 
@@ -166,18 +166,28 @@ docker exec alpacaparty_nginx nginx -T | grep modsecurity
           <h3>First-time production setup</h3>
           <ol>
             <li>Deploy and start the stack: <code>make prod-up</code></li>
-            <li>Initialise Vault (generates unseal keys + root token):
+            <li>Expose Vault port temporarily (uncomment <code>ports</code> in <code>docker-compose.prod.yml</code>)</li>
+            <li>Initialise Vault (generates 5 unseal keys + root token):
               <pre>docker exec alpacaparty_vault_prod vault operator init</pre>
             </li>
-            <li>Unseal (repeat 3× with different keys from step 2):
+            <li>Unseal (repeat 3× with different keys from step 3):
               <pre>docker exec -it alpacaparty_vault_prod vault operator unseal</pre>
             </li>
+            <li>Set <code>VAULT_TOKEN</code> in <code>.env</code> to the root token from step 3</li>
             <li>Seed secrets:
               <pre>docker exec alpacaparty_vault_prod \
   sh /vault/init/seed.sh</pre>
             </li>
-            <li>Set <code>VAULT_TOKEN</code> in <code>.env</code> to your root token (or a limited policy token), then restart the backend.</li>
+            <li>Restart the backend to load secrets from Vault:
+              <pre>docker compose -f docker-compose.prod.yml restart backend</pre>
+            </li>
+            <li>Remove Vault port exposure and re-deploy nginx</li>
           </ol>
+          <div class="note">
+            <strong>Storage:</strong> Production uses file-based storage (<code>/vault/data</code>) persisted
+            via Docker volume <code>vault_data</code>. Secrets are encrypted at rest.
+            After a container restart, you must unseal again (3 of 5 keys required).
+          </div>
         </div>
       </div>
 
@@ -233,7 +243,7 @@ docker exec alpacaparty_vault vault kv patch secret/alpacaparty \
    ┌─────────────┐              ┌─────────────┐
    │  backend    │  at startup  │   Vault     │
    │  (Express)  │◄─────────────│  (KV v2)    │
-   │             │  fetch secrets│             │
+   │             │  fetch secrets│  file store │
    └──────┬──────┘              └─────────────┘
           │
           ▼

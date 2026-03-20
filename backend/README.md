@@ -323,4 +323,3 @@ See [`PostgreSQL/init.sql`](../PostgreSQL/init.sql) for full schema.
 - [ ] `/api/friends` route module
 - [ ] `/api/chat` route module (Socket.io events)
 - [ ] `/api/game` route module (match-making)
-- [ ] 2FA (TOTP, `two_factor_secret` column already in DB)
