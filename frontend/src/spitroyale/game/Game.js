@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { buildArena } from './Arena.js';
 import { buildAlpaca } from './Alpaca.js';
 import { ParticleSystem } from './Particles.js';
@@ -10,8 +12,11 @@ export class Game {
     this.container = container;
     this.localPlayerId = localPlayerId;
     this.alpacaMeshes = {};
+    this.pendingAlpacaSpawns = new Set();
     this.spitMeshes = {};
     this.powerupMeshes = {};
+    this.gltfLoader = new GLTFLoader();
+    this.llamaTemplatePromise = null;
     this.lastState = null;
     this.clock = new THREE.Clock();
     this.mouse = new THREE.Vector2();
@@ -82,6 +87,72 @@ export class Game {
     document.addEventListener('mousedown', this.mouseDownHandler);
   }
 
+  async #getLlamaTemplate() {
+    if (!this.llamaTemplatePromise) {
+      this.llamaTemplatePromise = this.gltfLoader.loadAsync('/models/Llama.glb')
+        .then((gltf) => gltf.scene)
+        .catch(() => null);
+    }
+    return this.llamaTemplatePromise;
+  }
+
+  #normalizeModelHeight(model, targetHeight = 2.2) {
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    if (size.y <= 0.001) return;
+    const scale = targetHeight / size.y;
+    model.scale.multiplyScalar(scale);
+
+    const corrected = new THREE.Box3().setFromObject(model);
+    model.position.y -= corrected.min.y;
+  }
+
+  #tintModel(model, colorHex) {
+    const tint = new THREE.Color(colorHex);
+    model.traverse((child) => {
+      if (!child.isMesh || !child.material) return;
+
+      child.castShadow = true;
+      child.receiveShadow = true;
+
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      const tinted = materials.map((mat) => {
+        const copy = mat.clone();
+        if (copy.color) copy.color.lerp(tint, 0.35);
+        return copy;
+      });
+      child.material = Array.isArray(child.material) ? tinted : tinted[0];
+    });
+  }
+
+  async #buildAlpacaModel(colorHex) {
+    const template = await this.#getLlamaTemplate();
+    if (!template) return buildAlpaca(colorHex);
+
+    const group = new THREE.Group();
+    const model = clone(template);
+    this.#tintModel(model, colorHex);
+    this.#normalizeModelHeight(model);
+    group.add(model);
+
+    const shieldGeo = new THREE.SphereGeometry(1.35, 18, 14);
+    const shieldMat = new THREE.MeshPhysicalMaterial({
+      color: 0x4cc9f0,
+      transmission: 0.8,
+      roughness: 0.1,
+      metalness: 0,
+      transparent: true,
+      opacity: 0,
+      clearcoat: 1,
+      clearcoatRoughness: 0.2,
+    });
+    const shield = new THREE.Mesh(shieldGeo, shieldMat);
+    shield.position.y = 1.1;
+    group.add(shield);
+
+    return { group, legMeshes: [], shieldMat };
+  }
+
   #updateAim() {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(this.mouse, this.camera);
@@ -130,7 +201,10 @@ export class Game {
     const powerupIds = new Set(state.powerups.map((p) => p.id));
 
     for (const pd of state.players) {
-      if (!this.alpacaMeshes[pd.id]) this.#spawnAlpaca(pd);
+      if (!this.alpacaMeshes[pd.id] && !this.pendingAlpacaSpawns.has(pd.id)) {
+        this.pendingAlpacaSpawns.add(pd.id);
+        this.#spawnAlpaca(pd).finally(() => this.pendingAlpacaSpawns.delete(pd.id));
+      }
       this.#updateAlpaca(pd);
     }
     for (const id of Object.keys(this.alpacaMeshes)) {
@@ -154,8 +228,9 @@ export class Game {
     }
   }
 
-  #spawnAlpaca(pd) {
-    const { group, legMeshes, shieldMat } = buildAlpaca(pd.color);
+  async #spawnAlpaca(pd) {
+    const { group, legMeshes, shieldMat } = await this.#buildAlpacaModel(pd.color);
+    if (this.isDestroyed) return;
     group.position.set(pd.x, 0, pd.z);
     group.castShadow = true;
     this.scene.add(group);
@@ -169,7 +244,7 @@ export class Game {
       label,
       prevX: pd.x,
       prevZ: pd.z,
-      walkPhase: 0,
+      bobPhase: Math.random() * Math.PI * 2,
     };
   }
 
@@ -210,13 +285,16 @@ export class Game {
     entry.prevZ = pd.z;
 
     const speed = Math.sqrt((pd.x - tx) ** 2 + (pd.z - tz) ** 2);
-    if (speed > 0.01) {
-      entry.walkPhase = (entry.walkPhase + 0.2) % (Math.PI * 2);
-      const ph = entry.walkPhase;
+    if (speed > 0.01 && legMeshes.length === 4) {
+      entry.bobPhase = (entry.bobPhase + 0.2) % (Math.PI * 2);
+      const ph = entry.bobPhase;
       legMeshes[0].rotation.x = Math.sin(ph) * 0.5;
       legMeshes[1].rotation.x = -Math.sin(ph) * 0.5;
       legMeshes[2].rotation.x = -Math.sin(ph) * 0.5;
       legMeshes[3].rotation.x = Math.sin(ph) * 0.5;
+    } else {
+      entry.bobPhase = (entry.bobPhase + 0.08) % (Math.PI * 2);
+      group.position.y = Math.sin(entry.bobPhase) * 0.03;
     }
 
     group.visible = pd.alive;
@@ -238,6 +316,7 @@ export class Game {
   #flashRed(group) {
     group.traverse((child) => {
       if (child.isMesh && child.material) {
+        if (!child.material.emissive) return;
         child.material.emissive = new THREE.Color(0xff2200);
         child.material.emissiveIntensity = 1;
         setTimeout(() => {

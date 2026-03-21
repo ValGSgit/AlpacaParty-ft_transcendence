@@ -14,6 +14,8 @@ export class SpitRoyaleClient {
   }
 
   connect(name) {
+    if (this.socket) return;
+
     const token = localStorage.getItem('accessToken');
     this.socket = io('/spit-royale', {
       transports: ['websocket'],
@@ -42,9 +44,13 @@ export class SpitRoyaleClient {
     switch (msg.type) {
       case 'joined': {
         this.localPlayerId = msg.playerId;
-        this.ui = new UI(this.root);
-        this.game = new Game(this.root.querySelector('#canvas-container'), this.localPlayerId);
-        this.ui.show();
+        if (!this.ui) {
+          this.ui = new UI(this.root);
+          this.ui.show();
+        }
+        if (!this.game) {
+          this.game = new Game(this.root.querySelector('#canvas-container'), this.localPlayerId);
+        }
 
         this.game.onSpit = (angle) => {
           this.socket.emit('spit', { angle });
@@ -57,9 +63,12 @@ export class SpitRoyaleClient {
 
         this.game.applyState(msg.state);
         this.ui.updatePlayers(msg.state.players, this.localPlayerId);
-        this.ui.showStatus('Waiting for players...', 0);
         break;
       }
+
+      case 'queue_waiting':
+        this.ui?.showStatus('Searching for a match...', 0);
+        break;
 
       case 'player_joined':
         this.ui?.showStatus(`${msg.name} joined!`, 1800);
@@ -74,7 +83,11 @@ export class SpitRoyaleClient {
         this.game?.applyState(msg.state);
         this.ui?.updatePlayers(msg.state.players, this.localPlayerId);
         if (msg.type === 'game_start') this.ui?.showStatus('SPIT IT!', 1200);
-        if (msg.type === 'game_over') this.ui?.showStatus(`${msg.winner} wins!`, 2500);
+        if (msg.type === 'game_over') {
+          this.ui?.showStatus(`${msg.winner} wins!`, 2500);
+          const reward = msg.rewards?.[this.localPlayerId] || null;
+          if (reward) this.ui?.showRewards(reward);
+        }
         break;
 
       case 'countdown':

@@ -25,6 +25,7 @@ ENV MODSEC_RULE_ENGINE=On \
 # Copy our tuning override (applied after CRS rules)
 COPY nginx/modsecurity/modsecurity.conf /etc/modsecurity.d/99-alpacaparty.conf
 
-# Copy SSL certificates
-COPY nginx/ssl/cert.pem /etc/nginx/conf/server.crt
-COPY nginx/ssl/key.pem /etc/nginx/conf/server.key
+# Copy SSL certificates from tracked backend ssl bundle.
+# nginx/ssl is git-ignored for local overrides and may be absent in CI checkouts.
+COPY backend/ssl/cert.pem /etc/nginx/conf/server.crt
+COPY backend/ssl/key.pem /etc/nginx/conf/server.key

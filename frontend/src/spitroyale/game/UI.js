@@ -88,6 +88,35 @@ export class UI {
     setTimeout(() => icon.classList.remove('active'), type === 'bigSpit' ? 8000 : 5000);
   }
 
+  showRewards(reward) {
+    if (!reward) return;
+
+    const totalXp = reward.xp?.total || 0;
+    const eloFrom = reward.elo?.from;
+    const eloTo = reward.elo?.to;
+    const eloDelta = (typeof eloFrom === 'number' && typeof eloTo === 'number') ? (eloTo - eloFrom) : null;
+
+    const titleParts = [`+${totalXp} XP`];
+    if (reward.level?.leveledUp) {
+      titleParts.push(`Level ${reward.level.to}`);
+    }
+    if (eloDelta !== null) {
+      const sign = eloDelta >= 0 ? '+' : '';
+      titleParts.push(`ELO ${sign}${eloDelta}`);
+    }
+    this.showStatus(titleParts.join(' | '), 4200);
+
+    const breakdown = reward.xp?.parts || [];
+    for (const part of breakdown) {
+      this.addKillFeedEntry(`${part.key}: +${part.xp} XP`);
+    }
+
+    const unlocked = reward.unlockedAchievements || [];
+    for (const achievement of unlocked) {
+      this.addKillFeedEntry(`Achievement unlocked: ${achievement.name}`);
+    }
+  }
+
   destroy() {
     if (this.statusTimer) clearTimeout(this.statusTimer);
     for (const id of Object.keys(this.cardEls)) {
