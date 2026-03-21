@@ -13,7 +13,7 @@ RESET  := \033[0m
 # ── Docker ──────────────────────────────────────────────────
 COMPOSE_PROJECT := $(notdir $(CURDIR))
 DC := docker compose
-DC_PROD := docker compose -f docker-compose.prod.yml
+DC_PROD := docker compose -f compose.prod.yaml
 
 .DEFAULT_GOAL := help
 .PHONY: help up down build logs restart ps \

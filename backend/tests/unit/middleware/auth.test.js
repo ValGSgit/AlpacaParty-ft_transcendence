@@ -4,12 +4,11 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 import jwt from 'jsonwebtoken';
 
-// Mock database
-const mockQuery = jest.fn();
-jest.unstable_mockModule('../../../src/config/database.js', () => ({
-  query: mockQuery,
-  getClient: jest.fn(),
-  default: { on: jest.fn(), query: mockQuery },
+// Mock User model (auth middleware calls User.findById)
+const mockUserFindById = jest.fn();
+jest.unstable_mockModule('../../../src/models/User.js', () => ({
+  default: { findById: mockUserFindById },
+  shapeUserForClient: jest.fn((u) => u),
 }));
 
 const { authenticate, optionalAuth } = await import('../../../src/middleware/auth.js');
@@ -29,7 +28,7 @@ function createReqRes(headers = {}) {
 
 describe('authenticate middleware', () => {
   beforeEach(() => {
-    mockQuery.mockReset();
+    mockUserFindById.mockReset();
   });
 
   test('should reject request without Authorization header', async () => {
@@ -75,8 +74,8 @@ describe('authenticate middleware', () => {
   });
 
   test('should reject if user not found in DB', async () => {
-    const token = AuthService.generateAccessToken({ id: 999, username: 'ghost', is_admin: false });
-    mockQuery.mockResolvedValueOnce({ rows: [] });
+    const token = AuthService.generateAccessToken({ id: 999, username: 'ghost', isAdmin: false });
+    mockUserFindById.mockResolvedValueOnce(null);
 
     const { req, res } = createReqRes({ authorization: `Bearer ${token}` });
     const next = jest.fn();
@@ -89,8 +88,8 @@ describe('authenticate middleware', () => {
 
   test('should attach user to req and call next on success', async () => {
     const fakeUser = { id: 1, username: 'tester', email: 'test@test.com' };
-    const token = AuthService.generateAccessToken({ id: 1, username: 'tester', is_admin: false });
-    mockQuery.mockResolvedValueOnce({ rows: [fakeUser] });
+    const token = AuthService.generateAccessToken({ id: 1, username: 'tester', isAdmin: false });
+    mockUserFindById.mockResolvedValueOnce(fakeUser);
 
     const { req, res } = createReqRes({ authorization: `Bearer ${token}` });
     const next = jest.fn();
@@ -102,8 +101,8 @@ describe('authenticate middleware', () => {
   });
 
   test('should call next(err) on unexpected error', async () => {
-    const token = AuthService.generateAccessToken({ id: 1, username: 'tester', is_admin: false });
-    mockQuery.mockRejectedValueOnce(new Error('DB down'));
+    const token = AuthService.generateAccessToken({ id: 1, username: 'tester', isAdmin: false });
+    mockUserFindById.mockRejectedValueOnce(new Error('DB down'));
 
     const { req, res } = createReqRes({ authorization: `Bearer ${token}` });
     const next = jest.fn();
@@ -114,9 +113,9 @@ describe('authenticate middleware', () => {
   });
 
   test('should attach admin user and call next', async () => {
-    const adminUser = { id: 2, username: 'admin', email: 'admin@test.com', is_admin: true };
-    const token = AuthService.generateAccessToken({ id: 2, username: 'admin', is_admin: true });
-    mockQuery.mockResolvedValueOnce({ rows: [adminUser] });
+    const adminUser = { id: 2, username: 'admin', email: 'admin@test.com', isAdmin: true };
+    const token = AuthService.generateAccessToken({ id: 2, username: 'admin', isAdmin: true });
+    mockUserFindById.mockResolvedValueOnce(adminUser);
 
     const { req, res } = createReqRes({ authorization: `Bearer ${token}` });
     const next = jest.fn();
@@ -168,7 +167,7 @@ describe('authenticate middleware', () => {
     const next = jest.fn();
 
     // Token is valid JWT but findById(undefined) will return null user
-    mockQuery.mockResolvedValueOnce({ rows: [] });
+    mockUserFindById.mockResolvedValueOnce(null);
 
     await authenticate(req, res, next);
 
@@ -180,12 +179,12 @@ describe('authenticate middleware', () => {
   test('concurrent requests should not interfere with each other', async () => {
     const user1 = { id: 1, username: 'user1', email: 'u1@test.com' };
     const user2 = { id: 2, username: 'user2', email: 'u2@test.com' };
-    const token1 = AuthService.generateAccessToken({ id: 1, username: 'user1', is_admin: false });
-    const token2 = AuthService.generateAccessToken({ id: 2, username: 'user2', is_admin: false });
+    const token1 = AuthService.generateAccessToken({ id: 1, username: 'user1', isAdmin: false });
+    const token2 = AuthService.generateAccessToken({ id: 2, username: 'user2', isAdmin: false });
 
-    mockQuery
-      .mockResolvedValueOnce({ rows: [user1] })
-      .mockResolvedValueOnce({ rows: [user2] });
+    mockUserFindById
+      .mockResolvedValueOnce(user1)
+      .mockResolvedValueOnce(user2);
 
     const { req: req1, res: res1 } = createReqRes({ authorization: `Bearer ${token1}` });
     const { req: req2, res: res2 } = createReqRes({ authorization: `Bearer ${token2}` });
@@ -217,7 +216,7 @@ describe('authenticate middleware', () => {
 
 describe('optionalAuth middleware', () => {
   beforeEach(() => {
-    mockQuery.mockReset();
+    mockUserFindById.mockReset();
   });
 
   test('should call next without user when no header', async () => {
@@ -232,8 +231,8 @@ describe('optionalAuth middleware', () => {
 
   test('should attach user when valid token is present', async () => {
     const fakeUser = { id: 1, username: 'tester' };
-    const token = AuthService.generateAccessToken({ id: 1, username: 'tester', is_admin: false });
-    mockQuery.mockResolvedValueOnce({ rows: [fakeUser] });
+    const token = AuthService.generateAccessToken({ id: 1, username: 'tester', isAdmin: false });
+    mockUserFindById.mockResolvedValueOnce(fakeUser);
 
     const req = { headers: { authorization: `Bearer ${token}` }, user: null };
     const next = jest.fn();
@@ -265,8 +264,8 @@ describe('optionalAuth middleware', () => {
   });
 
   test('should proceed without user when DB throws in optionalAuth', async () => {
-    const token = AuthService.generateAccessToken({ id: 1, username: 'u', is_admin: false });
-    mockQuery.mockRejectedValueOnce(new Error('DB failure'));
+    const token = AuthService.generateAccessToken({ id: 1, username: 'u', isAdmin: false });
+    mockUserFindById.mockRejectedValueOnce(new Error('DB failure'));
 
     const req = { headers: { authorization: `Bearer ${token}` }, user: null };
     const next = jest.fn();
@@ -306,9 +305,9 @@ describe('optionalAuth middleware', () => {
 
   test('concurrent optionalAuth calls should not interfere', async () => {
     const user1 = { id: 1, username: 'user1' };
-    const token1 = AuthService.generateAccessToken({ id: 1, username: 'user1', is_admin: false });
+    const token1 = AuthService.generateAccessToken({ id: 1, username: 'user1', isAdmin: false });
 
-    mockQuery.mockResolvedValueOnce({ rows: [user1] });
+    mockUserFindById.mockResolvedValueOnce(user1);
 
     const req1 = { headers: { authorization: `Bearer ${token1}` }, user: null };
     const req2 = { headers: {}, user: null }; // no token

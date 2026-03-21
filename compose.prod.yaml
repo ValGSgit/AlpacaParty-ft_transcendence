@@ -1,0 +1,33 @@
+# Docker Compose — Production
+# @owner ValGSgit
+# @issue https://github.com/ValGSgit/AlpacaParty/issues/3
+#
+# Usage:
+#   docker compose -f compose.prod.yaml up -d
+#   docker compose -f compose.prod.yaml down
+#
+# First-time Vault setup (after `up`):
+#   docker exec alpacaparty_vault_prod vault operator init
+#   docker exec -it alpacaparty_vault_prod vault operator unseal  (repeat 3x)
+#   docker exec alpacaparty_vault_prod sh /vault/init/seed.sh
+#   Then set VAULT_TOKEN in .env to the root token and restart backend.
+
+include:
+  - ./backend/compose.prod.yaml
+  - ./frontend/compose.prod.yaml
+  - ./nginx/compose.prod.yaml
+  - ./database/compose.prod.yaml
+  - ./vault/compose.prod.yaml
+
+volumes:
+  pg_data:
+    driver: local
+  vault_data:
+    driver: local
+  backend_uploads:
+    driver: local
+
+networks:
+  alpacaparty_net:
+    name: alpacaparty_net
+    driver: bridge

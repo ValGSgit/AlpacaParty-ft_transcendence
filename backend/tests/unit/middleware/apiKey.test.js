@@ -1,7 +1,7 @@
 /**
  * API Key Middleware Unit Tests
  */
-import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
+import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 
 // Helper to load the module fresh with custom env
 async function loadMiddleware(apiKeys) {

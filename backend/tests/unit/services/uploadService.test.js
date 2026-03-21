@@ -50,6 +50,16 @@ jest.unstable_mockModule('../../../src/models/File.js', () => ({ default: mockFi
 
 const { saveFileRecord, deleteFileFromDisk } = await import('../../../src/services/uploadService.js');
 
+// Capture module-load side-effects before beforeEach can clear them.
+// uploadService runs fs.mkdirSync and multer() at module scope on first import.
+let savedMkdirSyncCalls;
+let savedMulterCallArgs;
+
+beforeAll(() => {
+  savedMkdirSyncCalls = [...mockMkdirSync.mock.calls];
+  savedMulterCallArgs = mockMulter.mock.calls[0]?.[0];
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
@@ -92,11 +102,13 @@ describe('deleteFileFromDisk', () => {
 
 describe('multer configuration', () => {
   test('should call mkdirSync with recursive option on module load', () => {
-    expect(mockMkdirSync).toHaveBeenCalledWith('/tmp/test-uploads', { recursive: true });
+    expect(savedMkdirSyncCalls).toHaveLength(1);
+    expect(savedMkdirSyncCalls[0]).toEqual(['/tmp/test-uploads', { recursive: true }]);
   });
 
   test('should create multer with storage, fileFilter, and limits', () => {
-    expect(mockMulter).toHaveBeenCalledWith(expect.objectContaining({
+    expect(savedMulterCallArgs).toBeDefined();
+    expect(savedMulterCallArgs).toEqual(expect.objectContaining({
       limits: { fileSize: 10 * 1024 * 1024 },
     }));
   });

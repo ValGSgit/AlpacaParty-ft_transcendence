@@ -21,11 +21,7 @@ import {
 
 const router = express.Router();
 
-// Stricter rate limit for public API
-router.use(rateLimit({ windowMs: 60_000, max: 30, message: 'Public API rate limit exceeded' }));
-router.use(requireApiKey);
-
-// ── Documentation endpoint ──────────────────────────────────
+// ── Documentation endpoint — no auth required ───────────────
 router.get('/', (_req, res) => {
   res.json({
     name: 'AlpacaParty Public API',
@@ -45,6 +41,10 @@ router.get('/', (_req, res) => {
     ],
   });
 });
+
+// Stricter rate limit + API key required for all data endpoints
+router.use(rateLimit({ windowMs: 60_000, max: 30, message: 'Public API rate limit exceeded' }));
+router.use(requireApiKey);
 
 router.get('/users', listUsers);
 router.get('/users/:id', getUser);

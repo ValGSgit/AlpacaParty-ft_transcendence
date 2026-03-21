@@ -33,7 +33,7 @@ describe('AuthService', () => {
   });
 
   describe('generateAccessToken / verifyToken', () => {
-    const fakeUser = { id: 1, username: 'tester', is_admin: false };
+    const fakeUser = { id: 1, username: 'tester', isAdmin: false };
 
     test('should generate a valid access token', () => {
       const token = AuthService.generateAccessToken(fakeUser);
@@ -43,7 +43,7 @@ describe('AuthService', () => {
       expect(decoded).toBeDefined();
       expect(decoded.id).toBe(fakeUser.id);
       expect(decoded.username).toBe(fakeUser.username);
-      expect(decoded.is_admin).toBe(false);
+      expect(decoded.isAdmin).toBe(false);
     });
 
     test('should reject invalid token', () => {
@@ -78,10 +78,10 @@ describe('AuthService', () => {
 
   describe('generateAccessToken — admin flag', () => {
     test('should embed is_admin=true when user is admin', () => {
-      const adminUser = { id: 7, username: 'admin', is_admin: true };
+      const adminUser = { id: 7, username: 'admin', isAdmin: true };
       const token = AuthService.generateAccessToken(adminUser);
       const decoded = AuthService.verifyToken(token);
-      expect(decoded.is_admin).toBe(true);
+      expect(decoded.isAdmin).toBe(true);
     });
 
     test('access token should NOT have type field', () => {

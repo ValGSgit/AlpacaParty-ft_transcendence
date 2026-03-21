@@ -1,0 +1,20 @@
+# Docker Compose — Development
+# @owner ValGSgit
+# @issue https://github.com/ValGSgit/AlpacaParty/issues/3
+
+include:
+  - ./backend/compose.yaml
+  - ./e2e/compose.yaml
+  - ./frontend/compose.yaml
+  - ./nginx/compose.yaml
+  - ./database/compose.yaml
+  - ./vault/compose.yaml
+
+volumes:
+  pg_data:
+  backend_uploads:
+
+networks:
+  alpacaparty_net:
+    name: alpacaparty_net
+    driver: bridge

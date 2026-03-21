@@ -2,7 +2,7 @@ import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 const mockPrisma = {
-  user: { count: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+  user: { count: jest.fn(), findUnique: jest.fn(), update: jest.fn(), findMany: jest.fn() },
   message: { count: jest.fn() },
   organization: { count: jest.fn() },
 };
@@ -113,31 +113,43 @@ describe('getStats', () => {
 describe('listUsers', () => {
   test('should return users array and total', async () => {
     const users = [{ id: 1, username: 'alice' }];
-    mockUser.findAll.mockResolvedValue(users);
-    mockUser.count.mockResolvedValue(1);
+    mockPrisma.user.findMany.mockResolvedValue(users);
+    mockPrisma.user.count.mockResolvedValue(1);
 
     const { req, res, next } = createReqRes();
     await listUsers(req, res, next);
 
-    expect(mockUser.findAll).toHaveBeenCalledWith({ limit: 50, offset: 0 });
+    expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
+      where: {},
+      select: { id: true, username: true, email: true, avatar: true, isOnline: true, isAdmin: true, level: true, xp: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      skip: 0,
+    });
     expect(res._json).toEqual({ users, total: 1 });
   });
 
   test('should use search when query param provided', async () => {
     const users = [{ id: 2, username: 'bob' }];
-    mockUser.search.mockResolvedValue(users);
-    mockUser.count.mockResolvedValue(10);
+    mockPrisma.user.findMany.mockResolvedValue(users);
+    mockPrisma.user.count.mockResolvedValue(10);
 
     const { req, res, next } = createReqRes({ query: { search: 'bob', limit: '10', offset: '5' } });
     await listUsers(req, res, next);
 
-    expect(mockUser.search).toHaveBeenCalledWith('bob', { limit: 10, offset: 5 });
+    expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
+      where: { OR: [{ username: { startsWith: 'bob', mode: 'insensitive' } }, { email: { contains: 'bob', mode: 'insensitive' } }] },
+      select: { id: true, username: true, email: true, avatar: true, isOnline: true, isAdmin: true, level: true, xp: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      skip: 5,
+    });
     expect(res._json).toEqual({ users, total: 10 });
   });
 
   test('should call next on error', async () => {
     const error = new Error('fail');
-    mockUser.findAll.mockRejectedValue(error);
+    mockPrisma.user.findMany.mockRejectedValue(error);
 
     const { req, res, next } = createReqRes();
     await listUsers(req, res, next);
