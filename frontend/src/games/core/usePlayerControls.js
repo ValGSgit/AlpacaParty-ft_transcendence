@@ -1,53 +1,85 @@
 import { CONST } from '../config/constants.js'
 import { useInput } from './useInput.js'
-import { usePhysics } from './usePhysics.js'
-import { gPlayer } from './globals.js'
-import { handleAnimation } from './useAnimation.js'
+import { checkWithinBounds, usePhysics } from './usePhysics.js'
+import { alpacaAI } from '../components/alpacaAI.js';
 
 export function usePlayerControls() {
   const { keys } = useInput()
-  const { checkCollision, checkWithinBounds } = usePhysics()
+  const { checkCollision } = usePhysics()
 
-  const handleMovement = (player) => {
-    let speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
-    const rotation = CONST.PLAYER_ROTATION + gPlayer.value.rotationOffset
-    let dir = 0, dx = 0, dz = 0
-    let isMoving = false // needed to be locally, not in gPlayer; the one in gPlayer is for doubleClick moving
-    let nextRotY = player.rotation.y
+  const handleJumping = (player) => {
+    const { model } = player;
+    let isVerticalMoving = false;
 
-    if (keys.w && !gPlayer.value.model.isMoving) { dir = 1; isMoving = true } // !gPlayer.value.model.isMoving => disable the wasd when doubleClick moving
-    if (keys.s && !gPlayer.value.model.isMoving) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isMoving = true }
-    if (keys.a && !gPlayer.value.model.isMoving) { nextRotY += rotation; isMoving = true }
-    if (keys.d && !gPlayer.value.model.isMoving) { nextRotY -= rotation; isMoving = true }
-    if (keys.space && player.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) { player.position.y += CONST.JUMPING_SPEED; isMoving = true; player.isJumping = true }
-    if (player.position.y > 0 && (!keys.space || player.isFalling)) { player.position.y -= CONST.JUMPING_SPEED; player.isJumping = true }
-    if (player.position.y < 0) player.position.y = 0 // reset y if it goes below the ground
-    if (player.position.y === 0) { player.isJumping = false; if (!keys.space) player.isFalling = false }
-    if (player.position.y >= CONST.JUMPING_MAX_HEIGHT) player.isFalling = true
-
-    if (isMoving) {
-      dx = Math.sin(nextRotY) * speed * dir
-      dz = Math.cos(nextRotY) * speed * dir
-
-      let nextX = player.position.x + dx
-      let nextZ = player.position.z + dz
-
-      if (checkWithinBounds(nextX, nextZ)) {
-        checkCollision(player, nextX, nextZ, nextRotY)
-      }
+    // Jump up
+    if (keys.space && model.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) {
+      model.position.y += CONST.JUMPING_SPEED;
+      player.isJumping = true;
+      isVerticalMoving = true;
     }
-    return { isMoving, speed }
+    // Fall down
+    if (model.position.y > 0 && (!keys.space || player.isFalling)) {
+      model.position.y -= CONST.JUMPING_SPEED;
+      player.isJumping = true;
+    }
+    // Hit the ground
+    if (model.position.y <= 0) {
+      model.position.y = 0;
+      player.isJumping = false;
+      if (!keys.space) player.isFalling = false;
+    }
+    // Hit the ceiling/max height of jump
+    if (model.position.y >= CONST.JUMPING_MAX_HEIGHT) {
+      player.isFalling = true;
+    }
+
+    return isVerticalMoving;
   }
 
-  const updatePlayer = (player, mixer, animations) => {
-    if (!player) return
-    let { isMoving, speed } = handleMovement(player)
-    let animDir = 0 // not moving
-    if (isMoving) // wasd
-      animDir = keys.w ? 1 : -1
-    else if (player.isMoving) // doubleClickMoving
-      animDir = 1
-    handleAnimation(player, mixer, animations, animDir, speed)
+  const handleWalking = (player) => {
+    const { model } = player;
+
+    const rotSpeed = player.rotationSpeed;
+    let speed = player.speed;
+    let dir = 0;
+    let nextRotY = model.rotation.y;
+    let isWalking = false;
+
+    if (keys.w) { dir = 1; isWalking = true; }
+    if (keys.s) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isWalking = true; }
+    if (keys.a) { nextRotY += rotSpeed; isWalking = true; }
+    if (keys.d) { nextRotY -= rotSpeed; isWalking = true; }
+
+    return { dir, speed, nextRotY, isWalking };
+  }
+
+  const checkMovement = (model, dir, speed, nextRotY) => {
+    const dx = Math.sin(nextRotY) * speed * dir;
+    const dz = Math.cos(nextRotY) * speed * dir;
+
+    const nextX = model.position.x + dx;
+    const nextZ = model.position.z + dz;
+
+    if (checkWithinBounds(nextX, nextZ)) {
+      checkCollision(model, nextX, nextZ, nextRotY);
+    }
+  }
+
+  const updatePlayer = (player, delta) => {
+    if (!player || !player.model || player.isDead) return;
+
+    const { model } = player;
+    const isJumping = handleJumping(player);
+    const { dir, speed, nextRotY, isWalking } = handleWalking(player);
+    const { handleMoving } = alpacaAI(); // for double click moving
+
+    if (isWalking) {
+      checkMovement(model, dir, speed, nextRotY);
+    }
+    else if (player.isAutoMoving)
+      handleMoving(player, delta)
+    player.isMoving = isWalking || isJumping || player.isAutoMoving;
+    player.animDir = keys.s ? -1 : (player.isMoving ? 1 : 0);
   }
 
   return { updatePlayer }
