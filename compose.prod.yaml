@@ -18,6 +18,7 @@ include:
   - ./nginx/compose.prod.yaml
   - ./database/compose.prod.yaml
   - ./vault/compose.prod.yaml
+  - ./SpitRoyale/compose.prod.yaml
 
 volumes:
   pg_data:

@@ -1,8 +1,20 @@
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
+import express from 'express';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import { loadVaultSecrets } from './vault.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+const DIST       = path.join(__dirname, '..', 'dist');
 
 const PORT = 3001;
-const server = http.createServer();
+const app  = express();
+// Serve the built Vite app under /spit-royale (matches the Vite base path)
+app.use('/spit-royale', express.static(DIST));
+app.get('/spit-royale*', (_, res) => res.sendFile(path.join(DIST, 'index.html')));
+const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -617,4 +629,6 @@ wss.on('connection', (ws) => {
   ws.on('error', () => removePlayerFromRoom(playerId));
 });
 
-server.listen(PORT, () => console.log(`🦙 Alpaca Spit Royale server on ws://localhost:${PORT}/ws`));
+loadVaultSecrets().then(() => {
+  server.listen(PORT, () => console.log(`🦙 Alpaca Spit Royale server on ws://localhost:${PORT}/ws`));
+});

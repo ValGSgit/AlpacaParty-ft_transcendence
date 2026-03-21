@@ -9,6 +9,7 @@ include:
   - ./nginx/compose.yaml
   - ./database/compose.yaml
   - ./vault/compose.yaml
+  - ./SpitRoyale/compose.yaml
 
 volumes:
   pg_data:

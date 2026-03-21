@@ -1,0 +1,17 @@
+# SpitRoyale — production compose
+# No source volume mount: the container uses the dist/ built inside the Docker image,
+# so the latest HTML/JS (including survival mode) is always served.
+services:
+  spittroyale:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: alpacaparty_spittroyale
+    environment:
+      NODE_ENV: production
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      VAULT_ADDR: ${VAULT_ADDR:-}
+      VAULT_TOKEN: ${VAULT_TOKEN:-}
+    restart: unless-stopped
+    networks:
+      - alpacaparty_net
