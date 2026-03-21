@@ -93,4 +93,27 @@ export class UI {
     icon.classList.add('active');
     setTimeout(() => icon.classList.remove('active'), type === 'bigSpit' ? 8000 : 5000);
   }
+
+  // ── Survival mode HUD ──────────────────────────────────────────────────────
+
+  /** Show / update the wave counter and remaining enemy count. */
+  setWave(wave, enemyCount) {
+    const el = document.getElementById('wave-info');
+    if (!el) return;
+    el.style.display = 'flex';
+    document.getElementById('wave-num').textContent   = wave;
+    document.getElementById('enemy-count').textContent = enemyCount;
+  }
+
+  /** Update the kill-score counter. */
+  setKills(kills) {
+    const el = document.getElementById('kill-count');
+    if (el) el.textContent = kills;
+  }
+
+  /** Hide survival HUD elements (call when returning to lobby). */
+  hideSurvivalHud() {
+    const el = document.getElementById('wave-info');
+    if (el) el.style.display = 'none';
+  }
 }

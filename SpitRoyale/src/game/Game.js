@@ -21,6 +21,10 @@ export class Game {
     this.cameraOffset = new THREE.Vector3(0, 22, 18);
     this.cameraTarget = new THREE.Vector3();
 
+    // Enemy mesh pool (survival mode) — pre-built to avoid mid-game geometry allocation
+    this._enemyPool   = [];   // { group, legMeshes, shield, shieldMat, inUse, walkPhase, prevX, prevZ, lastHealth }
+    this._poolReady   = false;
+
     this._initRenderer(container);
     this._initScene();
     this._initInput();
@@ -153,12 +157,17 @@ export class Game {
   }
 
   _spawnAlpaca(pd) {
+    // Bot alpacas come from the pre-built pool (no geometry allocation at runtime)
+    if (pd.isBot && this._poolReady) {
+      const poolEntry = this._acquireFromPool(pd);
+      if (poolEntry) return; // pool handled it — done
+    }
+
     const { group, legMeshes, shield, shieldMat } = buildAlpaca(pd.color);
     group.position.set(pd.x, 0, pd.z);
     group.castShadow = true;
     this.scene.add(group);
 
-    // Name label sprite
     const label = this._makeLabel(pd.name, pd.color, pd.id === this.localPlayerId);
 
     this.alpacaMeshes[pd.id] = { group, legMeshes, shield, shieldMat, label, prevX: pd.x, prevZ: pd.z, walkPhase: 0 };
@@ -252,8 +261,13 @@ export class Game {
   _removeAlpaca(id) {
     const entry = this.alpacaMeshes[id];
     if (!entry) return;
-    this.scene.remove(entry.group);
-    delete this.alpacaMeshes[id];
+    // Pool entries are hidden and returned; non-pool entries are disposed
+    if (entry.inUse !== undefined) {
+      this._releaseToPool(id);
+    } else {
+      this.scene.remove(entry.group);
+      delete this.alpacaMeshes[id];
+    }
   }
 
   _spawnSpit(sd) {
@@ -324,6 +338,73 @@ export class Game {
     const mesh = this.powerupMeshes[id];
     if (mesh) this.scene.remove(mesh);
     delete this.powerupMeshes[id];
+  }
+
+  // ── Enemy mesh pool (survival mode) ─────────────────────────────────────
+
+  /**
+   * Pre-build `size` enemy alpaca groups and park them off-screen.
+   * Called once when survival mode begins (before wave 1), so no geometry
+   * is allocated during gameplay — eliminating the GC spikes that cause lag.
+   */
+  initSurvivalPool(size = 12) {
+    if (this._poolReady) return;
+    this._poolReady = true;
+
+    // All enemy bodies share the same dark-red colour → reuse one material
+    // instance across the pool to halve GPU draw-call state changes.
+    const ENEMY_COLOR = 0xc62828;
+
+    for (let i = 0; i < size; i++) {
+      const { group, legMeshes, shield, shieldMat } = buildAlpaca(ENEMY_COLOR);
+      group.visible = false;
+      group.position.set(999, 0, 999); // park far off-screen
+      this.scene.add(group);
+      this._enemyPool.push({
+        group, legMeshes, shield, shieldMat,
+        inUse: false, label: null,
+        prevX: 0, prevZ: 0, walkPhase: 0, lastHealth: null,
+      });
+    }
+  }
+
+  /** Grab an idle pool entry and bind it to a player id. Returns entry or null. */
+  _acquireFromPool(pd) {
+    const entry = this._enemyPool.find(e => !e.inUse);
+    if (!entry) return null;
+
+    entry.inUse       = true;
+    entry.prevX       = pd.x;
+    entry.prevZ       = pd.z;
+    entry.walkPhase   = 0;
+    entry.lastHealth  = pd.health;
+    entry.group.position.set(pd.x, 0, pd.z);
+    entry.group.visible = true;
+
+    const label = this._makeLabel(pd.name, pd.color, false);
+    entry.label = label;
+    // label added/removed by _updateAlpaca as normal
+
+    this.alpacaMeshes[pd.id] = entry;
+    return entry;
+  }
+
+  /** Return a pool entry back to the idle pool (hide but keep geometry). */
+  _releaseToPool(id) {
+    const entry = this.alpacaMeshes[id];
+    if (!entry || !entry.inUse) return;
+
+    entry.group.visible = false;
+    entry.group.position.set(999, 0, 999);
+    if (entry.label && entry.group.children.includes(entry.label)) {
+      entry.group.remove(entry.label);
+      entry.label = null;
+    }
+    // Reset shield opacity so next wave gets a clean alpaca
+    entry.shieldMat.opacity = 0;
+    entry.inUse = false;
+
+    delete this.alpacaMeshes[id];
   }
 
   onSpitImpact(x, z, big) { this.particles.spitImpact(x, z, big); }
