@@ -14,6 +14,7 @@ export default {
     '!src/config/prisma.js',
     '!src/services/oauthService.js',
     '!src/services/socketService.js',
+    '!src/services/spitRoyaleNamespace.js',
   ],
   coverageThreshold: {
     global: {

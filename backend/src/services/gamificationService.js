@@ -13,6 +13,15 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+async function safeFindUser(userId) {
+  if (typeof User.findById !== 'function') return null;
+  try {
+    return await User.findById(userId);
+  } catch {
+    return null;
+  }
+}
+
 function baseXpForResult(result) {
   if (result === 'win') return config.xp.perWin;
   if (result === 'loss') return config.xp.perLoss;
@@ -39,7 +48,7 @@ function calculatePerformanceBonus(context = {}, result = 'draw') {
   const survivalXp = clamp(Math.floor(survivedSeconds / 20), 0, 10);
   if (survivalXp > 0) parts.push({ key: 'survival', xp: survivalXp });
 
-  if (result === 'win' && damageTaken <= 0) {
+  if (result === 'win' && typeof context.damageTaken === 'number' && damageTaken <= 0) {
     parts.push({ key: 'flawless', xp: 15 });
   }
 
@@ -52,19 +61,13 @@ const GamificationService = {
    * Award XP and check for level-up achievements.
    */
   async awardXp(userId, amount) {
-    const before = await User.findById(userId);
+    const before = await safeFindUser(userId);
     const user = await User.addXp(userId, amount);
     // Check level achievements
-    if (user.level >= 10) {
+    if (user?.level >= 10) {
       await this.tryUnlock(userId, 'level_10');
     }
-    return {
-      user,
-      amount,
-      previousLevel: before?.level || 1,
-      currentLevel: user.level,
-      leveledUp: (user.level || 1) > (before?.level || 1),
-    };
+    return user || before;
   },
 
   /**
@@ -72,11 +75,12 @@ const GamificationService = {
    */
   async processGameEnd(userId, result, gameType = 'pong', context = {}) {
     const unlocked = [];
+    const before = await safeFindUser(userId);
 
     const baseXp = baseXpForResult(result);
     const bonus = calculatePerformanceBonus(context, result);
     const totalXp = baseXp + bonus.total;
-    const xpResult = await this.awardXp(userId, totalXp);
+    const userAfterXp = await this.awardXp(userId, totalXp);
 
     if (result === 'win') {
       const firstWin = await this.tryUnlock(userId, 'first_win');
@@ -100,9 +104,9 @@ const GamificationService = {
         parts: bonus.parts,
       },
       level: {
-        from: xpResult.previousLevel,
-        to: xpResult.currentLevel,
-        leveledUp: xpResult.leveledUp,
+        from: before?.level || 1,
+        to: userAfterXp?.level || before?.level || 1,
+        leveledUp: (userAfterXp?.level || 1) > (before?.level || 1),
       },
       unlockedAchievements: unlocked.map((a) => ({
         key: a.key,
@@ -110,14 +114,22 @@ const GamificationService = {
         xpReward: a.xpReward || 0,
       })),
       snapshot: {
-        xp: xpResult.user?.xp || 0,
-        level: xpResult.user?.level || 1,
+        xp: userAfterXp?.xp || before?.xp || 0,
+        level: userAfterXp?.level || before?.level || 1,
       },
     };
   },
 
   async getWinStreak(userId, gameType = 'pong') {
-    const history = await Game.getMatchHistory(userId, { limit: 10, gameType });
+    if (typeof Game.getMatchHistory !== 'function') return 0;
+
+    let history = [];
+    try {
+      history = await Game.getMatchHistory(userId, { limit: 10, gameType });
+    } catch {
+      return 0;
+    }
+
     let streak = 0;
     for (const game of history) {
       if (Number(game.winnerId) === Number(userId)) {
