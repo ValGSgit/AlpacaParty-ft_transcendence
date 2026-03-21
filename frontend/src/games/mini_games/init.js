@@ -8,6 +8,7 @@ import { useAuthStore } from '../../stores/auth.js'
 import { setupEnvironment } from '../world/sceneBuilder.js'
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js';
 import { CONST } from '../config/constants.js';
+import * as GRADIENT from "../utils/createGradient.js"
 
 const miniGameContainer = ref(null)
 
@@ -37,8 +38,16 @@ async function initGame1(){
 
   gUser.value.gameMode = 1
   setupEnvironment(gScene.value)
+  changeFloorColor('#ff0000', '#550000')
   gScene.value.add(gPlayer.value.model)
   gAlpacas.push(gPlayer.value)
   gUI.cameraMode = 1
   gScene.value.add(await spawnObjectRandomly('/models/alpaca.glb', 10, "alpaca"))
+}
+
+function changeFloorColor(top, bottom){
+  const newTexture = GRADIENT.Radial(top, bottom);
+  gScene.value.floor.material[1].map.dispose();
+  gScene.value.floor.material[1].map = newTexture;
+  gScene.value.floor.material[1].needsUpdate = true;
 }

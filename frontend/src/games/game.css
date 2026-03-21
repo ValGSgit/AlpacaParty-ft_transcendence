@@ -218,6 +218,18 @@ input[type="color"].custom-picker::-webkit-color-swatch {
   z-index: 100;
 }
 
+.title {
+  font-size: 24px;
+  padding-top: 90px;
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: top;
+  justify-content: center;
+  z-index: 100;
+}
+
 .edit-mode-light {
   padding-top: 90px;
   pointer-events: auto;
