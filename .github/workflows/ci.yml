@@ -146,7 +146,7 @@ jobs:
         run: |
           echo "Waiting for backend health endpoint..."
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8080/api/health > /dev/null 2>&1; then
+            if curl -ksfL https://localhost:8080/api/health > /dev/null 2>&1; then
               echo "Backend is healthy after ${i} attempts"
               exit 0
             fi
@@ -174,7 +174,7 @@ jobs:
         working-directory: e2e
         run: npm test
         env:
-          E2E_BASE_URL: http://localhost:8080
+          E2E_BASE_URL: https://localhost:8080
 
       # -- Artifacts ------------------------------------------------
       - name: Upload Playwright report
