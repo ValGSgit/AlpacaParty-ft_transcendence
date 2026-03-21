@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🦙 Alpaca Spit Royale</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0d0d0d; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+    #canvas-container { position: fixed; inset: 0; }
+
+    /* ── Lobby Screen ── */
+    #lobby {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #1a0533 0%, #0d2137 50%, #0d330d 100%);
+      z-index: 100;
+    }
+    #lobby h1 {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 900;
+      letter-spacing: -2px;
+      background: linear-gradient(90deg, #f4a261, #e9c46a, #2a9d8f);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-shadow: none;
+      margin-bottom: 0.25rem;
+    }
+    #lobby .subtitle {
+      color: #aaa; font-size: 1.1rem; margin-bottom: 2.5rem; letter-spacing: 2px;
+    }
+    #lobby input {
+      width: 280px; padding: 0.75rem 1.25rem;
+      border: 2px solid #f4a261; border-radius: 999px;
+      background: rgba(255,255,255,0.05); color: #fff;
+      font-size: 1.1rem; text-align: center;
+      outline: none; margin-bottom: 1rem;
+      transition: border-color 0.2s;
+    }
+    #lobby input:focus { border-color: #2a9d8f; }
+    #lobby button {
+      padding: 0.85rem 3rem; border: none; border-radius: 999px;
+      background: linear-gradient(90deg, #f4a261, #e76f51);
+      color: #fff; font-size: 1.15rem; font-weight: 700;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 24px rgba(244,162,97,0.4);
+    }
+    #lobby button:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(244,162,97,0.5); }
+    #lobby .alpaca-emoji { font-size: 5rem; margin-bottom: 1rem; animation: bounce 1.5s ease-in-out infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+
+    /* ── HUD ── */
+    #hud {
+      position: fixed; inset: 0; pointer-events: none;
+      display: none; z-index: 50;
+    }
+    #player-cards {
+      position: absolute; top: 16px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 12px;
+    }
+    .player-card {
+      background: rgba(0,0,0,0.6);
+      border: 2px solid rgba(255,255,255,0.15);
+      border-radius: 12px; padding: 8px 14px; min-width: 140px;
+      backdrop-filter: blur(6px);
+    }
+    .player-card.local-card { border-color: rgba(244,162,97,0.6); }
+    .player-name { font-size: 0.8rem; color: #ccc; margin-bottom: 4px; font-weight: 600; letter-spacing: 1px; }
+    .health-bar-bg {
+      height: 10px; background: rgba(255,255,255,0.1);
+      border-radius: 999px; overflow: hidden;
+    }
+    .health-bar { height: 100%; border-radius: 999px; transition: width 0.15s; }
+
+    #crosshair {
+      position: absolute; top: 50%; left: 50%; width: 24px; height: 24px;
+      transform: translate(-50%,-50%);
+    }
+    #crosshair::before, #crosshair::after {
+      content: ''; position: absolute; background: rgba(255,255,255,0.7);
+      border-radius: 999px;
+    }
+    #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+    #crosshair::after { height: 2px; width: 100%; top: 50%; transform: translateY(-50%); }
+
+    #status-msg {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.75); color: #fff;
+      font-size: clamp(1.2rem, 3vw, 2rem); font-weight: 800;
+      padding: 1rem 2.5rem; border-radius: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      backdrop-filter: blur(8px);
+      text-align: center; letter-spacing: 1px;
+      transition: opacity 0.4s;
+      pointer-events: none;
+    }
+    #status-msg.hidden { opacity: 0; }
+
+    #powerup-bar {
+      position: absolute; bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 10px; align-items: center;
+    }
+    .powerup-icon {
+      width: 48px; height: 48px;
+      background: rgba(0,0,0,0.6); border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem;
+    }
+    .powerup-icon.active { border-color: #f4a261; box-shadow: 0 0 12px rgba(244,162,97,0.6); }
+
+    #kill-feed {
+      position: absolute; bottom: 80px; right: 16px;
+      display: flex; flex-direction: column-reverse; gap: 6px;
+      max-width: 240px;
+    }
+    .kill-entry {
+      background: rgba(0,0,0,0.6); border-radius: 8px;
+      padding: 4px 10px; font-size: 0.78rem; color: #e9c46a;
+      border-left: 3px solid #e76f51;
+      animation: fadeInRight 0.3s ease;
+    }
+    @keyframes fadeInRight { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:none} }
+
+    #controls-hint {
+      position: absolute; bottom: 24px; left: 16px;
+      color: rgba(255,255,255,0.35); font-size: 0.75rem; line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+  <!-- Lobby -->
+  <div id="lobby">
+    <div class="alpaca-emoji">🦙</div>
+    <h1>Alpaca Spit Royale</h1>
+    <p class="subtitle">LAST ALPACA STANDING WINS</p>
+    <input id="name-input" type="text" placeholder="Your alpaca name..." maxlength="16" />
+    <button id="play-btn">SPIT & PLAY</button>
+  </div>
+
+  <!-- 3D canvas -->
+  <div id="canvas-container"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="player-cards"></div>
+    <div id="crosshair"></div>
+    <div id="status-msg" class="hidden"></div>
+    <div id="powerup-bar">
+      <div class="powerup-icon" id="pu-speed" title="Speed Boost">💨</div>
+      <div class="powerup-icon" id="pu-shield" title="Shield">🛡️</div>
+      <div class="powerup-icon" id="pu-bigspit" title="Big Spit">💧</div>
+      <div class="powerup-icon" id="pu-heal" title="Heal">💚</div>
+    </div>
+    <div id="kill-feed"></div>
+    <div id="controls-hint">
+      WASD · Move<br>
+      Mouse · Aim<br>
+      Click / Space · Spit
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

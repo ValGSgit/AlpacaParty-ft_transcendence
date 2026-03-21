@@ -12,6 +12,16 @@ jest.unstable_mockModule('../../src/config/database.js', () => ({
   default: { on: jest.fn(), query: mockQuery },
 }));
 
+// Health tests should not depend on generated Prisma runtime artifacts.
+jest.unstable_mockModule('../../src/config/prisma.js', () => ({
+  default: {
+    $disconnect: jest.fn(),
+  },
+  prisma: {
+    $disconnect: jest.fn(),
+  },
+}));
+
 const { createTestApp } = await import('../helpers/createApp.js');
 
 let app;

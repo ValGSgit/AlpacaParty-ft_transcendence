@@ -34,6 +34,7 @@
 
             <!-- Game -->
             <router-link to="/game" class="nav-link nav-game" @click="mobileOpen = false">Game</router-link>
+            <router-link to="/spit-royale" class="nav-link nav-game" @click="mobileOpen = false">SpitRoyale</router-link>
 
             <!-- Divider -->
             <span class="nav-divider"></span>
@@ -84,10 +85,10 @@
         </div>
       </div>
     </nav>
-    <main :class="['main-content', { 'game-content': $route.name === 'Game' }]">
+    <main :class="['main-content', { 'game-content': ['Game', 'SpitRoyale'].includes($route.name) }]">
       <router-view />
     </main>
-    <footer v-if="$route.name !== 'Game'" class="app-footer">
+    <footer v-if="!['Game', 'SpitRoyale'].includes($route.name)" class="app-footer">
       <div class="footer-container">
         <span class="footer-copy">&copy; 2026 AlpacaParty</span>
         <div class="footer-links">
