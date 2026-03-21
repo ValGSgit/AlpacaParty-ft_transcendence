@@ -51,6 +51,7 @@
 | `/services/uploadService.js` | **DavidPoetsch** | - |
 | `/services/dataExportService.js` | **ValGSgit** | - |
 | `/services/oauthService.js` | **ValGSgit** | - |
+| `/services/spitRoyaleNamespace.js` | **ValGSgit** | LukasStefanek |
 | `/routes/` | **ValGSgit** | DavidPoetsch |
 
 ### Frontend (`/frontend/src/`)
@@ -65,6 +66,7 @@
 | `/views/UserProfile.vue` | **fankahou** | LukasStefanek |
 | `/views/Messages.vue` | **LukasStefanek** | fankahou |
 | `/views/Friends.vue` | **fankahou** | LukasStefanek |
+| `/views/SpitRoyale.vue` | **ValGSgit** | LukasStefanek |
 | `/views/Feed.vue` | **fankahou** | LukasStefanek |
 | `/views/Admin.vue` | **fankahou** | LukasStefanek |
 | `/views/SecurityDashboard.vue` | **fankahou** | LukasStefanek |
@@ -78,7 +80,8 @@
 | `/views/PrivacyPolicy.vue` | **fankahou** | LukasStefanek |
 | `/views/TermsOfService.vue` | **fankahou** | LukasStefanek |
 | `/views/NotFound.vue` | **LukasStefanek** | fankahou |
-| `/games/` (3D Game) | **LukasStefanek** | fankahou |
+| `/spitroyale/` (SpitRoyale game client) | **ValGSgit** | LukasStefanek |
+| `/games/` (3D Alpaca Farm) | **LukasStefanek** | fankahou |
 | `/games/core/` | **LukasStefanek** | fankahou |
 | `/games/world/` | **fankahou** | LukasStefanek |
 | `/games/user/` | **LukasStefanek** | fankahou |
@@ -262,6 +265,15 @@ This section is the single source of truth for Product Owner evaluation of **Val
 
 ---
 
+## 🗑️ TODO - CLEANUP (Orphaned / Dead Code)
+
+| Item | Description | Owner | Action |
+|------|-------------|-------|--------|
+| `/SpitRoyale/` directory | Standalone battle-royale server — fully replaced by `frontend/src/spitroyale/` + `backend/src/services/spitRoyaleNamespace.js`. No longer included in any compose file. | **ValGSgit** | Delete directory after confirming no unique server-side logic remains |
+| `/shared/` package | Single `game/index.js` file, not imported by frontend or backend. Dead dependency overhead. | **ValGSgit** | Audit then delete or absorb into frontend |
+
+---
+
 ## 📋 TODO - LOWER PRIORITY (Technical Debt)
 
 | # | Issue | Description | Owner | Est. Points | Impact | Notes |
@@ -370,5 +382,6 @@ HIGH IMPACT, NOT URGENT    │ LOW IMPACT, NOT URGENT
 | Date | Author | Changes |
 |------|--------|---------|
 | 2024-03-13 | ValGSgit (PO) | Created initial ISSUES.md with file ownership, status tracking, and backlog |
+| 2026-03-21 | ValGSgit (PO) | SpitRoyale consolidated: standalone server removed from all compose files and nginx; survival mode + multiplayer now served entirely through backend Socket.IO namespace and Vue frontend. Makefile getcwd bug fixed (static COMPOSE_PROJECT). Fixed nginx compose spittroyale dependency. Resolved 3x `@owner TODO` views. Added spitRoyaleNamespace.js, SpitRoyale.vue, /spitroyale/ ownership. Added orphaned-code cleanup section. |
 | 2026-03-18 | ValGSgit (PO) | Corrected ownership separation: backend (ValGSgit, DavidPoetsch) / frontend (fankahou, LukasStefanek). Added new files: vault.js, prisma.js, utils/, 10+ new frontend views, games sub-dirs, vault/, scripts/, shared/. Moved #30 ORM Migration and added #31 Vault+WAF to In Progress. Created .github/CODEOWNERS. |
 

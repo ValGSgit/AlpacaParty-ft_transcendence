@@ -1,6 +1,6 @@
 <!--
   NotFound View — 404 catch-all
-  @owner TODO
+  @owner LukasStefanek
 -->
 <template>
   <div class="not-found">
