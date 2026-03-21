@@ -4,7 +4,7 @@ import { acceptFirstPending, authHeaders, createUser, requestFriendship } from '
 test.describe('Notifications Workflow', () => {
   test('friend request creates notifications and supports read/delete', async ({ request }) => {
     const sender = await createUser(request, 'notif_sender');
-    const receiver = await createUser(request, 'notif_receiver');
+    const receiver = await createUser(request, 'notif_rcvr');
 
     await requestFriendship(request, sender.accessToken, receiver.user.id);
     await acceptFirstPending(request, receiver.accessToken);

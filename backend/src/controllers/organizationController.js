@@ -31,7 +31,7 @@ export const getOrg = async (req, res, next) => {
     const org = await Organization.findById(Number(req.params.id));
     if (!org) return res.status(404).json({ error: { message: 'Organization not found' } });
     const members = await Organization.getMembers(org.id);
-    res.json({ organization: org, members });
+    res.json({ organization: { ...org, members } });
   } catch (err) { next(err); }
 };
 

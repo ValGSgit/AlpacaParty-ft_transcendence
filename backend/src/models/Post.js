@@ -14,6 +14,7 @@ function shapePost(p, likedIds = null) {
     image_url: p.imageUrl,
     is_public: p.isPublic,
     likes_count: p.likesCount,
+    likeCount: p.likesCount,
     created_at: p.createdAt,
     updated_at: p.updatedAt,
     author_username: p.author?.username,
