@@ -70,7 +70,7 @@ describe('getHistory', () => {
     const { req, res, next } = createReqRes();
     await getHistory(req, res, next);
     expect(mockGame.getMatchHistory).toHaveBeenCalledWith(1, { limit: 20, offset: 0, gameType: undefined });
-    expect(res._json.matches).toEqual(matches);
+    expect(res._json.history).toEqual(matches);
   });
 
   test('passes custom pagination and gameType', async () => {

@@ -122,7 +122,7 @@ describe('listUsers', () => {
     expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
       where: {},
       select: { id: true, username: true, email: true, avatar: true, isOnline: true, isAdmin: true, level: true, xp: true, createdAt: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 50,
       skip: 0,
     });
@@ -140,7 +140,7 @@ describe('listUsers', () => {
     expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
       where: { OR: [{ username: { startsWith: 'bob', mode: 'insensitive' } }, { email: { contains: 'bob', mode: 'insensitive' } }] },
       select: { id: true, username: true, email: true, avatar: true, isOnline: true, isAdmin: true, level: true, xp: true, createdAt: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 10,
       skip: 5,
     });
