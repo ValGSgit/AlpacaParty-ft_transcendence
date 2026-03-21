@@ -1,6 +1,6 @@
 # AlpacaParty - Issues & Project Management
 
-**Last Updated**: March 18, 2026
+**Last Updated**: March 21, 2026
 **Product Owner**: ValGSgit  
 **Status**: Active Development (23 Module Points - 9 Points Above Requirement)
 
@@ -51,6 +51,7 @@
 | `/services/uploadService.js` | **DavidPoetsch** | - |
 | `/services/dataExportService.js` | **ValGSgit** | - |
 | `/services/oauthService.js` | **ValGSgit** | - |
+| `/services/spitRoyaleNamespace.js` | **ValGSgit** | LukasStefanek |
 | `/routes/` | **ValGSgit** | DavidPoetsch |
 
 ### Frontend (`/frontend/src/`)
@@ -65,6 +66,7 @@
 | `/views/UserProfile.vue` | **fankahou** | LukasStefanek |
 | `/views/Messages.vue` | **LukasStefanek** | fankahou |
 | `/views/Friends.vue` | **fankahou** | LukasStefanek |
+| `/views/SpitRoyale.vue` | **ValGSgit** | LukasStefanek |
 | `/views/Feed.vue` | **fankahou** | LukasStefanek |
 | `/views/Admin.vue` | **fankahou** | LukasStefanek |
 | `/views/SecurityDashboard.vue` | **fankahou** | LukasStefanek |
@@ -78,7 +80,8 @@
 | `/views/PrivacyPolicy.vue` | **fankahou** | LukasStefanek |
 | `/views/TermsOfService.vue` | **fankahou** | LukasStefanek |
 | `/views/NotFound.vue` | **LukasStefanek** | fankahou |
-| `/games/` (3D Game) | **LukasStefanek** | fankahou |
+| `/spitroyale/` (SpitRoyale game client) | **ValGSgit** | LukasStefanek |
+| `/games/` (3D Alpaca Farm) | **LukasStefanek** | fankahou |
 | `/games/core/` | **LukasStefanek** | fankahou |
 | `/games/world/` | **fankahou** | LukasStefanek |
 | `/games/user/` | **LukasStefanek** | fankahou |
@@ -117,11 +120,11 @@
 | Status | Count | Target Completion |
 |--------|-------|---|
 | ✅ **COMPLETED** | 19 | - |
-| 🔄 **IN PROGRESS** | 4 | Sprint 5 |
+| 🔄 **IN PROGRESS** | 5 | Sprint 5 |
 | 📋 **TODO** | 5 | Backlog |
-| **TOTAL** | **28** | - |
+| **TOTAL** | **29** | - |
 
-### Requested Status Snapshot (March 16, 2026)
+### Historical Requested Status Snapshot (March 16, 2026)
 
 | Feature | Issue | Owner(s) | Current Status | Notes |
 |---|---|---|---|---|
@@ -138,12 +141,12 @@
 | Game statistics & Match History | #20 | DavidPoetsch | ✅ Done | Stats and leaderboard data model/endpoints exist |
 | Game Customization | - | - | 📋 Todo | Not fully shipped as a standalone tracked milestone |
 | Gamification/Reward/Achievement System | #19 | ValGSgit | ✅ Done | XP/achievements/challenges foundations are implemented |
-| User Analytics Dashboard | #18 | DavidPoetsch, ValGSgit | 📋 Todo | Dashboard still open |
+| User Analytics Dashboard | #28 | ValGSgit | 📋 Todo | Dashboard still open |
 | GDPR Compliance | #17 | ValGSgit | ✅ Done | Export/delete request flows implemented |
 | Multi-Browser Support | #29 | fankahou | 📋 Todo | Still pending dedicated testing pass |
 | Configure PostgreSQL connection pooling | #7 | DavidPoetsch, ValGSgit | 🔄 In Progress | Active optimization work |
 | Postgre tables | #10 | DavidPoetsch, ValGSgit | 🔄 In Progress | Schema/index refinement ongoing |
-| API Endpoints auth/* users/* friends/* chat/* games/* v1/*/* | #9 | ValGSgit | 🔄 In Progress | Core endpoints exist; ongoing expansion/consistency work |
+| API Endpoints auth/* users/* friends/* chat/* games/* v1/*/* | #32 | ValGSgit | 🔄 In Progress | Core endpoints exist; ongoing expansion/consistency/docs alignment work |
 | Game Core | #14 | fankahou, LukasStefanek | 🔄 In Progress | Playable core exists; remaining enhancements in progress |
 
 ---
@@ -201,7 +204,7 @@
 
 ---
 
-## 🔄 IN PROGRESS (4)
+## 🔄 IN PROGRESS (5)
 
 | # | Issue | Description | Owner | Target Sprint | Blockers |
 |---|-------|-------------|-------|---|---|
@@ -209,6 +212,32 @@
 | **#11** | Audit & Performance Optimization | Review all endpoints, add indexes, optimize slow queries | DavidPoetsch | Sprint 5 | Code review in progress |
 | **#30** | ORM Migration (Prisma) | Refactor raw SQL queries to Prisma ORM for type safety and maintainability | DavidPoetsch, ValGSgit | Sprint 5 | Active — `feat/vaultAndPrismaRework` branch |
 | **#31** | Security Hardening (Vault + WAF) | HashiCorp Vault for secret management, ModSecurity WAF integration | ValGSgit, DavidPoetsch | Sprint 5 | Active — nginx WAF config, vault init in progress |
+| **#32** | API Consistency & Documentation Pass | Align endpoint behavior with docs, normalize error format, validate API key/rate limits | ValGSgit | Sprint 5 | Snapshot/docs/test alignment pending |
+
+---
+
+## ValGSgit Scope: Remaining Work (Canonical)
+
+This section is the single source of truth for Product Owner evaluation of **ValGSgit-owned remaining work**.
+
+| Issue | Status | Owner | Scope | Done When |
+|---|---|---|---|---|
+| **Planning Consistency Gate** | 🔄 In Progress | ValGSgit | Normalize issue IDs/statuses and keep one current status view for owned items | One canonical issue id per feature, one current status table, release plan aligned |
+| **#30 ORM Migration (Prisma)** | 🔄 In Progress | ValGSgit (with DavidPoetsch) | Remove/contain raw SQL in ValGSgit-owned controllers/services | Raw SQL removed or explicitly justified, Prisma consistent for auth/users/friends/chat/posts/public API, backend + E2E regression green |
+| **#31 Security Hardening (Vault + WAF)** | 🔄 In Progress | ValGSgit (with DavidPoetsch) | Vault model clarity, secret fallback behavior, WAF operation docs | Dev vs prod Vault model clearly documented, fallback behavior documented and tested, WAF false-positive handling documented, one-script demo flow repeatable |
+| **#28 User Analytics Dashboard** | 📋 Todo | ValGSgit | Admin analytics delivery | Signup trend, engagement, retention metrics; date filters + export; indexed/perf queries; admin-only access enforced |
+| **#32 API Consistency & Docs** | 🔄 In Progress | ValGSgit | API behavior/docs parity and operational validation | Endpoint behavior matches docs, consistent error format, API key/rate-limit tests pass, no stale or duplicate endpoint claims |
+| **SpitRoyale Evidence Gate** | 📋 Todo | ValGSgit | Add demonstrable coverage for realtime flow claims | At least one backend suite for queue/rematch/reconnect/spectator, at least one Playwright live-match flow, README/module claims match tested reality |
+| **CI E2E Runtime Stability Gate** | 📋 Todo | ValGSgit | Avoid backend watch mode in E2E path | E2E uses stable non-watch runtime, health checks stay green, flaky runs reduced and reproducible locally |
+
+### ValGSgit Completion Checklist
+
+- [ ] Clean and consistent issue numbering/status for owned scope
+- [ ] #30 merged with tests green
+- [ ] #31 merged with clear dev/prod security narrative
+- [ ] #28 delivered with real metrics and role gating
+- [ ] #32 API/docs consistency pass completed
+- [ ] Realtime evidence (tests + CI stability) in place
 
 ---
 
@@ -233,6 +262,15 @@
 | # | Issue | Description | Owner | Est. Points | Dependencies |
 |---|-------|-------------|-------|---|---|
 | **#28** | User Analytics Dashboard | User signup trends, engagement metrics, retention charts | ValGSgit | 2 | Notifications (#22) ✅ |
+
+---
+
+## 🗑️ TODO - CLEANUP (Orphaned / Dead Code)
+
+| Item | Description | Owner | Action |
+|------|-------------|-------|--------|
+| `/SpitRoyale/` directory | Standalone battle-royale server — fully replaced by `frontend/src/spitroyale/` + `backend/src/services/spitRoyaleNamespace.js`. No longer included in any compose file. | **ValGSgit** | Delete directory after confirming no unique server-side logic remains |
+| `/shared/` package | Single `game/index.js` file, not imported by frontend or backend. Dead dependency overhead. | **ValGSgit** | Audit then delete or absorb into frontend |
 
 ---
 
@@ -288,7 +326,7 @@ HIGH IMPACT, NOT URGENT    │ LOW IMPACT, NOT URGENT
 
 ## Key Metrics
 
-- **Completion Rate**: 73% (19/26 issues)
+- **Completion Rate**: 66% (19/29 issues)
 - **Module Points Achieved**: 23/14 required (164% of 42 curriculum requirement)
 - **Feature Coverage**: 25+ features implemented vs 14 required
 - **Test Coverage**: Jest (backend), Vitest (frontend), Playwright (E2E)
@@ -308,6 +346,7 @@ HIGH IMPACT, NOT URGENT    │ LOW IMPACT, NOT URGENT
 - #11 Query optimization
 - #30 Prisma ORM migration
 - #31 Vault + WAF hardening
+- #32 API consistency & documentation pass
 - #24 Advanced search
 
 ### v2.0 (Future Roadmap)
@@ -343,5 +382,6 @@ HIGH IMPACT, NOT URGENT    │ LOW IMPACT, NOT URGENT
 | Date | Author | Changes |
 |------|--------|---------|
 | 2024-03-13 | ValGSgit (PO) | Created initial ISSUES.md with file ownership, status tracking, and backlog |
+| 2026-03-21 | ValGSgit (PO) | SpitRoyale consolidated: standalone server removed from all compose files and nginx; survival mode + multiplayer now served entirely through backend Socket.IO namespace and Vue frontend. Makefile getcwd bug fixed (static COMPOSE_PROJECT). Fixed nginx compose spittroyale dependency. Resolved 3x `@owner TODO` views. Added spitRoyaleNamespace.js, SpitRoyale.vue, /spitroyale/ ownership. Added orphaned-code cleanup section. |
 | 2026-03-18 | ValGSgit (PO) | Corrected ownership separation: backend (ValGSgit, DavidPoetsch) / frontend (fankahou, LukasStefanek). Added new files: vault.js, prisma.js, utils/, 10+ new frontend views, games sub-dirs, vault/, scripts/, shared/. Moved #30 ORM Migration and added #31 Vault+WAF to In Progress. Created .github/CODEOWNERS. |
 
