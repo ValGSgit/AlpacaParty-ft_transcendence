@@ -24,7 +24,7 @@ services:
         wait
       '
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8200/v1/sys/health"]
+      test: ["CMD-SHELL", "export VAULT_ADDR=http://127.0.0.1:8200; vault status >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 5
