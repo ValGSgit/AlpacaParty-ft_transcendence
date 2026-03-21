@@ -15,6 +15,7 @@ export class SpitRoyaleClient {
     this.mode = 'queue';
     this.currentMatchId = null;
     this.onLiveMatches = null;
+    this.isSurvival = false;
   }
 
   connect(name) {
@@ -49,11 +50,37 @@ export class SpitRoyaleClient {
     });
   }
 
+  connectSurvival(name) {
+    this.isSurvival = true;
+    this.playerName = name;
+
+    if (this.socket) {
+      this.socket.emit('join:survival', { name });
+      return;
+    }
+
+    const token = localStorage.getItem('accessToken');
+    this.socket = io('/spit-royale', { transports: ['websocket'], auth: { token } });
+
+    this.socket.on('connect', () => {
+      this.socket.emit('join:survival', { name });
+    });
+    this.socket.on('spit:message', (msg) => { this.#handleMessage(msg); });
+    this.socket.on('connect_error', () => {
+      this.ui?.showStatus('Connection failed. Please login again.', 0);
+    });
+    this.socket.on('disconnect', () => {
+      this.ui?.showStatus('Disconnected.', 0);
+      if (this.inputInterval) clearInterval(this.inputInterval);
+    });
+  }
+
   #handleMessage(msg) {
     switch (msg.type) {
       case 'joined': {
         this.localPlayerId = msg.playerId;
         this.currentMatchId = msg.roomId;
+        this.isSurvival = msg.isSurvival ?? false;
         this.mode = msg.roomId === 'queue' ? 'queue' : 'player';
         if (!this.ui) {
           this.ui = new UI(this.root);
@@ -214,6 +241,28 @@ export class SpitRoyaleClient {
         if (msg.playerId === this.localPlayerId) {
           this.ui?.activatePowerupIcon(msg.powerupType);
         }
+        break;
+      }
+
+      // ── Survival-only messages ──────────────────────────────────────────────
+      case 'wave_start': {
+        this.game?.applyState(msg.state);
+        this.ui?.updatePlayers(msg.state.players, this.localPlayerId);
+        this.ui?.setWave(msg.wave, msg.botCount);
+        this.ui?.showStatus(`🌊 Wave ${msg.wave} — ${msg.botCount} enemies incoming!`, 2500);
+        break;
+      }
+
+      case 'wave_complete':
+        this.ui?.showStatus(`✅ Wave ${msg.wave} clear! ${msg.kills} kills — next wave in 3s…`, 2800);
+        break;
+
+      case 'survival_over': {
+        this.game?.applyState(msg.state);
+        this.ui?.updatePlayers(msg.state.players, this.localPlayerId);
+        this.ui?.showStatus(`💀 Fell on wave ${msg.wave}! Total kills: ${msg.kills}`, 0);
+        this.ui?.hideSurvivalHud();
+        setTimeout(() => this.ui?.showStatus('⚔️ New run in 5s…', 0), 3000);
         break;
       }
 

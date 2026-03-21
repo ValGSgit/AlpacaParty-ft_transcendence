@@ -14,6 +14,11 @@ const MAX_HEALTH = 100;
 const REMATCH_WINDOW_MS = 15000;
 const DISCONNECT_GRACE_MS = 15000;
 
+// ── Survival-mode constants ──────────────────────────────────────────────────
+const BOT_COLORS   = [0xc62828, 0x880e4f, 0x1a237e, 0x004d40, 0x33691e];
+const BOT_BASE_SPEED = 4.5;
+const BOT_TACTICS  = ['charge', 'flank_left', 'flank_right', 'strafe', 'retreat'];
+
 function calcElo(playerElo, opponentElo, result) {
   const K = 32;
   const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
@@ -47,6 +52,7 @@ function createRoom(id) {
     rematchVotes: new Set(),
     endCleanupTimer: null,
     spectators: {},
+    isSurvival: false,
   };
 }
 
@@ -65,9 +71,11 @@ function buildState(room) {
       connected: p.connected !== false,
       color: p.color,
       shieldTimer: p.shieldTimer,
+      isBot: p.isBot ?? false,
     })),
     spits: Object.values(room.spits),
     powerups: Object.values(room.powerups),
+    ...(room.isSurvival ? { wave: room.wave, totalKills: room.totalKills } : {}),
   };
 }
 
@@ -84,12 +92,76 @@ function spawnPowerup(room) {
   };
 }
 
+// ── Bot AI (survival) ────────────────────────────────────────────────────────
+
+function computeBotVelocity(bot, target, tactic) {
+  const dx   = target.x - bot.x;
+  const dz   = target.z - bot.z;
+  const dist = Math.sqrt(dx * dx + dz * dz) || 0.001;
+  const tx = dx / dist;
+  const tz = dz / dist;
+  const px = -tz;
+  const pz =  tx;
+
+  switch (tactic) {
+    case 'charge':      return { vx: tx, vz: tz };
+    case 'flank_left':  return { vx: tx * 0.4 + px * 0.9, vz: tz * 0.4 + pz * 0.9 };
+    case 'flank_right': return { vx: tx * 0.4 - px * 0.9, vz: tz * 0.4 - pz * 0.9 };
+    case 'strafe': {
+      const ideal = 7;
+      const pull  = dist > ideal + 2 ? 0.35 : dist < ideal - 2 ? -0.35 : 0;
+      return { vx: px + tx * pull, vz: pz + tz * pull };
+    }
+    case 'retreat':
+      return dist < 10
+        ? { vx: -tx * 0.6 + px * 0.8, vz: -tz * 0.6 + pz * 0.8 }
+        : { vx: px, vz: pz };
+    default: return { vx: tx, vz: tz };
+  }
+}
+
+function tickBots(room, dt) {
+  const target = Object.values(room.players).find((p) => !p.isBot && p.alive);
+  if (!target) return;
+
+  for (const bot of Object.values(room.players)) {
+    if (!bot.isBot || !bot.alive) continue;
+
+    const { vx, vz } = computeBotVelocity(bot, target, bot.tactic ?? 'charge');
+    let nx = bot.x + vx * bot.speed * dt;
+    let nz = bot.z + vz * bot.speed * dt;
+    const d = Math.sqrt(nx * nx + nz * nz);
+    if (d > ARENA_RADIUS - PLAYER_RADIUS) {
+      const sc = (ARENA_RADIUS - PLAYER_RADIUS) / d;
+      nx *= sc; nz *= sc;
+    }
+    bot.x = nx; bot.z = nz;
+    bot.angle = Math.atan2(target.x - bot.x, target.z - bot.z);
+
+    if (bot.spitCooldown > 0) continue;
+    bot.spitCooldown = (bot.tactic === 'retreat' ? 1.3 : 0.8) + Math.random() * 0.35;
+
+    const sid = generateId();
+    room.spits[sid] = {
+      id: sid,
+      ownerId: bot.id,
+      x:  bot.x + Math.sin(bot.angle) * 1.2,
+      z:  bot.z + Math.cos(bot.angle) * 1.2,
+      vx: Math.sin(bot.angle) * SPIT_SPEED,
+      vz: Math.cos(bot.angle) * SPIT_SPEED,
+      life: 2.5,
+      big: bot.bigSpitTimer > 0,
+    };
+  }
+}
+
 export function initializeSpitRoyaleNamespace(io) {
   const namespace = io.of('/spit-royale');
   const queuedPlayers = new Map();
   const queueOrder = [];
   const matches = new Map();
   const playerToMatch = new Map();
+  const survivalRooms = new Map(); // socket.id → survival room
 
   function buildLiveMatches() {
     return Array.from(matches.values()).map((match) => {
@@ -585,6 +657,200 @@ export function initializeSpitRoyaleNamespace(io) {
     }, DISCONNECT_GRACE_MS);
   }
 
+  // ── Survival helpers ────────────────────────────────────────────────────────
+
+  function createSurvivalRoom(socketId) {
+    return {
+      socketId,
+      socketRoom: `spit-survival:${socketId}`,
+      players:  {},
+      spits:    {},
+      powerups: {},
+      state:      'lobby',
+      isSurvival: true,
+      wave:       0,
+      totalKills: 0,
+      tickInterval: null,
+    };
+  }
+
+  function spawnSurvivalWave(room, socket) {
+    room.wave++;
+    const count = Math.min(room.wave + 1, 8);
+    const speed = BOT_BASE_SPEED + (room.wave - 1) * 0.25;
+
+    for (const pid of Object.keys(room.players)) {
+      if (room.players[pid].isBot) delete room.players[pid];
+    }
+
+    room.powerups = {};
+    const human = Object.values(room.players).find((p) => !p.isBot && p.alive);
+    if (human) {
+      const healId = generateId();
+      room.powerups[healId] = {
+        id: healId, type: 'heal',
+        x: human.x + (Math.random() - 0.5) * 5,
+        z: human.z + (Math.random() - 0.5) * 5,
+      };
+    }
+    for (let s = 0; s < 2; s++) spawnPowerup(room);
+
+    for (let i = 0; i < count; i++) {
+      const angle  = (i / count) * Math.PI * 2;
+      const spawnR = ARENA_RADIUS - 1.5;
+      const botId  = `bot_${generateId()}`;
+      room.players[botId] = {
+        id: botId,
+        name: `👿 Foe ${room.wave}-${i + 1}`,
+        isBot: true,
+        x: Math.sin(angle) * spawnR,
+        z: Math.cos(angle) * spawnR,
+        angle: angle + Math.PI,
+        health: MAX_HEALTH,
+        alive:  true,
+        speed,
+        spitCooldown: 0.3 + Math.random() * 1.5,
+        shieldTimer:  0,
+        bigSpitTimer: 0,
+        speedTimer:   0,
+        color:  BOT_COLORS[i % BOT_COLORS.length],
+        tactic: BOT_TACTICS[i % BOT_TACTICS.length],
+      };
+    }
+
+    socket.emit('spit:message', {
+      type: 'wave_start', wave: room.wave, botCount: count, state: buildState(room),
+    });
+  }
+
+  function checkSurvivalWaveClear(room, socket) {
+    if (Object.values(room.players).some((p) => p.isBot && p.alive)) return;
+    socket.emit('spit:message', { type: 'wave_complete', wave: room.wave, kills: room.totalKills });
+    setTimeout(() => {
+      if (!survivalRooms.has(room.socketId)) return;
+      if (Object.values(room.players).some((p) => !p.isBot && p.alive)) {
+        spawnSurvivalWave(room, socket);
+      }
+    }, 3000);
+  }
+
+  function startSurvivalGame(room, socket) {
+    room.state      = 'playing';
+    room.wave       = 0;
+    room.totalKills = 0;
+    room.spits      = {};
+    room.powerups   = {};
+
+    const human = Object.values(room.players).find((p) => !p.isBot);
+    if (!human) return;
+    human.x = 0; human.z = 0; human.angle = 0;
+    human.health = MAX_HEALTH; human.alive = true;
+    human.speed = 6; human.spitCooldown = 0;
+    human.shieldTimer = 0; human.bigSpitTimer = 0; human.speedTimer = 0;
+
+    for (let s = 0; s < 3; s++) spawnPowerup(room);
+    socket.emit('spit:message', { type: 'game_start', state: buildState(room) });
+
+    setTimeout(() => {
+      if (!survivalRooms.has(room.socketId) || room.state !== 'playing') return;
+      spawnSurvivalWave(room, socket);
+    }, 2000);
+  }
+
+  function tickSurvivalRoom(room, socket) {
+    if (room.state !== 'playing') return;
+    const dt = TICK_RATE / 1000;
+
+    tickBots(room, dt);
+
+    for (const [sid, spit] of Object.entries(room.spits)) {
+      spit.x += spit.vx * dt;
+      spit.z += spit.vz * dt;
+      spit.life -= dt;
+
+      if (Math.sqrt(spit.x * spit.x + spit.z * spit.z) > ARENA_RADIUS || spit.life <= 0) {
+        delete room.spits[sid]; continue;
+      }
+
+      let hit = false;
+      for (const player of Object.values(room.players)) {
+        if (!player.alive || player.id === spit.ownerId) continue;
+        if (player.isBot && room.players[spit.ownerId]?.isBot) continue; // no bot-on-bot
+
+        const dx   = player.x - spit.x;
+        const dz   = player.z - spit.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const spitR = spit.big ? SPIT_RADIUS * 2 : SPIT_RADIUS;
+
+        if (dist < PLAYER_RADIUS + spitR) {
+          if (player.shieldTimer > 0) {
+            socket.emit('spit:message', { type: 'shield_block', playerId: player.id });
+          } else {
+            const dmg = spit.big ? SPIT_DAMAGE * 2 : SPIT_DAMAGE;
+            player.health = Math.max(0, player.health - dmg);
+            socket.emit('spit:message', {
+              type: 'player_hit', targetId: player.id, ownerId: spit.ownerId,
+              damage: dmg, x: spit.x, z: spit.z,
+            });
+            if (player.health <= 0) {
+              player.alive = false;
+              if (player.isBot) room.totalKills++;
+              socket.emit('spit:message', { type: 'player_eliminated', id: player.id, killerId: spit.ownerId });
+
+              const humanAlive = Object.values(room.players).some((p) => !p.isBot && p.alive);
+              if (!humanAlive) {
+                room.state = 'ended';
+                socket.emit('spit:message', {
+                  type: 'survival_over', wave: room.wave, kills: room.totalKills, state: buildState(room),
+                });
+                setTimeout(() => {
+                  if (!survivalRooms.has(room.socketId)) return;
+                  const p = Object.values(room.players).find((q) => !q.isBot);
+                  if (p) { p.alive = true; startSurvivalGame(room, socket); }
+                }, 5000);
+              } else {
+                checkSurvivalWaveClear(room, socket);
+              }
+            }
+          }
+          delete room.spits[sid];
+          hit = true;
+          break;
+        }
+      }
+      if (hit) continue;
+    }
+
+    for (const player of Object.values(room.players)) {
+      if (!player.alive) continue;
+      if (player.spitCooldown > 0) player.spitCooldown -= dt;
+      if (player.shieldTimer  > 0) player.shieldTimer  -= dt;
+      if (player.bigSpitTimer > 0) player.bigSpitTimer -= dt;
+      if (player.speedTimer   > 0) {
+        player.speedTimer -= dt;
+        if (player.speedTimer <= 0) player.speed = 6;
+      }
+      if (player.isBot) continue;
+
+      for (const [puid, pu] of Object.entries(room.powerups)) {
+        const dx = player.x - pu.x;
+        const dz = player.z - pu.z;
+        if (Math.sqrt(dx * dx + dz * dz) < 1.2) {
+          const { type } = pu;
+          delete room.powerups[puid];
+          if (type === 'speed')   { player.speed = 12; player.speedTimer = 5; }
+          else if (type === 'shield')  { player.shieldTimer = 4; }
+          else if (type === 'bigSpit') { player.bigSpitTimer = 8; }
+          else if (type === 'heal')    { player.health = Math.min(MAX_HEALTH, player.health + 40); }
+          socket.emit('spit:message', { type: 'powerup_collected', playerId: player.id, powerupType: type });
+          spawnPowerup(room);
+        }
+      }
+    }
+
+    socket.emit('spit:message', { type: 'tick', state: buildState(room) });
+  }
+
   namespace.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token
@@ -709,6 +975,34 @@ export function initializeSpitRoyaleNamespace(io) {
       socket.emit('spit:message', { type: 'queue_left' });
     });
 
+    socket.on('join:survival', ({ name } = {}) => {
+      // Reuse existing survival room if still alive
+      if (survivalRooms.has(socket.id)) {
+        const room = survivalRooms.get(socket.id);
+        socket.emit('spit:message', { type: 'joined', playerId, roomId: socket.id, isSurvival: true, state: buildState(room) });
+        return;
+      }
+
+      const displayName = (name && String(name).trim()) || socket.user?.username || `Alpaca_${playerId.slice(0, 4)}`;
+      const room = createSurvivalRoom(socket.id);
+      room.players[playerId] = {
+        id: playerId,
+        name: displayName.slice(0, 20),
+        isBot: false,
+        x: 0, z: 0, angle: 0,
+        health: MAX_HEALTH, alive: true,
+        speed: 6, spitCooldown: 0,
+        shieldTimer: 0, bigSpitTimer: 0, speedTimer: 0,
+        color: 0xf4a261,
+      };
+
+      survivalRooms.set(socket.id, room);
+      socket.join(room.socketRoom);
+      socket.emit('spit:message', { type: 'joined', playerId, roomId: socket.id, isSurvival: true, state: buildState(room) });
+      room.tickInterval = setInterval(() => tickSurvivalRoom(room, socket), TICK_RATE);
+      startSurvivalGame(room, socket);
+    });
+
     socket.on('rematch:request', async () => {
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
@@ -797,6 +1091,25 @@ export function initializeSpitRoyaleNamespace(io) {
     });
 
     socket.on('input', ({ vx = 0, vz = 0, angle } = {}) => {
+      // Survival room takes priority
+      const survivalRoom = survivalRooms.get(socket.id);
+      if (survivalRoom) {
+        const player = survivalRoom.players[playerId];
+        if (!player || !player.alive || survivalRoom.state !== 'playing') return;
+        if (!Number.isFinite(vx) || !Number.isFinite(vz)) return;
+        const vecLen = Math.sqrt(vx * vx + vz * vz);
+        const cvx = vecLen > 1 ? vx / vecLen : vx;
+        const cvz = vecLen > 1 ? vz / vecLen : vz;
+        const dt = TICK_RATE / 1000;
+        let nx = player.x + cvx * player.speed * dt;
+        let nz = player.z + cvz * player.speed * dt;
+        const d = Math.sqrt(nx * nx + nz * nz);
+        if (d > ARENA_RADIUS - PLAYER_RADIUS) { const sc = (ARENA_RADIUS - PLAYER_RADIUS) / d; nx *= sc; nz *= sc; }
+        player.x = nx; player.z = nz;
+        if (Number.isFinite(angle)) player.angle = angle;
+        return;
+      }
+
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
       if (!match) return;
@@ -825,6 +1138,28 @@ export function initializeSpitRoyaleNamespace(io) {
     });
 
     socket.on('spit', ({ angle } = {}) => {
+      // Survival room takes priority
+      const survivalRoom = survivalRooms.get(socket.id);
+      if (survivalRoom) {
+        const player = survivalRoom.players[playerId];
+        if (!player || !player.alive || survivalRoom.state !== 'playing') return;
+        if (player.spitCooldown > 0) return;
+        if (angle !== undefined && !Number.isFinite(angle)) return;
+        const big = player.bigSpitTimer > 0;
+        player.spitCooldown = big ? 0.4 : 0.6;
+        const sid = generateId();
+        const shootAngle = angle ?? player.angle;
+        survivalRoom.spits[sid] = {
+          id: sid, ownerId: playerId,
+          x:  player.x + Math.sin(shootAngle) * 1.2,
+          z:  player.z + Math.cos(shootAngle) * 1.2,
+          vx: Math.sin(shootAngle) * SPIT_SPEED,
+          vz: Math.cos(shootAngle) * SPIT_SPEED,
+          life: 2.5, big,
+        };
+        return;
+      }
+
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
       if (!match) return;
@@ -851,6 +1186,11 @@ export function initializeSpitRoyaleNamespace(io) {
     });
 
     socket.on('disconnect', () => {
+      const survivalRoom = survivalRooms.get(socket.id);
+      if (survivalRoom) {
+        if (survivalRoom.tickInterval) clearInterval(survivalRoom.tickInterval);
+        survivalRooms.delete(socket.id);
+      }
       removeSpectator(socket, { leaveRoom: false });
       onPlayerLeave(playerId);
     });

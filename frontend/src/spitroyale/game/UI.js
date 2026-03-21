@@ -26,6 +26,10 @@ export class UI {
     this.rematchBtn?.addEventListener('click', this.rematchHandler);
     this.requeueBtn?.addEventListener('click', this.requeueHandler);
 
+    this.waveInfo   = root.querySelector('#wave-info');
+    this.waveNum    = root.querySelector('#wave-num');
+    this.enemyCount = root.querySelector('#enemy-count');
+
     this.powerupIcons = {
       speed: root.querySelector('#pu-speed'),
       shield: root.querySelector('#pu-shield'),
@@ -149,6 +153,17 @@ export class UI {
     for (const achievement of unlocked) {
       this.addKillFeedEntry(`Achievement unlocked: ${achievement.name}`);
     }
+  }
+
+  setWave(wave, count) {
+    if (!this.waveInfo) return;
+    this.waveInfo.style.display = 'flex';
+    if (this.waveNum)    this.waveNum.textContent    = wave;
+    if (this.enemyCount) this.enemyCount.textContent = count;
+  }
+
+  hideSurvivalHud() {
+    if (this.waveInfo) this.waveInfo.style.display = 'none';
   }
 
   destroy() {

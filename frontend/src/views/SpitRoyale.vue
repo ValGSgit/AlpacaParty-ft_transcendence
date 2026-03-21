@@ -12,7 +12,10 @@
         placeholder="Your alpaca name..."
         @keydown.enter.prevent="start"
       >
-      <button id="play-btn" @click="start">Spit and Play</button>
+      <div class="btn-row">
+        <button id="play-btn" @click="start">🦙 Multiplayer</button>
+        <button id="survival-btn" @click="startSurvival">⚔️ Survival</button>
+      </div>
 
       <div class="live-matches">
         <div class="live-header">
@@ -52,7 +55,12 @@
         <div id="pu-bigspit" class="powerup-icon" title="Big Spit">💧</div>
         <div id="pu-heal" class="powerup-icon" title="Heal">💚</div>
       </div>
-      <div id="kill-feed"></div>
+      <div id="wave-info" style="display:none">
+      <span class="wave-badge">WAVE <span id="wave-num">1</span></span>
+      <span class="sep">|</span>
+      <span class="enemy-badge">👿 <span id="enemy-count">0</span> left</span>
+    </div>
+    <div id="kill-feed"></div>
       <div id="controls-hint">
         WASD to move<br>
         Mouse to aim<br>
@@ -77,6 +85,12 @@ const start = () => {
   if (!client || !playerName.value.trim()) return
   localStorage.setItem('alpacaName', playerName.value.trim())
   client.connect(playerName.value.trim())
+}
+
+const startSurvival = () => {
+  if (!client || !playerName.value.trim()) return
+  localStorage.setItem('alpacaName', playerName.value.trim())
+  client.connectSurvival(playerName.value.trim())
 }
 
 const refreshMatches = () => {
@@ -232,6 +246,7 @@ onUnmounted(() => {
   outline: none;
   margin-bottom: 1rem;
 }
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 #play-btn {
   padding: 0.85rem 3rem;
   border: none;
@@ -245,6 +260,29 @@ onUnmounted(() => {
   box-shadow: 0 4px 24px rgba(244,162,97,0.4);
 }
 #play-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(244,162,97,0.5); }
+
+#survival-btn {
+  padding: 0.85rem 3rem; border: none; border-radius: 999px;
+  background: linear-gradient(90deg, #c62828, #880e4f);
+  color: #fff; font-size: 1.15rem; font-weight: 700;
+  cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 24px rgba(198,40,40,0.4);
+}
+#survival-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(198,40,40,0.55); }
+
+#wave-info {
+  position: absolute; top: 16px; right: 16px;
+  align-items: center; gap: 10px;
+  background: rgba(0,0,0,0.6);
+  border: 2px solid rgba(198,40,40,0.5);
+  border-radius: 12px; padding: 8px 16px;
+  backdrop-filter: blur(6px);
+  font-size: 0.85rem; color: #ccc; font-weight: 600;
+  pointer-events: none;
+}
+.wave-badge { font-size: 1.1rem; font-weight: 800; color: #ef9a9a; letter-spacing: 1px; }
+.sep { color: rgba(255,255,255,0.25); }
+.enemy-badge { color: #ff8a80; font-size: 0.95rem; }
 
 #player-cards { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; }
 .player-card { background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 8px 14px; min-width: 140px; backdrop-filter: blur(6px); }

@@ -11,7 +11,7 @@ CYAN   := \033[0;36m
 RESET  := \033[0m
 
 # ── Docker ──────────────────────────────────────────────────
-COMPOSE_PROJECT := $(notdir $(CURDIR))
+COMPOSE_PROJECT := my
 DC := docker compose
 DC_PROD := docker compose -f compose.prod.yaml
 
