@@ -64,14 +64,28 @@ function spawnPowerup(room) {
 
 export function initializeSpitRoyaleNamespace(io) {
   const namespace = io.of('/spit-royale');
-  const rooms = {};
-  const playerRoom = {};
+  const queuedPlayers = new Map();
+  const matches = new Map();
+  const playerToMatch = new Map();
+  let waitingPlayerId = null;
 
-  function broadcast(room, msg) {
-    namespace.to(room.socketRoom).emit('spit:message', msg);
+  function broadcast(match, msg) {
+    namespace.to(match.socketRoom).emit('spit:message', msg);
   }
 
-  function applyPowerup(room, player, type) {
+  function cleanupMatch(matchId) {
+    const match = matches.get(matchId);
+    if (!match) return;
+    if (match.tickInterval) clearInterval(match.tickInterval);
+    if (match.powerupInterval) clearInterval(match.powerupInterval);
+    if (match.startTimer) clearTimeout(match.startTimer);
+    for (const pid of Object.keys(match.players)) {
+      playerToMatch.delete(pid);
+    }
+    matches.delete(matchId);
+  }
+
+  function applyPowerup(match, player, type) {
     if (type === 'speed') {
       player.speed = 12;
       player.speedTimer = 5;
@@ -82,29 +96,27 @@ export function initializeSpitRoyaleNamespace(io) {
     } else if (type === 'heal') {
       player.health = Math.min(MAX_HEALTH, player.health + 40);
     }
-    broadcast(room, { type: 'powerup_collected', playerId: player.id, powerupType: type });
+    broadcast(match, { type: 'powerup_collected', playerId: player.id, powerupType: type });
   }
 
-  function startGame(room) {
-    room.state = 'playing';
-    room.winner = null;
+  function startMatch(match) {
+    match.state = 'playing';
+    match.winner = null;
 
-    const colors = [0xf4a261, 0x2a9d8f, 0xe9c46a, 0xe76f51, 0x6a4c93, 0x4cc9f0];
-    const shuffled = [...colors].sort(() => Math.random() - 0.5);
+    const colors = [0xf4a261, 0x2a9d8f];
     const spawns = [
-      { x: -10, z: -10 },
-      { x: 10, z: -10 },
-      { x: -10, z: 10 },
-      { x: 10, z: 10 },
+      { x: -8, z: 0, angle: Math.PI / 2 },
+      { x: 8, z: 0, angle: -Math.PI / 2 },
     ];
 
-    let i = 0;
-    for (const pid of Object.keys(room.players)) {
-      const player = room.players[pid];
-      const pos = spawns[i % spawns.length];
+    const pids = Object.keys(match.players);
+    for (let i = 0; i < pids.length; i += 1) {
+      const pid = pids[i];
+      const player = match.players[pid];
+      const pos = spawns[i];
       player.x = pos.x;
       player.z = pos.z;
-      player.angle = Math.atan2(-pos.x, -pos.z);
+      player.angle = pos.angle;
       player.health = MAX_HEALTH;
       player.alive = true;
       player.speed = 6;
@@ -112,46 +124,42 @@ export function initializeSpitRoyaleNamespace(io) {
       player.shieldTimer = 0;
       player.bigSpitTimer = 0;
       player.speedTimer = 0;
-      player.color = shuffled[i % shuffled.length];
-      i += 1;
+      player.color = colors[i % colors.length];
     }
 
-    room.spits = {};
-    room.powerups = {};
-    for (let k = 0; k < 4; k += 1) spawnPowerup(room);
+    match.spits = {};
+    match.powerups = {};
+    for (let i = 0; i < 4; i += 1) spawnPowerup(match);
 
-    broadcast(room, { type: 'game_start', state: buildState(room) });
+    broadcast(match, { type: 'game_start', state: buildState(match) });
   }
 
-  function checkWinCondition(room) {
-    const alive = Object.values(room.players).filter((p) => p.alive);
-    if (alive.length <= 1 && Object.keys(room.players).length > 1) {
-      room.state = 'ended';
-      room.winner = alive.length === 1 ? alive[0].name : 'No one';
-      broadcast(room, { type: 'game_over', winner: room.winner, state: buildState(room) });
-      setTimeout(() => {
-        if (!rooms[room.id]) return;
-        if (Object.keys(room.players).length >= 1) startGame(room);
-      }, 5000);
+  function checkWinCondition(match) {
+    const alive = Object.values(match.players).filter((p) => p.alive);
+    if (alive.length <= 1) {
+      match.state = 'ended';
+      match.winner = alive.length === 1 ? alive[0].name : 'No one';
+      broadcast(match, { type: 'game_over', winner: match.winner, state: buildState(match) });
+      setTimeout(() => cleanupMatch(match.id), 3000);
     }
   }
 
-  function tickRoom(room) {
-    if (room.state !== 'playing') return;
+  function tickMatch(match) {
+    if (match.state !== 'playing') return;
     const dt = TICK_RATE / 1000;
 
-    for (const [sid, spit] of Object.entries(room.spits)) {
+    for (const [sid, spit] of Object.entries(match.spits)) {
       spit.x += spit.vx * dt;
       spit.z += spit.vz * dt;
       spit.life -= dt;
 
       if (Math.sqrt(spit.x * spit.x + spit.z * spit.z) > ARENA_RADIUS || spit.life <= 0) {
-        delete room.spits[sid];
+        delete match.spits[sid];
         continue;
       }
 
       let hit = false;
-      for (const player of Object.values(room.players)) {
+      for (const player of Object.values(match.players)) {
         if (!player.alive || player.id === spit.ownerId) continue;
         const dx = player.x - spit.x;
         const dz = player.z - spit.z;
@@ -159,11 +167,11 @@ export function initializeSpitRoyaleNamespace(io) {
         const spitR = spit.big ? SPIT_RADIUS * 2 : SPIT_RADIUS;
         if (dist < PLAYER_RADIUS + spitR) {
           if (player.shieldTimer > 0) {
-            broadcast(room, { type: 'shield_block', playerId: player.id });
+            broadcast(match, { type: 'shield_block', playerId: player.id });
           } else {
             const dmg = spit.big ? SPIT_DAMAGE * 2 : SPIT_DAMAGE;
             player.health = Math.max(0, player.health - dmg);
-            broadcast(room, {
+            broadcast(match, {
               type: 'player_hit',
               targetId: player.id,
               ownerId: spit.ownerId,
@@ -173,11 +181,11 @@ export function initializeSpitRoyaleNamespace(io) {
             });
             if (player.health <= 0) {
               player.alive = false;
-              broadcast(room, { type: 'player_eliminated', id: player.id, killerId: spit.ownerId });
-              checkWinCondition(room);
+              broadcast(match, { type: 'player_eliminated', id: player.id, killerId: spit.ownerId });
+              checkWinCondition(match);
             }
           }
-          delete room.spits[sid];
+          delete match.spits[sid];
           hit = true;
           break;
         }
@@ -185,7 +193,7 @@ export function initializeSpitRoyaleNamespace(io) {
       if (hit) continue;
     }
 
-    for (const player of Object.values(room.players)) {
+    for (const player of Object.values(match.players)) {
       if (!player.alive) continue;
       if (player.spitCooldown > 0) player.spitCooldown -= dt;
       if (player.shieldTimer > 0) player.shieldTimer -= dt;
@@ -195,59 +203,92 @@ export function initializeSpitRoyaleNamespace(io) {
         if (player.speedTimer <= 0) player.speed = 6;
       }
 
-      for (const [puid, pu] of Object.entries(room.powerups)) {
+      for (const [puid, pu] of Object.entries(match.powerups)) {
         const dx = player.x - pu.x;
         const dz = player.z - pu.z;
         if (Math.sqrt(dx * dx + dz * dz) < 1.2) {
-          delete room.powerups[puid];
-          applyPowerup(room, player, pu.type);
-          spawnPowerup(room);
+          delete match.powerups[puid];
+          applyPowerup(match, player, pu.type);
+          spawnPowerup(match);
         }
       }
     }
 
-    broadcast(room, { type: 'tick', state: buildState(room) });
+    broadcast(match, { type: 'tick', state: buildState(match) });
   }
 
-  function findOrCreateRoom() {
-    for (const room of Object.values(rooms)) {
-      if (room.state === 'lobby' && Object.keys(room.players).length < 4) return room;
-    }
-    const id = generateId();
-    const room = createRoom(id);
-    room.tickInterval = setInterval(() => tickRoom(room), TICK_RATE);
-    room.powerupInterval = setInterval(() => {
-      if (room.state === 'playing' && Object.keys(room.powerups).length < 5) {
-        spawnPowerup(room);
+  function pairPlayers(playerA, playerB) {
+    const matchId = generateId();
+    const match = createRoom(matchId);
+    match.socketRoom = `spit-match:${matchId}`;
+    match.players = {
+      [playerA.id]: playerA,
+      [playerB.id]: playerB,
+    };
+
+    matches.set(matchId, match);
+    playerToMatch.set(playerA.id, matchId);
+    playerToMatch.set(playerB.id, matchId);
+
+    playerA.socket.join(match.socketRoom);
+    playerB.socket.join(match.socketRoom);
+
+    playerA.socket.emit('spit:message', {
+      type: 'joined',
+      playerId: playerA.id,
+      roomId: matchId,
+      state: buildState(match),
+    });
+    playerB.socket.emit('spit:message', {
+      type: 'joined',
+      playerId: playerB.id,
+      roomId: matchId,
+      state: buildState(match),
+    });
+
+    broadcast(match, { type: 'countdown', seconds: 3 });
+
+    match.startTimer = setTimeout(() => startMatch(match), 3000);
+    match.tickInterval = setInterval(() => tickMatch(match), TICK_RATE);
+    match.powerupInterval = setInterval(() => {
+      if (match.state === 'playing' && Object.keys(match.powerups).length < 5) {
+        spawnPowerup(match);
       }
     }, 8000);
-    rooms[id] = room;
-    return room;
   }
 
-  function removePlayerFromRoom(playerId, socket) {
-    const roomId = playerRoom[playerId];
-    if (!roomId || !rooms[roomId]) return;
-    const room = rooms[roomId];
-    delete room.players[playerId];
-    delete playerRoom[playerId];
-    socket.leave(room.socketRoom);
+  function unqueuePlayer(playerId) {
+    if (waitingPlayerId === playerId) waitingPlayerId = null;
+    queuedPlayers.delete(playerId);
+  }
 
-    if (Object.keys(room.players).length === 0) {
-      if (room.tickInterval) clearInterval(room.tickInterval);
-      if (room.powerupInterval) clearInterval(room.powerupInterval);
-      if (room.startTimer) clearTimeout(room.startTimer);
-      delete rooms[roomId];
+  function onPlayerLeave(playerId) {
+    unqueuePlayer(playerId);
+    const matchId = playerToMatch.get(playerId);
+    if (!matchId) return;
+    const match = matches.get(matchId);
+    if (!match) {
+      playerToMatch.delete(playerId);
       return;
     }
 
-    broadcast(room, {
-      type: 'player_left',
-      id: playerId,
-      state: buildState(room),
-    });
+    delete match.players[playerId];
+    playerToMatch.delete(playerId);
 
-    if (room.state === 'playing') checkWinCondition(room);
+    const remaining = Object.values(match.players);
+    if (remaining.length === 1) {
+      const winner = remaining[0];
+      match.state = 'ended';
+      match.winner = winner.name;
+      broadcast(match, {
+        type: 'game_over',
+        winner: winner.name,
+        reason: 'disconnect',
+        state: buildState(match),
+      });
+    }
+
+    setTimeout(() => cleanupMatch(matchId), 1000);
   }
 
   namespace.use(async (socket, next) => {
@@ -274,10 +315,9 @@ export function initializeSpitRoyaleNamespace(io) {
     socket.data.spitPlayerId = playerId;
 
     socket.on('join', ({ name } = {}) => {
-      const room = findOrCreateRoom();
       const displayName = (name && String(name).trim()) || socket.user?.username || `Alpaca_${playerId.slice(0, 4)}`;
 
-      room.players[playerId] = {
+      const player = {
         id: playerId,
         name: displayName.slice(0, 20),
         socket,
@@ -294,45 +334,27 @@ export function initializeSpitRoyaleNamespace(io) {
         speedTimer: 0,
         color: 0xf4a261,
       };
-      playerRoom[playerId] = room.id;
-      socket.join(room.socketRoom);
 
-      socket.emit('spit:message', {
-        type: 'joined',
-        playerId,
-        roomId: room.id,
-        state: buildState(room),
-      });
+      queuedPlayers.set(playerId, player);
 
-      broadcast(room, {
-        type: 'player_joined',
-        id: playerId,
-        name: room.players[playerId].name,
-        state: buildState(room),
-      });
-
-      const playerCount = Object.keys(room.players).length;
-      if (playerCount >= 2 && room.state === 'lobby') {
-        if (room.startTimer) clearTimeout(room.startTimer);
-        room.startTimer = setTimeout(() => {
-          if (room.state === 'lobby') startGame(room);
-        }, 3000);
-        broadcast(room, { type: 'countdown', seconds: 3 });
-      } else if (playerCount === 1) {
-        if (room.startTimer) clearTimeout(room.startTimer);
-        room.startTimer = setTimeout(() => {
-          if (room.state === 'lobby' && Object.keys(room.players).length >= 1) startGame(room);
-        }, 10000);
-        broadcast(room, { type: 'countdown', seconds: 10 });
+      if (waitingPlayerId && waitingPlayerId !== playerId && queuedPlayers.has(waitingPlayerId)) {
+        const waiting = queuedPlayers.get(waitingPlayerId);
+        waitingPlayerId = null;
+        queuedPlayers.delete(playerId);
+        queuedPlayers.delete(waiting.id);
+        pairPlayers(waiting, player);
+      } else {
+        waitingPlayerId = playerId;
+        socket.emit('spit:message', { type: 'queue_waiting' });
       }
     });
 
     socket.on('input', ({ vx = 0, vz = 0, angle } = {}) => {
-      const roomId = playerRoom[playerId];
-      if (!roomId || !rooms[roomId]) return;
-      const room = rooms[roomId];
-      const player = room.players[playerId];
-      if (!player || !player.alive || room.state !== 'playing') return;
+      const matchId = playerToMatch.get(playerId);
+      const match = matchId ? matches.get(matchId) : null;
+      if (!match) return;
+      const player = match.players[playerId];
+      if (!player || !player.alive || match.state !== 'playing') return;
 
       const dt = TICK_RATE / 1000;
       let nx = player.x + vx * player.speed * dt;
@@ -350,11 +372,11 @@ export function initializeSpitRoyaleNamespace(io) {
     });
 
     socket.on('spit', ({ angle } = {}) => {
-      const roomId = playerRoom[playerId];
-      if (!roomId || !rooms[roomId]) return;
-      const room = rooms[roomId];
-      const player = room.players[playerId];
-      if (!player || !player.alive || room.state !== 'playing') return;
+      const matchId = playerToMatch.get(playerId);
+      const match = matchId ? matches.get(matchId) : null;
+      if (!match) return;
+      const player = match.players[playerId];
+      if (!player || !player.alive || match.state !== 'playing') return;
       if (player.spitCooldown > 0) return;
 
       const big = player.bigSpitTimer > 0;
@@ -362,7 +384,7 @@ export function initializeSpitRoyaleNamespace(io) {
 
       const sid = generateId();
       const shootAngle = angle ?? player.angle;
-      room.spits[sid] = {
+      match.spits[sid] = {
         id: sid,
         ownerId: playerId,
         x: player.x + Math.sin(shootAngle) * 1.2,
@@ -375,7 +397,7 @@ export function initializeSpitRoyaleNamespace(io) {
     });
 
     socket.on('disconnect', () => {
-      removePlayerFromRoom(playerId, socket);
+      onPlayerLeave(playerId);
     });
   });
 }
