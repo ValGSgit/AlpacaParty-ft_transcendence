@@ -1,0 +1,50 @@
+# Docker Compose — Development
+# @owner ValGSgit
+# @issue https://github.com/ValGSgit/AlpacaParty/issues/3
+
+# include each service
+include:
+  - ./backend/compose.yaml
+  - ./e2e/compose.yaml
+  - ./frontend/compose.yaml
+  - ./nginx/compose.yaml
+  - ./database/compose.yaml
+  - ./vault/compose.yaml
+
+
+volumes:
+  pg_data:
+  backend_node_modules:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backend/node_modules
+  frontend_node_modules:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./frontend/node_modules
+  backend_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backend
+  frontend_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./frontend
+  ssl:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./ssl
+
+networks:
+  alpacaparty_net:
+    name: alpacaparty_net

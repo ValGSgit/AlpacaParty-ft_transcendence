@@ -13,24 +13,28 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
   },
-  "keywords": ["alpacaparty", "backend", "express", "postgresql"],
+  "keywords": [
+    "alpacaparty",
+    "backend",
+    "express",
+    "postgresql"
+  ],
   "license": "MIT",
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.2",
+    "@prisma/client": "^7.4.2",
+    "@huggingface/inference": "^4.8.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.0",
     "helmet": "^8.0.0",
-    "@huggingface/inference": "^4.8.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.0",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
-    "pg": "^8.13.0",
-    "@prisma/client": "^7.4.2",
     "socket.io": "^4.8.0"
   },
   "devDependencies": {
