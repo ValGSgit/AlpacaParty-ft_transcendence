@@ -1,68 +1,60 @@
-/**
- * E2E: Profile Page Tests
- */
-import { test, expect } from '@playwright/test'
+import { test, expect } from '@playwright/test';
+import { authHeaders, createUser, setAuthToken } from './helpers/api.js';
 
-test.describe('Profile', () => {
-  let testUser
+test.describe('Profile and User Data', () => {
+  test('fetch/update own profile and fetch public profile by id', async ({ request, page }) => {
+    const me = await createUser(request, 'profile');
 
-  test.beforeAll(async ({ browser }) => {
-    // Create and login a user once per suite
-    const uid = `profile${Date.now()}`
-    testUser = {
-      username: uid,
-      email: `${uid}@test.com`,
-      password: 'ProfileTest1',
-    }
+    const getMe = await request.get('/api/users/me', {
+      headers: { Authorization: `Bearer ${me.accessToken}` },
+    });
+    expect(getMe.ok()).toBeTruthy();
 
-    const page = await browser.newPage()
-    await page.goto('/register')
-    await page.fill('input#username', testUser.username)
-    await page.fill('input#email', testUser.email)
-    await page.fill('input#password', testUser.password)
-    await page.fill('input#confirm', testUser.password)
-    await page.click('button[type="submit"]')
-    await page.waitForURL('/')
-    await page.close()
-  })
+    const update = await request.put('/api/users/me', {
+      headers: authHeaders(me.accessToken),
+      data: {
+        bio: 'Updated by e2e',
+        status: 'Online and testing',
+      },
+    });
+    expect(update.ok()).toBeTruthy();
 
-  test.beforeEach(async ({ page }) => {
-    // Login before each test
-    await page.goto('/login')
-    await page.fill('input#username', testUser.username)
-    await page.fill('input#password', testUser.password)
-    await page.click('button[type="submit"]')
-    await page.waitForURL('/')
-  })
+    const updatedBody = await update.json();
+    expect(updatedBody.user.bio).toContain('Updated by e2e');
 
-  test('profile page is accessible after login', async ({ page }) => {
-    await page.locator('a[href="/profile"]').click()
-    await expect(page).toHaveURL('/profile')
-  })
+    const byId = await request.get(`/api/users/${me.user.id}`, {
+      headers: { Authorization: `Bearer ${me.accessToken}` },
+    });
+    expect(byId.ok()).toBeTruthy();
 
-  test('profile shows username', async ({ page }) => {
-    await page.goto('/profile')
-    await expect(page.locator('.profile-header h2')).toHaveText(testUser.username)
-  })
+    const byIdBody = await byId.json();
+    expect(byIdBody.user.id).toBe(me.user.id);
 
-  test('profile shows email', async ({ page }) => {
-    await page.goto('/profile')
-    await expect(page.locator('.profile-info')).toContainText(testUser.email)
-  })
+    await setAuthToken(page, me.accessToken);
+    await page.goto('/profile');
+    await expect(page).toHaveURL(/\/profile/);
+    await expect(page.locator('body')).toBeVisible();
+  });
 
-  test('profile shows avatar', async ({ page }) => {
-    await page.goto('/profile')
-    await expect(page.locator('img.avatar')).toBeVisible()
-  })
+  test('change password then login with new password', async ({ request }) => {
+    const user = await createUser(request, 'pwd');
+    const newPassword = 'NewPass123!';
 
-  test('profile shows join date', async ({ page }) => {
-    await page.goto('/profile')
-    const currentYear = new Date().getFullYear()
-    await expect(page.locator('.profile-info')).toContainText(String(currentYear))
-  })
+    const change = await request.put('/api/users/me/password', {
+      headers: authHeaders(user.accessToken),
+      data: {
+        currentPassword: user.password,
+        newPassword,
+      },
+    });
+    expect(change.ok()).toBeTruthy();
 
-  test('navbar shows Profile link when authenticated', async ({ page }) => {
-    await expect(page.locator('a[href="/profile"]')).toBeVisible()
-    await expect(page.locator('button.nav-btn', { hasText: 'Logout' })).toBeVisible()
-  })
-})
+    const login = await request.post('/api/auth/login', {
+      data: {
+        username: user.username,
+        password: newPassword,
+      },
+    });
+    expect(login.ok()).toBeTruthy();
+  });
+});

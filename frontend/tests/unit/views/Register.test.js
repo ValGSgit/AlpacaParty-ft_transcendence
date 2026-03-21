@@ -124,4 +124,48 @@ describe('Register.vue', () => {
 
     resolveRegister({ data: { user: {}, accessToken: 'a', refreshToken: 'r' } })
   })
+
+  it('confirm password field has type="password"', () => {
+    const confirmInput = wrapper.find('input#confirm')
+    expect(confirmInput.attributes('type')).toBe('password')
+  })
+
+  it('empty form does not call API', async () => {
+    // All fields empty — submit
+    await wrapper.find('form').trigger('submit')
+    await wrapper.vm.$nextTick()
+
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('shows validation error for short username', async () => {
+    await wrapper.find('#username').setValue('ab')
+    await wrapper.find('#email').setValue('a@b.com')
+    await wrapper.find('#password').setValue('ValidPass1')
+    await wrapper.find('#confirm').setValue('ValidPass1')
+    await wrapper.find('form').trigger('submit')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Username must be between 3 and 32 characters')
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('successful registration navigates to home', async () => {
+    api.post.mockResolvedValueOnce({
+      data: { user: { id: 1 }, accessToken: 'a', refreshToken: 'r' },
+    })
+
+    const pushSpy = vi.spyOn(router, 'push')
+
+    await wrapper.find('#username').setValue('newuser')
+    await wrapper.find('#email').setValue('new@test.com')
+    await wrapper.find('#password').setValue('ValidPass1')
+    await wrapper.find('#confirm').setValue('ValidPass1')
+    await wrapper.find('form').trigger('submit')
+
+    await vi.dynamicImportSettled()
+    await wrapper.vm.$nextTick()
+
+    expect(pushSpy).toHaveBeenCalledWith('/')
+  })
 })

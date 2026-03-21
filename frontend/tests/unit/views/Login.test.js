@@ -105,4 +105,48 @@ describe('Login.vue', () => {
 
     resolveLogin({ data: { user: {}, accessToken: 'a', refreshToken: 'r' } })
   })
+
+  it('password field has type="password"', () => {
+    const passwordInput = wrapper.find('input#password')
+    expect(passwordInput.attributes('type')).toBe('password')
+  })
+
+  it('empty form submission does not call API', async () => {
+    // Both fields empty
+    await wrapper.find('#username').setValue('')
+    await wrapper.find('#password').setValue('')
+    await wrapper.find('form').trigger('submit')
+    await wrapper.vm.$nextTick()
+
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('error message disappears on new submission', async () => {
+    // First submission fails
+    api.post.mockRejectedValueOnce({
+      response: { data: { error: { message: 'Invalid credentials' } } },
+    })
+
+    await wrapper.find('#username').setValue('bad')
+    await wrapper.find('#password').setValue('wrong')
+    await wrapper.find('form').trigger('submit')
+
+    await vi.dynamicImportSettled()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Invalid credentials')
+
+    // Second submission — error should clear while loading
+    let resolveLogin
+    api.post.mockReturnValueOnce(new Promise(r => { resolveLogin = r }))
+
+    await wrapper.find('#username').setValue('good')
+    await wrapper.find('#password').setValue('pass')
+    await wrapper.find('form').trigger('submit')
+    await wrapper.vm.$nextTick()
+
+    // The store clears error at the start of login
+    expect(wrapper.text()).not.toContain('Invalid credentials')
+
+    resolveLogin({ data: { user: { id: 1 }, accessToken: 'a', refreshToken: 'r' } })
+  })
 })

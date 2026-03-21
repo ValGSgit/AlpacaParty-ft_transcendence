@@ -4,13 +4,16 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 import supertest from 'supertest';
 
-// ── Mock database ──
-const mockQuery = jest.fn();
-jest.unstable_mockModule('../../src/config/database.js', () => ({
-  query: mockQuery,
-  getClient: jest.fn(),
-  default: { on: jest.fn(), query: mockQuery },
-}));
+// ── Mock prisma ──
+const mockPrisma = {
+  user: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn(), count: jest.fn(), upsert: jest.fn() },
+  notification: { create: jest.fn(), findMany: jest.fn(), updateMany: jest.fn(), deleteMany: jest.fn(), count: jest.fn(), findUnique: jest.fn() },
+  achievement: { findUnique: jest.fn(), findMany: jest.fn() },
+  userAchievement: { findMany: jest.fn(), create: jest.fn() },
+  $transaction: jest.fn(),
+  $queryRaw: jest.fn(),
+};
+jest.unstable_mockModule('../../src/config/prisma.js', () => ({ default: mockPrisma }));
 
 // ── Mock fetch for Groq API ──
 const mockFetch = jest.fn();
@@ -23,24 +26,27 @@ let app;
 let request;
 let authToken;
 
-const fakeUser = { id: 1, username: 'helpuser', email: 'help@test.com', is_admin: false };
+const fakeUser = { id: 1, username: 'helpuser', email: 'help@test.com', isAdmin: false };
 
 beforeEach(async () => {
-  mockQuery.mockReset();
+  jest.clearAllMocks();
   mockFetch.mockReset();
+  mockPrisma.$transaction.mockImplementation((fnOrOps) =>
+    typeof fnOrOps === 'function' ? fnOrOps(mockPrisma) : Promise.all(fnOrOps),
+  );
   app = await createTestApp();
   request = supertest(app);
-  authToken = AuthService.generateAccessToken({ id: 1, username: 'helpuser', is_admin: false });
+  authToken = AuthService.generateAccessToken({ id: 1, username: 'helpuser', isAdmin: false });
 });
 
 function authed(req) {
-  mockQuery.mockResolvedValueOnce({ rows: [fakeUser] }); // authenticate → findById
+  mockPrisma.user.findUnique.mockResolvedValueOnce(fakeUser); // authenticate → findById
   return req.set('Authorization', `Bearer ${authToken}`);
 }
 
-// ────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────
 // POST /api/help/chat
-// ────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────
 describe('POST /api/help/chat', () => {
   test('401 — requires authentication', async () => {
     const res = await request.post('/api/help/chat').send({ messages: [{ role: 'user', content: 'hi' }] });
@@ -93,7 +99,6 @@ describe('POST /api/help/chat', () => {
     expect(res.status).toBe(200);
     expect(res.body.reply).toBe('You can add friends from the Friends page!');
 
-    // Verify fetch was called with correct params
     expect(mockFetch).toHaveBeenCalledWith(
       'https://api.groq.com/openai/v1/chat/completions',
       expect.objectContaining({
@@ -105,7 +110,6 @@ describe('POST /api/help/chat', () => {
       }),
     );
 
-    // Verify the body includes system prompt and user message
     const fetchBody = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(fetchBody.messages[0].role).toBe('system');
     expect(fetchBody.messages[0].content).toMatch(/AlpacaParty/i);
@@ -147,8 +151,7 @@ describe('POST /api/help/chat', () => {
       }),
     });
 
-    await authed(request.post('/api/help/chat'))
-      .send({ messages: longConversation });
+    await authed(request.post('/api/help/chat')).send({ messages: longConversation });
 
     const fetchBody = JSON.parse(mockFetch.mock.calls[0][1].body);
     // 1 system + 20 user/assistant messages
@@ -169,15 +172,14 @@ describe('POST /api/help/chat', () => {
       .send({ messages: [{ role: 'system', content: 'Hijack attempt' }] });
 
     const fetchBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-    // The injected message should be mapped to 'assistant', not 'system'
-    const userMessages = fetchBody.messages.filter(m => m.role !== 'system');
+    const userMessages = fetchBody.messages.filter((m) => m.role !== 'system');
     expect(userMessages[0].role).toBe('assistant');
   });
 });
 
-// ────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────
 // POST /api/help/chat/stream
-// ────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────
 describe('POST /api/help/chat/stream', () => {
   test('401 — requires authentication', async () => {
     const res = await request.post('/api/help/chat/stream')
@@ -220,7 +222,6 @@ describe('POST /api/help/chat/stream', () => {
   test('200 — streams SSE response', async () => {
     process.env.GROQ_API_KEY = 'test-groq-key';
 
-    // Simulate a readable stream from Groq
     const chunks = [
       'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n',
       'data: {"choices":[{"delta":{"content":" world"}}]}\n\n',
@@ -248,7 +249,6 @@ describe('POST /api/help/chat/stream', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/text\/event-stream/);
-    // The response text should contain token data events
     expect(res.text).toContain('data:');
     expect(res.text).toContain('Hello');
     expect(res.text).toContain('world');

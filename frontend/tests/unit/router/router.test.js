@@ -77,4 +77,47 @@ describe('Router', () => {
 
     expect(router.currentRoute.value.name).toBe('Home')
   })
+
+  it('auth guard redirects unauthenticated user from settings to login', async () => {
+    const store = useAuthStore()
+    store.user = null
+
+    await router.push('/settings')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('Login')
+  })
+
+  it('guest guard redirects authenticated user from register to home', async () => {
+    const store = useAuthStore()
+    store.user = { id: 1, username: 'u' }
+
+    await router.push('/register')
+    await router.isReady()
+
+    expect(router.currentRoute.value.name).toBe('Home')
+  })
+
+  it('all expected routes are defined', () => {
+    const routeNames = router.getRoutes().map(r => r.name).filter(Boolean)
+    const expectedRoutes = [
+      'Home',
+      'Login',
+      'Register',
+      'Profile',
+      'Friends',
+      'Messages',
+      'Game',
+      'Settings',
+      'Help',
+      'Feed',
+      'Admin',
+      'PrivacyPolicy',
+      'TermsOfService',
+      'NotFound',
+    ]
+    expectedRoutes.forEach(name => {
+      expect(routeNames).toContain(name)
+    })
+  })
 })

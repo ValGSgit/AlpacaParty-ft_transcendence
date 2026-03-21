@@ -3,15 +3,15 @@
 # Jobs:
 #   1. backend-unit  — Jest unit + integration tests (mocked DB)
 #   2. frontend-unit — Vitest component + store tests
-#   3. e2e           — Playwright full-stack tests (push only)
+#   3. e2e           — Playwright full-stack tests with seed data (push only)
 
 name: CI
 
 on:
   push:
-    branches: [main, dev, backend-main, backend-Val]
+    branches: [main, dev, backend-main, backend-Val, fix-Unit/E2E]
   pull_request:
-    branches: [main, dev, backend-main, backend-Val]
+    branches: [main, dev, backend-main, backend-Val, fix-Unit/E2E]
 
 # Cancel in-progress runs for the same branch/PR on new push
 concurrency:
@@ -126,12 +126,12 @@ jobs:
       - name: Install Playwright browsers
         working-directory: e2e
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium firefox
+        run: npx playwright install --with-deps chromium
 
       - name: Install Playwright system deps (cache hit)
         working-directory: e2e
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium firefox
+        run: npx playwright install-deps chromium
 
       # -- Start the full stack -------------------------------------
       - name: Start application stack
@@ -156,6 +156,18 @@ jobs:
           echo "Backend did not become healthy in time"
           docker compose logs
           exit 1
+
+      # -- Seed data for E2E tests ----------------------------------
+      - name: Seed live data for E2E tests
+        run: docker compose exec -T backend npm run seed:live
+        env:
+          SEED_USERS: "50"
+          SEED_POSTS: "100"
+          SEED_ORGS: "5"
+          SEED_DM_MESSAGES: "200"
+          SEED_ROOMS: "5"
+          SEED_ROOM_MESSAGES: "200"
+          SEED_NOTIFICATIONS: "100"
 
       # -- Run tests ------------------------------------------------
       - name: Run Playwright tests

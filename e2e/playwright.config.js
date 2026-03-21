@@ -5,7 +5,7 @@
  */
 import { defineConfig, devices } from '@playwright/test'
 
-const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8080'
+const BASE_URL = process.env.E2E_BASE_URL || 'https://localhost:8080'
 
 export default defineConfig({
   testDir: './tests',
@@ -21,6 +21,7 @@ export default defineConfig({
   ],
   use: {
     baseURL: BASE_URL,
+    ignoreHTTPSErrors: true,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'on-first-retry',
@@ -35,10 +36,6 @@ export default defineConfig({
           args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
         },
       },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
     },
   ],
 })

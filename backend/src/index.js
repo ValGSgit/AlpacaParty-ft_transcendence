@@ -24,30 +24,35 @@ const app = express();
 let httpServer;
 let useHttps = false;
 
+const isProd = config.nodeEnv === 'production';
+
 if (config.ssl.certPath && config.ssl.keyPath) {
   try {
-    // Verify certs exist and are readable
     if (!fs.existsSync(config.ssl.certPath)) {
-      console.warn(`[ssl] Certificate file not found: ${config.ssl.certPath}`);
-    } else if (!fs.existsSync(config.ssl.keyPath)) {
-      console.warn(`[ssl] Key file not found: ${config.ssl.keyPath}`);
-    } else {
-      // Try to read the certificates
-      const key = fs.readFileSync(config.ssl.keyPath, 'utf8');
-      const cert = fs.readFileSync(config.ssl.certPath, 'utf8');
-      
-      httpServer = https.createServer({ key, cert }, app);
-      useHttps = true;
-      console.log('[ssl] ✓ HTTPS enabled with certificates from', config.ssl.certPath);
+      throw new Error(`Certificate file not found: ${config.ssl.certPath}`);
     }
+    if (!fs.existsSync(config.ssl.keyPath)) {
+      throw new Error(`Key file not found: ${config.ssl.keyPath}`);
+    }
+    const key = fs.readFileSync(config.ssl.keyPath, 'utf8');
+    const cert = fs.readFileSync(config.ssl.certPath, 'utf8');
+    httpServer = https.createServer({ key, cert }, app);
+    useHttps = true;
+    console.log('[ssl] ✓ HTTPS enabled with certificates from', config.ssl.certPath);
   } catch (err) {
+    if (isProd) {
+      throw new Error(`[ssl] SSL certificates required in production but failed to load: ${err.message}`);
+    }
     console.warn(`[ssl] Failed to load certificates: ${err.message}`);
-    console.warn('[ssl] Falling back to HTTP');
+    console.warn('[ssl] Falling back to HTTP (development only)');
   }
 }
 
-// Fallback to HTTP if certificates not loaded
+// Fallback to HTTP — development only
 if (!useHttps) {
+  if (isProd) {
+    throw new Error('[ssl] SSL certificates are required in production but were not configured');
+  }
   httpServer = http.createServer(app);
   console.warn('[ssl] ⚠ Backend running on HTTP - certificates not properly configured');
 }
@@ -56,12 +61,13 @@ if (!useHttps) {
 app.set('trust proxy', 1);
 
 // Enforce HTTPS (check X-Forwarded-Proto header from nginx)
-app.use((req, _res, next) => {
+app.use((req, res, next) => {
   const proto = req.get('X-Forwarded-Proto');
   if (proto === 'http') {
+    if (isProd) {
+      return res.redirect(301, `https://${req.get('host')}${req.url}`);
+    }
     console.warn(`[ssl] Non-HTTPS request received: ${req.method} ${req.path}`);
-    // In production, you might want to redirect to HTTPS here
-    // res.redirect(301, `https://${req.get('host')}${req.url}`);
   }
   next();
 });
@@ -69,6 +75,19 @@ app.use((req, _res, next) => {
 // Security
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:', '*.googleusercontent.com', '*.githubusercontent.com', 'picsum.photos', '*.picsum.photos'],
+      connectSrc: ["'self'", 'wss:', 'ws:', 'https:'],
+      fontSrc: ["'self'", 'data:'],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'", 'blob:'],
+      frameSrc: ["'none'"],
+    },
+  },
 }));
 
 // CORS

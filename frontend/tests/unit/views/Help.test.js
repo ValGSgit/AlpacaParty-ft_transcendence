@@ -210,4 +210,49 @@ describe('Help.vue', () => {
       expect(assistantMsgs[0].text()).toContain('went wrong')
     })
   })
+
+  it('suggestion buttons are visible on initial render', () => {
+    const wrapper = mount(Help)
+    const suggestions = wrapper.findAll('.suggestion-btn')
+    expect(suggestions.length).toBeGreaterThan(0)
+    suggestions.forEach(btn => {
+      expect(btn.isVisible()).toBe(true)
+    })
+  })
+
+  it('send button is disabled when input is empty and enabled when filled', async () => {
+    const wrapper = mount(Help)
+    const sendBtn = wrapper.find('.send-btn')
+
+    // Initially disabled
+    expect(sendBtn.attributes('disabled')).toBeDefined()
+
+    // Type something
+    const input = wrapper.find('.chat-input-bar input')
+    await input.setValue('Question')
+    expect(sendBtn.attributes('disabled')).toBeUndefined()
+
+    // Clear
+    await input.setValue('')
+    expect(sendBtn.attributes('disabled')).toBeDefined()
+  })
+
+  it('input field clears after send', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: vi.fn().mockResolvedValueOnce({ done: true }),
+        }),
+      },
+    })
+
+    const wrapper = mount(Help)
+    const input = wrapper.find('.chat-input-bar input')
+    await input.setValue('My question')
+    expect(input.element.value).toBe('My question')
+
+    await wrapper.find('.chat-input-bar').trigger('submit')
+    expect(input.element.value).toBe('')
+  })
 })

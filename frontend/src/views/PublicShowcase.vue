@@ -44,6 +44,11 @@
           </div>
         </div>
       </div>
+      <div class="pagination">
+        <button class="btn-page" :disabled="pagination.users.offset === 0" @click="pagination.users.offset -= pagination.users.limit; fetchSection('users')">Previous</button>
+        <span class="page-info">Page {{ Math.floor(pagination.users.offset / pagination.users.limit) + 1 }}</span>
+        <button class="btn-page" :disabled="users.length < pagination.users.limit" @click="pagination.users.offset += pagination.users.limit; fetchSection('users')">Next</button>
+      </div>
     </section>
 
     <!-- Leaderboard -->
@@ -54,24 +59,29 @@
           <tr>
             <th>#</th>
             <th>Username</th>
-            <th>Score</th>
+            <th>ELO</th>
+            <th>W/L/D</th>
             <th>Game Type</th>
-            <th>Date</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(entry, i) in leaderboard" :key="entry.id ?? i">
-            <td>{{ i + 1 }}</td>
-            <td>{{ entry.username ?? `User #${entry.user_id}` }}</td>
-            <td>{{ entry.score ?? entry.player1_score ?? '—' }}</td>
-            <td>{{ entry.game_type ?? '—' }}</td>
-            <td>{{ entry.created_at ? new Date(entry.created_at).toLocaleDateString() : '—' }}</td>
+          <tr v-for="(entry, i) in leaderboard" :key="entry.userId ?? i">
+            <td>{{ pagination.leaderboard.offset + i + 1 }}</td>
+            <td>{{ entry.username ?? `User #${entry.userId}` }}</td>
+            <td>{{ entry.elo ?? '—' }}</td>
+            <td>{{ entry.wins ?? 0 }}/{{ entry.losses ?? 0 }}/{{ entry.draws ?? 0 }}</td>
+            <td>{{ entry.gameType ?? '—' }}</td>
           </tr>
           <tr v-if="leaderboard.length === 0">
             <td colspan="5" class="empty">No entries yet.</td>
           </tr>
         </tbody>
       </table>
+      <div class="pagination">
+        <button class="btn-page" :disabled="pagination.leaderboard.offset === 0" @click="pagination.leaderboard.offset -= pagination.leaderboard.limit; fetchSection('leaderboard')">Previous</button>
+        <span class="page-info">Page {{ Math.floor(pagination.leaderboard.offset / pagination.leaderboard.limit) + 1 }}</span>
+        <button class="btn-page" :disabled="leaderboard.length < pagination.leaderboard.limit" @click="pagination.leaderboard.offset += pagination.leaderboard.limit; fetchSection('leaderboard')">Next</button>
+      </div>
     </section>
 
     <!-- Posts -->
@@ -79,12 +89,18 @@
       <h2>Posts <span class="badge">{{ posts.length }}</span></h2>
       <div v-for="post in posts" :key="post.id" class="post-card">
         <div class="post-header">
-          <strong>{{ post.username ?? `User #${post.user_id}` }}</strong>
-          <span class="meta">{{ post.created_at ? new Date(post.created_at).toLocaleDateString() : '' }}</span>
+          <strong>{{ post.author_username ?? `User #${post.author_id}` }}</strong>
+          <span class="meta">{{ formatDate(post.created_at) }}</span>
         </div>
         <p class="post-body">{{ post.content }}</p>
+        <img v-if="post.image_url" :src="post.image_url" class="post-image" alt="post image" />
       </div>
       <p v-if="posts.length === 0" class="empty">No public posts yet.</p>
+      <div class="pagination">
+        <button class="btn-page" :disabled="pagination.posts.offset === 0" @click="pagination.posts.offset -= pagination.posts.limit; fetchSection('posts')">Previous</button>
+        <span class="page-info">Page {{ Math.floor(pagination.posts.offset / pagination.posts.limit) + 1 }}</span>
+        <button class="btn-page" :disabled="posts.length < pagination.posts.limit" @click="pagination.posts.offset += pagination.posts.limit; fetchSection('posts')">Next</button>
+      </div>
     </section>
 
     <!-- Organizations -->
@@ -94,18 +110,23 @@
         <div v-for="org in organizations" :key="org.id" class="data-card">
           <div class="card-body">
             <strong>{{ org.name }}</strong>
-            <span class="meta">{{ org.member_count ?? 0 }} members</span>
+            <span class="meta">{{ org.memberCount ?? org.member_count ?? 0 }} members</span>
             <span class="meta">{{ org.description || 'No description.' }}</span>
           </div>
         </div>
       </div>
       <p v-if="organizations.length === 0" class="empty">No organizations yet.</p>
+      <div class="pagination">
+        <button class="btn-page" :disabled="pagination.organizations.offset === 0" @click="pagination.organizations.offset -= pagination.organizations.limit; fetchSection('organizations')">Previous</button>
+        <span class="page-info">Page {{ Math.floor(pagination.organizations.offset / pagination.organizations.limit) + 1 }}</span>
+        <button class="btn-page" :disabled="organizations.length < pagination.organizations.limit" @click="pagination.organizations.offset += pagination.organizations.limit; fetchSection('organizations')">Next</button>
+      </div>
     </section>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 
 const apiKey = ref('')
 const loading = ref(false)
@@ -115,6 +136,19 @@ const users = ref(null)
 const leaderboard = ref(null)
 const posts = ref(null)
 const organizations = ref(null)
+
+const pagination = reactive({
+  users: { limit: 20, offset: 0 },
+  leaderboard: { limit: 20, offset: 0 },
+  posts: { limit: 20, offset: 0 },
+  organizations: { limit: 20, offset: 0 },
+})
+
+function formatDate(ts) {
+  if (!ts) return ''
+  const d = new Date(ts)
+  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`
+}
 
 async function apiFetch(path) {
   const res = await fetch(`/api/public${path}`, {
@@ -127,6 +161,28 @@ async function apiFetch(path) {
   return res.json()
 }
 
+async function fetchSection(section) {
+  try {
+    const p = pagination[section]
+    const query = `?limit=${p.limit}&offset=${p.offset}`
+    if (section === 'users') {
+      const res = await apiFetch(`/users${query}`)
+      users.value = res.users ?? []
+    } else if (section === 'leaderboard') {
+      const res = await apiFetch(`/leaderboard${query}`)
+      leaderboard.value = res.leaderboard ?? res.entries ?? []
+    } else if (section === 'posts') {
+      const res = await apiFetch(`/posts${query}`)
+      posts.value = res.posts ?? []
+    } else if (section === 'organizations') {
+      const res = await apiFetch(`/organizations${query}`)
+      organizations.value = res.organizations ?? []
+    }
+  } catch (err) {
+    globalError.value = err.message
+  }
+}
+
 async function fetchAll() {
   loading.value = true
   globalError.value = ''
@@ -135,12 +191,18 @@ async function fetchAll() {
   posts.value = null
   organizations.value = null
 
+  // Reset pagination offsets
+  pagination.users.offset = 0
+  pagination.leaderboard.offset = 0
+  pagination.posts.offset = 0
+  pagination.organizations.offset = 0
+
   try {
     const [usersRes, lbRes, postsRes, orgsRes] = await Promise.all([
-      apiFetch('/users'),
-      apiFetch('/leaderboard'),
-      apiFetch('/posts'),
-      apiFetch('/organizations'),
+      apiFetch('/users?limit=20&offset=0'),
+      apiFetch('/leaderboard?limit=20&offset=0'),
+      apiFetch('/posts?limit=20&offset=0'),
+      apiFetch('/organizations?limit=20&offset=0'),
     ])
     users.value = usersRes.users ?? []
     leaderboard.value = lbRes.leaderboard ?? lbRes.entries ?? []
@@ -341,5 +403,41 @@ code {
   border-radius: 4px;
   padding: 0.1em 0.35em;
   font-size: 0.9em;
+}
+
+.post-image {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn-page {
+  padding: 0.4rem 1rem;
+  background: var(--bg-secondary, #12121a);
+  border: 1px solid var(--border-color, #2a2a3a);
+  border-radius: 8px;
+  color: var(--primary, #00f0ff);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.btn-page:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.page-info {
+  font-size: 0.85rem;
+  color: #999;
 }
 </style>

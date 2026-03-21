@@ -29,7 +29,7 @@
         </div>
         <div class="info-row">
           <span class="label">Joined</span>
-          <span>{{ new Date(profile.created_at).toLocaleDateString() }}</span>
+          <span>{{ formatDate(profile.created_at) }}</span>
         </div>
       </div>
 
@@ -59,6 +59,19 @@
           </div>
         </div>
       </div>
+
+      <!-- User Posts -->
+      <div v-if="userPosts.length" class="stats-section">
+        <h3>Posts</h3>
+        <div v-for="post in userPosts" :key="post.id" class="user-post">
+          <p class="user-post-content">{{ post.content }}</p>
+          <img v-if="post.image_url" :src="post.image_url" class="user-post-image" alt="" />
+          <div class="user-post-footer">
+            <span>{{ post.likes_count || 0 }} likes</span>
+            <span>{{ formatDate(post.created_at) }}</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -74,8 +87,15 @@ const authStore = useAuthStore()
 
 const profile = ref(null)
 const stats = ref(null)
+const userPosts = ref([])
 const loading = ref(true)
 const error = ref(null)
+
+function formatDate(ts) {
+  if (!ts) return ''
+  const d = new Date(ts)
+  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`
+}
 
 onMounted(async () => {
   const userId = route.params.id
@@ -92,13 +112,16 @@ onMounted(async () => {
     loading.value = false
   }
 
-  // Try to fetch game stats
+  // Fetch game stats and posts in parallel
   try {
     const { data } = await api.get(`/game/stats?userId=${route.params.id}&gameType=pong`)
     stats.value = data.stats
-  } catch {
-    // stats not available
-  }
+  } catch {}
+
+  try {
+    const { data } = await api.get(`/posts/user/${route.params.id}?limit=10`)
+    userPosts.value = data.posts || []
+  } catch {}
 })
 
 async function sendFriendRequest() {
@@ -280,5 +303,36 @@ async function sendFriendRequest() {
 .stat-label {
   font-size: 0.8rem;
   color: #999;
+}
+
+.user-post {
+  background: var(--bg-tertiary, #1a1a2a);
+  border: 1px solid var(--border-color, #2a2a3a);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.user-post-content {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.user-post-image {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.user-post-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #888;
 }
 </style>

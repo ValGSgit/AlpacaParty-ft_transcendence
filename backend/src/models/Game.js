@@ -78,7 +78,7 @@ const Game = {
     await prisma.gameStat.upsert({
       where: { userId_gameType: { userId: Number(userId), gameType } },
       update: { [field]: { increment: 1 } },
-      create: { userId: Number(userId), gameType, [field]: 1, wins: 0, losses: 0, draws: 0 },
+      create: { userId: Number(userId), gameType, wins: 0, losses: 0, draws: 0, [field]: 1 },
     });
   },
 
