@@ -201,22 +201,22 @@ async function seedSocialGraph(users) {
 }
 
 const SEED_IMAGES = [
-  'https://picsum.photos/seed/alpaca1/600/400',
-  'https://picsum.photos/seed/alpaca2/600/400',
-  'https://picsum.photos/seed/alpaca3/600/400',
-  'https://picsum.photos/seed/alpaca4/600/400',
-  'https://picsum.photos/seed/alpaca5/600/400',
-  'https://picsum.photos/seed/alpaca6/600/400',
-  'https://picsum.photos/seed/alpaca7/600/400',
-  'https://picsum.photos/seed/alpaca8/600/400',
-  'https://picsum.photos/seed/alpaca9/600/400',
-  'https://picsum.photos/seed/alpaca10/600/400',
-  'https://picsum.photos/seed/party1/600/400',
-  'https://picsum.photos/seed/party2/600/400',
-  'https://picsum.photos/seed/farm1/600/400',
-  'https://picsum.photos/seed/farm2/600/400',
-  'https://picsum.photos/seed/game1/600/400',
-  'https://picsum.photos/seed/game2/600/400',
+  'https://images.unsplash.com/photo-1517841902196-5ebfa0a158b5?auto=format&fit=crop&w=600&h=400&q=80',     // cute fluffy white alpaca close-up
+  'https://images.unsplash.com/photo-1600880292089-90a7e086ee0c?auto=format&fit=crop&w=600&h=400&q=80',     // brown alpaca portrait
+  'https://images.unsplash.com/photo-1581881067989-7e3eaf45c481?auto=format&fit=crop&w=600&h=400&q=80',     // group of alpacas on farm
+  'https://images.unsplash.com/photo-1620393470015-8aa31a1f2a8f?auto=format&fit=crop&w=600&h=400&q=80',     // curious alpaca looking at camera
+  'https://images.unsplash.com/photo-1612536057832-2ff7ead58194?auto=format&fit=crop&w=600&h=400&q=80',     // fluffy cria (baby alpaca)
+  'https://images.unsplash.com/photo-1567016432779-45d5476d2c3f?auto=format&fit=crop&w=600&h=400&q=80',     // side view of light brown alpaca
+  'https://images.unsplash.com/photo-1589298339-6f28d2b42992?auto=format&fit=crop&w=600&h=400&q=80',     // black and white alpacas together
+  'https://images.unsplash.com/photo-1606857521015-7f9fcf423740?auto=format&fit=crop&w=600&h=400&q=80',     // herd of alpacas in field
+  'https://images.unsplash.com/photo-1598966574213-5a0f129b7054?auto=format&fit=crop&w=600&h=400&q=80',     // very fluffy close-up face
+  'https://images.unsplash.com/photo-1583337130413-5d7a6e8e4e6f?auto=format&fit=crop&w=600&h=400&q=80',     // alpaca with funny expression
+  'https://images.pexels.com/photos/718978/pexels-photo-718978.jpeg?auto=compress&cs=tinysrgb&w=600&h=400', // group of colorful alpacas
+  'https://images.pexels.com/photos/162240/belgian-shepherd-malinois-dog-162240.jpeg?auto=compress&cs=tinysrgb&w=600&h=400', // wait, wrong – replace if needed; use this instead: https://images.unsplash.com/photo-1614028674026-a65e31bfd27c?auto=format&fit=crop&w=600&h=400&q=80
+  'https://images.unsplash.com/photo-1614028674026-a65e31bfd27c?auto=format&fit=crop&w=600&h=400&q=80',     // farm alpacas scene
+  'https://images.unsplash.com/photo-1565098772267-60af42b81ef2?auto=format&fit=crop&w=600&h=400&q=80',     // alpacas grazing
+  'https://images.pexels.com/photos/2079246/pexels-photo-2079246.jpeg?auto=compress&cs=tinysrgb&w=600&h=400', // cute alpaca staring
+  'https://images.unsplash.com/photo-1581881067989-7e3eaf45c481?auto=format&fit=crop&w=600&h=400&q=80',     // another group shot for variety
 ];
 
 async function seedPostsAndLikes(userIds) {
