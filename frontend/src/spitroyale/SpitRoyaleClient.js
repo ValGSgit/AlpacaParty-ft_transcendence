@@ -81,7 +81,8 @@ export class SpitRoyaleClient {
         this.localPlayerId = msg.playerId;
         this.currentMatchId = msg.roomId;
         this.isSurvival = msg.isSurvival ?? false;
-        this.mode = msg.roomId === 'queue' ? 'queue' : 'player';
+        // Stay in 'countdown' mode until game_start so inputs are suppressed during countdown
+        this.mode = msg.roomId === 'queue' ? 'queue' : (msg.resumed ? 'player' : 'countdown');
         if (!this.ui) {
           this.ui = new UI(this.root);
           this.ui.show();
@@ -138,7 +139,7 @@ export class SpitRoyaleClient {
         this.ui?.updatePlayers(msg.state.players, this.localPlayerId);
         if (msg.type === 'game_start') {
           this.mode = 'player';
-          this.ui?.showStatus('SPIT IT!', 1200);
+          this.ui?.showStatus('GO! 🦙', 2500);
           this.ui?.hidePostGameActions();
           this.ui?.setRematchStatus(0, 0);
         }
@@ -263,6 +264,16 @@ export class SpitRoyaleClient {
         this.ui?.showStatus(`💀 Fell on wave ${msg.wave}! Total kills: ${msg.kills}`, 0);
         this.ui?.hideSurvivalHud();
         setTimeout(() => this.ui?.showStatus('⚔️ New run in 5s…', 0), 3000);
+        break;
+      }
+
+      case 'sudden_death': {
+        if (msg.state) {
+          this.game?.applyState(msg.state);
+          this.ui?.updatePlayers(msg.state.players, this.localPlayerId);
+        }
+        this.ui?.showStatus('☠️ SUDDEN DEATH — damage doubled!', 4000);
+        this.ui?.addKillFeedEntry('☠️ Sudden death! All damage ×2');
         break;
       }
 

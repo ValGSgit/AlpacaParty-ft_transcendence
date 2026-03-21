@@ -54,6 +54,8 @@ model User {
   notifications          Notification[]
   posts                  Post[]
   postLikes              PostLike[]
+  comments               Comment[]
+  reposts                Repost[]
   ownedOrganizations     Organization[]       @relation("orgOwner")
   orgMemberships         OrganizationMember[]
   uploadedFiles          File[]
@@ -287,17 +289,21 @@ model Notification {
 
 // ── Posts / Feed ─────────────────────────────────────────────────────────
 model Post {
-  id         Int      @id @default(autoincrement())
-  authorId   Int      @map("author_id")
-  content    String   @db.Text
-  imageUrl   String?  @map("image_url") @db.VarChar(512)
-  isPublic   Boolean? @default(true) @map("is_public")
-  likesCount Int?     @default(0) @map("likes_count")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id            Int      @id @default(autoincrement())
+  authorId      Int      @map("author_id")
+  content       String   @db.Text
+  imageUrl      String?  @map("image_url") @db.VarChar(512)
+  isPublic      Boolean? @default(true) @map("is_public")
+  likesCount    Int?     @default(0) @map("likes_count")
+  commentsCount Int?     @default(0) @map("comments_count")
+  repostsCount  Int?     @default(0) @map("reposts_count")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  author User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  likes  PostLike[]
+  author   User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes    PostLike[]
+  comments Comment[]
+  reposts  Repost[]
 
   @@index([authorId])
   @@map("posts")
@@ -314,6 +320,36 @@ model PostLike {
 
   @@unique([postId, userId])
   @@map("post_likes")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  postId    Int      @map("post_id")
+  authorId  Int      @map("author_id")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("comments")
+}
+
+model Repost {
+  id        Int      @id @default(autoincrement())
+  postId    Int      @map("post_id")
+  authorId  Int      @map("author_id")
+  comment   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, authorId])
+  @@index([postId])
+  @@map("reposts")
 }
 
 // ── Organizations ────────────────────────────────────────────────────────

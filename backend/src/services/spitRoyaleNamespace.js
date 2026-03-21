@@ -9,15 +9,16 @@ const SPIT_SPEED = 14;
 const SPIT_DAMAGE = 20;
 const SPIT_RADIUS = 0.35;
 const PLAYER_RADIUS = 0.8;
-const POWERUP_TYPES = ['speed', 'shield', 'bigSpit', 'heal'];
+const POWERUP_TYPES = ['speed', 'shield', 'bigSpit', 'heal', 'tripleSpit'];
 const MAX_HEALTH = 100;
 const REMATCH_WINDOW_MS = 15000;
 const DISCONNECT_GRACE_MS = 15000;
+const SUDDEN_DEATH_SEC = 90;
 
 // ── Survival-mode constants ──────────────────────────────────────────────────
 const BOT_COLORS   = [0xc62828, 0x880e4f, 0x1a237e, 0x004d40, 0x33691e];
 const BOT_BASE_SPEED = 4.5;
-const BOT_TACTICS  = ['charge', 'flank_left', 'flank_right', 'strafe', 'retreat'];
+const BOT_TACTICS  = ['charge', 'flank_left', 'flank_right', 'strafe', 'retreat', 'dodge'];
 
 function calcElo(playerElo, opponentElo, result) {
   const K = 32;
@@ -51,8 +52,10 @@ function createRoom(id) {
     metrics: {},
     rematchVotes: new Set(),
     endCleanupTimer: null,
+    countdownTimers: [],
     spectators: {},
     isSurvival: false,
+    suddenDeath: false,
   };
 }
 
@@ -75,6 +78,7 @@ function buildState(room) {
     })),
     spits: Object.values(room.spits),
     powerups: Object.values(room.powerups),
+    suddenDeath: room.suddenDeath ?? false,
     ...(room.isSurvival ? { wave: room.wave, totalKills: room.totalKills } : {}),
   };
 }
@@ -94,7 +98,7 @@ function spawnPowerup(room) {
 
 // ── Bot AI (survival) ────────────────────────────────────────────────────────
 
-function computeBotVelocity(bot, target, tactic) {
+function computeBotVelocity(bot, target, tactic, incomingSpits = []) {
   const dx   = target.x - bot.x;
   const dz   = target.z - bot.z;
   const dist = Math.sqrt(dx * dx + dz * dz) || 0.001;
@@ -116,6 +120,33 @@ function computeBotVelocity(bot, target, tactic) {
       return dist < 10
         ? { vx: -tx * 0.6 + px * 0.8, vz: -tz * 0.6 + pz * 0.8 }
         : { vx: px, vz: pz };
+    case 'dodge': {
+      // Sidestep the nearest incoming spit; fall back to strafe otherwise
+      let bestDodge = null;
+      let minTime = Infinity;
+      for (const spit of incomingSpits) {
+        if (spit.ownerId === bot.id) continue;
+        const sdx = bot.x - spit.x;
+        const sdz = bot.z - spit.z;
+        const spitDist = Math.sqrt(sdx * sdx + sdz * sdz);
+        if (spitDist > 10) continue;
+        const spitSpeed = Math.sqrt(spit.vx * spit.vx + spit.vz * spit.vz) || 1;
+        const nvx = spit.vx / spitSpeed;
+        const nvz = spit.vz / spitSpeed;
+        const dot = nvx * (-sdx / (spitDist || 1)) + nvz * (-sdz / (spitDist || 1));
+        if (dot > 0.55) {
+          const timeToHit = spitDist / spitSpeed;
+          if (timeToHit < minTime) {
+            minTime = timeToHit;
+            bestDodge = { vx: nvz, vz: -nvx }; // perpendicular to spit direction
+          }
+        }
+      }
+      if (bestDodge && minTime < 0.55) return bestDodge;
+      const ideal = 7;
+      const pull = dist > ideal + 2 ? 0.35 : dist < ideal - 2 ? -0.35 : 0;
+      return { vx: px + tx * pull, vz: pz + tz * pull };
+    }
     default: return { vx: tx, vz: tz };
   }
 }
@@ -127,7 +158,7 @@ function tickBots(room, dt) {
   for (const bot of Object.values(room.players)) {
     if (!bot.isBot || !bot.alive) continue;
 
-    const { vx, vz } = computeBotVelocity(bot, target, bot.tactic ?? 'charge');
+    const { vx, vz } = computeBotVelocity(bot, target, bot.tactic ?? 'charge', Object.values(room.spits));
     let nx = bot.x + vx * bot.speed * dt;
     let nz = bot.z + vz * bot.speed * dt;
     const d = Math.sqrt(nx * nx + nz * nz);
@@ -220,6 +251,7 @@ export function initializeSpitRoyaleNamespace(io) {
     if (match.powerupInterval) clearInterval(match.powerupInterval);
     if (match.startTimer) clearTimeout(match.startTimer);
     if (match.endCleanupTimer) clearTimeout(match.endCleanupTimer);
+    for (const t of match.countdownTimers ?? []) clearTimeout(t);
     for (const pid of Object.keys(match.players)) {
       const player = match.players[pid];
       if (player?.disconnectTimer) clearTimeout(player.disconnectTimer);
@@ -285,6 +317,8 @@ export function initializeSpitRoyaleNamespace(io) {
       player.bigSpitTimer = 8;
     } else if (type === 'heal') {
       player.health = Math.min(MAX_HEALTH, player.health + 40);
+    } else if (type === 'tripleSpit') {
+      player.tripleSpitTimer = 10;
     }
     if (match.metrics[player.id]) {
       match.metrics[player.id].powerupsCollected += 1;
@@ -324,6 +358,7 @@ export function initializeSpitRoyaleNamespace(io) {
       player.shieldTimer = 0;
       player.bigSpitTimer = 0;
       player.speedTimer = 0;
+      player.tripleSpitTimer = 0;
       player.color = colors[i % colors.length];
       player.connected = true;
 
@@ -340,6 +375,7 @@ export function initializeSpitRoyaleNamespace(io) {
 
     match.spits = {};
     match.powerups = {};
+    match.suddenDeath = false;
     for (let i = 0; i < 4; i += 1) spawnPowerup(match);
 
     broadcast(match, { type: 'game_start', state: buildState(match) });
@@ -461,6 +497,13 @@ export function initializeSpitRoyaleNamespace(io) {
     if (match.state !== 'playing') return;
     const dt = TICK_RATE / 1000;
 
+    // Sudden death: after SUDDEN_DEATH_SEC seconds, damage doubles
+    if (!match.suddenDeath && match.startedAtMs && Date.now() - match.startedAtMs > SUDDEN_DEATH_SEC * 1000) {
+      match.suddenDeath = true;
+      broadcast(match, { type: 'sudden_death', state: buildState(match) });
+    }
+    const damageMultiplier = match.suddenDeath ? 2 : 1;
+
     for (const [sid, spit] of Object.entries(match.spits)) {
       spit.x += spit.vx * dt;
       spit.z += spit.vz * dt;
@@ -482,7 +525,7 @@ export function initializeSpitRoyaleNamespace(io) {
           if (player.shieldTimer > 0) {
             broadcast(match, { type: 'shield_block', playerId: player.id });
           } else {
-            const dmg = spit.big ? SPIT_DAMAGE * 2 : SPIT_DAMAGE;
+            const dmg = (spit.big ? SPIT_DAMAGE * 2 : SPIT_DAMAGE) * damageMultiplier;
             player.health = Math.max(0, player.health - dmg);
             if (match.metrics[player.id]) match.metrics[player.id].damageTaken += dmg;
             if (match.metrics[spit.ownerId]) {
@@ -517,6 +560,7 @@ export function initializeSpitRoyaleNamespace(io) {
       if (player.spitCooldown > 0) player.spitCooldown -= dt;
       if (player.shieldTimer > 0) player.shieldTimer -= dt;
       if (player.bigSpitTimer > 0) player.bigSpitTimer -= dt;
+      if (player.tripleSpitTimer > 0) player.tripleSpitTimer -= dt;
       if (player.speedTimer > 0) {
         player.speedTimer -= dt;
         if (player.speedTimer <= 0) player.speed = 6;
@@ -580,6 +624,21 @@ export function initializeSpitRoyaleNamespace(io) {
     playerA.connected = true;
     playerB.connected = true;
 
+    // Pre-position players at their spawn spots so the joined state is accurate
+    const spawnColors = [0xf4a261, 0x2a9d8f];
+    const spawnSpots = [
+      { x: -8, z: 0, angle: Math.PI / 2 },
+      { x: 8, z: 0, angle: -Math.PI / 2 },
+    ];
+    const pairPids = Object.keys(match.players);
+    for (let i = 0; i < pairPids.length; i += 1) {
+      const p = match.players[pairPids[i]];
+      p.x = spawnSpots[i].x;
+      p.z = spawnSpots[i].z;
+      p.angle = spawnSpots[i].angle;
+      p.color = spawnColors[i % spawnColors.length];
+    }
+
     playerA.socket.join(match.socketRoom);
     playerB.socket.join(match.socketRoom);
 
@@ -597,6 +656,10 @@ export function initializeSpitRoyaleNamespace(io) {
     });
 
     broadcast(match, { type: 'countdown', seconds: 3 });
+    match.countdownTimers = [
+      setTimeout(() => broadcast(match, { type: 'countdown', seconds: 2 }), 1000),
+      setTimeout(() => broadcast(match, { type: 'countdown', seconds: 1 }), 2000),
+    ];
 
     match.startTimer = setTimeout(() => startMatch(match), 3000);
     match.tickInterval = setInterval(() => tickMatch(match), TICK_RATE);
@@ -831,6 +894,7 @@ export function initializeSpitRoyaleNamespace(io) {
         if (player.speedTimer <= 0) player.speed = 6;
       }
       if (player.isBot) continue;
+      if (player.tripleSpitTimer > 0) player.tripleSpitTimer -= dt;
 
       for (const [puid, pu] of Object.entries(room.powerups)) {
         const dx = player.x - pu.x;
@@ -838,10 +902,11 @@ export function initializeSpitRoyaleNamespace(io) {
         if (Math.sqrt(dx * dx + dz * dz) < 1.2) {
           const { type } = pu;
           delete room.powerups[puid];
-          if (type === 'speed')   { player.speed = 12; player.speedTimer = 5; }
-          else if (type === 'shield')  { player.shieldTimer = 4; }
-          else if (type === 'bigSpit') { player.bigSpitTimer = 8; }
-          else if (type === 'heal')    { player.health = Math.min(MAX_HEALTH, player.health + 40); }
+          if (type === 'speed')        { player.speed = 12; player.speedTimer = 5; }
+          else if (type === 'shield')     { player.shieldTimer = 4; }
+          else if (type === 'bigSpit')    { player.bigSpitTimer = 8; }
+          else if (type === 'heal')       { player.health = Math.min(MAX_HEALTH, player.health + 40); }
+          else if (type === 'tripleSpit') { player.tripleSpitTimer = 10; }
           socket.emit('spit:message', { type: 'powerup_collected', playerId: player.id, powerupType: type });
           spawnPowerup(room);
         }
@@ -894,6 +959,7 @@ export function initializeSpitRoyaleNamespace(io) {
         shieldTimer: 0,
         bigSpitTimer: 0,
         speedTimer: 0,
+        tripleSpitTimer: 0,
         color: 0xf4a261,
       };
     }
@@ -992,7 +1058,7 @@ export function initializeSpitRoyaleNamespace(io) {
         x: 0, z: 0, angle: 0,
         health: MAX_HEALTH, alive: true,
         speed: 6, spitCooldown: 0,
-        shieldTimer: 0, bigSpitTimer: 0, speedTimer: 0,
+        shieldTimer: 0, bigSpitTimer: 0, speedTimer: 0, tripleSpitTimer: 0,
         color: 0xf4a261,
       };
 
@@ -1146,17 +1212,23 @@ export function initializeSpitRoyaleNamespace(io) {
         if (player.spitCooldown > 0) return;
         if (angle !== undefined && !Number.isFinite(angle)) return;
         const big = player.bigSpitTimer > 0;
+        const triple = player.tripleSpitTimer > 0;
         player.spitCooldown = big ? 0.4 : 0.6;
-        const sid = generateId();
         const shootAngle = angle ?? player.angle;
-        survivalRoom.spits[sid] = {
-          id: sid, ownerId: playerId,
-          x:  player.x + Math.sin(shootAngle) * 1.2,
-          z:  player.z + Math.cos(shootAngle) * 1.2,
-          vx: Math.sin(shootAngle) * SPIT_SPEED,
-          vz: Math.cos(shootAngle) * SPIT_SPEED,
-          life: 2.5, big,
-        };
+        const spreadAngles = triple
+          ? [shootAngle - 0.22, shootAngle, shootAngle + 0.22]
+          : [shootAngle];
+        for (const sa of spreadAngles) {
+          const sid = generateId();
+          survivalRoom.spits[sid] = {
+            id: sid, ownerId: playerId,
+            x:  player.x + Math.sin(sa) * 1.2,
+            z:  player.z + Math.cos(sa) * 1.2,
+            vx: Math.sin(sa) * SPIT_SPEED,
+            vz: Math.cos(sa) * SPIT_SPEED,
+            life: 2.5, big,
+          };
+        }
         return;
       }
 
@@ -1169,20 +1241,27 @@ export function initializeSpitRoyaleNamespace(io) {
       if (angle !== undefined && !Number.isFinite(angle)) return;
 
       const big = player.bigSpitTimer > 0;
+      const triple = player.tripleSpitTimer > 0;
       player.spitCooldown = big ? 0.4 : 0.6;
 
-      const sid = generateId();
       const shootAngle = angle ?? player.angle;
-      match.spits[sid] = {
-        id: sid,
-        ownerId: playerId,
-        x: player.x + Math.sin(shootAngle) * 1.2,
-        z: player.z + Math.cos(shootAngle) * 1.2,
-        vx: Math.sin(shootAngle) * SPIT_SPEED,
-        vz: Math.cos(shootAngle) * SPIT_SPEED,
-        life: 2.5,
-        big,
-      };
+      const spreadAngles = triple
+        ? [shootAngle - 0.22, shootAngle, shootAngle + 0.22]
+        : [shootAngle];
+
+      for (const sa of spreadAngles) {
+        const sid = generateId();
+        match.spits[sid] = {
+          id: sid,
+          ownerId: playerId,
+          x: player.x + Math.sin(sa) * 1.2,
+          z: player.z + Math.cos(sa) * 1.2,
+          vx: Math.sin(sa) * SPIT_SPEED,
+          vz: Math.cos(sa) * SPIT_SPEED,
+          life: 2.5,
+          big,
+        };
+      }
     });
 
     socket.on('disconnect', () => {

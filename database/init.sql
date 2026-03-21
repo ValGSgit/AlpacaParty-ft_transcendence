@@ -182,14 +182,16 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 -- ── Posts / Feed ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS posts (
-    id          SERIAL PRIMARY KEY,
-    author_id   INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content     TEXT NOT NULL,
-    image_url   VARCHAR(512),
-    is_public   BOOLEAN DEFAULT TRUE,
-    likes_count INT DEFAULT 0,
-    created_at  TIMESTAMPTZ DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ DEFAULT NOW()
+    id             SERIAL PRIMARY KEY,
+    author_id      INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content        TEXT NOT NULL,
+    image_url      VARCHAR(512),
+    is_public      BOOLEAN DEFAULT TRUE,
+    likes_count    INT DEFAULT 0,
+    comments_count INT DEFAULT 0,
+    reposts_count  INT DEFAULT 0,
+    created_at     TIMESTAMPTZ DEFAULT NOW(),
+    updated_at     TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS post_likes (
@@ -198,6 +200,24 @@ CREATE TABLE IF NOT EXISTS post_likes (
     user_id   INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE (post_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS comments (
+    id         SERIAL PRIMARY KEY,
+    post_id    INT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    author_id  INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content    TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS reposts (
+    id         SERIAL PRIMARY KEY,
+    post_id    INT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    author_id  INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    comment    TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (post_id, author_id)
 );
 
 -- ── Organizations ────────────────────────────────────────────────────────
@@ -280,6 +300,8 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_friend_requests_receiver ON friend_requests(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_posts_author       ON posts(author_id);
 CREATE INDEX IF NOT EXISTS idx_posts_public        ON posts(is_public) WHERE is_public = TRUE;
+CREATE INDEX IF NOT EXISTS idx_comments_post       ON comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_reposts_post        ON reposts(post_id);
 CREATE INDEX IF NOT EXISTS idx_org_members_user    ON organization_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_game_stats_user     ON game_stats(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_room_msgs_room ON chat_room_messages(room_id);

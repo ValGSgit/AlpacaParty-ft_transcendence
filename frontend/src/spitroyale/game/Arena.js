@@ -3,12 +3,43 @@ import * as THREE from 'three';
 export function buildArena(scene) {
   const radius = 18;
 
-  scene.background = new THREE.Color(0x0d1a2e);
-  scene.fog = new THREE.FogExp2(0x0d1a2e, 0.028);
+  scene.fog = new THREE.FogExp2(0x050d1a, 0.022);
+
+  // Gradient sky dome (replaces flat background colour)
+  const skyCanvas = document.createElement('canvas');
+  skyCanvas.width = 4;
+  skyCanvas.height = 512;
+  const skyCtx = skyCanvas.getContext('2d');
+  const skyGrad = skyCtx.createLinearGradient(0, 0, 0, 512);
+  skyGrad.addColorStop(0, '#020d1c');
+  skyGrad.addColorStop(0.45, '#0d1a2e');
+  skyGrad.addColorStop(0.8, '#1a0533');
+  skyGrad.addColorStop(1, '#0d0520');
+  skyCtx.fillStyle = skyGrad;
+  skyCtx.fillRect(0, 0, 4, 512);
+  const skyTex = new THREE.CanvasTexture(skyCanvas);
+  const skyDome = new THREE.Mesh(
+    new THREE.SphereGeometry(180, 32, 16),
+    new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false }),
+  );
+  scene.add(skyDome);
+
+  // Radial gradient ground texture (brighter centre → darker edge)
+  const gCanvas = document.createElement('canvas');
+  gCanvas.width = 256;
+  gCanvas.height = 256;
+  const gCtx = gCanvas.getContext('2d');
+  const gGrad = gCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gGrad.addColorStop(0, '#3d7a32');
+  gGrad.addColorStop(0.55, '#2d5a27');
+  gGrad.addColorStop(1, '#1a3a18');
+  gCtx.fillStyle = gGrad;
+  gCtx.fillRect(0, 0, 256, 256);
+  const groundTex = new THREE.CanvasTexture(gCanvas);
 
   const groundGeo = new THREE.CircleGeometry(radius, 64);
   const groundMat = new THREE.MeshStandardMaterial({
-    color: 0x2d5a27,
+    map: groundTex,
     roughness: 0.95,
     metalness: 0,
   });
@@ -130,7 +161,7 @@ export function buildArena(scene) {
     positions[i * 3 + 2] = (Math.random() - 0.5) * 300;
   }
   starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.2, sizeAttenuation: true }));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.2, sizeAttenuation: true, fog: false }));
   scene.add(stars);
 
   scene.add(new THREE.AmbientLight(0x446688, 0.6));

@@ -24,10 +24,10 @@ export async function saveGame() {
 
   const saveItems = gItems.map(item => {
     return {
-      position: item.position.toArray(),
-      rotation: item.rotation.y,
-      scale: item.scale.toArray(),
-      name: item.name
+      position: item.model.position.toArray(),
+      rotation: item.model.rotation.y,
+      scale: item.model.scale.toArray(),
+      name: item.model.name
     };
   });
 

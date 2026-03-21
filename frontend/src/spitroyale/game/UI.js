@@ -35,6 +35,7 @@ export class UI {
       shield: root.querySelector('#pu-shield'),
       bigSpit: root.querySelector('#pu-bigspit'),
       heal: root.querySelector('#pu-heal'),
+      tripleSpit: root.querySelector('#pu-triplespit'),
     };
   }
 
@@ -123,7 +124,8 @@ export class UI {
     const icon = this.powerupIcons[type];
     if (!icon) return;
     icon.classList.add('active');
-    setTimeout(() => icon.classList.remove('active'), type === 'bigSpit' ? 8000 : 5000);
+    const durations = { bigSpit: 8000, tripleSpit: 10000, shield: 4000, speed: 5000, heal: 1000 };
+    setTimeout(() => icon.classList.remove('active'), durations[type] ?? 5000);
   }
 
   showRewards(reward) {

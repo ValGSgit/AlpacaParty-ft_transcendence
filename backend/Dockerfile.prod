@@ -17,8 +17,9 @@ COPY backend/package*.json ./
 # Install dependencies (clean build)
 RUN npm install --no-audit --no-fund --loglevel=error
 
-# Copy Prisma schema and application source, then generate the client
+# Copy Prisma schema, config, and application source, then generate the client
 COPY --chown=nodejs:nodejs backend/prisma ./prisma
+COPY --chown=nodejs:nodejs backend/prisma.config.ts ./prisma.config.ts
 COPY --chown=nodejs:nodejs backend/src ./src
 RUN npx prisma generate && npm prune --omit=dev
 
@@ -36,5 +37,6 @@ USER nodejs
 # Expose backend port
 EXPOSE 3000
 
-# Run in production mode
+# Start the server. Schema is managed by database/init.sql on first init,
+# and by running `docker exec alpacaparty_backend_prod npx prisma db push` for incremental changes.
 CMD ["node", "src/server.js"]

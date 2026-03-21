@@ -21,6 +21,7 @@ export class Game {
     this.clock = new THREE.Clock();
     this.mouse = new THREE.Vector2();
     this.aimAngle = 0;
+    this.raycaster = new THREE.Raycaster();
     this.shakeIntensity = 0;
     this.cameraOffset = new THREE.Vector3(0, 22, 18);
     this.cameraTarget = new THREE.Vector3();
@@ -66,6 +67,7 @@ export class Game {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.2;
+    this.renderer.setClearColor(0x050d1a, 1);
     this.container.appendChild(this.renderer.domElement);
     window.addEventListener('resize', this.resizeHandler);
   }
@@ -77,6 +79,29 @@ export class Game {
     this.camera.lookAt(0, 0, 0);
     buildArena(this.scene);
     this.groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    this.#loadArenaDecorations(); // fire-and-forget: farm props load in background
+  }
+
+  async #loadArenaDecorations() {
+    const RING = 20.5; // just outside the arena wall (radius 18)
+    const assets = [
+      { path: '/models/hay.glb', count: 6, ring: RING, targetH: 1.6 },
+      { path: '/models/fence_end.glb', count: 4, ring: RING + 1.2, targetH: 1.4 },
+    ];
+    for (const { path, count, ring, targetH } of assets) {
+      let gltf;
+      try { gltf = await this.gltfLoader.loadAsync(path); } catch { continue; }
+      for (let i = 0; i < count; i++) {
+        if (this.isDestroyed) return;
+        const obj = clone(gltf.scene);
+        const angle = (i / count) * Math.PI * 2 + (Math.PI / count);
+        obj.position.set(Math.cos(angle) * ring, 0, Math.sin(angle) * ring);
+        obj.rotation.y = -angle + Math.PI;
+        this.#normalizeModelHeight(obj, targetH);
+        obj.traverse((c) => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+        this.scene.add(obj);
+      }
+    }
   }
 
   #initInput() {
@@ -89,8 +114,7 @@ export class Game {
 
   async #getLlamaTemplate() {
     if (!this.llamaTemplatePromise) {
-      this.llamaTemplatePromise = this.gltfLoader.loadAsync('/models/Llama.glb')
-        .then((gltf) => gltf.scene)
+      this.llamaTemplatePromise = this.gltfLoader.loadAsync('/models/alpaca.glb')
         .catch(() => null);
     }
     return this.llamaTemplatePromise;
@@ -126,14 +150,29 @@ export class Game {
   }
 
   async #buildAlpacaModel(colorHex) {
-    const template = await this.#getLlamaTemplate();
-    if (!template) return buildAlpaca(colorHex);
+    const gltf = await this.#getLlamaTemplate();
+    if (!gltf) return buildAlpaca(colorHex);
 
     const group = new THREE.Group();
-    const model = clone(template);
+    const model = clone(gltf.scene);
     this.#tintModel(model, colorHex);
     this.#normalizeModelHeight(model);
     group.add(model);
+
+    // Set up AnimationMixer — idle (index 1) and walk (index 5) from the farm alpaca rig
+    let mixer = null;
+    let idleAction = null;
+    let walkAction = null;
+    if (gltf.animations?.length > 1) {
+      mixer = new THREE.AnimationMixer(model);
+      if (gltf.animations[1]) {
+        idleAction = mixer.clipAction(gltf.animations[1]);
+        idleAction.play();
+      }
+      if (gltf.animations[5]) {
+        walkAction = mixer.clipAction(gltf.animations[5]);
+      }
+    }
 
     const shieldGeo = new THREE.SphereGeometry(1.35, 18, 14);
     const shieldMat = new THREE.MeshPhysicalMaterial({
@@ -150,14 +189,13 @@ export class Game {
     shield.position.y = 1.1;
     group.add(shield);
 
-    return { group, legMeshes: [], shieldMat };
+    return { group, legMeshes: [], shieldMat, mixer, idleAction, walkAction };
   }
 
   #updateAim() {
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(this.mouse, this.camera);
+    this.raycaster.setFromCamera(this.mouse, this.camera);
     const target = new THREE.Vector3();
-    raycaster.ray.intersectPlane(this.groundPlane, target);
+    this.raycaster.ray.intersectPlane(this.groundPlane, target);
 
     const me = this.lastState?.players?.find((p) => p.id === this.localPlayerId);
     if (!me || !target) return;
@@ -229,7 +267,7 @@ export class Game {
   }
 
   async #spawnAlpaca(pd) {
-    const { group, legMeshes, shieldMat } = await this.#buildAlpacaModel(pd.color);
+    const { group, legMeshes, shieldMat, mixer = null, idleAction = null, walkAction = null } = await this.#buildAlpacaModel(pd.color);
     if (this.isDestroyed) return;
     group.position.set(pd.x, 0, pd.z);
     group.castShadow = true;
@@ -242,6 +280,14 @@ export class Game {
       legMeshes,
       shieldMat,
       label,
+      mixer,
+      idleAction,
+      walkAction,
+      isWalking: false,
+      targetX: pd.x,
+      targetZ: pd.z,
+      targetAngle: 0,
+      targetShieldOn: false,
       prevX: pd.x,
       prevZ: pd.z,
       bobPhase: Math.random() * Math.PI * 2,
@@ -272,45 +318,22 @@ export class Game {
   #updateAlpaca(pd) {
     const entry = this.alpacaMeshes[pd.id];
     if (!entry) return;
-    const { group, legMeshes, shieldMat, label } = entry;
+    const { group, label } = entry;
 
-    const tx = THREE.MathUtils.lerp(group.position.x, pd.x, 0.35);
-    const tz = THREE.MathUtils.lerp(group.position.z, pd.z, 0.35);
-    group.position.set(tx, 0, tz);
-
-    const targetAngle = pd.angle ?? Math.atan2(pd.x - entry.prevX, pd.z - entry.prevZ);
-    group.rotation.y = THREE.MathUtils.lerp(group.rotation.y, targetAngle, 0.2);
-
+    // Store server-authoritative targets; the render loop lerps toward them every frame
+    entry.targetX = pd.x;
+    entry.targetZ = pd.z;
+    entry.targetAngle = pd.angle ?? Math.atan2(pd.x - (entry.prevX ?? pd.x), pd.z - (entry.prevZ ?? pd.z));
+    entry.targetShieldOn = pd.shieldTimer > 0;
     entry.prevX = pd.x;
     entry.prevZ = pd.z;
 
-    const speed = Math.sqrt((pd.x - tx) ** 2 + (pd.z - tz) ** 2);
-    if (speed > 0.01 && legMeshes.length === 4) {
-      entry.bobPhase = (entry.bobPhase + 0.2) % (Math.PI * 2);
-      const ph = entry.bobPhase;
-      legMeshes[0].rotation.x = Math.sin(ph) * 0.5;
-      legMeshes[1].rotation.x = -Math.sin(ph) * 0.5;
-      legMeshes[2].rotation.x = -Math.sin(ph) * 0.5;
-      legMeshes[3].rotation.x = Math.sin(ph) * 0.5;
-    } else {
-      entry.bobPhase = (entry.bobPhase + 0.08) % (Math.PI * 2);
-      group.position.y = Math.sin(entry.bobPhase) * 0.03;
-    }
-
     group.visible = pd.alive;
-
-    const shieldOn = pd.shieldTimer > 0;
-    shieldMat.opacity = THREE.MathUtils.lerp(shieldMat.opacity, shieldOn ? 0.35 : 0, 0.15);
-
     if (pd.alive && !group.children.includes(label)) group.add(label);
     if (!pd.alive && group.children.includes(label)) group.remove(label);
 
-    if (pd.health < (entry.lastHealth ?? pd.health)) {
-      this.#flashRed(group);
-      entry.lastHealth = pd.health;
-    } else {
-      entry.lastHealth = pd.health;
-    }
+    if (pd.health < (entry.lastHealth ?? pd.health)) this.#flashRed(group);
+    entry.lastHealth = pd.health;
   }
 
   #flashRed(group) {
@@ -333,7 +356,19 @@ export class Game {
   #removeAlpaca(id) {
     const entry = this.alpacaMeshes[id];
     if (!entry) return;
+    if (entry.mixer) entry.mixer.stopAllAction();
     this.scene.remove(entry.group);
+    entry.group.traverse((child) => {
+      if (child.isMesh) {
+        child.geometry.dispose();
+        if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+        else child.material?.dispose();
+      }
+      if (child.isSprite) {
+        child.material?.map?.dispose();
+        child.material?.dispose();
+      }
+    });
     delete this.alpacaMeshes[id];
   }
 
@@ -409,6 +444,13 @@ export class Game {
     const mesh = this.powerupMeshes[id];
     if (!mesh) return;
     this.scene.remove(mesh);
+    mesh.traverse((child) => {
+      if (child.isMesh) {
+        child.geometry.dispose();
+        if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+        else child.material?.dispose();
+      }
+    });
     delete this.powerupMeshes[id];
   }
 
@@ -435,12 +477,62 @@ export class Game {
     if (this.isDestroyed) return;
     this.frameId = requestAnimationFrame(() => this.animate());
 
-    const dt = this.clock.getDelta();
+    const dt = Math.min(this.clock.getDelta(), 0.1); // cap to avoid huge jumps
     const t = this.clock.getElapsedTime();
 
     this.#updateAim();
     this.particles.update(dt);
     this.onFrame?.(dt);
+
+    // Per-frame smooth interpolation for all alpacas (frame-rate independent)
+    const moveAlpha = 1 - Math.exp(-20 * dt);
+    const angleAlpha = 1 - Math.exp(-12 * dt);
+    const shieldAlpha = 1 - Math.exp(-8 * dt);
+
+    for (const entry of Object.values(this.alpacaMeshes)) {
+      const { group, legMeshes, shieldMat, mixer, idleAction, walkAction } = entry;
+
+      if (mixer) mixer.update(dt);
+
+      if (entry.targetX === undefined) continue;
+
+      group.position.x = THREE.MathUtils.lerp(group.position.x, entry.targetX, moveAlpha);
+      group.position.z = THREE.MathUtils.lerp(group.position.z, entry.targetZ, moveAlpha);
+      group.rotation.y = THREE.MathUtils.lerp(group.rotation.y, entry.targetAngle, angleAlpha);
+
+      const moving = Math.abs(entry.targetX - group.position.x) > 0.02
+        || Math.abs(entry.targetZ - group.position.z) > 0.02;
+
+      if (mixer) {
+        // GLTF alpaca: switch between idle and walk animations
+        if (moving !== entry.isWalking) {
+          entry.isWalking = moving;
+          if (moving && walkAction) {
+            idleAction?.fadeOut(0.2);
+            walkAction.reset().fadeIn(0.2).play();
+          } else if (!moving && idleAction) {
+            walkAction?.fadeOut(0.2);
+            idleAction.reset().fadeIn(0.2).play();
+          }
+        }
+      } else if (legMeshes.length === 4) {
+        // Procedural alpaca: leg bob animation
+        entry.bobPhase = moving
+          ? (entry.bobPhase + dt * 10) % (Math.PI * 2)
+          : (entry.bobPhase + dt * 1.5) % (Math.PI * 2);
+        const ph = entry.bobPhase;
+        if (moving) {
+          legMeshes[0].rotation.x = Math.sin(ph) * 0.5;
+          legMeshes[1].rotation.x = -Math.sin(ph) * 0.5;
+          legMeshes[2].rotation.x = -Math.sin(ph) * 0.5;
+          legMeshes[3].rotation.x = Math.sin(ph) * 0.5;
+        } else {
+          group.position.y = Math.sin(ph) * 0.03;
+        }
+      }
+
+      shieldMat.opacity = THREE.MathUtils.lerp(shieldMat.opacity, entry.targetShieldOn ? 0.35 : 0, shieldAlpha);
+    }
 
     for (const mesh of Object.values(this.powerupMeshes)) {
       mesh.position.y = mesh.userData.baseY + Math.sin(t * 2 + mesh.position.x) * 0.2;
@@ -452,13 +544,15 @@ export class Game {
       mesh.rotation.y += dt * 8;
     }
 
-    const me = this.lastState?.players?.find((p) => p.id === this.localPlayerId);
-    if (me) {
-      this.cameraTarget.set(me.x * 0.15, 0, me.z * 0.15);
+    // Camera follows the local player's visual position (not raw server pos) for smoother feel
+    const localEntry = this.localPlayerId ? this.alpacaMeshes[this.localPlayerId] : null;
+    if (localEntry) {
+      this.cameraTarget.set(localEntry.group.position.x * 0.15, 0, localEntry.group.position.z * 0.15);
     }
 
-    this.camera.position.x = THREE.MathUtils.lerp(this.camera.position.x, this.cameraOffset.x + this.cameraTarget.x, 0.05);
-    this.camera.position.z = THREE.MathUtils.lerp(this.camera.position.z, this.cameraOffset.z + this.cameraTarget.z, 0.05);
+    const camAlpha = 1 - Math.exp(-8 * dt);
+    this.camera.position.x = THREE.MathUtils.lerp(this.camera.position.x, this.cameraOffset.x + this.cameraTarget.x, camAlpha);
+    this.camera.position.z = THREE.MathUtils.lerp(this.camera.position.z, this.cameraOffset.z + this.cameraTarget.z, camAlpha);
     this.camera.position.y = this.cameraOffset.y;
 
     if (this.shakeIntensity > 0.01) {

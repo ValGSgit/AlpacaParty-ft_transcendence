@@ -13,11 +13,12 @@ services:
     volumes:
       - vault_data:/vault/data
       - ./config/vault-prod.hcl:/vault/config/vault.hcl:ro
+      - ./config/alpacaparty-policy.hcl:/vault/config/alpacaparty-policy.hcl:ro
       - ./init:/vault/init:ro
     # Port is NOT exposed externally in prod; backend reaches it via container network.
-    # Uncomment to expose the UI behind a VPN/bastion for initial setup:
-    ports:
-    - "8200:8200"
+    # Uncomment ONLY temporarily behind a VPN/bastion for initial setup, then re-comment:
+    # ports:
+    #   - "8200:8200"
     command: vault server -config=/vault/config/vault.hcl
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8200/v1/sys/seal-status"]

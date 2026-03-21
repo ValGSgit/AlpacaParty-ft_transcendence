@@ -54,6 +54,7 @@
         <div id="pu-shield" class="powerup-icon" title="Shield">🛡️</div>
         <div id="pu-bigspit" class="powerup-icon" title="Big Spit">💧</div>
         <div id="pu-heal" class="powerup-icon" title="Heal">💚</div>
+        <div id="pu-triplespit" class="powerup-icon" title="Triple Spit">💦</div>
       </div>
       <div id="wave-info" style="display:none">
       <span class="wave-badge">WAVE <span id="wave-num">1</span></span>

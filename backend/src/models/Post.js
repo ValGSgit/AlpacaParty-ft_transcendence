@@ -15,6 +15,8 @@ function shapePost(p, likedIds = null) {
     is_public: p.isPublic,
     likes_count: p.likesCount,
     likeCount: p.likesCount,
+    comments_count: p.commentsCount ?? 0,
+    reposts_count: p.repostsCount ?? 0,
     created_at: p.createdAt,
     updated_at: p.updatedAt,
     author_username: p.author?.username,
@@ -110,6 +112,42 @@ const Post = {
       await tx.postLike.deleteMany({ where: { postId: Number(postId), userId: Number(userId) } });
       const count = await tx.postLike.count({ where: { postId: Number(postId) } });
       await tx.post.update({ where: { id: Number(postId) }, data: { likesCount: count } });
+    });
+  },
+
+  async repost(postId, authorId, comment = null) {
+    let repost = null;
+    try {
+      repost = await prisma.$transaction(async (tx) => {
+        const r = await tx.repost.create({
+          data: { postId: Number(postId), authorId: Number(authorId), comment: comment ?? null },
+          include: { author: AUTHOR_SELECT },
+        });
+        const count = await tx.repost.count({ where: { postId: Number(postId) } });
+        await tx.post.update({ where: { id: Number(postId) }, data: { repostsCount: count } });
+        return r;
+      });
+    } catch (e) {
+      if (e.code === 'P2002') return null; // already reposted
+      throw e;
+    }
+    if (!repost) return null;
+    return {
+      id: repost.id,
+      post_id: repost.postId,
+      author_id: repost.authorId,
+      comment: repost.comment,
+      created_at: repost.createdAt,
+      author_username: repost.author?.username,
+      author_avatar: repost.author?.avatar,
+    };
+  },
+
+  async unrepost(postId, authorId) {
+    await prisma.$transaction(async (tx) => {
+      await tx.repost.deleteMany({ where: { postId: Number(postId), authorId: Number(authorId) } });
+      const count = await tx.repost.count({ where: { postId: Number(postId) } });
+      await tx.post.update({ where: { id: Number(postId) }, data: { repostsCount: count } });
     });
   },
 
