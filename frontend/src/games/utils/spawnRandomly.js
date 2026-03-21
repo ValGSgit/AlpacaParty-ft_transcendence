@@ -24,6 +24,7 @@ export async function spawnObjectRandomly(path, amount, type) {
         item = await createDecoration(data.path, data.position, data.rotation, data.scale);
         break;
       case 'collectable':
+        data.scale = [0, 0, 0];
         item = await createCollectable(data.path, data.position, data.rotation, data.scale);
         break;
       default:

@@ -83,8 +83,9 @@
     
     <div v-if="gUI.itemShop" class="modal-overlay">
         <div class="shop-title">Select Item
-          <button class="shop-btn" @click="buyItem('/models/tree.glb')" title="Tree">🌳</button>
-          <button class="shop-btn" @click="buyItem('/models/fence.glb')" title="Fence">🌳</button>
+          <button class="shop-btn" @click="buyItem('/models/tree.glb')" title="Tree">Tree</button>
+          <button class="shop-btn" @click="buyItem('/models/fence.glb')" title="Fence">Fence</button>
+          <button class="shop-btn" @click="buyItem('/models/hay.glb')" title="Water">Hay</button>
           <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
         </div>
     </div>

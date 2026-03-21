@@ -17,14 +17,13 @@ export async function createAlpaca(
   const path = '/models/alpaca.glb';
   const { model, animations } = await getModel(path);
   const clone = SkeletonUtils.clone(model);
+  attachCollider(clone);
 
   const alpaca = new Alpaca(clone, animations, {
     name, color, position, rotation, scale
   });
 
-  attachCollider(alpaca.model);
   registerEntity(alpaca, 'alpaca');
-
   return markRaw(alpaca);
 }
 
@@ -36,12 +35,12 @@ export async function createItem(
 ) {
   const { model, animations } = await getModel(path);
   const clone = SkeletonUtils.clone(model);
+  attachCollider(clone);
+
   const item = new Item(clone, animations, { position, rotation, scale });
   item.path = path;
 
-  attachCollider(item.model);
   registerEntity(item, 'item');
-
   return markRaw(item);
 }
 
@@ -54,10 +53,11 @@ export async function createDecoration(
 ) {
   const { model, animations } = await getModel(path);
   const clone = SkeletonUtils.clone(model);
+  attachCollider(clone);
+
   const deco = new Item(clone, animations, { position, rotation, scale });
   deco.path = path;
 
-  attachCollider(deco.model);
   registerEntity(deco, 'decoration');
   return markRaw(deco);
 }
@@ -66,13 +66,14 @@ export async function createCollectable(
   path,
   position = [0, 0, 0],
   rotation = 0,
-  scale = [1, 1, 1],
+  scale = [0, 0, 0],
 ) {
   const { model, animations } = await getModel(path);
   const clone = SkeletonUtils.clone(model);
+  attachCollider(collectable.model);
+
   const collectable = new Collectable(clone, animations, { position, rotation, scale });
 
-  attachCollider(collectable.model);
   registerEntity(collectable, 'collectable');
   return markRaw(collectable);
 }
