@@ -13,6 +13,27 @@
         @keydown.enter.prevent="start"
       >
       <button id="play-btn" @click="start">Spit and Play</button>
+
+      <div class="live-matches">
+        <div class="live-header">
+          <h2>Live Matches</h2>
+          <button type="button" @click="refreshMatches">Refresh</button>
+        </div>
+        <div v-if="liveMatches.length === 0" class="live-empty">No active matches right now.</div>
+        <div v-else class="live-list">
+          <div v-for="match in liveMatches" :key="match.id" class="live-card">
+            <div class="live-row">
+              <span class="live-id">#{{ match.id }}</span>
+              <span class="live-state">{{ match.state }}</span>
+            </div>
+            <div class="live-players">
+              <span v-for="p in match.players" :key="p.id">{{ p.name }}<em v-if="!p.connected"> (reconnecting)</em></span>
+            </div>
+            <div class="live-meta">Spectators: {{ match.spectators }}</div>
+            <button type="button" @click="spectate(match.id)">Spectate</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="canvas-container"></div>
@@ -21,6 +42,10 @@
       <div id="player-cards"></div>
       <div id="crosshair"></div>
       <div id="status-msg" class="hidden"></div>
+      <div id="post-game-actions" class="hidden">
+        <button id="btn-rematch" type="button">Rematch</button>
+        <button id="btn-requeue" type="button">Quick Play</button>
+      </div>
       <div id="powerup-bar">
         <div id="pu-speed" class="powerup-icon" title="Speed">💨</div>
         <div id="pu-shield" class="powerup-icon" title="Shield">🛡️</div>
@@ -44,6 +69,7 @@ import { SpitRoyaleClient } from '../spitroyale/SpitRoyaleClient.js'
 
 const root = ref(null)
 const playerName = ref('')
+const liveMatches = ref([])
 const authStore = useAuthStore()
 let client = null
 
@@ -53,10 +79,23 @@ const start = () => {
   client.connect(playerName.value.trim())
 }
 
+const refreshMatches = () => {
+  client?.requestLiveMatches()
+}
+
+const spectate = (matchId) => {
+  if (!client) return
+  client.connect(playerName.value.trim() || authStore.user?.username || '')
+  client.spectateMatch(matchId)
+}
+
 onMounted(() => {
   const saved = localStorage.getItem('alpacaName')
   playerName.value = saved || authStore.user?.username || ''
   client = new SpitRoyaleClient(root.value)
+  client.onLiveMatches = (matches) => {
+    liveMatches.value = matches.filter((m) => m.state === 'playing' || m.state === 'lobby')
+  }
 })
 
 onUnmounted(() => {
@@ -91,6 +130,95 @@ onUnmounted(() => {
 }
 .subtitle { color: #aaa; font-size: 1.1rem; margin-bottom: 2.5rem; letter-spacing: 2px; text-transform: uppercase; }
 .emoji { font-size: 5rem; margin-bottom: 1rem; animation: bounce 1.5s ease-in-out infinite; }
+
+.live-matches {
+  margin-top: 1.25rem;
+  width: min(680px, 92vw);
+  max-height: 40vh;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 12px;
+  overflow: auto;
+}
+
+.live-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.live-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #f7e7c6;
+}
+
+.live-header button {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+}
+
+.live-empty {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
+}
+
+.live-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.live-card {
+  background: rgba(8, 8, 8, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px;
+  text-align: left;
+}
+
+.live-row {
+  display: flex;
+  justify-content: space-between;
+  color: #f4a261;
+  font-size: 0.8rem;
+}
+
+.live-players {
+  margin: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.live-players em {
+  color: #e9c46a;
+  font-style: normal;
+}
+
+.live-meta {
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.75rem;
+  margin-bottom: 8px;
+}
+
+.live-card button {
+  width: 100%;
+  border: 1px solid rgba(244, 162, 97, 0.5);
+  background: rgba(244, 162, 97, 0.12);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
 
 #name-input {
   width: 280px;
@@ -148,6 +276,38 @@ onUnmounted(() => {
   pointer-events: none;
 }
 .hidden { opacity: 0; }
+
+#post-game-actions {
+  position: absolute;
+  top: calc(50% + 72px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  pointer-events: auto;
+  transition: opacity 0.2s ease;
+}
+
+#post-game-actions.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#post-game-actions button {
+  padding: 0.7rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(10, 10, 10, 0.72);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+}
+
+#post-game-actions button:hover {
+  border-color: rgba(244, 162, 97, 0.8);
+}
 
 #powerup-bar { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; }
 .powerup-icon { width: 48px; height: 48px; background: rgba(0,0,0,0.6); border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }

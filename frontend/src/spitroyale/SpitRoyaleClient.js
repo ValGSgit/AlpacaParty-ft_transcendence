@@ -11,10 +11,18 @@ export class SpitRoyaleClient {
     this.socket = null;
     this.localPlayerId = null;
     this.inputInterval = null;
+    this.playerName = '';
+    this.mode = 'queue';
+    this.currentMatchId = null;
+    this.onLiveMatches = null;
   }
 
   connect(name) {
-    if (this.socket) return;
+    this.playerName = name;
+    if (this.socket) {
+      this.socket.emit('queue:join', { name: this.playerName });
+      return;
+    }
 
     const token = localStorage.getItem('accessToken');
     this.socket = io('/spit-royale', {
@@ -23,6 +31,7 @@ export class SpitRoyaleClient {
     });
 
     this.socket.on('connect', () => {
+      this.requestLiveMatches();
       this.socket.emit('join', { name });
     });
 
@@ -44,6 +53,8 @@ export class SpitRoyaleClient {
     switch (msg.type) {
       case 'joined': {
         this.localPlayerId = msg.playerId;
+        this.currentMatchId = msg.roomId;
+        this.mode = msg.roomId === 'queue' ? 'queue' : 'player';
         if (!this.ui) {
           this.ui = new UI(this.root);
           this.ui.show();
@@ -56,8 +67,17 @@ export class SpitRoyaleClient {
           this.socket.emit('spit', { angle });
         };
 
+        this.ui.onRematch = () => {
+          this.socket?.emit('rematch:request');
+        };
+        this.ui.onRequeue = () => {
+          this.socket?.emit('queue:join', { name: this.playerName });
+          this.ui?.hidePostGameActions();
+          this.ui?.setRematchStatus(0, 0);
+        };
+
         this.inputInterval = setInterval(() => {
-          if (!this.socket || !this.game || !this.socket.connected) return;
+          if (!this.socket || !this.game || !this.socket.connected || this.mode !== 'player') return;
           this.socket.emit('input', this.game.getInputPacket());
         }, 33);
 
@@ -67,7 +87,14 @@ export class SpitRoyaleClient {
       }
 
       case 'queue_waiting':
-        this.ui?.showStatus('Searching for a match...', 0);
+        this.ui?.showStatus(`Searching for a match... (${msg.queueSize || 1} in queue)`, 0);
+        this.ui?.hidePostGameActions();
+        this.ui?.setRematchStatus(0, 0);
+        break;
+
+      case 'queue_left':
+        this.mode = 'queue';
+        this.ui?.showStatus('Left queue. Press Spit and Play to queue again.', 3000);
         break;
 
       case 'player_joined':
@@ -82,16 +109,70 @@ export class SpitRoyaleClient {
       case 'game_over':
         this.game?.applyState(msg.state);
         this.ui?.updatePlayers(msg.state.players, this.localPlayerId);
-        if (msg.type === 'game_start') this.ui?.showStatus('SPIT IT!', 1200);
+        if (msg.type === 'game_start') {
+          this.mode = 'player';
+          this.ui?.showStatus('SPIT IT!', 1200);
+          this.ui?.hidePostGameActions();
+          this.ui?.setRematchStatus(0, 0);
+        }
         if (msg.type === 'game_over') {
           this.ui?.showStatus(`${msg.winner} wins!`, 2500);
           const reward = msg.rewards?.[this.localPlayerId] || null;
           if (reward) this.ui?.showRewards(reward);
+          this.ui?.showPostGameActions();
         }
+        break;
+
+      case 'spectator_joined':
+        this.mode = 'spectator';
+        this.currentMatchId = msg.matchId;
+        this.localPlayerId = null;
+        if (!this.ui) {
+          this.ui = new UI(this.root);
+          this.ui.show();
+        }
+        if (!this.game) {
+          this.game = new Game(this.root.querySelector('#canvas-container'), null);
+        }
+        this.game.applyState(msg.state);
+        this.ui.updatePlayers(msg.state.players, null);
+        this.ui.hidePostGameActions();
+        this.ui.showStatus('Spectating live match', 2200);
+        break;
+
+      case 'spectator_left':
+        if (this.mode === 'spectator') {
+          this.mode = 'queue';
+          this.currentMatchId = null;
+        }
+        break;
+
+      case 'live_matches':
+        this.onLiveMatches?.(msg.matches || []);
+        break;
+
+      case 'player_disconnected':
+        this.ui?.addKillFeedEntry(`Player disconnected (${Math.round((msg.graceMs || 0) / 1000)}s reconnect window)`);
+        this.game?.applyState(msg.state);
+        this.ui?.updatePlayers(msg.state.players, this.localPlayerId);
+        break;
+
+      case 'player_reconnected':
+        this.ui?.addKillFeedEntry('Player reconnected');
+        this.game?.applyState(msg.state);
+        this.ui?.updatePlayers(msg.state.players, this.localPlayerId);
+        break;
+
+      case 'spectators_update':
+        this.ui?.addKillFeedEntry(`Spectators: ${msg.count}`);
         break;
 
       case 'countdown':
         this.ui?.showStatus(`Game starts in ${msg.seconds}s...`, 0);
+        break;
+
+      case 'rematch_update':
+        this.ui?.setRematchStatus(msg.votes || 0, msg.needed || 0);
         break;
 
       case 'player_hit': {
@@ -139,6 +220,23 @@ export class SpitRoyaleClient {
       default:
         break;
     }
+  }
+
+  requestLiveMatches() {
+    if (!this.socket) return;
+    this.socket.emit('matches:list', (payload) => {
+      this.onLiveMatches?.(payload?.matches || []);
+    });
+  }
+
+  spectateMatch(matchId) {
+    if (!this.socket || !matchId) return;
+    this.socket.emit('spectate:join', { matchId });
+  }
+
+  leaveSpectate() {
+    if (!this.socket) return;
+    this.socket.emit('spectate:leave');
   }
 
   destroy() {

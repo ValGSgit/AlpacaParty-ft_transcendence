@@ -13,8 +13,18 @@ export class UI {
     this.cards = root.querySelector('#player-cards');
     this.statusMsg = root.querySelector('#status-msg');
     this.killFeed = root.querySelector('#kill-feed');
+    this.actions = root.querySelector('#post-game-actions');
+    this.rematchBtn = root.querySelector('#btn-rematch');
+    this.requeueBtn = root.querySelector('#btn-requeue');
     this.cardEls = {};
     this.statusTimer = null;
+    this.onRematch = null;
+    this.onRequeue = null;
+
+    this.rematchHandler = () => this.onRematch?.();
+    this.requeueHandler = () => this.onRequeue?.();
+    this.rematchBtn?.addEventListener('click', this.rematchHandler);
+    this.requeueBtn?.addEventListener('click', this.requeueHandler);
 
     this.powerupIcons = {
       speed: root.querySelector('#pu-speed'),
@@ -50,7 +60,12 @@ export class UI {
       const pct = p.health / MAX_HEALTH;
       bar.style.width = `${pct * 100}%`;
       bar.style.background = healthColor(pct);
-      card.style.opacity = p.alive ? '1' : '0.35';
+      const connected = p.connected !== false;
+      card.style.opacity = p.alive ? (connected ? '1' : '0.6') : '0.35';
+
+      const nameEl = card.querySelector('.player-name');
+      const suffix = p.id === localId ? ' (you)' : '';
+      nameEl.textContent = connected ? `${p.name}${suffix}` : `${p.name}${suffix} [reconnecting]`;
     }
 
     for (const id of Object.keys(this.cardEls)) {
@@ -78,6 +93,25 @@ export class UI {
     setTimeout(() => el.remove(), 4000);
     while (this.killFeed.children.length > 4) {
       this.killFeed.removeChild(this.killFeed.firstChild);
+    }
+  }
+
+  showPostGameActions() {
+    if (!this.actions) return;
+    this.actions.classList.remove('hidden');
+  }
+
+  hidePostGameActions() {
+    if (!this.actions) return;
+    this.actions.classList.add('hidden');
+  }
+
+  setRematchStatus(votes, needed) {
+    if (!this.rematchBtn) return;
+    if (votes > 0 && needed > 0) {
+      this.rematchBtn.textContent = `Rematch (${votes}/${needed})`;
+    } else {
+      this.rematchBtn.textContent = 'Rematch';
     }
   }
 
@@ -119,6 +153,8 @@ export class UI {
 
   destroy() {
     if (this.statusTimer) clearTimeout(this.statusTimer);
+    this.rematchBtn?.removeEventListener('click', this.rematchHandler);
+    this.requeueBtn?.removeEventListener('click', this.requeueHandler);
     for (const id of Object.keys(this.cardEls)) {
       this.cardEls[id].remove();
       delete this.cardEls[id];
