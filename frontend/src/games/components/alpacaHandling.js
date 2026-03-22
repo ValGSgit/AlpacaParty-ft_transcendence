@@ -46,6 +46,7 @@ export function alpacaHandling() {
 
     // Add to our tracking array instead of doing hit logic here
     activeSpits.push({
+        owner: alpaca, // the owner of the spit
         mesh: beam,
         direction: direction,
         currentPos: origin,
@@ -75,7 +76,7 @@ export function alpacaHandling() {
             // Logic for hitting an alpaca
             if (hits.length > 0) {
                 const hitAlpaca = findAlpaca(hits[0].object);
-                hitAlpaca.beingHit()
+                hitAlpaca.beingHit(s.owner)
             }
 
             // Cleanup

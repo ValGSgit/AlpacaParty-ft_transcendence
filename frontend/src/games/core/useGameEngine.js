@@ -98,8 +98,8 @@ export function useGameEngine(containerRef) {
 
   const cleanup = () => {
     clearScene(scene.value)
-    scene.value.sunLight.dispose() // the two leaks
-    scene.value.background.dispose()
+    if (scene.value.sunLight) scene.value.sunLight.dispose() // the two leaks
+    if (scene.value.background) scene.value.background.dispose()
     if (animationId) cancelAnimationFrame(animationId)
     resetGArrays()
     // check for leaks
@@ -128,5 +128,5 @@ export function useGameEngine(containerRef) {
     gEditables.length = 0;
   }
 
-  return { init, cleanup, onResize }
+  return { init, cleanup, onResize, clearScene, resetGArrays }
 }

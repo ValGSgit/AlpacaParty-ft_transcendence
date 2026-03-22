@@ -5,6 +5,7 @@ import { spawnObjectRandomly } from '../utils/spawnRandomly.js'
 import { loadGameData } from './dataLoader.js'
 import { setupEnvironment } from './sceneBuilder.js'
 
+
 export async function initWorld(scene, isAuthenticated = false) {
   setupEnvironment(scene)
 
@@ -49,10 +50,10 @@ export async function initItems(scene, savedItems) {
   if (savedItems && savedItems.length > 0) {
     itemsGroup = await initSavedItems(savedItems);
   } else {
-    itemsGroup.add(await spawnObjectRandomly('/models/alpaca.glb', 4, 'alpaca'))
-    //itemsGroup.add(await spawnObjectRandomly('/models/tree.glb', 4, 'item'))
-    //itemsGroup.add(await spawnObjectRandomly('/models/grass.glb', 30, 'decoration'))
-    //itemsGroup.add(await spawnObjectRandomly('/models/stones.glb', 4, 'decoration'))
+    //itemsGroup.add(await spawnObjectRandomly('/models/alpaca.glb', 4, 'alpaca'))
+    itemsGroup.add(await spawnObjectRandomly('/models/tree.glb', 4, 'item'))
+    itemsGroup.add(await spawnObjectRandomly('/models/grass.glb', 30, 'decoration'))
+    itemsGroup.add(await spawnObjectRandomly('/models/stones.glb', 4, 'decoration'))
     itemsGroup.add(await spawnObjectRandomly('/models/fence.glb', 1, 'item'))
   }
   scene.add(itemsGroup);

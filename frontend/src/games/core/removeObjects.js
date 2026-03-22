@@ -18,7 +18,7 @@ export function removeObject(entity) {
   }
 }
 
-function removeFromRegistry(item, array) {
+export function removeFromRegistry(item, array) {
   const index = array.indexOf(item);
   if (index > -1) {
     array.splice(index, 1);

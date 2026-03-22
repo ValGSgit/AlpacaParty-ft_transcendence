@@ -72,7 +72,6 @@ export async function createCollectable(
   const clone = SkeletonUtils.clone(model);
   const collectable = new Collectable(clone, animations, { position, rotation, scale });
   attachCollider(collectable.model);
-
   registerEntity(collectable, 'collectable');
   return markRaw(collectable);
 }

@@ -11,16 +11,25 @@
   <div v-if="!gameIsReady" class="modal-overlay">Loading...</div>
   
   <div v-if="gameIsReady">
+    <div v-if="!gUser.gameMode" class="title">Farm</div>
+    <div v-if="gUser.gameMode && gUser.hp" class="title">Battle Royale</div>
+    <div v-if="gUser.gameMode && !gUser.hp" class="title">Game Over!</div>
     <div class="hud-left">
-      <div class="stat"><span>💰 {{ gUser.coins }}</span></div>
+      <div v-if="!gUser.gameMode" class="stat"><span>💰 {{ gUser.coins }}</span></div>
+      <div v-if="gUser.gameMode" class="stat"><span>🦙 {{ gUser.point }} </span></div>
+      <div v-if="gUser.hp === 3"><span>❤️❤️❤️</span></div>
+      <div v-if="gUser.hp === 2"><span>❤️❤️💔</span></div>
+      <div v-if="gUser.hp === 1"><span>❤️💔💔</span></div>
+      <div v-if="gUser.hp === 0"><span>💔💔💔</span></div>
     </div>
-    
+
     <div class="hud-right">
-      <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🤑</button>
-      <button class="hud-btn" @click="openShopMenu()" title="Shop">💰</button>
-      <button class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
-      <button class="hud-btn" @click="openLightMenu()" title="Edit Light">🌟</button>
-      <button class="hud-btn" @click="changeCamera()" title="Change Camera">🎥</button>
+      <button class="hud-btn" @click="changeGame()" title="Mini Games">🕹️</button>
+        <button v-if="!gUser.gameMode" class="hud-btn" @click="openShopMenu()" title="Shop">💰</button>
+        <button v-if="!gUser.gameMode" class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
+        <button v-if="!gUser.gameMode" class="hud-btn" @click="openLightMenu()" title="Edit Light">🌟</button>
+        <button v-if="!gUser.gameMode" class="hud-btn" @click="changeCamera()" title="Change Camera">🎥</button>
+        <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🤑</button>
     </div>
     
     <div v-if="gUI.shopMenu" class="modal-overlay">
@@ -133,6 +142,7 @@ import { watchChanges } from './core/watchChanges.js'
 import './game.css'
 import { initUser } from './user/initUser.js'
 import { initWorld } from './world/initWorld.js'
+import { changeGame } from './mini_games/init.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -169,7 +179,7 @@ onMounted(async () => {
   }
   else
   {
-    stats = initStats(gameContainer.value);
+    //stats = initStats(gameContainer.value);
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera

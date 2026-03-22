@@ -3,7 +3,7 @@ import { reactive } from 'vue'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { useEditMode } from '../components/editMode.js'
 import { printDebug } from './debug.js'
-import { gEditState, gEngine, gScene, gPlayer, gUI } from './globals.js'
+import { gEditState, gEngine, gScene, gPlayer, gUI, gUser } from './globals.js'
 import { useUIManager } from './useUIManager.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions
@@ -46,6 +46,9 @@ export function useInput() {
   }
 
   const onDoubleClick = (e) => {
+    // disable double click in mini games
+    if (gUser.value.gameMode)
+      return
     console.log("double Click!");
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
     const pointer = new THREE.Vector2()
