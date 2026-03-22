@@ -92,32 +92,35 @@ describe('BaseInput', () => {
 
 // ── BaseModal ───────────────────────────────────────────────────
 describe('BaseModal', () => {
+  const modalGlobal = { global: { stubs: { teleport: true } } }
+
   it('renders with title', () => {
-    const w = mount(BaseModal, { props: { title: 'Confirm Action' }, slots: { default: 'Are you sure?' } })
+    const w = mount(BaseModal, { ...modalGlobal, props: { title: 'Confirm Action' }, slots: { default: 'Are you sure?' } })
     expect(w.find('.modal-title').text()).toBe('Confirm Action')
     expect(w.text()).toContain('Are you sure?')
   })
 
   it('emits close when close button is clicked', async () => {
-    const w = mount(BaseModal, { props: { title: 'Test' }, slots: { default: 'Content' } })
+    const w = mount(BaseModal, { ...modalGlobal, props: { title: 'Test' }, slots: { default: 'Content' } })
     await w.find('.modal-close').trigger('click')
     expect(w.emitted('close')).toBeTruthy()
     expect(w.emitted('close').length).toBe(1)
   })
 
   it('emits close when backdrop is clicked', async () => {
-    const w = mount(BaseModal, { props: { title: 'Test' }, slots: { default: 'Content' } })
+    const w = mount(BaseModal, { ...modalGlobal, props: { title: 'Test' }, slots: { default: 'Content' } })
     await w.find('.modal-backdrop').trigger('click')
     expect(w.emitted('close')).toBeTruthy()
   })
 
   it('renders slot content in body', () => {
-    const w = mount(BaseModal, { props: { title: 'Info' }, slots: { default: '<p>Hello modal</p>' } })
+    const w = mount(BaseModal, { ...modalGlobal, props: { title: 'Info' }, slots: { default: '<p>Hello modal</p>' } })
     expect(w.find('.modal-body').text()).toContain('Hello modal')
   })
 
   it('renders footer slot when provided', () => {
     const w = mount(BaseModal, {
+      ...modalGlobal,
       props: { title: 'With Footer' },
       slots: {
         default: 'Body',
@@ -129,7 +132,7 @@ describe('BaseModal', () => {
   })
 
   it('does not render footer when no footer slot', () => {
-    const w = mount(BaseModal, { props: { title: 'No Footer' }, slots: { default: 'Body' } })
+    const w = mount(BaseModal, { ...modalGlobal, props: { title: 'No Footer' }, slots: { default: 'Body' } })
     expect(w.find('.modal-footer').exists()).toBe(false)
   })
 })

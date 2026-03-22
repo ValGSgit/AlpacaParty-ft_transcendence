@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     container_name: alpacaparty_e2e
     environment:
-      E2E_BASE_URL: http://nginx:8080
+      E2E_BASE_URL: https://nginx:8443
       PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium-browser
     depends_on:
       - nginx

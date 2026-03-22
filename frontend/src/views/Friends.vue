@@ -1,6 +1,6 @@
 <!--
   Friends View — manage friends, requests, and blocks
-  @owner TODO
+  @owner fankahou
 -->
 <template>
   <div class="friends-page">

@@ -1,5 +1,8 @@
 import bcrypt from 'bcrypt';
-import prisma from '../src/config/prisma.js';
+import { loadVaultSecrets } from '../src/config/vault.js';
+
+// Assigned after Vault secrets are loaded so DATABASE_URL is built with real credentials.
+let prisma;
 
 const cfg = {
   users: Number(process.env.SEED_USERS || 240),
@@ -201,22 +204,22 @@ async function seedSocialGraph(users) {
 }
 
 const SEED_IMAGES = [
-  'https://picsum.photos/seed/alpaca1/600/400',
-  'https://picsum.photos/seed/alpaca2/600/400',
-  'https://picsum.photos/seed/alpaca3/600/400',
-  'https://picsum.photos/seed/alpaca4/600/400',
-  'https://picsum.photos/seed/alpaca5/600/400',
-  'https://picsum.photos/seed/alpaca6/600/400',
-  'https://picsum.photos/seed/alpaca7/600/400',
-  'https://picsum.photos/seed/alpaca8/600/400',
-  'https://picsum.photos/seed/alpaca9/600/400',
-  'https://picsum.photos/seed/alpaca10/600/400',
-  'https://picsum.photos/seed/party1/600/400',
-  'https://picsum.photos/seed/party2/600/400',
-  'https://picsum.photos/seed/farm1/600/400',
-  'https://picsum.photos/seed/farm2/600/400',
-  'https://picsum.photos/seed/game1/600/400',
-  'https://picsum.photos/seed/game2/600/400',
+  'https://images.pexels.com/photos/5840695/pexels-photo-5840695.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',     // fluffy white alpaca close-up
+  'https://images.pexels.com/photos/30318570/pexels-photo-30318570/free-photo-of-close-up-portrait-of-a-curious-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // curious brown alpaca portrait
+  'https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80',           // group of alpacas grazing on farm
+  'https://images.pexels.com/photos/30417713/pexels-photo-30417713/free-photo-of-cute-baby-alpaca-portrait-in-ljubljana-zoo.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // cute baby alpaca close-up
+  'https://images.pexels.com/photos/17955330/pexels-photo-17955330/free-photo-of-white-head-of-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // fluffy white alpaca face detail
+  'https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80',           // mixed group of alpacas standing in field
+  'https://images.pexels.com/photos/17955330/pexels-photo-17955330/free-photo-of-white-head-of-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // another fluffy close-up for variety
+  'https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80',           // herd grazing scene
+  'https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80',           // alpacas in open field
+  'https://images.pexels.com/photos/30318570/pexels-photo-30318570/free-photo-of-close-up-portrait-of-a-curious-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // expressive brown alpaca
+  'https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80',           // group grazing together
+  'https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80',           // colorful mix of alpacas
+  'https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80',           // farm herd scene
+  'https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80',           // alpacas in pasture
+  'https://images.pexels.com/photos/30417713/pexels-photo-30417713/free-photo-of-cute-baby-alpaca-portrait-in-ljubljana-zoo.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // adorable baby alpaca
+  'https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80',           // more farm group grazing
 ];
 
 async function seedPostsAndLikes(userIds) {
@@ -387,6 +390,9 @@ async function seedNotifications(userIds) {
 }
 
 async function main() {
+  await loadVaultSecrets();
+  ({ default: prisma } = await import('../src/config/prisma.js'));
+
   console.log('[seed-live] Starting...');
   console.log('[seed-live] Config:', cfg);
 
@@ -430,6 +436,6 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await prisma?.$disconnect();
     process.exit(process.exitCode || 0);
   });

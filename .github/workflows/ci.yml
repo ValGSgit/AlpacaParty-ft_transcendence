@@ -1,9 +1,9 @@
 # AlpacaParty — Continuous Integration
 #
 # Jobs:
-#   1. backend-unit  — Jest unit + integration tests (mocked DB)
-#   2. frontend-unit — Vitest component + store tests
-#   3. e2e           — Playwright full-stack tests with seed data (push only)
+#   1. backend-unit   — Jest unit + integration tests (mocked DB)
+#   2. frontend-unit  — Vitest unit tests
+#   3. e2e            — Playwright full-stack tests with seed data (push only)
 
 name: CI
 
@@ -133,9 +133,22 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
+      # -- Generate SSL certs (mirrors `make ssl-certs`) -----------
+      - name: Generate self-signed SSL certificates
+        run: |
+          mkdir -p nginx/ssl backend/ssl
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout nginx/ssl/key.pem \
+            -out nginx/ssl/cert.pem \
+            -days 365 \
+            -subj '/CN=localhost' \
+            -addext 'subjectAltName=DNS:localhost,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1'
+          cp nginx/ssl/cert.pem backend/ssl/cert.pem
+          cp nginx/ssl/key.pem  backend/ssl/key.pem
+
       # -- Start the full stack -------------------------------------
       - name: Start application stack
-        run: docker compose up -d --build
+        run: docker compose up -d --build postgres backend frontend nginx
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-e2e-secret-change-in-prod' }}
           DB_NAME: alpacaparty
@@ -146,7 +159,7 @@ jobs:
         run: |
           echo "Waiting for backend health endpoint..."
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8080/api/health > /dev/null 2>&1; then
+            if curl -ksfL https://localhost:8080/api/health > /dev/null 2>&1; then
               echo "Backend is healthy after ${i} attempts"
               exit 0
             fi
@@ -174,7 +187,7 @@ jobs:
         working-directory: e2e
         run: npm test
         env:
-          E2E_BASE_URL: http://localhost:8080
+          E2E_BASE_URL: https://localhost:8080
 
       # -- Artifacts ------------------------------------------------
       - name: Upload Playwright report

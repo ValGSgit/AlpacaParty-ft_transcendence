@@ -11,7 +11,7 @@ CYAN   := \033[0;36m
 RESET  := \033[0m
 
 # ── Docker ──────────────────────────────────────────────────
-COMPOSE_PROJECT := $(notdir $(CURDIR))
+COMPOSE_PROJECT := alpacaparty-ft_transcendence
 DC := docker compose
 DC_PROD := docker compose -f compose.prod.yaml
 
@@ -23,8 +23,12 @@ DC_PROD := docker compose -f compose.prod.yaml
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
         shell-backend shell-frontend shell-db \
-	test e2e prod-e2e test-local seed-admins seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
-        vault-status vault-secrets vault-shell waf-logs
+	test e2e prod-e2e test-local \
+	seed-admins prod-seed-admins make-admin prod-make-admin \
+	seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
+        vault-status vault-secrets vault-shell \
+        prod-vault-status prod-vault-unseal prod-vault-rotate-token \
+        waf-logs
 
 # ── HELP ────────────────────────────────────────────────────
 help:
@@ -65,17 +69,23 @@ help:
 	@echo "  $(GREEN)make prod-e2e$(RESET)       Seed data + run E2E tests against prod stack"
 	@echo ""
 	@echo "$(YELLOW)Database$(RESET)"
-	@echo "  $(GREEN)make seed-admins$(RESET)    Promote developer accounts to admin"
-	@echo "  $(GREEN)make seed-live$(RESET)      Seed high-volume sample data (dev compose)"
-	@echo "  $(GREEN)make seed-live-reset$(RESET) Reset and reseed high-volume sample data (dev compose)"
-	@echo "  $(GREEN)make prod-seed-live$(RESET) Seed high-volume sample data (prod compose)"
+	@echo "  $(GREEN)make seed-admins$(RESET)          Promote developer accounts to admin (dev)"
+	@echo "  $(GREEN)make prod-seed-admins$(RESET)     Promote developer accounts to admin (prod)"
+	@echo "  $(GREEN)make make-admin USER=x$(RESET)    Promote user x to admin (dev)"
+	@echo "  $(GREEN)make prod-make-admin USER=x$(RESET) Promote user x to admin (prod)"
+	@echo "  $(GREEN)make seed-live$(RESET)            Seed high-volume sample data (dev compose)"
+	@echo "  $(GREEN)make seed-live-reset$(RESET)      Reset and reseed high-volume sample data (dev compose)"
+	@echo "  $(GREEN)make prod-seed-live$(RESET)       Seed high-volume sample data (prod compose)"
 	@echo "  $(GREEN)make prod-seed-live-reset$(RESET) Reset and reseed high-volume sample data (prod compose)"
 	@echo ""
 	@echo "$(YELLOW)Security$(RESET)"
-	@echo "  $(GREEN)make vault-status$(RESET)   Show Vault seal/HA status"
-	@echo "  $(GREEN)make vault-secrets$(RESET)  List secrets stored in Vault (dev)"
-	@echo "  $(GREEN)make vault-shell$(RESET)    Open interactive Vault shell"
-	@echo "  $(GREEN)make waf-logs$(RESET)       Tail ModSecurity audit log"
+	@echo "  $(GREEN)make vault-status$(RESET)              Show Vault seal/HA status (dev)"
+	@echo "  $(GREEN)make vault-secrets$(RESET)             List secrets stored in Vault (dev)"
+	@echo "  $(GREEN)make vault-shell$(RESET)               Open interactive Vault shell (dev)"
+	@echo "  $(GREEN)make prod-vault-status$(RESET)         Show prod Vault status"
+	@echo "  $(GREEN)make prod-vault-unseal$(RESET)         Manually unseal prod Vault"
+	@echo "  $(GREEN)make prod-vault-rotate-token$(RESET)   Create new limited service token"
+	@echo "  $(GREEN)make waf-logs$(RESET)                  Tail ModSecurity audit log"
 	@echo ""
 	@echo "$(YELLOW)Cleanup$(RESET)"
 	@echo "  $(GREEN)make clean$(RESET)          Stop containers & remove images"
@@ -127,26 +137,12 @@ generate-secrets:
 	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
 
 # ── SSL CERTIFICATES ────────────────────────────────────────
-# Generates a self-signed certificate for local HTTPS development.
+# Generates a self-signed cert with SANs directly via the host openssl binary.
+# Works on Linux, macOS, Git Bash (Windows), and CI.
+# SANs are required — CN-only certs are rejected by Node.js / Go TLS.
+# Removes any Docker-created placeholder directories before generating.
 ssl-certs:
-	@mkdir -p nginx/ssl backend/ssl
-	@if [ ! -f nginx/ssl/cert.pem ]; then \
-	  openssl req -x509 -newkey rsa:2048 -nodes \
-	    -keyout nginx/ssl/key.pem \
-	    -out nginx/ssl/cert.pem \
-	    -days 365 \
-	    -subj '/CN=localhost' 2>/dev/null && \
-	  echo "$(GREEN)✓ Self-signed certificate generated in nginx/ssl/$(RESET)"; \
-	else \
-	  echo "$(YELLOW)  Certificate already exists — skipping$(RESET)"; \
-	fi
-	@if [ ! -f backend/ssl/cert.pem ]; then \
-	  cp nginx/ssl/cert.pem backend/ssl/cert.pem && \
-	  cp nginx/ssl/key.pem backend/ssl/key.pem && \
-	  echo "$(GREEN)✓ Self-signed certificate copied to backend/ssl/$(RESET)"; \
-	else \
-	  echo "$(YELLOW)  Backend certificate already exists — skipping$(RESET)"; \
-	fi
+	@bash scripts/ssl-certs.sh
 
 # Ensure .env exists with real secrets before any prod command.
 # Does NOT regenerate if .env already exists (keeps DB password stable).
@@ -155,7 +151,8 @@ ssl-certs:
 	@$(MAKE) --no-print-directory generate-secrets
 
 # ── PRODUCTION ──────────────────────────────────────────────
-prod-up: .env ssl-certs
+prod-up: .env
+	$(MAKE) --no-print-directory ssl-certs
 	$(DC_PROD) up -d --build
 
 prod-down:
@@ -187,10 +184,18 @@ test:
 e2e:
 	$(DC) exec e2e npm test
 
-# Production E2E: seeds data and runs Playwright against the production build
+# Production E2E: seeds data and runs Playwright against the production build.
+# Builds the e2e Docker image and runs it on the shared prod network so that
+# the container can resolve 'nginx' by DNS — no host npx required.
 prod-e2e: prod-seed-live
+	@echo "$(CYAN)Building e2e image…$(RESET)"
+	docker build -t alpacaparty-e2e e2e/
 	@echo "$(CYAN)Running E2E tests against production build…$(RESET)"
-	cd e2e && E2E_BASE_URL=https://localhost:8080 npx playwright test
+	docker run --rm \
+	  --network alpacaparty_net \
+	  -e E2E_BASE_URL=https://nginx:8443 \
+	  -e PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+	  alpacaparty-e2e npm test
 	@echo "$(GREEN)✓ Production E2E tests complete$(RESET)"
 
 # Run unit tests locally (no Docker)
@@ -218,6 +223,32 @@ seed-admins:
 	  -d $${DB_NAME:-alpacaparty} \
 	  -f /dev/stdin < scripts/seed-admins.sql
 
+prod-seed-admins:
+	$(DC_PROD) exec -T postgres psql \
+	  -U $${DB_USER:-alpacaparty} \
+	  -d $${DB_NAME:-alpacaparty} \
+	  -f /dev/stdin < scripts/seed-admins.sql
+
+# Promote a single user to admin by username.
+# Usage: make make-admin USER=myusername
+make-admin:
+	@[ -n "$(USER)" ] || { echo "$(YELLOW)Usage: make make-admin USER=<username>$(RESET)"; exit 1; }
+	$(DC) exec -T postgres psql \
+	  -U $${DB_USER:-alpacaparty} \
+	  -d $${DB_NAME:-alpacaparty} \
+	  -c "UPDATE users SET is_admin = TRUE WHERE username = '$(USER)'; \
+	      SELECT id, username, email, is_admin FROM users WHERE username = '$(USER)';"
+
+# Promote a single user to admin by username (prod).
+# Usage: make prod-make-admin USER=myusername
+prod-make-admin:
+	@[ -n "$(USER)" ] || { echo "$(YELLOW)Usage: make prod-make-admin USER=<username>$(RESET)"; exit 1; }
+	$(DC_PROD) exec -T postgres psql \
+	  -U $${DB_USER:-alpacaparty} \
+	  -d $${DB_NAME:-alpacaparty} \
+	  -c "UPDATE users SET is_admin = TRUE WHERE username = '$(USER)'; \
+	      SELECT id, username, email, is_admin FROM users WHERE username = '$(USER)';"
+
 seed-live:
 	$(DC) exec backend npm run seed:live
 
@@ -244,6 +275,37 @@ vault-shell:
 
 waf-logs:
 	$(DC) exec nginx tail -f /var/log/modsecurity/audit.log
+
+# ── PRODUCTION VAULT MANAGEMENT ─────────────────────────────────────────────
+# Show prod vault seal status and active address
+prod-vault-status:
+	$(DC_PROD) exec vault vault status
+
+# Manually unseal prod vault (if vault-init container is no longer running).
+# Requires VAULT_UNSEAL_KEY in .env.
+prod-vault-unseal:
+	$(DC_PROD) exec \
+	  -e VAULT_ADDR=https://vault:8200 \
+	  -e VAULT_SKIP_VERIFY=true \
+	  vault vault operator unseal $${VAULT_UNSEAL_KEY}
+
+# Create a limited read-only service token and print it.
+# Copy the printed token into VAULT_TOKEN in .env, then restart backend:
+#   make prod-down && make prod-up
+prod-vault-rotate-token:
+	@$(DC_PROD) exec \
+	  -e VAULT_ADDR=https://vault:8200 \
+	  -e VAULT_TOKEN=$${VAULT_TOKEN} \
+	  -e VAULT_SKIP_VERIFY=true \
+	  vault vault token create \
+	    -policy=alpacaparty-backend \
+	    -ttl=2160h \
+	    -renewable=true \
+	    -display-name=alpacaparty-backend \
+	    -format=json \
+	  | grep '"client_token"' \
+	  | sed 's/.*"client_token": *"\(.*\)".*/\1/' \
+	  | xargs -I{} echo "New VAULT_TOKEN: {}"
 
 # ── CLEANUP ─────────────────────────────────────────────────
 clean:

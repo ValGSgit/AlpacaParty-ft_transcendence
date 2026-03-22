@@ -1,6 +1,6 @@
 <!--
   Settings View — profile edit, password change, privacy, data management
-  @owner TODO
+  @owner fankahou
 -->
 <template>
   <div class="settings-page">

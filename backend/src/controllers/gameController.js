@@ -22,7 +22,7 @@ export const getHistory = async (req, res, next) => {
     const matches = await Game.getMatchHistory(req.user.id, {
       limit: Number(limit), offset: Number(offset), gameType,
     });
-    res.json({ matches });
+    res.json({ history: matches });
   } catch (err) { next(err); }
 };
 
@@ -46,7 +46,7 @@ export const getFarm = async (req, res, next) => {
 /** PUT /api/game/farm */
 export const saveFarm = async (req, res, next) => {
   try {
-    const { farmData } = req.body;
+    const farmData = req.body.farmData ?? req.body.farm;
     if (!farmData) return res.status(400).json({ error: { message: 'farmData is required' } });
     const farm = await Game.updateFarm(req.user.id, farmData);
     res.json({ farm });

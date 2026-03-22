@@ -40,7 +40,7 @@ export const listUsers = async (req, res, next) => {
       prisma.user.findMany({
         where,
         select: { id: true, username: true, email: true, avatar: true, isOnline: true, isAdmin: true, level: true, xp: true, createdAt: true },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: Number(limit),
         skip: Number(offset),
       }),

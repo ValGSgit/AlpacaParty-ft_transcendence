@@ -113,7 +113,7 @@ describe('Register.vue', () => {
     let resolveRegister
     api.post.mockReturnValueOnce(new Promise(r => { resolveRegister = r }))
 
-    await wrapper.find('#username').setValue('u')
+    await wrapper.find('#username').setValue('validuser')
     await wrapper.find('#email').setValue('e@e.com')
     await wrapper.find('#password').setValue('ValidPass1')
     await wrapper.find('#confirm').setValue('ValidPass1')
@@ -163,9 +163,8 @@ describe('Register.vue', () => {
     await wrapper.find('#confirm').setValue('ValidPass1')
     await wrapper.find('form').trigger('submit')
 
-    await vi.dynamicImportSettled()
-    await wrapper.vm.$nextTick()
-
-    expect(pushSpy).toHaveBeenCalledWith('/')
+    await vi.waitFor(() => {
+      expect(pushSpy).toHaveBeenCalledWith('/')
+    })
   })
 })

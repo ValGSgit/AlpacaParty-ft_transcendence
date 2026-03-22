@@ -80,7 +80,7 @@ describe('GET /api/game/history', () => {
     ]);
     const res = await request.get('/api/game/history').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
-    expect(res.body.matches).toHaveLength(1);
+    expect(res.body.history).toHaveLength(1);
   });
 });
 

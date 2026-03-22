@@ -80,12 +80,15 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:', 'blob:', '*.googleusercontent.com', '*.githubusercontent.com', 'picsum.photos', '*.picsum.photos'],
+      imgSrc: ["'self'", 'data:', 'blob:', '*.googleusercontent.com', '*.githubusercontent.com', 'picsum.photos', '*.picsum.photos', 'https://images.pexels.com'],
       connectSrc: ["'self'", 'wss:', 'ws:', 'https:'],
       fontSrc: ["'self'", 'data:'],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'", 'blob:'],
       frameSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
     },
   },
 }));
@@ -115,8 +118,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const passport = initializePassport();
 app.use(passport.initialize());
 
-// Serve uploaded files
-app.use('/uploads', express.static(config.uploads.dir));
+// Serve uploaded files — force download to prevent SVG/HTML XSS in app origin
+app.use('/uploads', (_req, res, next) => {
+  res.setHeader('Content-Disposition', 'attachment');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  next();
+}, express.static(config.uploads.dir));
 
 // Dev request logging
 if (config.nodeEnv === 'development') {

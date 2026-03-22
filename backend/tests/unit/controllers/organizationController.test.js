@@ -98,7 +98,7 @@ describe('getOrg', () => {
     const { req, res, next } = createReqRes({ params: { id: '1' } });
     await getOrg(req, res, next);
     expect(res._json.organization.name).toBe('Org1');
-    expect(res._json.members).toHaveLength(1);
+    expect(res._json.organization.members).toHaveLength(1);
   });
 
   test('returns 404 when org not found', async () => {

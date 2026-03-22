@@ -46,7 +46,6 @@ export function shapeUserForClient(u) {
     status: u.status,
     is_public: u.isPublic,
     is_online: u.isOnline,
-    is_admin: u.isAdmin,
     oauth_provider: u.oauthProvider,
     xp: u.xp,
     level: u.level,

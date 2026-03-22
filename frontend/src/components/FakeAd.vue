@@ -1,5 +1,24 @@
 <template>
-  <div v-if="visible" class="fake-ad-overlay" @click.self="closeAd">
+  <!-- Sidebar mode: static inline card, no overlay -->
+  <div v-if="sidebar" class="fake-ad-container fake-ad-sidebar">
+    <div class="ad-header">
+      <span class="ad-label">Advertisement</span>
+    </div>
+    <div class="ad-body">
+      <img :src="gifUrl" alt="Farm Merge Valley Ad" class="ad-gif" />
+      <div class="ad-text">
+        <p class="ad-title">{{ title }}</p>
+        <p class="ad-subtitle">{{ subtitle }}</p>
+      </div>
+      <button class="cta-btn" @click="onCtaClick">{{ ctaText }}</button>
+    </div>
+    <div class="ad-footer">
+      <span>Sponsored · alpacagram.hawktwah</span>
+    </div>
+  </div>
+
+  <!-- Modal/overlay mode (original behavior) -->
+  <div v-else-if="visible" class="fake-ad-overlay" @click.self="closeAd">
     <div class="fake-ad-container">
       <!-- Ad Header -->
       <div class="ad-header">
@@ -35,6 +54,7 @@
 </template>
 
 <script lang="ts">
+
 import { defineComponent, ref, onMounted, onUnmounted, watch } from 'vue'
 
 export default defineComponent({
@@ -65,6 +85,10 @@ export default defineComponent({
       type: Number,
       default: 5, // 0 = no auto close; set seconds to enable
     },
+    sidebar: {
+      type: Boolean,
+      default: false, // when true: renders as static inline card, no overlay/timers
+    },
   },
 
   emits: ['close', 'cta-click'],
@@ -87,6 +111,7 @@ export default defineComponent({
     }
 
     onMounted(() => {
+      if (props.sidebar) return // static panel — no timers
       if (props.closableAfter > 0) {
         countdownTimer = setInterval(() => {
           countdown.value--
@@ -259,6 +284,25 @@ export default defineComponent({
   color: #8a6500;
   font-weight: 700;
   letter-spacing: 0.5px;
+}
+
+/* Sidebar variant — no overlay, no pop-in animation, width fills parent */
+.fake-ad-sidebar {
+  width: 100%;
+  animation: none;
+  box-shadow:
+    0 0 0 3px #f4a800,
+    0 0 0 6px #fff3c4,
+    0 4px 24px rgba(0, 0, 0, 0.35);
+}
+.fake-ad-sidebar .ad-gif {
+  max-height: 220px;
+}
+.fake-ad-sidebar .ad-title {
+  font-size: 18px;
+}
+.fake-ad-sidebar .ad-subtitle {
+  font-size: 12px;
 }
 
 /* Animations */
