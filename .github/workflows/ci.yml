@@ -1,17 +1,17 @@
 # AlpacaParty — Continuous Integration
 #
 # Jobs:
-#   1. backend-unit  — Jest unit + integration tests (mocked DB)
-#   2. frontend-unit — Vitest component + store tests
-#   3. e2e           — Playwright full-stack tests (push only)
+#   1. backend-unit   — Jest unit + integration tests (mocked DB)
+#   2. frontend-unit  — Vitest unit tests
+#   3. e2e            — Playwright full-stack tests with seed data (push only)
 
 name: CI
 
 on:
   push:
-    branches: [main, dev, backend-main, backend-Val]
+    branches: [main, dev, backend-main, backend-Val, fix-Unit/E2E]
   pull_request:
-    branches: [main, dev, backend-main, backend-Val]
+    branches: [main, dev, backend-main, backend-Val, fix-Unit/E2E]
 
 # Cancel in-progress runs for the same branch/PR on new push
 concurrency:
@@ -126,16 +126,26 @@ jobs:
       - name: Install Playwright browsers
         working-directory: e2e
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium firefox
+        run: npx playwright install --with-deps chromium
 
       - name: Install Playwright system deps (cache hit)
         working-directory: e2e
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium firefox
+        run: npx playwright install-deps chromium
+
+      # -- Generate SSL certs (mirrors `make ssl-certs`) -----------
+      - name: Generate self-signed SSL certificates
+        run: |
+          mkdir -p nginx/ssl
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout nginx/ssl/key.pem \
+            -out nginx/ssl/cert.pem \
+            -days 365 \
+            -subj '/CN=localhost'
 
       # -- Start the full stack -------------------------------------
       - name: Start application stack
-        run: docker compose up -d --build
+        run: docker compose up -d --build postgres backend frontend nginx
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-e2e-secret-change-in-prod' }}
           DB_NAME: alpacaparty
@@ -146,7 +156,7 @@ jobs:
         run: |
           echo "Waiting for backend health endpoint..."
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8080/api/health > /dev/null 2>&1; then
+            if curl -ksfL https://localhost:8080/api/health > /dev/null 2>&1; then
               echo "Backend is healthy after ${i} attempts"
               exit 0
             fi
@@ -157,12 +167,24 @@ jobs:
           docker compose logs
           exit 1
 
+      # -- Seed data for E2E tests ----------------------------------
+      - name: Seed live data for E2E tests
+        run: docker compose exec -T backend npm run seed:live
+        env:
+          SEED_USERS: "50"
+          SEED_POSTS: "100"
+          SEED_ORGS: "5"
+          SEED_DM_MESSAGES: "200"
+          SEED_ROOMS: "5"
+          SEED_ROOM_MESSAGES: "200"
+          SEED_NOTIFICATIONS: "100"
+
       # -- Run tests ------------------------------------------------
       - name: Run Playwright tests
         working-directory: e2e
         run: npm test
         env:
-          E2E_BASE_URL: http://localhost:8080
+          E2E_BASE_URL: https://localhost:8080
 
       # -- Artifacts ------------------------------------------------
       - name: Upload Playwright report

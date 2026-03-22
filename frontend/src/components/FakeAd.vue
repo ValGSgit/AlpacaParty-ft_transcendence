@@ -59,11 +59,11 @@ export default defineComponent({
     },
     closableAfter: {
       type: Number,
-      default: 5, // seconds before close button appears
+      default: 3, // seconds before close button appears
     },
     autoClose: {
       type: Number,
-      default: 0, // 0 = no auto close; set seconds to enable
+      default: 5, // 0 = no auto close; set seconds to enable
     },
   },
 

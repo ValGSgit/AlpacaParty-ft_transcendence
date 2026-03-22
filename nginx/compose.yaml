@@ -1,0 +1,20 @@
+# nginx + ModSecurity WAF
+services:
+  nginx:
+    build:
+      context: ..
+      dockerfile: nginx/Dockerfile
+    container_name: alpacaparty_nginx
+    ports:
+      - "8080:8443"
+      - "8000:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/templates/conf.d/default.conf.template:ro
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - alpacaparty_net

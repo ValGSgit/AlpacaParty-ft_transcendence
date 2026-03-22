@@ -1,0 +1,49 @@
+# Backend (Express) — Production
+#
+# Secrets (DB_PASSWORD, JWT_SECRET, OAuth creds, API keys) are NOT passed here.
+# They are fetched from Vault by server.js at startup via loadVaultSecrets().
+# Only non-sensitive infrastructure config and the Vault bootstrap token are set.
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.prod
+    container_name: alpacaparty_backend_prod
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+
+      # ── Infrastructure (non-secret) ───────────────────────────
+      DB_HOST: postgres
+      DB_PORT: 5432
+
+      # ── App config (non-secret) ───────────────────────────────
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://localhost:8080}
+      FRONTEND_URL: ${FRONTEND_URL:-https://localhost:8080}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://localhost:8080/api/auth/google/callback}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-https://localhost:8080/api/auth/github/callback}
+      SSL_CERT_PATH: /app/ssl/cert.pem
+      SSL_KEY_PATH: /app/ssl/key.pem
+
+      # ── Vault bootstrap (the only secret passed directly) ─────
+      # VAULT_TOKEN must be the limited read-only service token printed by
+      # vault-init on first deployment — NOT the root token.
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN}
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-check-certificate --quiet --tries=1 --spider https://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: always
+    networks:
+      - alpacaparty_net

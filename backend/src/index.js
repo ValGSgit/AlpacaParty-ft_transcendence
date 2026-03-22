@@ -4,7 +4,9 @@
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/2
  */
 import express from 'express';
-import { createServer } from 'http';
+import https from 'https';
+import http from 'http';
+import fs from 'fs';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -14,16 +16,78 @@ import routes from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { initializeSocket } from './services/socketService.js';
 import { initializePassport } from './services/oauthService.js';
+import prisma from './config/prisma.js';
 
 const app = express();
-const httpServer = createServer(app);
+
+// Create HTTPS server with certificates
+let httpServer;
+let useHttps = false;
+
+const isProd = config.nodeEnv === 'production';
+
+if (config.ssl.certPath && config.ssl.keyPath) {
+  try {
+    if (!fs.existsSync(config.ssl.certPath)) {
+      throw new Error(`Certificate file not found: ${config.ssl.certPath}`);
+    }
+    if (!fs.existsSync(config.ssl.keyPath)) {
+      throw new Error(`Key file not found: ${config.ssl.keyPath}`);
+    }
+    const key = fs.readFileSync(config.ssl.keyPath, 'utf8');
+    const cert = fs.readFileSync(config.ssl.certPath, 'utf8');
+    httpServer = https.createServer({ key, cert }, app);
+    useHttps = true;
+    console.log('[ssl] ✓ HTTPS enabled with certificates from', config.ssl.certPath);
+  } catch (err) {
+    if (isProd) {
+      throw new Error(`[ssl] SSL certificates required in production but failed to load: ${err.message}`);
+    }
+    console.warn(`[ssl] Failed to load certificates: ${err.message}`);
+    console.warn('[ssl] Falling back to HTTP (development only)');
+  }
+}
+
+// Fallback to HTTP — development only
+if (!useHttps) {
+  if (isProd) {
+    throw new Error('[ssl] SSL certificates are required in production but were not configured');
+  }
+  httpServer = http.createServer(app);
+  console.warn('[ssl] ⚠ Backend running on HTTP - certificates not properly configured');
+}
 
 // Trust proxy (behind nginx reverse proxy)
 app.set('trust proxy', 1);
 
+// Enforce HTTPS (check X-Forwarded-Proto header from nginx)
+app.use((req, res, next) => {
+  const proto = req.get('X-Forwarded-Proto');
+  if (proto === 'http') {
+    if (isProd) {
+      return res.redirect(301, `https://${req.get('host')}${req.url}`);
+    }
+    console.warn(`[ssl] Non-HTTPS request received: ${req.method} ${req.path}`);
+  }
+  next();
+});
+
 // Security
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:', '*.googleusercontent.com', '*.githubusercontent.com', 'picsum.photos', '*.picsum.photos', 'https://images.pexels.com'],
+      connectSrc: ["'self'", 'wss:', 'ws:', 'https:'],
+      fontSrc: ["'self'", 'data:'],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'", 'blob:'],
+      frameSrc: ["'none'"],
+    },
+  },
 }));
 
 // CORS
@@ -96,8 +160,23 @@ initializeSocket(httpServer, config.cors.origins);
 
 // Start server
 const PORT = config.port;
-httpServer.listen(PORT, () => {
+const server = httpServer.listen(PORT, () => {
   console.log(`[server] AlpacaParty API running on port ${PORT} (${config.nodeEnv})`);
 });
+
+const shutdown = async (signal) => {
+  console.log(`[server] ${signal} received, shutting down gracefully...`);
+  server.close(async () => {
+    try {
+      await prisma.$disconnect();
+    } catch (err) {
+      console.error('[prisma] disconnect error:', err.message);
+    }
+    process.exit(0);
+  });
+};
+
+process.on('SIGINT', () => { shutdown('SIGINT'); });
+process.on('SIGTERM', () => { shutdown('SIGTERM'); });
 
 export default app;

@@ -4,12 +4,19 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 import supertest from 'supertest';
 
-const mockQuery = jest.fn();
-jest.unstable_mockModule('../../src/config/database.js', () => ({
-  query: mockQuery,
-  getClient: jest.fn(),
-  default: { on: jest.fn(), query: mockQuery },
-}));
+const mockPrisma = {
+  user: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn(), count: jest.fn(), upsert: jest.fn() },
+  game: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), count: jest.fn(), findFirst: jest.fn() },
+  gameStat: { findUnique: jest.fn(), findMany: jest.fn(), upsert: jest.fn() },
+  alpacaFarm: { findUnique: jest.fn(), upsert: jest.fn() },
+  achievement: { findUnique: jest.fn(), findMany: jest.fn() },
+  userAchievement: { findMany: jest.fn(), create: jest.fn() },
+  dailyChallenge: { findMany: jest.fn() },
+  notification: { create: jest.fn(), findMany: jest.fn(), updateMany: jest.fn(), deleteMany: jest.fn(), count: jest.fn(), findUnique: jest.fn() },
+  $transaction: jest.fn(),
+  $queryRaw: jest.fn(),
+};
+jest.unstable_mockModule('../../src/config/prisma.js', () => ({ default: mockPrisma }));
 
 const { createTestApp } = await import('../helpers/createApp.js');
 const { default: AuthService } = await import('../../src/services/authService.js');
@@ -18,20 +25,20 @@ let app;
 let request;
 let token;
 
-const authUser = { id: 1, username: 'gamer', email: 'g@test.com', is_admin: false };
-const sampleStats = { id: 1, user_id: 1, game_type: 'pong', wins: 5, losses: 2, elo: 1050 };
-const sampleFarm = { id: 1, user_id: 1, farm_data: { coins: 100, alpacas: [] } };
+const authUser = { id: 1, username: 'gamer', email: 'g@test.com', isAdmin: false };
 
 beforeEach(async () => {
-  mockQuery.mockReset();
-  mockQuery.mockResolvedValue({ rows: [] });
+  jest.clearAllMocks();
+  mockPrisma.$transaction.mockImplementation((fnOrOps) =>
+    typeof fnOrOps === 'function' ? fnOrOps(mockPrisma) : Promise.all(fnOrOps),
+  );
   app = await createTestApp();
   request = supertest(app);
-  token = AuthService.generateAccessToken({ id: 1, username: 'gamer', is_admin: false });
+  token = AuthService.generateAccessToken({ id: 1, username: 'gamer', isAdmin: false });
 });
 
 function auth(req) {
-  mockQuery.mockResolvedValueOnce({ rows: [authUser] });
+  mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
   return req.set('Authorization', `Bearer ${token}`);
 }
 
@@ -43,16 +50,20 @@ describe('GET /api/game/stats', () => {
   });
 
   test('200 — returns stats', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [sampleStats] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.gameStat.findUnique.mockResolvedValueOnce({
+      userId: 1, gameType: 'pong', wins: 5, losses: 2, draws: 0, elo: 1050,
+    });
     const res = await request.get('/api/game/stats').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('stats');
   });
 
   test('200 — with gameType query param', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [sampleStats] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.gameStat.findUnique.mockResolvedValueOnce({
+      userId: 1, gameType: 'pong', wins: 5, losses: 2, draws: 0, elo: 1050,
+    });
     const res = await request
       .get('/api/game/stats?gameType=pong')
       .set('Authorization', `Bearer ${token}`);
@@ -63,19 +74,23 @@ describe('GET /api/game/stats', () => {
 // ── GET /api/game/history ─────────────────────────────────────
 describe('GET /api/game/history', () => {
   test('200 — returns match history', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 1, player1_id: 1, player2_id: 2 }] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.game.findMany.mockResolvedValueOnce([
+      { id: 1, player1Id: 1, player2Id: 2, status: 'finished', gameType: 'pong', player1Score: 5, player2Score: 3 },
+    ]);
     const res = await request.get('/api/game/history').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
-    expect(res.body.matches).toHaveLength(1);
+    expect(res.body.history).toHaveLength(1);
   });
 });
 
 // ── GET /api/game/leaderboard ─────────────────────────────────
 describe('GET /api/game/leaderboard', () => {
   test('200 — returns leaderboard', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [{ username: 'top', elo: 1200 }] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.gameStat.findMany.mockResolvedValueOnce([
+      { userId: 2, gameType: 'pong', elo: 1200, wins: 10, losses: 2, draws: 0, user: { username: 'top', avatar: null, level: 5 } },
+    ]);
     const res = await request.get('/api/game/leaderboard').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.leaderboard).toHaveLength(1);
@@ -85,8 +100,8 @@ describe('GET /api/game/leaderboard', () => {
 // ── GET /api/game/farm ────────────────────────────────────────
 describe('GET /api/game/farm', () => {
   test('200 — returns farm data', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [sampleFarm] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.alpacaFarm.upsert.mockResolvedValueOnce({ userId: 1, farmData: { coins: 100, alpacas: [] } });
     const res = await request.get('/api/game/farm').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('farm');
@@ -102,9 +117,9 @@ describe('PUT /api/game/farm', () => {
   });
 
   test('200 — saves farm', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
     const farmData = { coins: 200, alpacas: [] };
-    mockQuery.mockResolvedValueOnce({ rows: [{ ...sampleFarm, farm_data: farmData }] });
+    mockPrisma.alpacaFarm.upsert.mockResolvedValueOnce({ userId: 1, farmData });
     const res = await request
       .put('/api/game/farm')
       .set('Authorization', `Bearer ${token}`)
@@ -117,9 +132,11 @@ describe('PUT /api/game/farm', () => {
 // ── GET /api/game/achievements ────────────────────────────────
 describe('GET /api/game/achievements', () => {
   test('200 — returns all achievements with unlock status', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] }); // auth
-    mockQuery.mockResolvedValueOnce({ rows: [{ key: 'first_win', title: 'First Win' }] }); // getAll
-    mockQuery.mockResolvedValueOnce({ rows: [{ key: 'first_win' }] }); // getUserAchievements
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser); // auth
+    mockPrisma.achievement.findMany.mockResolvedValueOnce([{ id: 1, key: 'first_win', title: 'First Win' }]); // getAll
+    mockPrisma.userAchievement.findMany.mockResolvedValueOnce([
+      { achievementId: 1, achievement: { key: 'first_win', title: 'First Win' }, unlockedAt: new Date() },
+    ]); // getUserAchievements
     const res = await request.get('/api/game/achievements').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.achievements[0]).toHaveProperty('unlocked', true);
@@ -129,8 +146,10 @@ describe('GET /api/game/achievements', () => {
 // ── GET /api/game/challenges ──────────────────────────────────
 describe('GET /api/game/challenges', () => {
   test('200 — returns challenges', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [{ key: 'win_10', progress: 3, target: 10 }] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.dailyChallenge.findMany.mockResolvedValueOnce([
+      { id: 1, key: 'win_10', title: 'Win 10', target: 10, userChallenges: [{ completed: false, completedAt: null }] },
+    ]);
     const res = await request.get('/api/game/challenges').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('challenges');

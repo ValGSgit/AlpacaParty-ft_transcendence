@@ -17,10 +17,6 @@
         </template>
       </div>
     </div>
-<!--
-    You must be wondering what this is
-    <FakeAd /> 
---> 
 
     <div class="features">
       <div class="feature-card">
@@ -49,9 +45,7 @@
 
 <script setup>
 import { useAuthStore } from '../stores/auth.js'
-import FakeAd from '@/components/FakeAd.vue'
 const authStore = useAuthStore()
-
 </script>
 
 <style scoped>

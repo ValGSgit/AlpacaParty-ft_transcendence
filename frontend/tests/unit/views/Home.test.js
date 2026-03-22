@@ -53,4 +53,33 @@ describe('Home.vue', () => {
     const wrapper = mountHome()
     expect(wrapper.find('.home').exists()).toBe(true)
   })
+
+  it('renders main heading with correct text', () => {
+    const wrapper = mountHome()
+    const heading = wrapper.find('.hero-title')
+    expect(heading.exists()).toBe(true)
+    expect(heading.text()).toBe('Alpaca Party!')
+  })
+
+  it('renders for unauthenticated user with get started and login links', () => {
+    const wrapper = mountHome()
+    const links = wrapper.findAllComponents(RouterLinkStub)
+    const destinations = links.map(l => l.props('to'))
+
+    expect(destinations).toContain('/register')
+    expect(destinations).toContain('/login')
+    // Should NOT show Play Now for guests
+    expect(wrapper.text()).not.toContain('Play Now')
+  })
+
+  it('renders for authenticated user with play now link', () => {
+    const wrapper = mountHome({ id: 1, username: 'alice' })
+    const links = wrapper.findAllComponents(RouterLinkStub)
+    const destinations = links.map(l => l.props('to'))
+
+    expect(destinations).toContain('/game')
+    expect(wrapper.text()).toContain('Play Now')
+    // Should NOT show Get Started for authenticated users
+    expect(wrapper.text()).not.toContain('Get Started')
+  })
 })

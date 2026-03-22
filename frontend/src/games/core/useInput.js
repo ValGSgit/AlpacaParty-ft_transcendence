@@ -1,11 +1,10 @@
 import * as THREE from 'three'
-import { reactive, onMounted, onUnmounted } from 'vue'
-import { gEngine, gScene, gUser, gPlayer } from './globals.js'
+import { reactive } from 'vue'
 import { alpacaHandling } from '../components/alpacaHandling.js'
-import { saveGame } from './saveLoadGame.js'
-import { useShop } from '../components/shop.js'
-import { printDebug } from './debug.js'
 import { useEditMode } from '../components/editMode.js'
+import { printDebug } from './debug.js'
+import { gEditState, gEngine, gScene, gPlayer, gUI } from './globals.js'
+import { useUIManager } from './useUIManager.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions
 const keys = reactive({
@@ -13,9 +12,9 @@ const keys = reactive({
 })
 
 export function useInput() {
-  const { switchAlpaca, moveAlpaca, spit } = alpacaHandling()
-  const { alpacaMenuOff, itemShopOff } = useShop()
-  const { editModeOff, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement } = useEditMode()
+  const { switchAlpaca } = alpacaHandling()
+  const { selectItem, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement } = useEditMode()
+  const { closeMenus, openAlpacaShop } = useUIManager()
 
   const onKeyDown = (e) => {
     switch (e.code) {
@@ -24,7 +23,7 @@ export function useInput() {
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
       case 'Space': keys.space = true; break
-      case 'KeyF': spit(); break
+      case 'KeyF': gPlayer.value.spit(); break
       case 'KeyP': printDebug(); break
       case 'Escape': handleEscapeKey(); break
     }
@@ -41,12 +40,13 @@ export function useInput() {
   }
 
   const onWheel = (e) => {
-    if (gScene.value.selected) {
+    if (gUI.editMode && gEditState.selected) {
       rotateItem(e)
     }
   }
 
   const onDoubleClick = (e) => {
+    console.log("double Click!");
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
     const pointer = new THREE.Vector2()
     pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
@@ -56,15 +56,16 @@ export function useInput() {
     raycaster.setFromCamera(pointer, gEngine.value.camera)
 
     const intersects = raycaster.intersectObjects(gScene.value.children, true)
-    if (intersects.length > 0 && !switchAlpaca(intersects[0].object, raycaster)) {
-      moveAlpaca(gPlayer.value.model, raycaster) // move alpaca if it didnt hit another one
+    if (intersects.length > 0) {
+      switchAlpaca(intersects[0].object, raycaster)
     }
   }
 
   const handleMouseMove = (e) => {
     // item selected to move
-    if (gScene.value.edit || gScene.value.selected) {
-      if (gUser.value && gScene.value.selected) {
+    if (!gEngine.value) return;
+    if (gUI.editMode || gEditState.selected) {
+      if (gEditState.selected) {
         moveItem(e)
       }
       else {
@@ -76,8 +77,8 @@ export function useInput() {
   const onPointerDown = (e) => {
     keys.pointer = true
     // Select item in edit mode
-    if (gScene.value.edit || gScene.value.selected) {
-      if (gScene.value.selected) {
+    if (gUI.editMode || gEditState.selected) {
+      if (gEditState.selected) {
         placeItem()
       } else {
         selectItem(e)
@@ -85,45 +86,37 @@ export function useInput() {
     }
   }
 
-  const onPointerUp = () => {
-
-  }
-
-  //Close all UI Menus
   const handleEscapeKey = () => {
-    gScene.value.pause = false
-    gScene.value.lightMenu = false
-    if (gScene.value.alpacaMenu) alpacaMenuOff()
-    if (gScene.value.itemMenu) itemShopOff()
-
-    if (gScene.value.selected) {
-      cancelPlacement()
-    }
-    if (gScene.value.edit) {
-      removeHighlight()
-      editModeOff()
+    if (gEditState.selected) {
+      if (gEditState.selected.userData.isNew)
+        closeMenus();
+      cancelPlacement();
+    } else {
+      closeMenus()
     }
   }
 
-  onMounted(() => {
+  const initInput = () => {
+    const canvas = gEngine.value.renderer.domElement;
+
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('wheel', onWheel)
-    gEngine.value.renderer.domElement.addEventListener('dblclick', onDoubleClick)
-    gEngine.value.renderer.domElement.addEventListener('pointerdown', onPointerDown)
-    gEngine.value.renderer.domElement.addEventListener('pointerup', onPointerUp)
-  })
+    canvas.addEventListener('dblclick', onDoubleClick)
+    canvas.addEventListener('pointerdown', onPointerDown)
+  }
 
-  onUnmounted(() => {
+  const cleanupInput = () => {
+    const canvas = gEngine.value.renderer.domElement;
+
     window.removeEventListener('keydown', onKeyDown)
     window.removeEventListener('keyup', onKeyUp)
     window.removeEventListener('mousemove', handleMouseMove);
     window.removeEventListener('wheel', onWheel);
-    gEngine.value.renderer.domElement.removeEventListener('dblclick', onDoubleClick)
-    gEngine.value.renderer.domElement.removeEventListener('pointerdown', onPointerDown)
-    gEngine.value.renderer.domElement.removeEventListener('pointerup', onPointerUp)
-  })
+    canvas.removeEventListener('dblclick', onDoubleClick)
+    canvas.removeEventListener('pointerdown', onPointerDown)
+  }
 
-  return { keys }
+  return { keys, initInput, cleanupInput }
 }

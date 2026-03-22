@@ -2,8 +2,6 @@
  * Vue Router Configuration
  * @owner fankahou, LukasStefanek
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/1
- *
- * Route guards and auth-gated routes will be added with Issue #8 (Authentication)
  */
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
@@ -12,16 +10,22 @@ const Home     = () => import('../views/Home.vue')
 const Login    = () => import('../views/Login.vue')
 const Register = () => import('../views/Register.vue')
 const Profile  = () => import('../views/Profile.vue')
-const ApiTest  = () => import('../views/ApiTest.vue')
+const UserProfile = () => import('../views/UserProfile.vue')
 const Friends  = () => import('../views/Friends.vue')
 const Messages = () => import('../views/Messages.vue')
 const Game     = () => import('../games/Game.vue')
+const SpitRoyale = () => import('../views/SpitRoyale.vue')
 const Settings = () => import('../views/Settings.vue')
 const Help     = () => import('../views/Help.vue')
+const Feed     = () => import('../views/Feed.vue')
+const Admin    = () => import('../views/Admin.vue')
 const NotFound = () => import('../views/NotFound.vue')
 const OAuthCallback = () => import('../views/OAuthCallback.vue')
 const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
 const TermsOfService = () => import('../views/TermsOfService.vue')
+const PublicShowcase = () => import('../views/PublicShowcase.vue')
+const SecurityDashboard = () => import('../views/SecurityDashboard.vue')
+const ApiDocs  = () => import('../views/ApiDocs.vue')
 
 const routes = [
   {
@@ -49,12 +53,6 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/api-test',
-    name: 'ApiTest',
-    component: ApiTest,
-    meta: { requiresAuth: false },
-  },
-  {
     path: '/friends',
     name: 'Friends',
     component: Friends,
@@ -70,7 +68,13 @@ const routes = [
     path: '/game',
     name: 'Game',
     component: Game,
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/spit-royale',
+    name: 'SpitRoyale',
+    component: SpitRoyale,
+    meta: { requiresAuth: true },
   },
   {
     path: '/settings',
@@ -83,6 +87,36 @@ const routes = [
     name: 'Help',
     component: Help,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/feed',
+    name: 'Feed',
+    component: Feed,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: Admin,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/security',
+    name: 'SecurityDashboard',
+    component: SecurityDashboard,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/docs',
+    name: 'ApiDocs',
+    component: ApiDocs,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/showcase',
+    name: 'PublicShowcase',
+    component: PublicShowcase,
+    meta: { requiresAuth: false },
   },
   {
     path: '/oauth-callback',
@@ -100,6 +134,12 @@ const routes = [
     path: '/terms',
     name: 'TermsOfService',
     component: TermsOfService,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/user/:id',
+    name: 'UserProfile',
+    component: UserProfile,
     meta: { requiresAuth: false },
   },
   {

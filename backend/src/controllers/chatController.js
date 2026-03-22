@@ -4,9 +4,8 @@
  */
 import Message from '../models/Message.js';
 import ChatRoom from '../models/ChatRoom.js';
-import User from '../models/User.js';
 
-// ── Direct Messages ─────────────────────────────────────────
+// ── Direct Messages ──────────────────────────────────────────────────────────
 
 /** GET /api/chat/conversations */
 export const listConversations = async (req, res, next) => {
@@ -19,11 +18,14 @@ export const listConversations = async (req, res, next) => {
 /** GET /api/chat/dm/:userId */
 export const getConversation = async (req, res, next) => {
   try {
+    const otherId = Number(req.params.userId);
+    if (isNaN(otherId)) return res.status(400).json({ error: { message: 'Invalid user ID' } });
+    if (otherId === req.user.id) return res.status(400).json({ error: { message: 'Cannot message yourself' } });
     const { limit = 50, offset = 0 } = req.query;
-    const messages = await Message.getConversation(req.user.id, Number(req.params.userId), {
+    const messages = await Message.getConversation(req.user.id, otherId, {
       limit: Number(limit), offset: Number(offset),
     });
-    await Message.markAsRead(req.user.id, Number(req.params.userId));
+    await Message.markAsRead(req.user.id, otherId);
     res.json({ messages });
   } catch (err) { next(err); }
 };
@@ -36,7 +38,7 @@ export const getUnreadCount = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// ── Group Rooms ─────────────────────────────────────────────
+// ── Group Rooms ───────────────────────────────────────────────────────────────
 
 /** GET /api/chat/rooms */
 export const listRooms = async (req, res, next) => {
@@ -51,6 +53,7 @@ export const createRoom = async (req, res, next) => {
   try {
     const { name, isPrivate } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: { message: 'Room name is required' } });
+    if (name.length > 100) return res.status(400).json({ error: { message: 'Room name must be 100 characters or fewer' } });
     const room = await ChatRoom.create({ name: name.trim(), ownerId: req.user.id, isPrivate: !!isPrivate });
     res.status(201).json({ room });
   } catch (err) { next(err); }
@@ -92,7 +95,7 @@ export const deleteRoom = async (req, res, next) => {
   try {
     const room = await ChatRoom.findById(Number(req.params.id));
     if (!room) return res.status(404).json({ error: { message: 'Room not found' } });
-    if (room.owner_id !== req.user.id && !req.user.is_admin) {
+    if (room.ownerId !== req.user.id && !req.user.isAdmin) {
       return res.status(403).json({ error: { message: 'Not the room owner' } });
     }
     await ChatRoom.delete(room.id);

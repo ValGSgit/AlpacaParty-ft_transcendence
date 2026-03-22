@@ -45,7 +45,7 @@ describe('Profile.vue', () => {
     store.user = {
       username: 'tester',
       email: 'test@test.com',
-      avatar: '/avatars/default.png',
+      avatar: '/avatars/default.svg',
       bio: 'Hello world',
       status: 'online',
       created_at: '2025-01-01T00:00:00Z',
@@ -76,7 +76,7 @@ describe('Profile.vue', () => {
     store.user = {
       username: 'u',
       email: 'e@e.com',
-      avatar: '/avatars/default.png',
+      avatar: '/avatars/default.svg',
       bio: '',
       status: 's',
       created_at: '2025-01-01T00:00:00Z',
@@ -106,5 +106,76 @@ describe('Profile.vue', () => {
 
     const img = wrapper.find('img.avatar')
     expect(img.attributes('src')).toBe('/avatars/custom.png')
+  })
+
+  it('shows loading state when profile card is absent (no user)', () => {
+    const store = useAuthStore()
+    store.user = null
+
+    wrapper = mount(Profile, {
+      global: { plugins: [pinia, router] },
+    })
+
+    // When no user is set, the profile card should not exist
+    expect(wrapper.find('.profile-card').exists()).toBe(false)
+    expect(wrapper.find('.profile-page').exists()).toBe(true)
+  })
+
+  it('toggles edit mode when edit button is clicked', async () => {
+    const store = useAuthStore()
+    store.user = {
+      username: 'editor',
+      email: 'ed@test.com',
+      avatar: '/avatars/default.svg',
+      bio: 'My bio',
+      status: 'active',
+      created_at: '2025-01-01T00:00:00Z',
+    }
+
+    wrapper = mount(Profile, {
+      global: { plugins: [pinia, router] },
+    })
+
+    // Edit form should not be visible initially
+    expect(wrapper.find('.edit-form').exists()).toBe(false)
+
+    // Click edit button
+    const editBtn = wrapper.find('.btn-edit')
+    expect(editBtn.text()).toContain('Edit Profile')
+    await editBtn.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    // Edit form should now be visible
+    expect(wrapper.find('.edit-form').exists()).toBe(true)
+    expect(editBtn.text()).toContain('Cancel')
+
+    // Click again to cancel
+    await editBtn.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.edit-form').exists()).toBe(false)
+  })
+
+  it('displays user stats (XP, level, coins)', () => {
+    const store = useAuthStore()
+    store.user = {
+      username: 'gamer',
+      email: 'g@g.com',
+      avatar: '/avatars/default.svg',
+      bio: '',
+      status: 'gaming',
+      xp: 250,
+      level: 3,
+      coins: 1500,
+      created_at: '2025-01-01T00:00:00Z',
+    }
+
+    wrapper = mount(Profile, {
+      global: { plugins: [pinia, router] },
+    })
+
+    expect(wrapper.text()).toContain('Level 3')
+    expect(wrapper.text()).toContain('250 XP')
+    expect(wrapper.text()).toContain('1500')
   })
 })

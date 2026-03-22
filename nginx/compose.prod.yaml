@@ -1,0 +1,26 @@
+# nginx + ModSecurity WAF — Production
+services:
+  nginx:
+    build:
+      context: ..
+      dockerfile: nginx/Dockerfile
+    container_name: alpacaparty_nginx_prod
+    ports:
+      - "${NGINX_PORT:-8080}:8443"
+      - "8000:8080"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/templates/conf.d/default.conf.template:ro
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    restart: always
+    networks:
+      - alpacaparty_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-check-certificate -qO /dev/null https://127.0.0.1:8443/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

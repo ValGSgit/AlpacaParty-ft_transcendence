@@ -1,81 +1,91 @@
 /**
- * Message Model — Direct messages between users
+ * Message Model — Prisma data access layer
  * @owner ValGSgit
  */
-import { query } from '../config/database.js';
+import prisma from '../config/prisma.js';
 
 const Message = {
-  /**
-   * Send a direct message.
-   */
   async create({ senderId, receiverId, content }) {
-    const { rows } = await query(
-      `INSERT INTO messages (sender_id, receiver_id, content)
-       VALUES ($1, $2, $3) RETURNING *`,
-      [senderId, receiverId, content],
-    );
-    return rows[0];
+    return prisma.message.create({
+      data: { senderId: Number(senderId), receiverId: Number(receiverId), content },
+    });
   },
 
-  /**
-   * Get conversation between two users (paginated, newest first).
-   */
   async getConversation(userId, otherUserId, { limit = 50, offset = 0 } = {}) {
-    const { rows } = await query(
-      `SELECT m.*, s.username AS sender_username, s.avatar AS sender_avatar
-       FROM messages m JOIN users s ON s.id = m.sender_id
-       WHERE (m.sender_id = $1 AND m.receiver_id = $2)
-          OR (m.sender_id = $2 AND m.receiver_id = $1)
-       ORDER BY m.created_at DESC LIMIT $3 OFFSET $4`,
-      [userId, otherUserId, limit, offset],
-    );
-    return rows.reverse(); // return in chronological order
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          { senderId: Number(userId), receiverId: Number(otherUserId) },
+          { senderId: Number(otherUserId), receiverId: Number(userId) },
+        ],
+      },
+      include: { sender: { select: { username: true, avatar: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: Number(limit),
+      skip: Number(offset),
+    });
+    return messages
+      .reverse()
+      .map((m) => ({
+        id: m.id,
+        sender_id: m.senderId,
+        receiver_id: m.receiverId,
+        content: m.content,
+        is_read: m.isRead,
+        created_at: m.createdAt,
+        sender_username: m.sender.username,
+        sender_avatar: m.sender.avatar,
+      }));
   },
 
-  /**
-   * Get all conversations (latest message per user).
-   */
+  // DISTINCT ON is PostgreSQL-specific — keep as raw query
   async getConversationsList(userId) {
-    const { rows } = await query(
-      `SELECT DISTINCT ON (partner_id) partner_id, partner_username, partner_avatar,
-              content, created_at, is_read
-       FROM (
-         SELECT
-           CASE WHEN sender_id = $1 THEN receiver_id ELSE sender_id END AS partner_id,
-           CASE WHEN sender_id = $1 THEN r.username ELSE s.username END AS partner_username,
-           CASE WHEN sender_id = $1 THEN r.avatar ELSE s.avatar END AS partner_avatar,
-           m.content, m.created_at, m.is_read
-         FROM messages m
-         JOIN users s ON s.id = m.sender_id
-         JOIN users r ON r.id = m.receiver_id
-         WHERE m.sender_id = $1 OR m.receiver_id = $1
-       ) sub
-       ORDER BY partner_id, created_at DESC`,
-      [userId],
-    );
-    return rows;
+    return prisma.$queryRaw`
+      SELECT DISTINCT ON (other_user_id)
+             other_user_id,
+             username,
+             avatar,
+             last_message,
+             created_at,
+             is_read,
+             unread_count
+      FROM (
+        SELECT
+          CASE WHEN sender_id = ${Number(userId)} THEN receiver_id ELSE sender_id END AS other_user_id,
+          CASE WHEN sender_id = ${Number(userId)} THEN r.username   ELSE s.username   END AS username,
+          CASE WHEN sender_id = ${Number(userId)} THEN r.avatar     ELSE s.avatar     END AS avatar,
+          m.content AS last_message,
+          m.created_at,
+          m.is_read,
+          (
+            SELECT COUNT(*)::int FROM messages u
+            WHERE u.sender_id != ${Number(userId)}
+              AND u.receiver_id = ${Number(userId)}
+              AND u.is_read = false
+              AND u.sender_id = CASE WHEN m.sender_id = ${Number(userId)} THEN m.receiver_id ELSE m.sender_id END
+          ) AS unread_count
+        FROM messages m
+        JOIN users s ON s.id = m.sender_id
+        JOIN users r ON r.id = m.receiver_id
+        WHERE (m.sender_id = ${Number(userId)} OR m.receiver_id = ${Number(userId)})
+          AND m.sender_id != m.receiver_id
+      ) sub
+      WHERE other_user_id != ${Number(userId)}
+      ORDER BY other_user_id, created_at DESC
+    `;
   },
 
-  /**
-   * Mark messages as read.
-   */
   async markAsRead(receiverId, senderId) {
-    await query(
-      `UPDATE messages SET is_read = TRUE
-       WHERE receiver_id = $1 AND sender_id = $2 AND is_read = FALSE`,
-      [receiverId, senderId],
-    );
+    await prisma.message.updateMany({
+      where: { receiverId: Number(receiverId), senderId: Number(senderId), isRead: false },
+      data: { isRead: true },
+    });
   },
 
-  /**
-   * Count unread messages for user.
-   */
   async countUnread(userId) {
-    const { rows } = await query(
-      `SELECT COUNT(*)::int AS total FROM messages WHERE receiver_id = $1 AND is_read = FALSE`,
-      [userId],
-    );
-    return rows[0].total;
+    return prisma.message.count({
+      where: { receiverId: Number(userId), isRead: false },
+    });
   },
 };
 

@@ -2,40 +2,34 @@
 # @owner ValGSgit
 # @issue https://github.com/ValGSgit/AlpacaParty/issues/3
 
-# ── Stage 1: Build dependencies ──────────────────────────────
-FROM node:20-alpine AS builder
-
-# Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++
-
-WORKDIR /app
-
-# Copy package files and install ALL dependencies (including dev)
-COPY package*.json ./
-RUN npm install && npm cache clean --force
-
-# Copy application source
-COPY . .
-
-# ── Stage 2: Production runtime ──────────────────────────────
-FROM node:20-alpine
+FROM node:24-alpine3.22
 
 
 WORKDIR /app
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+  adduser -S nodejs -u 1001
 
-# Copy package files and install production dependencies only
-COPY package*.json ./
-RUN npm install --omit=dev && npm cache clean --force
+# Copy package files from backend for install
+COPY backend/package*.json ./
 
-# Copy application from builder
-COPY --from=builder --chown=nodejs:nodejs /app/src ./src
+# Install dependencies (clean build)
+RUN npm install --no-audit --no-fund --loglevel=error
 
-# Create uploads directory with correct ownership
-RUN mkdir -p /app/uploads && chown -R nodejs:nodejs /app/uploads
+# Copy Prisma schema, config, and application source, then generate the client
+COPY --chown=nodejs:nodejs backend/prisma ./prisma
+COPY --chown=nodejs:nodejs backend/prisma.config.ts ./prisma.config.ts
+COPY --chown=nodejs:nodejs backend/src ./src
+RUN npx prisma generate && npm prune --omit=dev
+
+# Create uploads and ssl directories with correct ownership
+RUN mkdir -p /app/uploads /app/ssl && \
+  chown -R nodejs:nodejs /app/uploads /app/ssl
+
+# Copy SSL certificates with correct ownership
+COPY --chown=nodejs:nodejs nginx/ssl/cert.pem /app/ssl/cert.pem
+COPY --chown=nodejs:nodejs nginx/ssl/key.pem /app/ssl/key.pem
 
 # Switch to non-root user
 USER nodejs
@@ -43,5 +37,6 @@ USER nodejs
 # Expose backend port
 EXPOSE 3000
 
-# Run in production mode
-CMD ["node", "src/index.js"]
+# Start the server. Schema is managed by database/init.sql on first init,
+# and by running `docker exec alpacaparty_backend_prod npx prisma db push` for incremental changes.
+CMD ["node", "src/server.js"]
