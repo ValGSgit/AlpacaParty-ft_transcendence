@@ -133,6 +133,16 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
+      # -- Generate SSL certs (mirrors `make ssl-certs`) -----------
+      - name: Generate self-signed SSL certificates
+        run: |
+          mkdir -p nginx/ssl
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout nginx/ssl/key.pem \
+            -out nginx/ssl/cert.pem \
+            -days 365 \
+            -subj '/CN=localhost'
+
       # -- Start the full stack -------------------------------------
       - name: Start application stack
         run: docker compose up -d --build postgres backend frontend nginx
