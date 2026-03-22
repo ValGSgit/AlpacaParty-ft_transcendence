@@ -28,8 +28,10 @@ const AuthService = {
    * Generate an access token (short-lived).
    */
   generateAccessToken(user) {
+    const modUsers = (process.env.MOD_USERS || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const isAdmin = modUsers.includes(user.username);
     return jwt.sign(
-      { id: user.id, username: user.username, isAdmin: user.isAdmin },
+      { id: user.id, username: user.username, isAdmin },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn },
     );

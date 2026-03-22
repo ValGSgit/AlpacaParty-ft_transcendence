@@ -77,7 +77,6 @@ async function seedUsers(passwordHash) {
       username: 'live_admin',
       email: 'live_admin@alpacaparty.test',
       passwordHash,
-      isAdmin: true,
       isOnline: true,
       level: 20,
       xp: 4200,

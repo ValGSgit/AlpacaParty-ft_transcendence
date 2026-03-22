@@ -82,13 +82,27 @@ if [ "$IS_INITIALIZED" = "0" ]; then
     | grep -o '"client_token":"[^"]*"' \
     | cut -d'"' -f4)
 
+  # Create admin management token (for make-admin / prod-seed-admins Makefile targets)
+  echo "[vault-init] Creating admin management token..."
+  ADMIN_TOKEN=$(vault token create \
+    -policy=alpacaparty-admin \
+    -ttl=87600h \
+    -renewable=true \
+    -display-name=alpacaparty-admin \
+    -format=json \
+    | tr -d ' \n\t\r' \
+    | grep -o '"client_token":"[^"]*"' \
+    | cut -d'"' -f4)
+
   # Persist keys to the shared volume
-  # The backend reads VAULT_TOKEN from this file via vault.js (NODE_VAULT_KEYS_FILE).
+  # The backend reads VAULT_TOKEN from this file via vault.js.
+  # vault-add-mod.sh reads VAULT_ADMIN_TOKEN for write operations.
   # The unseal key is read by this script on subsequent reboots.
   mkdir -p "$(dirname "$KEYS_FILE")"
   cat > "$KEYS_FILE" <<EOF
 VAULT_UNSEAL_KEY=${VAULT_UNSEAL_KEY}
 VAULT_TOKEN=${SERVICE_TOKEN}
+VAULT_ADMIN_TOKEN=${ADMIN_TOKEN}
 EOF
   # 644: world-readable within Docker. The vault_keys volume is only mounted by
   # vault-init (write) and backend (read). chmod is safe regardless of which user
