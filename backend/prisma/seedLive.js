@@ -1,5 +1,8 @@
 import bcrypt from 'bcrypt';
-import prisma from '../src/config/prisma.js';
+import { loadVaultSecrets } from '../src/config/vault.js';
+
+// Assigned after Vault secrets are loaded so DATABASE_URL is built with real credentials.
+let prisma;
 
 const cfg = {
   users: Number(process.env.SEED_USERS || 240),
@@ -387,6 +390,9 @@ async function seedNotifications(userIds) {
 }
 
 async function main() {
+  await loadVaultSecrets();
+  ({ default: prisma } = await import('../src/config/prisma.js'));
+
   console.log('[seed-live] Starting...');
   console.log('[seed-live] Config:', cfg);
 
@@ -430,6 +436,6 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await prisma?.$disconnect();
     process.exit(process.exitCode || 0);
   });

@@ -23,7 +23,9 @@ DC_PROD := docker compose -f compose.prod.yaml
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
         shell-backend shell-frontend shell-db \
-	test e2e prod-e2e test-local seed-admins seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
+	test e2e prod-e2e test-local \
+	seed-admins prod-seed-admins make-admin prod-make-admin \
+	seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
         vault-status vault-secrets vault-shell \
         prod-vault-status prod-vault-unseal prod-vault-rotate-token \
         waf-logs
@@ -67,10 +69,13 @@ help:
 	@echo "  $(GREEN)make prod-e2e$(RESET)       Seed data + run E2E tests against prod stack"
 	@echo ""
 	@echo "$(YELLOW)Database$(RESET)"
-	@echo "  $(GREEN)make seed-admins$(RESET)    Promote developer accounts to admin"
-	@echo "  $(GREEN)make seed-live$(RESET)      Seed high-volume sample data (dev compose)"
-	@echo "  $(GREEN)make seed-live-reset$(RESET) Reset and reseed high-volume sample data (dev compose)"
-	@echo "  $(GREEN)make prod-seed-live$(RESET) Seed high-volume sample data (prod compose)"
+	@echo "  $(GREEN)make seed-admins$(RESET)          Promote developer accounts to admin (dev)"
+	@echo "  $(GREEN)make prod-seed-admins$(RESET)     Promote developer accounts to admin (prod)"
+	@echo "  $(GREEN)make make-admin USER=x$(RESET)    Promote user x to admin (dev)"
+	@echo "  $(GREEN)make prod-make-admin USER=x$(RESET) Promote user x to admin (prod)"
+	@echo "  $(GREEN)make seed-live$(RESET)            Seed high-volume sample data (dev compose)"
+	@echo "  $(GREEN)make seed-live-reset$(RESET)      Reset and reseed high-volume sample data (dev compose)"
+	@echo "  $(GREEN)make prod-seed-live$(RESET)       Seed high-volume sample data (prod compose)"
 	@echo "  $(GREEN)make prod-seed-live-reset$(RESET) Reset and reseed high-volume sample data (prod compose)"
 	@echo ""
 	@echo "$(YELLOW)Security$(RESET)"
@@ -179,10 +184,18 @@ test:
 e2e:
 	$(DC) exec e2e npm test
 
-# Production E2E: seeds data and runs Playwright against the production build
+# Production E2E: seeds data and runs Playwright against the production build.
+# Builds the e2e Docker image and runs it on the shared prod network so that
+# the container can resolve 'nginx' by DNS — no host npx required.
 prod-e2e: prod-seed-live
+	@echo "$(CYAN)Building e2e image…$(RESET)"
+	docker build -t alpacaparty-e2e e2e/
 	@echo "$(CYAN)Running E2E tests against production build…$(RESET)"
-	cd e2e && E2E_BASE_URL=https://localhost:8080 npx playwright test
+	docker run --rm \
+	  --network alpacaparty_net \
+	  -e E2E_BASE_URL=https://nginx:8443 \
+	  -e PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+	  alpacaparty-e2e npm test
 	@echo "$(GREEN)✓ Production E2E tests complete$(RESET)"
 
 # Run unit tests locally (no Docker)
@@ -209,6 +222,32 @@ seed-admins:
 	  -U $${DB_USER:-alpacaparty} \
 	  -d $${DB_NAME:-alpacaparty} \
 	  -f /dev/stdin < scripts/seed-admins.sql
+
+prod-seed-admins:
+	$(DC_PROD) exec -T postgres psql \
+	  -U $${DB_USER:-alpacaparty} \
+	  -d $${DB_NAME:-alpacaparty} \
+	  -f /dev/stdin < scripts/seed-admins.sql
+
+# Promote a single user to admin by username.
+# Usage: make make-admin USER=myusername
+make-admin:
+	@[ -n "$(USER)" ] || { echo "$(YELLOW)Usage: make make-admin USER=<username>$(RESET)"; exit 1; }
+	$(DC) exec -T postgres psql \
+	  -U $${DB_USER:-alpacaparty} \
+	  -d $${DB_NAME:-alpacaparty} \
+	  -c "UPDATE users SET is_admin = TRUE WHERE username = '$(USER)'; \
+	      SELECT id, username, email, is_admin FROM users WHERE username = '$(USER)';"
+
+# Promote a single user to admin by username (prod).
+# Usage: make prod-make-admin USER=myusername
+prod-make-admin:
+	@[ -n "$(USER)" ] || { echo "$(YELLOW)Usage: make prod-make-admin USER=<username>$(RESET)"; exit 1; }
+	$(DC_PROD) exec -T postgres psql \
+	  -U $${DB_USER:-alpacaparty} \
+	  -d $${DB_NAME:-alpacaparty} \
+	  -c "UPDATE users SET is_admin = TRUE WHERE username = '$(USER)'; \
+	      SELECT id, username, email, is_admin FROM users WHERE username = '$(USER)';"
 
 seed-live:
 	$(DC) exec backend npm run seed:live
