@@ -19,8 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  NODE_VERSION: "24"
 
 # ==================================================================
 # JOB 1 — Backend unit & integration tests
