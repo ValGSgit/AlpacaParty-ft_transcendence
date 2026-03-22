@@ -26,18 +26,23 @@ services:
       SSL_CERT_PATH: /app/ssl/cert.pem
       SSL_KEY_PATH: /app/ssl/key.pem
 
-      # ── Vault bootstrap (the only secret passed directly) ─────
-      # VAULT_TOKEN must be the limited read-only service token printed by
-      # vault-init on first deployment — NOT the root token.
-      VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN}
+      # ── Vault bootstrap ────────────────────────────────────────
+      VAULT_ADDR: https://vault:8200
+      # Trust the shared self-signed cert for HTTPS connections to Vault
+      NODE_EXTRA_CA_CERTS: /app/ssl/cert.pem
+      # VAULT_TOKEN is read automatically from /run/vault-keys/keys.env by vault.js.
+      # No manual token management required.
     volumes:
       - backend_uploads:/app/uploads
+      # Read-only access to the keys written by vault-init (VAULT_TOKEN)
+      - vault_keys:/run/vault-keys:ro
     depends_on:
       postgres:
         condition: service_healthy
-      vault:
-        condition: service_healthy
+      # Wait for vault-init to complete: ensures vault is initialized, unsealed,
+      # and all secrets are seeded before backend attempts to connect.
+      vault-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget --no-check-certificate --quiet --tries=1 --spider https://localhost:3000/api/health || exit 1"]
       interval: 10s

@@ -11,7 +11,11 @@ export async function initWorld(scene, isAuthenticated = false) {
 
   let user = null
   if (isAuthenticated) {
-    user = await loadGameData()
+    try {
+      user = await loadGameData()
+    } catch (e) {
+      console.error('Failed to load game data, starting fresh.', e)
+    }
   } else {
     console.log('User not logged in, starting fresh.')
   }

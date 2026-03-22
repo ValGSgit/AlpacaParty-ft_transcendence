@@ -79,6 +79,26 @@ export class Game {
     this.camera.lookAt(0, 0, 0);
     buildArena(this.scene);
     this.groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+    // Shared spit geometry + materials — created once, reused for all projectiles
+    this._smallSpitGeo = new THREE.SphereGeometry(0.14, 8, 6);
+    this._bigSpitGeo   = new THREE.SphereGeometry(0.28, 8, 6);
+    this._smallSpitMat = new THREE.MeshStandardMaterial({
+      color: 0xa8e6cf, emissive: 0xa8e6cf, emissiveIntensity: 0.8,
+      roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.9,
+    });
+    this._bigSpitMat = new THREE.MeshStandardMaterial({
+      color: 0x4cc9f0, emissive: 0x4cc9f0, emissiveIntensity: 1.2,
+      roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.9,
+    });
+
+    // Reusable Color objects for flashRed — avoid hot-path allocations
+    this._flashColor = new THREE.Color(0xff2200);
+    this._clearColor = new THREE.Color(0x000000);
+
+    // Reusable Vector3 for screen projection
+    this._projVec = new THREE.Vector3();
+
     this.#loadArenaDecorations(); // fire-and-forget: farm props load in background
   }
 
@@ -332,25 +352,43 @@ export class Game {
     if (pd.alive && !group.children.includes(label)) group.add(label);
     if (!pd.alive && group.children.includes(label)) group.remove(label);
 
-    if (pd.health < (entry.lastHealth ?? pd.health)) this.#flashRed(group);
+    if (pd.health < (entry.lastHealth ?? pd.health)) {
+      const damage = (entry.lastHealth ?? pd.health) - pd.health;
+      this.#flashRed(group, damage, pd.id === this.localPlayerId);
+    }
     entry.lastHealth = pd.health;
   }
 
-  #flashRed(group) {
+  #flashRed(group, damage = 0, isLocal = false) {
     group.traverse((child) => {
-      if (child.isMesh && child.material) {
-        if (!child.material.emissive) return;
-        child.material.emissive = new THREE.Color(0xff2200);
+      if (child.isMesh && child.material?.emissive) {
+        child.material.emissive.copy(this._flashColor);
         child.material.emissiveIntensity = 1;
         setTimeout(() => {
           if (child.material) {
-            child.material.emissive = new THREE.Color(0x000000);
+            child.material.emissive.copy(this._clearColor);
             child.material.emissiveIntensity = 0;
           }
         }, 120);
       }
     });
-    this.shakeIntensity = 0.25;
+    // Local player hit = stronger shake
+    this.shakeIntensity = isLocal ? 0.4 : 0.22;
+
+    // Project world → screen and fire damage number callback
+    if (damage > 0 && this.onDamage) {
+      const screen = this.#worldToScreen(group.position.x, group.position.z);
+      this.onDamage(screen.x, screen.y, damage, isLocal);
+    }
+  }
+
+  #worldToScreen(worldX, worldZ) {
+    this._projVec.set(worldX, 1.5, worldZ);
+    this._projVec.project(this.camera);
+    return {
+      x: (this._projVec.x *  0.5 + 0.5) * window.innerWidth,
+      y: (this._projVec.y * -0.5 + 0.5) * window.innerHeight,
+    };
   }
 
   #removeAlpaca(id) {
@@ -373,18 +411,12 @@ export class Game {
   }
 
   #spawnSpit(sd) {
-    const big = sd.big;
-    const geo = new THREE.SphereGeometry(big ? 0.28 : 0.14, 8, 6);
-    const mat = new THREE.MeshStandardMaterial({
-      color: big ? 0x4cc9f0 : 0xa8e6cf,
-      emissive: big ? 0x4cc9f0 : 0xa8e6cf,
-      emissiveIntensity: big ? 1.2 : 0.8,
-      roughness: 0.2,
-      metalness: 0.1,
-      transparent: true,
-      opacity: 0.9,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
+    const big  = sd.big;
+    // Shared geo + mat — no per-spit allocation
+    const mesh = new THREE.Mesh(
+      big ? this._bigSpitGeo   : this._smallSpitGeo,
+      big ? this._bigSpitMat   : this._smallSpitMat,
+    );
     mesh.position.set(sd.x, 0.55, sd.z);
     mesh.castShadow = true;
 
@@ -401,8 +433,7 @@ export class Game {
     const mesh = this.spitMeshes[id];
     if (!mesh) return;
     this.scene.remove(mesh);
-    mesh.geometry.dispose();
-    mesh.material.dispose();
+    // Geometry and material are shared — do NOT dispose them here
     delete this.spitMeshes[id];
   }
 
@@ -574,6 +605,11 @@ export class Game {
     document.removeEventListener('mousemove', this.mouseMoveHandler);
     document.removeEventListener('mousedown', this.mouseDownHandler);
     this.particles.destroy();
+    // Dispose shared spit resources
+    this._smallSpitGeo?.dispose();
+    this._bigSpitGeo?.dispose();
+    this._smallSpitMat?.dispose();
+    this._bigSpitMat?.dispose();
     this.renderer.dispose();
     if (this.renderer.domElement && this.renderer.domElement.parentNode) {
       this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);

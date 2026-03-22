@@ -136,12 +136,15 @@ jobs:
       # -- Generate SSL certs (mirrors `make ssl-certs`) -----------
       - name: Generate self-signed SSL certificates
         run: |
-          mkdir -p nginx/ssl
+          mkdir -p nginx/ssl backend/ssl
           openssl req -x509 -newkey rsa:2048 -nodes \
             -keyout nginx/ssl/key.pem \
             -out nginx/ssl/cert.pem \
             -days 365 \
-            -subj '/CN=localhost'
+            -subj '/CN=localhost' \
+            -addext 'subjectAltName=DNS:localhost,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1'
+          cp nginx/ssl/cert.pem backend/ssl/cert.pem
+          cp nginx/ssl/key.pem  backend/ssl/key.pem
 
       # -- Start the full stack -------------------------------------
       - name: Start application stack

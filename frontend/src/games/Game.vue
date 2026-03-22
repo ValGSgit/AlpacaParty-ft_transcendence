@@ -234,7 +234,7 @@ const gameLoop = () => {
 
 onUnmounted(() => {
   saveGame()
-  stopMyWatcher()
+  if (stopMyWatcher) stopMyWatcher()
   cancelAnimationFrame(animationFrameId)
   window.removeEventListener('resize', onResize)
   cleanupStats(stats, gameContainer.value);

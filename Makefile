@@ -11,7 +11,7 @@ CYAN   := \033[0;36m
 RESET  := \033[0m
 
 # ── Docker ──────────────────────────────────────────────────
-COMPOSE_PROJECT := my
+COMPOSE_PROJECT := alpacaparty-ft_transcendence
 DC := docker compose
 DC_PROD := docker compose -f compose.prod.yaml
 
@@ -24,7 +24,9 @@ DC_PROD := docker compose -f compose.prod.yaml
         dev dev-backend dev-frontend \
         shell-backend shell-frontend shell-db \
 	test e2e prod-e2e test-local seed-admins seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
-        vault-status vault-secrets vault-shell waf-logs
+        vault-status vault-secrets vault-shell \
+        prod-vault-status prod-vault-unseal prod-vault-rotate-token \
+        waf-logs
 
 # ── HELP ────────────────────────────────────────────────────
 help:
@@ -72,10 +74,13 @@ help:
 	@echo "  $(GREEN)make prod-seed-live-reset$(RESET) Reset and reseed high-volume sample data (prod compose)"
 	@echo ""
 	@echo "$(YELLOW)Security$(RESET)"
-	@echo "  $(GREEN)make vault-status$(RESET)   Show Vault seal/HA status"
-	@echo "  $(GREEN)make vault-secrets$(RESET)  List secrets stored in Vault (dev)"
-	@echo "  $(GREEN)make vault-shell$(RESET)    Open interactive Vault shell"
-	@echo "  $(GREEN)make waf-logs$(RESET)       Tail ModSecurity audit log"
+	@echo "  $(GREEN)make vault-status$(RESET)              Show Vault seal/HA status (dev)"
+	@echo "  $(GREEN)make vault-secrets$(RESET)             List secrets stored in Vault (dev)"
+	@echo "  $(GREEN)make vault-shell$(RESET)               Open interactive Vault shell (dev)"
+	@echo "  $(GREEN)make prod-vault-status$(RESET)         Show prod Vault status"
+	@echo "  $(GREEN)make prod-vault-unseal$(RESET)         Manually unseal prod Vault"
+	@echo "  $(GREEN)make prod-vault-rotate-token$(RESET)   Create new limited service token"
+	@echo "  $(GREEN)make waf-logs$(RESET)                  Tail ModSecurity audit log"
 	@echo ""
 	@echo "$(YELLOW)Cleanup$(RESET)"
 	@echo "  $(GREEN)make clean$(RESET)          Stop containers & remove images"
@@ -127,26 +132,12 @@ generate-secrets:
 	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
 
 # ── SSL CERTIFICATES ────────────────────────────────────────
-# Generates a self-signed certificate for local HTTPS development.
+# Generates a self-signed cert with SANs directly via the host openssl binary.
+# Works on Linux, macOS, Git Bash (Windows), and CI.
+# SANs are required — CN-only certs are rejected by Node.js / Go TLS.
+# Removes any Docker-created placeholder directories before generating.
 ssl-certs:
-	@mkdir -p nginx/ssl backend/ssl
-	@if [ ! -f nginx/ssl/cert.pem ]; then \
-	  openssl req -x509 -newkey rsa:2048 -nodes \
-	    -keyout nginx/ssl/key.pem \
-	    -out nginx/ssl/cert.pem \
-	    -days 365 \
-	    -subj '/CN=localhost' 2>/dev/null && \
-	  echo "$(GREEN)✓ Self-signed certificate generated in nginx/ssl/$(RESET)"; \
-	else \
-	  echo "$(YELLOW)  Certificate already exists — skipping$(RESET)"; \
-	fi
-	@if [ ! -f backend/ssl/cert.pem ]; then \
-	  cp nginx/ssl/cert.pem backend/ssl/cert.pem && \
-	  cp nginx/ssl/key.pem backend/ssl/key.pem && \
-	  echo "$(GREEN)✓ Self-signed certificate copied to backend/ssl/$(RESET)"; \
-	else \
-	  echo "$(YELLOW)  Backend certificate already exists — skipping$(RESET)"; \
-	fi
+	@bash scripts/ssl-certs.sh
 
 # Ensure .env exists with real secrets before any prod command.
 # Does NOT regenerate if .env already exists (keeps DB password stable).
@@ -155,7 +146,8 @@ ssl-certs:
 	@$(MAKE) --no-print-directory generate-secrets
 
 # ── PRODUCTION ──────────────────────────────────────────────
-prod-up: .env ssl-certs
+prod-up: .env
+	$(MAKE) --no-print-directory ssl-certs
 	$(DC_PROD) up -d --build
 
 prod-down:
@@ -244,6 +236,37 @@ vault-shell:
 
 waf-logs:
 	$(DC) exec nginx tail -f /var/log/modsecurity/audit.log
+
+# ── PRODUCTION VAULT MANAGEMENT ─────────────────────────────────────────────
+# Show prod vault seal status and active address
+prod-vault-status:
+	$(DC_PROD) exec vault vault status
+
+# Manually unseal prod vault (if vault-init container is no longer running).
+# Requires VAULT_UNSEAL_KEY in .env.
+prod-vault-unseal:
+	$(DC_PROD) exec \
+	  -e VAULT_ADDR=https://vault:8200 \
+	  -e VAULT_SKIP_VERIFY=true \
+	  vault vault operator unseal $${VAULT_UNSEAL_KEY}
+
+# Create a limited read-only service token and print it.
+# Copy the printed token into VAULT_TOKEN in .env, then restart backend:
+#   make prod-down && make prod-up
+prod-vault-rotate-token:
+	@$(DC_PROD) exec \
+	  -e VAULT_ADDR=https://vault:8200 \
+	  -e VAULT_TOKEN=$${VAULT_TOKEN} \
+	  -e VAULT_SKIP_VERIFY=true \
+	  vault vault token create \
+	    -policy=alpacaparty-backend \
+	    -ttl=2160h \
+	    -renewable=true \
+	    -display-name=alpacaparty-backend \
+	    -format=json \
+	  | grep '"client_token"' \
+	  | sed 's/.*"client_token": *"\(.*\)".*/\1/' \
+	  | xargs -I{} echo "New VAULT_TOKEN: {}"
 
 # ── CLEANUP ─────────────────────────────────────────────────
 clean:

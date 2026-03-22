@@ -17,6 +17,7 @@ const { isAuthenticated } = useAuthStore()
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
 
 export async function changeGame() {
+  if (!gPlayer.value || !gUser.value) return;
 
   gPlayer.value.hp = CONST.HP
   gUser.value.hp = CONST.HP
@@ -47,8 +48,10 @@ async function initGame1(){
 }
 
 function changeFloorColor(top, bottom){
+  const floorMat = gScene.value?.floor?.material?.[1];
+  if (!floorMat) return;
   const newTexture = GRADIENT.Radial(top, bottom);
-  gScene.value.floor.material[1].map.dispose();
-  gScene.value.floor.material[1].map = newTexture;
-  gScene.value.floor.material[1].needsUpdate = true;
+  if (floorMat.map) floorMat.map.dispose();
+  floorMat.map = newTexture;
+  floorMat.needsUpdate = true;
 }
