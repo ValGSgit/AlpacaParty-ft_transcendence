@@ -152,6 +152,7 @@ jobs:
           docker compose build --no-cache nginx
           docker compose up -d --build postgres backend frontend nginx
         env:
+          NODE_ENV: test
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-e2e-secret-change-in-prod' }}
           DB_NAME: alpacaparty
           DB_USER: alpacaparty
