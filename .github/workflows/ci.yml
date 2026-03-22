@@ -26,6 +26,8 @@ env:
 # JOB 1 — Backend unit & integration tests
 # ==================================================================
 jobs:
+  env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   backend-unit:
     name: "Backend — Unit Tests"
     runs-on: ubuntu-latest
