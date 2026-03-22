@@ -186,6 +186,18 @@ jobs:
           SEED_ROOM_MESSAGES: "200"
           SEED_NOTIFICATIONS: "100"
 
+      - name: Ensure seeded admin account has admin role
+        run: |
+          docker compose exec -T postgres psql -U alpacaparty -d alpacaparty \
+            -c "UPDATE users SET is_admin = TRUE WHERE email = 'live_admin@alpacaparty.test';"
+          is_admin=$(docker compose exec -T postgres psql -U alpacaparty -d alpacaparty -tA \
+            -c "SELECT COALESCE(is_admin::text, 'false') FROM users WHERE email = 'live_admin@alpacaparty.test' LIMIT 1;")
+          if [ "$is_admin" != "true" ]; then
+            echo "live_admin@alpacaparty.test is not admin after seeding"
+            exit 1
+          fi
+          echo "Verified live_admin@alpacaparty.test has admin access"
+
       # -- Run tests ------------------------------------------------
       - name: Run Playwright tests
         working-directory: e2e

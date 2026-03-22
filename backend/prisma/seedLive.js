@@ -77,6 +77,7 @@ async function seedUsers(passwordHash) {
       username: 'live_admin',
       email: 'live_admin@alpacaparty.test',
       passwordHash,
+      isAdmin: true,
       isOnline: true,
       level: 20,
       xp: 4200,
@@ -127,6 +128,13 @@ async function seedUsers(passwordHash) {
 
   const allUsers = [...fixedUsers, ...dynamicUsers];
   await prisma.user.createMany({ data: allUsers, skipDuplicates: true });
+
+  // Idempotent safeguard: if the account already exists from a previous run,
+  // ensure it remains admin even when createMany skips duplicates.
+  await prisma.user.updateMany({
+    where: { email: 'live_admin@alpacaparty.test' },
+    data: { isAdmin: true },
+  });
 
   const users = await prisma.user.findMany({
     where: { email: { endsWith: '@alpacaparty.test' } },
