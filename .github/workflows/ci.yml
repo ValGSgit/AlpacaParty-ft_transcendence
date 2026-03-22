@@ -19,14 +19,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "24"
+  NODE_VERSION: "20"
 
 # ==================================================================
 # JOB 1 — Backend unit & integration tests
 # ==================================================================
 jobs:
-  env:
-    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   backend-unit:
     name: "Backend — Unit Tests"
     runs-on: ubuntu-latest
