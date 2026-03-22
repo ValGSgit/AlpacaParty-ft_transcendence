@@ -51,7 +51,8 @@ vault kv put secret/alpacaparty \
   google_client_id="${GOOGLE_CLIENT_ID:-}" \
   google_client_secret="${GOOGLE_CLIENT_SECRET:-}" \
   github_client_id="${GITHUB_CLIENT_ID:-}" \
-  github_client_secret="${GITHUB_CLIENT_SECRET:-}"
+  github_client_secret="${GITHUB_CLIENT_SECRET:-}" \
+  mod_users="${MOD_USERS:-live_admin}"
 
 echo "[vault-seed] Secrets written."
 
@@ -67,6 +68,20 @@ path "secret/data/alpacaparty" {
 }
 POLICY
   echo "[vault-seed] Policy created."
+fi
+
+# ── Write-capable policy for admin/mod management (make-admin, seed-admins) ──
+if vault policy list | grep -q '^alpacaparty-admin$'; then
+  echo "[vault-seed] Policy 'alpacaparty-admin' already exists — skipping"
+else
+  echo "[vault-seed] Creating admin management policy..."
+  vault policy write alpacaparty-admin - <<'POLICY'
+# Admin management: read + update the single app secret path (for mod_users).
+path "secret/data/alpacaparty" {
+  capabilities = ["read", "create", "update"]
+}
+POLICY
+  echo "[vault-seed] Admin policy created."
 fi
 
 # Token creation is handled by init-unseal-seed.sh, which writes the token to

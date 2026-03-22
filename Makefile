@@ -217,37 +217,50 @@ shell-db:
 
 # ── DATABASE SEEDS ──────────────────────────────────────────
 # Requires the postgres container to be running (make up / make prod-up).
+# Seed the default mod list (Val, David, Kahou, Lukas, live_admin) into dev Vault.
 seed-admins:
-	$(DC) exec -T postgres psql \
-	  -U $${DB_USER:-alpacaparty} \
-	  -d $${DB_NAME:-alpacaparty} \
-	  -f /dev/stdin < scripts/seed-admins.sql
+	@$(DC) exec -T \
+	  -e VAULT_ADDR=http://127.0.0.1:8200 \
+	  -e VAULT_TOKEN=$${VAULT_DEV_TOKEN:-alpacaparty-dev-token} \
+	  vault vault kv patch secret/alpacaparty mod_users="Val,David,Kahou,Lukas,live_admin"
+	@echo "$(GREEN)✓ mod_users seeded in dev Vault$(RESET)"
 
+# Seed the default mod list into prod Vault (reads VAULT_ADMIN_TOKEN from vault_keys volume).
 prod-seed-admins:
-	$(DC_PROD) exec -T postgres psql \
-	  -U $${DB_USER:-alpacaparty} \
-	  -d $${DB_NAME:-alpacaparty} \
-	  -f /dev/stdin < scripts/seed-admins.sql
+	@docker run --rm \
+	  --network alpacaparty_net \
+	  -v $(COMPOSE_PROJECT)_vault_keys:/vault/keys:ro \
+	  -e VAULT_ADDR=https://vault:8200 \
+	  -e VAULT_SKIP_VERIFY=true \
+	  hashicorp/vault:1.16 \
+	  sh -c '. /vault/keys/keys.env && export VAULT_TOKEN=$$VAULT_ADMIN_TOKEN && vault kv patch secret/alpacaparty mod_users="Val,David,Kahou,Lukas,live_admin"'
+	@echo "$(GREEN)✓ mod_users seeded in prod Vault$(RESET)"
 
-# Promote a single user to admin by username.
+# Add a single user to mod_users in dev Vault.
 # Usage: make make-admin USER=myusername
 make-admin:
 	@[ -n "$(USER)" ] || { echo "$(YELLOW)Usage: make make-admin USER=<username>$(RESET)"; exit 1; }
-	$(DC) exec -T postgres psql \
-	  -U $${DB_USER:-alpacaparty} \
-	  -d $${DB_NAME:-alpacaparty} \
-	  -c "UPDATE users SET is_admin = TRUE WHERE username = '$(USER)'; \
-	      SELECT id, username, email, is_admin FROM users WHERE username = '$(USER)';"
+	@$(DC) exec -T \
+	  -e VAULT_ADDR=http://127.0.0.1:8200 \
+	  -e VAULT_TOKEN=$${VAULT_DEV_TOKEN:-alpacaparty-dev-token} \
+	  -e MOD_USERNAME=$(USER) \
+	  vault sh < scripts/vault-add-mod.sh
+	@echo "$(GREEN)✓ $(USER) added to mod_users in dev Vault$(RESET)"
 
-# Promote a single user to admin by username (prod).
+# Add a single user to mod_users in prod Vault (reads VAULT_ADMIN_TOKEN from vault_keys volume).
 # Usage: make prod-make-admin USER=myusername
 prod-make-admin:
 	@[ -n "$(USER)" ] || { echo "$(YELLOW)Usage: make prod-make-admin USER=<username>$(RESET)"; exit 1; }
-	$(DC_PROD) exec -T postgres psql \
-	  -U $${DB_USER:-alpacaparty} \
-	  -d $${DB_NAME:-alpacaparty} \
-	  -c "UPDATE users SET is_admin = TRUE WHERE username = '$(USER)'; \
-	      SELECT id, username, email, is_admin FROM users WHERE username = '$(USER)';"
+	@docker run --rm \
+	  --network alpacaparty_net \
+	  -v $(COMPOSE_PROJECT)_vault_keys:/vault/keys:ro \
+	  -v $(shell pwd)/scripts:/scripts:ro \
+	  -e VAULT_ADDR=https://vault:8200 \
+	  -e VAULT_SKIP_VERIFY=true \
+	  -e MOD_USERNAME=$(USER) \
+	  hashicorp/vault:1.16 \
+	  sh -c '. /vault/keys/keys.env && export VAULT_TOKEN=$$VAULT_ADMIN_TOKEN && sh /scripts/vault-add-mod.sh'
+	@echo "$(GREEN)✓ $(USER) added to mod_users in prod Vault$(RESET)"
 
 seed-live:
 	$(DC) exec backend npm run seed:live

@@ -57,6 +57,7 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      MOD_USERS: ${MOD_USERS:-live_admin}
     volumes:
       - ./init:/vault/init:ro
       # Shared volume: init-unseal-seed.sh writes keys here; backend reads token from here
