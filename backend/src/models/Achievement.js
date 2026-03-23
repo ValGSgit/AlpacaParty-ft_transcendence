@@ -24,15 +24,21 @@ const Achievement = {
     const achievement = await prisma.achievement.findUnique({ where: { key: achievementKey } });
     if (!achievement) return null;
 
-    try {
-      await prisma.userAchievement.create({
-        data: { userId: Number(userId), achievementId: achievement.id },
-      });
-      return { achievement };
-    } catch (e) {
-      if (e.code === 'P2002') return null; // already unlocked
-      throw e;
-    }
+    // Use upsert to avoid unique constraint errors
+    await prisma.userAchievement.upsert({
+      where: {
+        userId_achievementId: {
+          userId: Number(userId),
+          achievementId: achievement.id,
+        },
+      },
+      update: {}, // do nothing if exists
+      create: {
+        userId: Number(userId),
+        achievementId: achievement.id,
+      },
+    });
+    return { achievement };
   },
 
   async getUserChallengeProgress(userId) {

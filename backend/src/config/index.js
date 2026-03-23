@@ -94,7 +94,9 @@ const config = {
   },
   groqApiKey: process.env.GROQ_API_KEY || '',
   huggingfaceApiKey: process.env.HUGGINGFACE_API_KEY || '',
-  modUsers: (process.env.MOD_USERS || '').split(',').map((s) => s.trim()).filter(Boolean),
+  get modUsers() {
+    return (process.env.MOD_USERS || '').split(',').map((s) => s.trim()).filter(Boolean);
+  },
 
   // File uploads
   uploads: {
