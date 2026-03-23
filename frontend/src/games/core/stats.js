@@ -1,6 +1,6 @@
 import Stats from 'three/addons/libs/stats.module.js';
 
-export function initStats(container) {
+export function initFPSstats(container) {
     const stats = new Stats();
 
     stats.dom.style.position = 'absolute';
@@ -15,7 +15,7 @@ export function initStats(container) {
     return stats;
 }
 
-export function cleanupStats(stats, container) {
+export function cleanupFPSstats(stats, container) {
     if (stats && stats.dom && container && container.contains(stats.dom)) {
         container.removeChild(stats.dom);
     }

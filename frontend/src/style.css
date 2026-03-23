@@ -54,6 +54,16 @@ a:hover {
   color: var(--primary-dark);
 }
 
+.shop-btn {
+
+  /* white-space: nowrap; */
+  min-width: 210px;
+  min-height: 60px;
+
+  padding: 12px 24px;
+}
+
+
 /* --- Alpaca Stats Modal --- */
 
 .stats-content {
@@ -69,13 +79,13 @@ a:hover {
 .stat-row {
   display: flex;
   align-items: center;
+  margin-bottom: 0.5tem;
   gap: 8px;
-  /* Adds space between the emoji/text and the variable */
 }
 
 .stat-color-box {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border: 2px solid #333;
   border-radius: 4px;
 }
@@ -86,7 +96,6 @@ a:hover {
   gap: 5px;
 }
 
-/* --- Inline Editing Styles --- */
 
 .editable-text {
   display: flex;
@@ -94,20 +103,19 @@ a:hover {
   gap: 8px;
 }
 
+/* pencil in alpaca stats */
 .icon-btn {
-  background: none;
-  border: none;
-  font-size: 14px;
+  background: '#333';
+  border: 4px solid #333;
+  font-size: 20px;
   cursor: pointer;
-  padding: 2px;
-  border-radius: 4px;
-  transition: background 0.2s;
-  /* Fades the icon out slightly so it isn't distracting until hovered */
-  opacity: 0.6; 
+  padding: 6px;
+  border-radius: 8px;
+  opacity: 0.75;
 }
 
 .icon-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 128, 128, 0.25);
   opacity: 1;
 }
 
@@ -118,10 +126,10 @@ a:hover {
 
 .name-input {
   background: rgba(255, 255, 255, 0.9);
-  border: 2px solid #333;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 16px;
+  border: 3px solid #333;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 18px;
   font-family: inherit;
   color: #333;
   width: 150px;
@@ -129,5 +137,5 @@ a:hover {
 }
 
 .name-input:focus {
-  border-color: #4CAF50; /* Gives a nice green highlight when typing */
+  border-color: #5CBF61;
 }

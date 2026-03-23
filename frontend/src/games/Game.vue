@@ -12,11 +12,11 @@
   
   <div v-if="gameIsReady">
     <div class="hud-left">
-      <div class="stat"><span>💰 {{ gUser.coins }}</span></div>
+      <div class="stat"><span>🪙 {{ gUser.coins }}</span></div>
     </div>
     
     <div class="hud-right">
-      <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🤑</button>
+      <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🪙</button>
       <button class="hud-btn" @click="openShopMenu()" title="Shop">💰</button>
       <button class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
       <button class="hud-btn" @click="openLightMenu()" title="Edit Light">☀️</button>
@@ -25,9 +25,9 @@
     
     <div v-if="gUI.shopMenu" class="modal-overlay">
       <div class="shop-title">Mini Shop
-        <button class="shop-btn" @click="increaseFarmSize()" title="Increase Farm Size">💰 Increase Farm Size</button>
-        <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca">💰 Buy Alpaca</button>
-        <button class="shop-btn" @click="openItemShop()" title="Buy Item">💰 Buy Item</button>
+        <button class="shop-btn" @click="increaseFarmSize()" title="Increase Farm Size">🚜 Increase Farm Size</button>
+        <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca">🦙 Buy Alpaca</button>
+        <button class="shop-btn" @click="openItemShop()" title="Buy Item">🌳 Buy Item</button>
         <button class="close-btn" @click="closeShopMenu()" title="Close">✖️</button>
       </div>
     </div>
@@ -158,7 +158,7 @@ import { useShop } from './components/shop.js'
 import { addDebugCoins } from './core/debug.js'
 import { gAlpacas, gCollectables, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
-import { cleanupStats, initStats } from './core/stats.js'
+import { cleanupFPSstats, initFPSstats } from './core/stats.js'
 import { changeCamera, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
 import { useInput } from './core/useInput.js'
@@ -174,7 +174,7 @@ const clock = new THREE.Clock()
 
 const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
 const { initInput, cleanupInput} = useInput()
-const { setLight, setTimeOfDay} = editLight()
+const { setTimeOfDay} = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
@@ -203,7 +203,7 @@ onMounted(async () => {
   }
   else
   {
-    stats = initStats(gameContainer.value);
+    stats = initFPSstats(gameContainer.value);
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
@@ -261,7 +261,7 @@ onUnmounted(() => {
   stopMyWatcher()
   cancelAnimationFrame(animationFrameId)
   window.removeEventListener('resize', onResize)
-  cleanupStats(stats, gameContainer.value);
+  cleanupFPSstats(stats, gameContainer.value);
   cleanupInput();
   cleanup()
 })
