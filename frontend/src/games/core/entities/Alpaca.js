@@ -109,8 +109,7 @@ export class Alpaca {
 
   checkAge(delta) {
     this.aliveTime += delta;
-    const SECONDS_PER_YEAR = 60;
-    const yearsPassed = Math.floor(this.aliveTime / SECONDS_PER_YEAR);
+    const yearsPassed = Math.floor(this.aliveTime / CONST.SECONDS_PER_INGAME_YEAR);
     this.age = this.baseAge + yearsPassed;
   }
 

@@ -19,7 +19,7 @@
       <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🤑</button>
       <button class="hud-btn" @click="openShopMenu()" title="Shop">💰</button>
       <button class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
-      <button class="hud-btn" @click="openLightMenu()" title="Edit Light">🌟</button>
+      <button class="hud-btn" @click="openLightMenu()" title="Edit Light">☀️</button>
       <button class="hud-btn" @click="changeCamera()" title="Change Camera">🎥</button>
     </div>
     
@@ -31,6 +31,7 @@
         <button class="close-btn" @click="closeShopMenu()" title="Close">✖️</button>
       </div>
     </div>
+    
     
     <div v-if="gUI.alpacaShop" class="modal-overlay">
       <div class="shop-title">Buy Alpaca
@@ -127,15 +128,14 @@
         <button class="shop-btn" @click="deleteItem()" style="background: #ff4444; color: white; border: 2px solid #cc0000;">🗑️ Delete Item</button>
     </div>
 
-    <div v-if="gUI.lightMenu" class="edit-mode-light">
+<div v-if="gUI.lightMenu" class="modal-overlay">
         <div class="shop-title">Edit Light
-          <div class="alpaca-stat">
-           <button class="stat-btn" @click="setLight(0x555555)" title="--">1</button>
-           <button class="stat-btn" @click="setLight(0x888888)" title="-">2</button>
-           <button class="stat-btn" @click="setLight(0xaaaaaa)" title="normal">3</button>
-           <button class="stat-btn" @click="setLight(0xcccccc)" title="+">4</button>
-           <button class="stat-btn" @click="setLight(0xffffff)" title="++">5</button>
+          <div class="edit-light" style="justify-content: center; gap: 10px;">
+            <button class="shop-btn" @click="setTimeOfDay('day')">☀️ Day</button>
+            <button class="shop-btn" @click="setTimeOfDay('sunset')">☀️ Sunset</button>
+            <button class="shop-btn" @click="setTimeOfDay('night')">🌙 Night</button>
           </div>
+
           <button class="close-btn" @click="closeLightMenu()" title="Close">✖️</button>
         </div>
     </div>
@@ -174,7 +174,7 @@ const clock = new THREE.Clock()
 
 const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
 const { initInput, cleanupInput} = useInput()
-const { setLight } = editLight()
+const { setLight, setTimeOfDay} = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
