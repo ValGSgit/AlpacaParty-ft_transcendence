@@ -38,11 +38,11 @@ beforeEach(() => jest.clearAllMocks());
 // ── getStats ─────────────────────────────────────────────────────────────────
 describe('getStats', () => {
   test('returns stats with default gameType', async () => {
-    const stats = { userId: 1, gameType: 'pong', wins: 10, losses: 5, draws: 2, elo: 1200 };
+    const stats = { userId: 1, gameType: 'spit_royale', wins: 10, losses: 5, draws: 2, elo: 1200 };
     mockGame.getStats.mockResolvedValue(stats);
     const { req, res, next } = createReqRes();
     await getStats(req, res, next);
-    expect(mockGame.getStats).toHaveBeenCalledWith(1, 'pong');
+    expect(mockGame.getStats).toHaveBeenCalledWith(1, 'spit_royale');
     expect(res._json.stats).toEqual(stats);
   });
 
@@ -75,9 +75,9 @@ describe('getHistory', () => {
 
   test('passes custom pagination and gameType', async () => {
     mockGame.getMatchHistory.mockResolvedValue([]);
-    const { req, res, next } = createReqRes({ query: { gameType: 'pong', limit: '5', offset: '10' } });
+    const { req, res, next } = createReqRes({ query: { gameType: 'spit_royale', limit: '5', offset: '10' } });
     await getHistory(req, res, next);
-    expect(mockGame.getMatchHistory).toHaveBeenCalledWith(1, { limit: 5, offset: 10, gameType: 'pong' });
+    expect(mockGame.getMatchHistory).toHaveBeenCalledWith(1, { limit: 5, offset: 10, gameType: 'spit_royale' });
   });
 
   test('calls next on error', async () => {
@@ -96,7 +96,7 @@ describe('getLeaderboard', () => {
     mockGame.getLeaderboard.mockResolvedValue(lb);
     const { req, res, next } = createReqRes();
     await getLeaderboard(req, res, next);
-    expect(mockGame.getLeaderboard).toHaveBeenCalledWith('pong', { limit: 20, offset: 0 });
+    expect(mockGame.getLeaderboard).toHaveBeenCalledWith('spit_royale', { limit: 20, offset: 0 });
     expect(res._json.leaderboard).toEqual(lb);
   });
 

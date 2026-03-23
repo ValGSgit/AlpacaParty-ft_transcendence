@@ -193,7 +193,7 @@ export const generateImage = async (req, res, next) => {
 };
 
 async function _callHuggingFace(req, res, mode) {
-  const apiKey = process.env.HUGGINGFACE_API_KEY;
+  const apiKey = config.huggingfaceApiKey;
   if (!apiKey) {
     res.status(503).json({ error: { message: 'Image generation service is not configured' } });
     return null;

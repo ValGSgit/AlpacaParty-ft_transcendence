@@ -84,6 +84,18 @@ const config = {
     keyPath: process.env.SSL_KEY_PATH || path.resolve(__dirname, '../../ssl/key.pem'),
   },
 
+  // Secrets loaded from Vault (production) or env vars (development).
+  // apiKeys uses a getter so it always reads the current process.env value,
+  // which allows Vault to populate it after module load.
+  get apiKeys() {
+    return new Set(
+      (process.env.API_KEYS || '').split(',').map((k) => k.trim()).filter(Boolean),
+    );
+  },
+  groqApiKey: process.env.GROQ_API_KEY || '',
+  huggingfaceApiKey: process.env.HUGGINGFACE_API_KEY || '',
+  modUsers: (process.env.MOD_USERS || '').split(',').map((s) => s.trim()).filter(Boolean),
+
   // File uploads
   uploads: {
     dir: process.env.UPLOAD_DIR || path.resolve(__dirname, '../../uploads'),

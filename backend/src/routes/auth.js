@@ -11,11 +11,11 @@ import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Strict limiter for credential endpoints — 10 attempts per 15 min per IP.
+// Strict limiter for credential endpoints — 50 attempts per 15 min per IP.
 // The global /api limiter (1000/15 min) is too loose to prevent brute-force.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 50,
   skip: () => process.env.NODE_ENV === 'test',
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,

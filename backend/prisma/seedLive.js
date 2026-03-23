@@ -143,7 +143,10 @@ async function seedUsers(passwordHash) {
   });
 
   await prisma.gameStat.createMany({
-    data: users.map((u) => ({ userId: u.id, gameType: 'pong', wins: r(0, 30), losses: r(0, 25), draws: r(0, 8), elo: r(850, 1450) })),
+    data: [
+      ...users.map((u) => ({ userId: u.id, gameType: 'spit_royale', wins: r(0, 30), losses: r(0, 25), draws: r(0, 8), elo: r(850, 1450) })),
+      ...users.map((u) => ({ userId: u.id, gameType: 'survival', wins: r(0, 20), losses: r(0, 30), draws: 0, elo: r(800, 1400) })),
+    ],
     skipDuplicates: true,
   });
 
@@ -340,7 +343,7 @@ async function seedRooms(userIds) {
 
 const ORG_NAMES = [
   'Alpaca Riders Guild', 'Farm Defense League', 'Llama Lords', 'Woolly Warriors',
-  'Pong Masters', 'Neon Arena', 'Pixel Farmers Co', 'The Alpaca Academy',
+  'Spit Masters', 'Neon Arena', 'Pixel Farmers Co', 'The Alpaca Academy',
   'Golden Fleece Syndicate', 'Cloud Herders', 'Alpaca Party Official', 'Code Ranchers',
   'Frontier Explorers', 'Turbo Shearers', 'Data Shepherds', 'Midnight Grazers',
   'Alpine Collective', 'Digital Pastures', 'Thunder Herd', 'Cosmic Alpacas',

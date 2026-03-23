@@ -31,11 +31,11 @@ beforeEach(() => jest.clearAllMocks());
 // ── create ───────────────────────────────────────────────────────────────────
 describe('create', () => {
   test('creates a game with default gameType', async () => {
-    const game = { id: 1, player1Id: 1, gameType: 'pong', status: 'waiting' };
+    const game = { id: 1, player1Id: 1, gameType: 'spit_royale', status: 'waiting' };
     mockPrisma.game.create.mockResolvedValue(game);
     const result = await Game.create({ player1Id: 1 });
     expect(mockPrisma.game.create).toHaveBeenCalledWith({
-      data: { player1Id: 1, gameType: 'pong', status: 'waiting' },
+      data: { player1Id: 1, gameType: 'spit_royale', status: 'waiting' },
     });
     expect(result).toEqual(game);
   });
@@ -71,10 +71,10 @@ describe('findWaiting', () => {
   test('finds waiting game excluding player', async () => {
     const game = { id: 1, player1Id: 2, status: 'waiting' };
     mockPrisma.game.findFirst.mockResolvedValue(game);
-    const result = await Game.findWaiting('pong', 1);
+    const result = await Game.findWaiting('spit_royale', 1);
     expect(mockPrisma.game.findFirst).toHaveBeenCalledWith({
       where: {
-        status: 'waiting', gameType: 'pong', player1Id: { not: 1 }, player2Id: null,
+        status: 'waiting', gameType: 'spit_royale', player1Id: { not: 1 }, player2Id: null,
       },
     });
     expect(result).toEqual(game);
@@ -82,7 +82,7 @@ describe('findWaiting', () => {
 
   test('returns null when no waiting game', async () => {
     mockPrisma.game.findFirst.mockResolvedValue(null);
-    const result = await Game.findWaiting('pong', 1);
+    const result = await Game.findWaiting('spit_royale', 1);
     expect(result).toBeNull();
   });
 });
@@ -198,23 +198,23 @@ describe('getMatchHistory', () => {
 // ── getStats ─────────────────────────────────────────────────────────────────
 describe('getStats', () => {
   test('returns existing stats', async () => {
-    const stat = { userId: 1, gameType: 'pong', wins: 5, losses: 3, draws: 1, elo: 1100 };
+    const stat = { userId: 1, gameType: 'spit_royale', wins: 5, losses: 3, draws: 1, elo: 1100 };
     mockPrisma.gameStat.findUnique.mockResolvedValue(stat);
-    const result = await Game.getStats(1, 'pong');
+    const result = await Game.getStats(1, 'spit_royale');
     expect(result).toEqual(stat);
   });
 
   test('returns default stats when none exist', async () => {
     mockPrisma.gameStat.findUnique.mockResolvedValue(null);
-    const result = await Game.getStats(1, 'pong');
-    expect(result).toEqual({ userId: 1, gameType: 'pong', wins: 0, losses: 0, draws: 0, elo: 1000 });
+    const result = await Game.getStats(1, 'spit_royale');
+    expect(result).toEqual({ userId: 1, gameType: 'spit_royale', wins: 0, losses: 0, draws: 0, elo: 1000 });
   });
 
-  test('defaults gameType to pong', async () => {
+  test('defaults gameType to spit_royale', async () => {
     mockPrisma.gameStat.findUnique.mockResolvedValue(null);
     await Game.getStats(1);
     expect(mockPrisma.gameStat.findUnique).toHaveBeenCalledWith({
-      where: { userId_gameType: { userId: 1, gameType: 'pong' } },
+      where: { userId_gameType: { userId: 1, gameType: 'spit_royale' } },
     });
   });
 });
@@ -223,7 +223,7 @@ describe('getStats', () => {
 describe('updateStats', () => {
   test('increments wins on win', async () => {
     mockPrisma.gameStat.upsert.mockResolvedValue({});
-    await Game.updateStats(1, 'pong', 'win');
+    await Game.updateStats(1, 'spit_royale', 'win');
     expect(mockPrisma.gameStat.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         update: { wins: { increment: 1 } },
@@ -234,7 +234,7 @@ describe('updateStats', () => {
 
   test('increments losses on loss', async () => {
     mockPrisma.gameStat.upsert.mockResolvedValue({});
-    await Game.updateStats(1, 'pong', 'loss');
+    await Game.updateStats(1, 'spit_royale', 'loss');
     expect(mockPrisma.gameStat.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         update: { losses: { increment: 1 } },
@@ -245,7 +245,7 @@ describe('updateStats', () => {
 
   test('increments draws on draw', async () => {
     mockPrisma.gameStat.upsert.mockResolvedValue({});
-    await Game.updateStats(1, 'pong', 'draw');
+    await Game.updateStats(1, 'spit_royale', 'draw');
     expect(mockPrisma.gameStat.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         update: { draws: { increment: 1 } },
@@ -259,11 +259,11 @@ describe('updateStats', () => {
 describe('updateElo', () => {
   test('upserts elo value', async () => {
     mockPrisma.gameStat.upsert.mockResolvedValue({});
-    await Game.updateElo(1, 'pong', 1300);
+    await Game.updateElo(1, 'spit_royale', 1300);
     expect(mockPrisma.gameStat.upsert).toHaveBeenCalledWith({
-      where: { userId_gameType: { userId: 1, gameType: 'pong' } },
+      where: { userId_gameType: { userId: 1, gameType: 'spit_royale' } },
       update: { elo: 1300 },
-      create: { userId: 1, gameType: 'pong', elo: 1300 },
+      create: { userId: 1, gameType: 'spit_royale', elo: 1300 },
     });
   });
 });
@@ -272,18 +272,18 @@ describe('updateElo', () => {
 describe('getLeaderboard', () => {
   test('returns shaped leaderboard data', async () => {
     mockPrisma.gameStat.findMany.mockResolvedValue([
-      { userId: 1, gameType: 'pong', wins: 10, losses: 5, draws: 2, elo: 1200, user: { username: 'alice', avatar: '/a.png', level: 5 } },
+      { userId: 1, gameType: 'spit_royale', wins: 10, losses: 5, draws: 2, elo: 1200, user: { username: 'alice', avatar: '/a.png', level: 5 } },
     ]);
-    const result = await Game.getLeaderboard('pong');
+    const result = await Game.getLeaderboard('spit_royale');
     expect(result).toEqual([{
-      userId: 1, gameType: 'pong', wins: 10, losses: 5, draws: 2, elo: 1200,
+      userId: 1, gameType: 'spit_royale', wins: 10, losses: 5, draws: 2, elo: 1200,
       username: 'alice', avatar: '/a.png', level: 5,
     }]);
   });
 
   test('applies publicOnly filter', async () => {
     mockPrisma.gameStat.findMany.mockResolvedValue([]);
-    await Game.getLeaderboard('pong', { publicOnly: true });
+    await Game.getLeaderboard('spit_royale', { publicOnly: true });
     expect(mockPrisma.gameStat.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ user: { isPublic: true } }),
@@ -293,14 +293,14 @@ describe('getLeaderboard', () => {
 
   test('does not apply publicOnly when false', async () => {
     mockPrisma.gameStat.findMany.mockResolvedValue([]);
-    await Game.getLeaderboard('pong', { publicOnly: false });
+    await Game.getLeaderboard('spit_royale', { publicOnly: false });
     const call = mockPrisma.gameStat.findMany.mock.calls[0][0];
     expect(call.where.user).toBeUndefined();
   });
 
   test('applies pagination', async () => {
     mockPrisma.gameStat.findMany.mockResolvedValue([]);
-    await Game.getLeaderboard('pong', { limit: 5, offset: 10 });
+    await Game.getLeaderboard('spit_royale', { limit: 5, offset: 10 });
     expect(mockPrisma.gameStat.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 5, skip: 10 }),
     );
@@ -310,7 +310,7 @@ describe('getLeaderboard', () => {
     mockPrisma.gameStat.findMany.mockResolvedValue([]);
     await Game.getLeaderboard();
     expect(mockPrisma.gameStat.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ take: 20, skip: 0, where: { gameType: 'pong' } }),
+      expect.objectContaining({ take: 20, skip: 0, where: { gameType: 'spit_royale' } }),
     );
   });
 });

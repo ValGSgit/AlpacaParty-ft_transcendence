@@ -121,7 +121,7 @@ describe('GET /api/public/mock', () => {
     ]);
     // Game.getLeaderboard → prisma.gameStat.findMany
     mockPrisma.gameStat.findMany.mockResolvedValueOnce([
-      { userId: 1, gameType: 'pong', elo: 1000, wins: 1, losses: 0, draws: 0, user: { username: 'alice', avatar: '/a.png', level: 2 } },
+      { userId: 1, gameType: 'spit_royale', elo: 1000, wins: 1, losses: 0, draws: 0, user: { username: 'alice', avatar: '/a.png', level: 2 } },
     ]);
     // Post.getFeed → prisma.post.findMany (postLike not called since viewerId=null)
     mockPrisma.post.findMany.mockResolvedValueOnce([

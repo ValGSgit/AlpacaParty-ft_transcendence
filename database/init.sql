@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS games (
     player2_score INT DEFAULT 0,
     status        VARCHAR(20) DEFAULT 'waiting'
                   CHECK (status IN ('waiting', 'playing', 'finished', 'cancelled')),
-    game_type     VARCHAR(30) DEFAULT 'pong',
+    game_type     VARCHAR(30) DEFAULT 'spit_royale',
     game_data     JSONB       DEFAULT '{}',      -- arbitrary per-game state snapshot
     started_at    TIMESTAMPTZ,
     finished_at   TIMESTAMPTZ,
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS games (
 CREATE TABLE IF NOT EXISTS game_stats (
     id          SERIAL PRIMARY KEY,
     user_id     INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    game_type   VARCHAR(30) NOT NULL DEFAULT 'pong',
+    game_type   VARCHAR(30) NOT NULL DEFAULT 'spit_royale',
     wins        INT DEFAULT 0,
     losses      INT DEFAULT 0,
     draws       INT DEFAULT 0,

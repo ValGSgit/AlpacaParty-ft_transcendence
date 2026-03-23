@@ -28,7 +28,7 @@ DC_PROD := docker compose -f compose.prod.yaml
 	seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
         vault-status vault-secrets vault-shell \
         prod-vault-status prod-vault-unseal prod-vault-rotate-token \
-        waf-logs
+        waf-logs \
 
 # ── HELP ────────────────────────────────────────────────────
 help:
@@ -194,6 +194,7 @@ prod-e2e: prod-seed-live
 	docker run --rm \
 	  --network alpacaparty_net \
 	  -e E2E_BASE_URL=https://nginx:8443 \
+	  -e E2E_API_KEY=$$(grep '^API_KEYS=' .env | cut -d= -f2- | cut -d, -f1) \
 	  -e PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
 	  alpacaparty-e2e npm test
 	@echo "$(GREEN)✓ Production E2E tests complete$(RESET)"
@@ -319,6 +320,7 @@ prod-vault-rotate-token:
 	  | grep '"client_token"' \
 	  | sed 's/.*"client_token": *"\(.*\)".*/\1/' \
 	  | xargs -I{} echo "New VAULT_TOKEN: {}"
+
 
 # ── CLEANUP ─────────────────────────────────────────────────
 clean:

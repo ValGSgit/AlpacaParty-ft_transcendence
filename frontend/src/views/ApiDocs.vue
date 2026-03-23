@@ -477,7 +477,7 @@ const sections = [
       {
         method: 'GET', path: '/api/game/stats',
         description: 'Get the authenticated user\'s game statistics.',
-        params: [{ name: 'gameType', in: 'query', type: 'string', required: false, desc: 'Game type filter (default: pong)' }],
+        params: [{ name: 'gameType', in: 'query', type: 'string', required: false, desc: 'Game type filter (default: spit_royale)' }],
         response: '{ "stats": { "wins", "losses", "draws", "elo" } }',
       },
       {
@@ -493,7 +493,7 @@ const sections = [
         method: 'GET', path: '/api/game/leaderboard',
         description: 'Get the game leaderboard sorted by ELO rating.',
         params: [
-          { name: 'gameType', in: 'query', type: 'string', required: false, desc: 'Game type (default: pong)' },
+          { name: 'gameType', in: 'query', type: 'string', required: false, desc: 'Game type (default: spit_royale)' },
           { name: 'limit', in: 'query', type: 'number', required: false, desc: 'Max entries (default: 20)' },
         ],
         response: '{ "leaderboard": [ { "user_id", "username", "elo", "wins", "losses" } ] }',
@@ -762,7 +762,7 @@ const sections = [
         method: 'GET', path: '/api/public/leaderboard',
         description: 'Get game leaderboard.',
         params: [
-          { name: 'gameType', in: 'query', type: 'string', required: false, desc: 'Game type (default: pong)' },
+          { name: 'gameType', in: 'query', type: 'string', required: false, desc: 'Game type (default: spit_royale)' },
           { name: 'limit', in: 'query', type: 'number', required: false, desc: 'Max entries (default: 20)' },
           { name: 'anonymized', in: 'query', type: 'boolean', required: false, desc: 'Anonymize data' },
         ],

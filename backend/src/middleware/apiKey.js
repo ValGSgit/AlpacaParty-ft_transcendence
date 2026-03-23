@@ -3,20 +3,13 @@
  * @owner ValGSgit
  *
  * Expects the header:  X-API-Key: <key>
- * API keys are stored as a comma-separated env var:
- *   API_KEYS=key1,key2,key3
+ * Valid keys are managed via Vault → config.apiKeys (getter).
  */
-
-const validKeys = new Set(
-  (process.env.API_KEYS || '')
-    .split(',')
-    .map((k) => k.trim())
-    .filter(Boolean),
-);
+import config from '../config/index.js';
 
 export const requireApiKey = (req, res, next) => {
   const key = req.headers['x-api-key'];
-  if (!key || !validKeys.has(key)) {
+  if (!key || !config.apiKeys.has(key)) {
     return res.status(401).json({ error: { message: 'Invalid or missing API key' } });
   }
   next();

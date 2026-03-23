@@ -60,11 +60,11 @@ export class Game {
   }
 
   #initRenderer() {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.2;
     this.renderer.setClearColor(0x050d1a, 1);
@@ -418,12 +418,7 @@ export class Game {
       big ? this._bigSpitMat   : this._smallSpitMat,
     );
     mesh.position.set(sd.x, 0.55, sd.z);
-    mesh.castShadow = true;
-
-    if (big) {
-      const light = new THREE.PointLight(0x4cc9f0, 1.5, 3);
-      mesh.add(light);
-    }
+    mesh.castShadow = false;
 
     this.scene.add(mesh);
     this.spitMeshes[sd.id] = mesh;
@@ -442,7 +437,7 @@ export class Game {
     const group = new THREE.Group();
 
     const orb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.45, 12, 10),
+      new THREE.SphereGeometry(0.45, 8, 6),
       new THREE.MeshStandardMaterial({
         color,
         emissive: color,
@@ -456,14 +451,11 @@ export class Game {
     group.add(orb);
 
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.6, 0.06, 6, 24),
+      new THREE.TorusGeometry(0.6, 0.06, 4, 16),
       new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 1.2 }),
     );
     ring.rotation.x = Math.PI / 2;
     group.add(ring);
-
-    const light = new THREE.PointLight(color, 1.2, 5);
-    group.add(light);
 
     group.position.set(pd.x, 0.6, pd.z);
     group.userData = { baseY: 0.6, ring };

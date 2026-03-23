@@ -1,4 +1,7 @@
 # PostgreSQL — Production
+# DB_PASSWORD is passed via a Docker Compose secret (file-based) so it never
+# appears as an environment variable inside the container.  The official
+# postgres image reads POSTGRES_PASSWORD_FILE at startup.
 services:
   postgres:
     image: postgres:16
@@ -6,7 +9,9 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-alpacaparty}
       POSTGRES_USER: ${DB_USER:-alpacaparty}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -19,3 +24,7 @@ services:
     restart: always
     networks:
       - alpacaparty_net
+
+secrets:
+  db_password:
+    environment: DB_PASSWORD

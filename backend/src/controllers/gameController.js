@@ -6,16 +6,16 @@
 import Game from '../models/Game.js';
 import Achievement from '../models/Achievement.js';
 
-/** GET /api/game/stats?gameType=pong */
+/** GET /api/game/stats?gameType=spit_royale */
 export const getStats = async (req, res, next) => {
   try {
-    const gameType = req.query.gameType || 'pong';
+    const gameType = req.query.gameType || 'spit_royale';
     const stats = await Game.getStats(req.user.id, gameType);
     res.json({ stats });
   } catch (err) { next(err); }
 };
 
-/** GET /api/game/history?gameType=pong&limit=20&offset=0 */
+/** GET /api/game/history?gameType=spit_royale&limit=20&offset=0 */
 export const getHistory = async (req, res, next) => {
   try {
     const { gameType, limit = 20, offset = 0 } = req.query;
@@ -26,10 +26,10 @@ export const getHistory = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-/** GET /api/game/leaderboard?gameType=pong&limit=20 */
+/** GET /api/game/leaderboard?gameType=spit_royale&limit=20 */
 export const getLeaderboard = async (req, res, next) => {
   try {
-    const { gameType = 'pong', limit = 20, offset = 0 } = req.query;
+    const { gameType = 'spit_royale', limit = 20, offset = 0 } = req.query;
     const leaderboard = await Game.getLeaderboard(gameType, { limit: Number(limit), offset: Number(offset) });
     res.json({ leaderboard });
   } catch (err) { next(err); }

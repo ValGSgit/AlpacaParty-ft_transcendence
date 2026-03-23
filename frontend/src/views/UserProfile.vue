@@ -114,7 +114,7 @@ onMounted(async () => {
 
   // Fetch game stats and posts in parallel
   try {
-    const { data } = await api.get(`/game/stats?userId=${route.params.id}&gameType=pong`)
+    const { data } = await api.get(`/game/stats?userId=${route.params.id}&gameType=spit_royale`)
     stats.value = data.stats
   } catch {}
 

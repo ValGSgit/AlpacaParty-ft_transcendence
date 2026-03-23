@@ -16,7 +16,7 @@
     <!-- Create Post -->
     <div class="create-post" v-if="authStore.isAuthenticated">
       <form @submit.prevent="createPost">
-        <textarea v-model="newPostContent" placeholder="What's on your mind?" rows="3" maxlength="2000"></textarea>
+        <textarea v-model="newPostContent" placeholder="Want to spit some facts?" rows="3" maxlength="2000"></textarea>
         <div class="create-post-actions">
           <label class="upload-btn" title="Add image">
             📷 Add Image

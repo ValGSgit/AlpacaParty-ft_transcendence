@@ -113,7 +113,7 @@ CREATE TABLE "games" (
     "player1_score" INTEGER DEFAULT 0,
     "player2_score" INTEGER DEFAULT 0,
     "status" VARCHAR(20) DEFAULT 'waiting',
-    "game_type" VARCHAR(30) DEFAULT 'pong',
+    "game_type" VARCHAR(30) DEFAULT 'spit_royale',
     "game_data" JSONB DEFAULT '{}',
     "started_at" TIMESTAMPTZ,
     "finished_at" TIMESTAMPTZ,
@@ -126,7 +126,7 @@ CREATE TABLE "games" (
 CREATE TABLE "game_stats" (
     "id" SERIAL NOT NULL,
     "user_id" INTEGER NOT NULL,
-    "game_type" VARCHAR(30) NOT NULL DEFAULT 'pong',
+    "game_type" VARCHAR(30) NOT NULL DEFAULT 'spit_royale',
     "wins" INTEGER DEFAULT 0,
     "losses" INTEGER DEFAULT 0,
     "draws" INTEGER DEFAULT 0,

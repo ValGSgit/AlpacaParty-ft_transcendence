@@ -56,6 +56,7 @@
 <script lang="ts">
 
 import { defineComponent, ref, onMounted, onUnmounted, watch } from 'vue'
+import shrekGif from '../assets/shrek.gif'
 
 export default defineComponent({
   name: 'FakeAd',
@@ -63,7 +64,7 @@ export default defineComponent({
   props: {
     gifUrl: {
       type: String,
-      default: 'https://media1.tenor.com/m/p_owYEtun7QAAAAd/farm-merge-valley-farm-merge.gif',
+      default: shrekGif,
     },
     title: {
       type: String,
@@ -153,7 +154,7 @@ export default defineComponent({
 }
 
 .fake-ad-container { /*here*/
-  width: min(410px, 94vw);
+  width: min(560px, 94vw);
   background: linear-gradient(160deg, #fffbe8 0%, #fff3c4 100%);
   border-radius: 24px;
   /*up*/
@@ -224,7 +225,7 @@ export default defineComponent({
 .ad-gif {
   width: 100%;
   /*here*/
-  max-height: 420px;
+  max-height: 560px;
   object-fit: contain;
   border-radius: 12px;
   border: 3px solid #f4a800;
@@ -296,7 +297,7 @@ export default defineComponent({
     0 4px 24px rgba(0, 0, 0, 0.35);
 }
 .fake-ad-sidebar .ad-gif {
-  max-height: 220px;
+  max-height: 320px;
 }
 .fake-ad-sidebar .ad-title {
   font-size: 18px;

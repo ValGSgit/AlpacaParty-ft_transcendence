@@ -91,7 +91,7 @@ export class UI {
         card.className = `player-card${p.id === localId ? ' local-card' : ''}`;
         card.innerHTML = `
           <div class="player-name" style="color:#${p.color?.toString(16).padStart(6, '0')}">${p.name}${p.id === localId ? ' (you)' : ''}</div>
-          <div class="health-bar-bg"><div class="health-bar" style="width:100%"></div></div>
+          <div class="health-row"><div class="health-bar-bg"><div class="health-bar" style="width:100%"></div></div><span class="hp-num">${p.health}/${MAX_HEALTH}</span></div>
         `;
         this.cards.appendChild(card);
         this.cardEls[p.id] = card;
@@ -99,9 +99,11 @@ export class UI {
 
       const card      = this.cardEls[p.id];
       const bar       = card.querySelector('.health-bar');
+      const hpNum     = card.querySelector('.hp-num');
       const pct       = p.health / MAX_HEALTH;
       bar.style.width      = `${pct * 100}%`;
       bar.style.background = healthColor(pct);
+      if (hpNum) hpNum.textContent = `${Math.max(0, p.health)}/${MAX_HEALTH}`;
 
       const connected = p.connected !== false;
       card.style.opacity = p.alive ? (connected ? '1' : '0.6') : '0.35';

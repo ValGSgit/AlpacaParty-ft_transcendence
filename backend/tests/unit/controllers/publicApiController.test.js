@@ -166,7 +166,7 @@ describe('getLeaderboard', () => {
     mockGame.getLeaderboard.mockResolvedValue(rows);
     const { req, res, next } = createReqRes();
     await getLeaderboard(req, res, next);
-    expect(mockGame.getLeaderboard).toHaveBeenCalledWith('pong', { limit: 20, offset: 0, publicOnly: true });
+    expect(mockGame.getLeaderboard).toHaveBeenCalledWith('spit_royale', { limit: 20, offset: 0, publicOnly: true });
     expect(res._json.leaderboard).toHaveLength(1);
     expect(res._json.leaderboard[0].username).toBe('alice');
   });

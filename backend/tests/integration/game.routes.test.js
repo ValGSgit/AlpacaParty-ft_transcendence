@@ -52,7 +52,7 @@ describe('GET /api/game/stats', () => {
   test('200 — returns stats', async () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
     mockPrisma.gameStat.findUnique.mockResolvedValueOnce({
-      userId: 1, gameType: 'pong', wins: 5, losses: 2, draws: 0, elo: 1050,
+      userId: 1, gameType: 'spit_royale', wins: 5, losses: 2, draws: 0, elo: 1050,
     });
     const res = await request.get('/api/game/stats').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
@@ -62,10 +62,10 @@ describe('GET /api/game/stats', () => {
   test('200 — with gameType query param', async () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
     mockPrisma.gameStat.findUnique.mockResolvedValueOnce({
-      userId: 1, gameType: 'pong', wins: 5, losses: 2, draws: 0, elo: 1050,
+      userId: 1, gameType: 'spit_royale', wins: 5, losses: 2, draws: 0, elo: 1050,
     });
     const res = await request
-      .get('/api/game/stats?gameType=pong')
+      .get('/api/game/stats?gameType=spit_royale')
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
   });
@@ -76,7 +76,7 @@ describe('GET /api/game/history', () => {
   test('200 — returns match history', async () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
     mockPrisma.game.findMany.mockResolvedValueOnce([
-      { id: 1, player1Id: 1, player2Id: 2, status: 'finished', gameType: 'pong', player1Score: 5, player2Score: 3 },
+      { id: 1, player1Id: 1, player2Id: 2, status: 'finished', gameType: 'spit_royale', player1Score: 5, player2Score: 3 },
     ]);
     const res = await request.get('/api/game/history').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
@@ -89,7 +89,7 @@ describe('GET /api/game/leaderboard', () => {
   test('200 — returns leaderboard', async () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
     mockPrisma.gameStat.findMany.mockResolvedValueOnce([
-      { userId: 2, gameType: 'pong', elo: 1200, wins: 10, losses: 2, draws: 0, user: { username: 'top', avatar: null, level: 5 } },
+      { userId: 2, gameType: 'spit_royale', elo: 1200, wins: 10, losses: 2, draws: 0, user: { username: 'top', avatar: null, level: 5 } },
     ]);
     const res = await request.get('/api/game/leaderboard').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);

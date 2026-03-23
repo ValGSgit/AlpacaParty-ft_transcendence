@@ -60,11 +60,11 @@ import api from '../services/api.js'
 import { getSocket } from '../services/socket.js'
 
 const tabs = [
-  { label: 'Pong', value: 'pong' },
-  { label: 'Spit Royale', value: 'spitroyale' },
+  { label: 'Spit Royale', value: 'spit_royale' },
+  { label: 'Survival', value: 'survival' },
 ]
 
-const gameType = ref('pong')
+const gameType = ref('spit_royale')
 const entries = ref([])
 const loading = ref(false)
 const updatedAt = ref(null)
