@@ -43,7 +43,7 @@
           <input type="range" v-model.number="alpacaConfig.scale" min="0.75" max="1.25" step="0.05" />
         </div>
           <div class="color-grid">
-          <button class="shop-btn" @click="alpacaConfig.color = '#634632'; buyAlpaca()" title="Brown">Brown</button>
+          <button class="shop-btn" @click="alpacaConfig.color = '#795740'; buyAlpaca()" title="Brown">Brown</button>
           <button class="shop-btn" @click="alpacaConfig.color = '#111111'; buyAlpaca()" title="Black">Black</button>
           <button class="shop-btn" @click="alpacaConfig.color = '#555555'; buyAlpaca()" title="Grey">Grey</button>
           <button class="shop-btn" @click="alpacaConfig.color = '#ffffff'; buyAlpaca()" title="White">White</button>
@@ -58,22 +58,56 @@
       </div>
     </div>
     
-  <div v-if="gUI.alpacaStats" class="modal-overlay">
-        <div class="shop-title">Alpaca Stats
-          
-          <div class="alpaca-stat" :key="updateVue">
+<div v-if="gUI.alpacaStats" class="modal-overlay">
+      <div class="shop-title">Alpaca Stats
+        <div class="stats-content" :key="updateVue">
+          <div class="stat-row">
+            <strong>Name:</strong> 
+            <span v-if="!gUI.isEditingName" class="editable-text">
+              {{ gPlayer.name }}
+              <button class="icon-btn" @click="gUI.isEditingName = true" title="Edit Name">✏️</button>
+            </span>
             
-            <div v-if="gPlayer.speedOffset === 0">Speed: Normal</div>
-            <div v-if="gPlayer.speedOffset > 0">Speed: Fast</div>
-            <div v-if="gPlayer.speedOffset < 0">Speed: Slow</div>
-            
-            <button class="stat-btn" @click="changeSpeed(-1)" title="Speed--">-</button>
-            <button class="stat-btn" @click="changeSpeed(1)" title="Speed++">+</button>
+            <span v-else class="editing-mode">
+              <input 
+                type="text" 
+                v-model="gPlayer.name" 
+                @keyup.enter="changeName(gPlayer.name); gUI.isEditingName = false"
+                class="name-input"
+              />
+            </span>
           </div>
+
+          <div class="stat-row"><strong>Age:</strong> {{ gPlayer.age }}</div>
           
-          <button class="close-btn" @click="closeAlpacaStats()" title="Close">✖️</button>
+          <div class="stat-row">
+            <strong>Color:</strong> 
+            
+            <input 
+              type="color" 
+              v-model="gPlayer.color" 
+              @input="changeColor(gPlayer.color)"
+              class="custom-picker"
+              title="Change Alpaca Color"
+            />
+          </div>
+
+          <div class="stat-row">
+            <strong>Speed:</strong> 
+            <span v-if="gPlayer.speedOffset === 0"> Normal</span>
+            <span v-if="gPlayer.speedOffset > 0"> Fast</span>
+            <span v-if="gPlayer.speedOffset < 0"> Slow</span>
+            <div class="speed-controls">
+              <button class="stat-btn" @click="changeSpeed(-1)" title="Decrease Speed">-</button>
+              <button class="stat-btn" @click="changeSpeed(1)" title="Increase Speed">+</button>
+            </div>
+          </div>
+
         </div>
+        
+        <button class="close-btn" @click="closeAlpacaStats()" title="Close">✖️</button>
       </div>
+    </div>
     
     <div v-if="gUI.itemShop" class="modal-overlay">
         <div class="shop-title">Select Item
@@ -138,7 +172,7 @@ const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
 const clock = new THREE.Clock()
 
-const { changeSpeed, updateVue } = alpacaStats()
+const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
 const { initInput, cleanupInput} = useInput()
 const { setLight } = editLight()
 const { buyAlpaca } = alpacaShop()

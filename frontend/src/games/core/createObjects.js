@@ -20,7 +20,7 @@ export async function createAlpaca(
   attachCollider(clone);
 
   const alpaca = new Alpaca(clone, animations, {
-    name, color, position, rotation, scale
+    name, color, position, rotation, scale,
   });
 
   registerEntity(alpaca, 'alpaca');

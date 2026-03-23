@@ -1,16 +1,14 @@
 import * as THREE from 'three';
 import { alpacaAI } from '../../components/alpacaAI.js';
+import { alpacaHandling } from '../../components/alpacaHandling.js';
 import { CONST } from '../../config/constants.js';
 import { gPlayer, gUI } from '../globals.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
-import { alpacaHandling } from '../../components/alpacaHandling.js'
 
 const { updateAI } = alpacaAI();
 const { updatePlayer } = usePlayerControls();
 const { makeSpit } = alpacaHandling()
-
-const activeSpits = []; // Keep track of projectiles in flight
 
 export class Alpaca {
   constructor(model, animations, options = {}) {
@@ -18,6 +16,7 @@ export class Alpaca {
     this.animations = animations;
     this.name = options.name || "Alpaca";
     this.model.name = this.name;
+    this.color = options.color || "#795740";
 
     const pos = options.position || [0, 0, 0];
     const rotation = options.rotation || 0;
@@ -29,9 +28,7 @@ export class Alpaca {
     this.model.scale.set(...scale);
     this.model.updateMatrixWorld(true);
 
-    if (options.color) {
-      this.setColor(options.color);
-    }
+    this.setColor(this.color);
 
     this.mixer = new THREE.AnimationMixer(this.model);
     if (this.animations && this.animations.length > 1) {
@@ -40,7 +37,12 @@ export class Alpaca {
 
     this.speedOffset = 0;
     this.rotationOffset = 0;
+
     this.woolLevel = 1;
+    this.aliveTime = 0;
+    this.baseAge = 1;
+    this.age = this.baseAge;
+
     this.isMoving = false;
     this.isAutoMoving = false;
     this.target = new THREE.Vector3();
@@ -86,6 +88,9 @@ export class Alpaca {
     const isPlayer = (player && this.model.uuid === player.model.uuid);
 
     if (this.mixer) this.mixer.update(delta);
+
+    this.checkAge(delta);
+
     if (gUI.editMode) {
       this.isMoving = false;
       this.animDir = 0;
@@ -93,7 +98,7 @@ export class Alpaca {
       updateAI(this, delta);
       this.animDir = this.isMoving ? 1 : 0;
     } else {
-        updatePlayer(this, delta);
+      updatePlayer(this, delta);
     }
     handleAnimation(this, this.animDir, this.speed);
   }
@@ -102,12 +107,19 @@ export class Alpaca {
     makeSpit(this)
   }
 
+  checkAge(delta) {
+    this.aliveTime += delta;
+    const SECONDS_PER_YEAR = 60;
+    const yearsPassed = Math.floor(this.aliveTime / SECONDS_PER_YEAR);
+    this.age = this.baseAge + yearsPassed;
+  }
+
+
   beingHit() {
     this.hp--
     if (this.hp === 0)
       this.isDead = 1 // dead
-    else if (this.hp < 0)
-    {
+    else if (this.hp < 0) {
       this.hp = CONST.HP // resurrection
       this.isDead = 0
     }
