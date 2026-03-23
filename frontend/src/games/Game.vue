@@ -130,11 +130,9 @@
 
 <div v-if="gUI.lightMenu" class="modal-overlay">
         <div class="shop-title">Edit Light
-          <div class="edit-light" style="justify-content: center; gap: 10px;">
-            <button class="shop-btn" @click="setTimeOfDay('day')">☀️ Day</button>
-            <button class="shop-btn" @click="setTimeOfDay('sunset')">☀️ Sunset</button>
-            <button class="shop-btn" @click="setTimeOfDay('night')">🌙 Night</button>
-          </div>
+          <button class="shop-btn" @click="setTimeOfDay('day')">☀️ Day</button>
+          <button class="shop-btn" @click="setTimeOfDay('sunset')">☀️ Sunset</button>
+          <button class="shop-btn" @click="setTimeOfDay('night')">🌙 Night</button>
 
           <button class="close-btn" @click="closeLightMenu()" title="Close">✖️</button>
         </div>
