@@ -19,6 +19,8 @@ export async function saveGame() {
       scale: alpaca.model.scale.toArray(),
       speedOffset: alpaca.speedOffset,
       rotationOffset: alpaca.rotationOffset,
+      age: alpaca.age,
+      aliveTime: alpaca.aliveTime,
     };
   });
 

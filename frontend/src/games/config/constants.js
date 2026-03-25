@@ -21,6 +21,7 @@ export const CONST = {
 
   MAX_UPGRADES: 5,
   HP: 3,
+  SECONDS_PER_INGAME_YEAR: 300,
 
   get ALPACA_COST() {
     return gAlpacas.length
