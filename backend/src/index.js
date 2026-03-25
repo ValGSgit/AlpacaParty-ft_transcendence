@@ -40,9 +40,8 @@ if (config.ssl.certPath && config.ssl.keyPath) {
     useHttps = true;
     console.log('[ssl] ✓ HTTPS enabled with certificates from', config.ssl.certPath);
   } catch (err) {
-    if (isProd) {
-      throw new Error(`[ssl] SSL certificates required in production but failed to load: ${err.message}`);
-    }
+    /* Now you must*/
+    throw new Error(`[ssl] SSL certificates required in production but failed to load: ${err.message}`);
     console.warn(`[ssl] Failed to load certificates: ${err.message}`);
     console.warn('[ssl] Falling back to HTTP (development only)');
   }
@@ -50,11 +49,10 @@ if (config.ssl.certPath && config.ssl.keyPath) {
 
 // Fallback to HTTP — development only
 if (!useHttps) {
-  if (isProd) {
     throw new Error('[ssl] SSL certificates are required in production but were not configured');
-  }
+  /* If you need to make sure for some weird reason feel free to uncomment
   httpServer = http.createServer(app);
-  console.warn('[ssl] ⚠ Backend running on HTTP - certificates not properly configured');
+  console.warn('[ssl] ⚠ Backend running on HTTP - certificates not properly configured');*/
 }
 
 // Trust proxy (behind nginx reverse proxy)
@@ -86,6 +84,9 @@ app.use(helmet({
       objectSrc: ["'none'"],
       mediaSrc: ["'self'", 'blob:'],
       frameSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
     },
   },
 }));
@@ -115,8 +116,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const passport = initializePassport();
 app.use(passport.initialize());
 
-// Serve uploaded files
-app.use('/uploads', express.static(config.uploads.dir));
+// Serve uploaded files — force download to prevent SVG/HTML XSS in app origin
+app.use('/uploads', (_req, res, next) => {
+  res.setHeader('Content-Disposition', 'attachment');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  next();
+}, express.static(config.uploads.dir));
 
 // Dev request logging
 if (config.nodeEnv === 'development') {

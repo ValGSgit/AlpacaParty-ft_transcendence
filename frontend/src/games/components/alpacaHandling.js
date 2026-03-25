@@ -11,7 +11,8 @@ const activeSpits = []; // Keep track of projectiles in flight
 export function alpacaHandling() {
 
   const setMoveLocation = (raycaster) => {
-    raycaster.ray.intersectPlane(floorPlane, worldPoint)
+    if (!raycaster.ray.intersectPlane(floorPlane, worldPoint)) return;
+    if (!gPlayer.value) return;
     gPlayer.value.target = worldPoint.clone()
     gPlayer.value.isAutoMoving = true;
   }
@@ -76,12 +77,13 @@ export function alpacaHandling() {
             // Logic for hitting an alpaca
             if (hits.length > 0) {
                 const hitAlpaca = findAlpaca(hits[0].object);
-                hitAlpaca.beingHit(s.owner)
+                if (hitAlpaca) hitAlpaca.beingHit(s.owner);
             }
 
             // Cleanup
             gScene.value.remove(s.mesh);
             s.mesh.geometry.dispose();
+            s.mesh.material.dispose();
             activeSpits.splice(i, 1);
         }
     }

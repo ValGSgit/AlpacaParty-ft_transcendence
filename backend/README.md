@@ -64,7 +64,7 @@ backend/
 
 ### Base URL
 ```
-Docker:    http://localhost:8080/api
+Docker:    http://localhost:8443/api
 Local dev: http://localhost:3000/api
 ```
 
@@ -136,7 +136,7 @@ Copy `.env.example` from the project root and fill in the values.
 | `DB_NAME` | `alpacaparty` | Database name |
 | `DB_USER` | `alpacaparty` | Database user |
 | `DB_PASSWORD` | `alpacaparty` | Database password |
-| `CORS_ORIGINS` | `http://localhost:5173,http://localhost:8080` | Comma-separated allowed origins |
+| `CORS_ORIGINS` | `http://localhost:5173,http://localhost:8443` | Comma-separated allowed origins |
 
 ---
 
@@ -146,7 +146,7 @@ Copy `.env.example` from the project root and fill in the values.
 ```bash
 # From project root
 make build && make up
-# Backend available at http://localhost:8080/api
+# Backend available at http://localhost:8443/api
 ```
 
 **Without Docker**
@@ -184,7 +184,7 @@ graph TB
         VUE["Vue 3 + Vite SPA\n(port 5173)"]
     end
 
-    subgraph Proxy["🔀 nginx (port 8080)"]
+    subgraph Proxy["🔀 nginx (port 8443)"]
         NGINX["Reverse Proxy\n/api → backend\n/ → frontend"]
     end
 
@@ -274,7 +274,7 @@ graph TB
 Browser / Client
       │
       ▼
-  nginx :8080
+  nginx :8443
       │  /api/*
       ▼
   index.js

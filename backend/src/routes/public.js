@@ -42,8 +42,8 @@ router.get('/', (_req, res) => {
   });
 });
 
-// Stricter rate limit + API key required for all data endpoints
-router.use(rateLimit({ windowMs: 60_000, max: 30, message: 'Public API rate limit exceeded' }));
+// Rate limit + API key required for all data endpoints
+router.use(rateLimit({ windowMs: 60_000, max: 100, message: 'Public API rate limit exceeded' }));
 router.use(requireApiKey);
 
 router.get('/users', listUsers);

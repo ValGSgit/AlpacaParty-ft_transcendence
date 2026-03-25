@@ -17,7 +17,7 @@ const SUDDEN_DEATH_SEC = 90;
 
 // ── Survival-mode constants ──────────────────────────────────────────────────
 const BOT_COLORS   = [0xc62828, 0x880e4f, 0x1a237e, 0x004d40, 0x33691e];
-const BOT_BASE_SPEED = 4.5;
+const BOT_BASE_SPEED = 3.2;
 const BOT_TACTICS  = ['charge', 'flank_left', 'flank_right', 'strafe', 'retreat', 'dodge'];
 
 function calcElo(playerElo, opponentElo, result) {

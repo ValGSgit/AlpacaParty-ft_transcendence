@@ -22,10 +22,15 @@ test.describe('Admin Dashboard', () => {
     adminToken = admin.token;
   });
 
-  test('admin login succeeds and user has admin flag', async ({ request }) => {
+  test('admin login succeeds and can access admin endpoints', async ({ request }) => {
     const admin = await loginAsSeeded(request, 'live_admin@alpacaparty.test');
     expect(admin.token).toBeTruthy();
-    expect(admin.user.isAdmin).toBeTruthy();
+
+    // Verify the admin user can access a protected admin endpoint
+    const statsRes = await request.get('/api/admin/stats', {
+      headers: authHeaders(admin.token),
+    });
+    expect(statsRes.status()).toBe(200);
   });
 
   test('GET /api/admin/stats returns real statistics', async ({ request }) => {
@@ -92,25 +97,40 @@ test.describe('Admin Dashboard', () => {
     expect(found).toBeTruthy();
   });
 
-  test('toggle admin status on a test user', async ({ request }) => {
-    // Create a fresh user to toggle
+  test('toggle admin status grants and revokes admin access', async ({ request }) => {
+    // Create a fresh non-admin user
     const testUser = await createUser(request, 'admin_toggle');
+    const userToken = testUser.accessToken;
+
+    // Verify the non-admin user cannot access admin endpoints initially
+    const beforeToggleStats = await request.get('/api/admin/stats', {
+      headers: authHeaders(userToken),
+    });
+    expect(beforeToggleStats.status()).toBe(403);
 
     // Toggle admin ON
     const toggleOn = await request.put(`/api/admin/users/${testUser.user.id}/toggle-admin`, {
       headers: authHeaders(adminToken),
     });
-    expect(toggleOn.ok()).toBeTruthy();
-    const onBody = await toggleOn.json();
-    expect(onBody.user.isAdmin).toBe(true);
+    expect(toggleOn.status()).toBe(200);
+
+    // Verify the user can now access admin endpoints
+    const afterToggleStats = await request.get('/api/admin/stats', {
+      headers: authHeaders(userToken),
+    });
+    expect(afterToggleStats.status()).toBe(200);
 
     // Toggle admin OFF
     const toggleOff = await request.put(`/api/admin/users/${testUser.user.id}/toggle-admin`, {
       headers: authHeaders(adminToken),
     });
-    expect(toggleOff.ok()).toBeTruthy();
-    const offBody = await toggleOff.json();
-    expect(offBody.user.isAdmin).toBe(false);
+    expect(toggleOff.status()).toBe(200);
+
+    // Verify the user cannot access admin endpoints again
+    const afterToggleOffStats = await request.get('/api/admin/stats', {
+      headers: authHeaders(userToken),
+    });
+    expect(afterToggleOffStats.status()).toBe(403);
   });
 
   test('non-admin user cannot access admin endpoints', async ({ request }) => {

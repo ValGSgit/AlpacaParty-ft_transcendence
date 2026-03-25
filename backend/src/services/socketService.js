@@ -182,7 +182,7 @@ export function initializeSocket(httpServer, corsOrigins) {
     });
 
     // ── Game: matchmaking ────────────────────────────────────
-    socket.on('game:queue', async ({ gameType = 'pong' }, ack) => {
+    socket.on('game:queue', async ({ gameType = 'spit_royale' }, ack) => {
       try {
         // Look for a waiting game
         let game = await Game.findWaiting(gameType, user.id);

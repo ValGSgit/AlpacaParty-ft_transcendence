@@ -13,8 +13,9 @@ const mockPrisma = {
   gameStat: { findUnique: jest.fn(), findMany: jest.fn(), upsert: jest.fn() },
   organization: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
   organizationMember: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), upsert: jest.fn(), deleteMany: jest.fn() },
-  achievement: { findUnique: jest.fn(), findMany: jest.fn() },
-  userAchievement: { findMany: jest.fn(), create: jest.fn() },
+  repost: { findMany: jest.fn() },
+  achievement: { findUnique: jest.fn(), findMany: jest.fn(), upsert: jest.fn() },
+  userAchievement: { findMany: jest.fn(), create: jest.fn(), upsert: jest.fn() },
   notification: { create: jest.fn(), findMany: jest.fn(), updateMany: jest.fn(), deleteMany: jest.fn(), count: jest.fn(), findUnique: jest.fn() },
   $transaction: jest.fn(),
   $queryRaw: jest.fn(),
@@ -121,12 +122,13 @@ describe('GET /api/public/mock', () => {
     ]);
     // Game.getLeaderboard → prisma.gameStat.findMany
     mockPrisma.gameStat.findMany.mockResolvedValueOnce([
-      { userId: 1, gameType: 'pong', elo: 1000, wins: 1, losses: 0, draws: 0, user: { username: 'alice', avatar: '/a.png', level: 2 } },
+      { userId: 1, gameType: 'spit_royale', elo: 1000, wins: 1, losses: 0, draws: 0, user: { username: 'alice', avatar: '/a.png', level: 2 } },
     ]);
     // Post.getFeed → prisma.post.findMany (postLike not called since viewerId=null)
     mockPrisma.post.findMany.mockResolvedValueOnce([
       { id: 10, authorId: 1, content: 'secret', imageUrl: null, isPublic: true, likesCount: 0, createdAt: '2026-01-01', updatedAt: '2026-01-01', author: { username: 'alice', avatar: '/a.png' } },
     ]);
+    mockPrisma.repost.findMany.mockResolvedValueOnce([]); // recent reposts
     // Organization.findAll → prisma.organization.findMany
     mockPrisma.organization.findMany.mockResolvedValueOnce([
       { id: 3, name: 'Alpha Org', description: 'desc', _count: { members: 1 } },

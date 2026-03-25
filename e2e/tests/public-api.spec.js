@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const API_KEY = 'test-api-key';
+const API_KEY = process.env.E2E_API_KEY || 'test-api-key';
 
 function apiKeyHeaders(key = API_KEY) {
   return { 'X-API-Key': key };

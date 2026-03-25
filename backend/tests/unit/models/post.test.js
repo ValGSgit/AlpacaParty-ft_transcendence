@@ -30,6 +30,9 @@ const mockPrisma = {
     findMany: jest.fn(),
     count: jest.fn(),
   },
+  repost: {
+    findMany: jest.fn(),
+  },
   $transaction: jest.fn((fn) => fn(mockPrisma)),
 };
 
@@ -82,6 +85,7 @@ describe('Post.getFeed', () => {
   test('returns posts with snake_case fields and user_liked flag', async () => {
     mockPrisma.post.findMany.mockResolvedValue([mockPost]);
     mockPrisma.postLike.findMany.mockResolvedValue([{ postId: 1 }]);
+    mockPrisma.repost.findMany.mockResolvedValue([]);
 
     const results = await Post.getFeed({ viewerId: 99 });
     expect(results).toHaveLength(1);

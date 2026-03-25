@@ -3,13 +3,20 @@
   @owner ValGSgit
 -->
 <template>
-  <div class="feed-page">
+  <div class="feed-layout">
+    <!-- Left sidebar: fake ad -->
+    <aside class="feed-sidebar">
+      <FakeAd :sidebar="true" />
+    </aside>
+
+    <!-- Centre: feed -->
+    <div class="feed-page">
     <h1>Feed</h1>
 
     <!-- Create Post -->
     <div class="create-post" v-if="authStore.isAuthenticated">
       <form @submit.prevent="createPost">
-        <textarea v-model="newPostContent" placeholder="What's on your mind?" rows="3" maxlength="2000"></textarea>
+        <textarea v-model="newPostContent" placeholder="Want to spit some facts?" rows="3" maxlength="2000"></textarea>
         <div class="create-post-actions">
           <label class="upload-btn" title="Add image">
             📷 Add Image
@@ -117,7 +124,7 @@
       </div>
     </div>
 
-    <!-- Repost Modal -->
+    <!-- Repost Modal (inside feed-page so stacking context is correct) -->
     <div v-if="repostModalPost" class="modal-overlay" @click.self="closeRepostModal">
       <div class="modal">
         <h3>🔁 Repost</h3>
@@ -140,13 +147,21 @@
         <button class="modal-close" @click="closeRepostModal">✕</button>
       </div>
     </div>
-  </div>
+    </div><!-- /feed-page -->
+
+    <!-- Right sidebar: live leaderboard -->
+    <aside class="feed-sidebar">
+      <ActiveLeaderboard />
+    </aside>
+  </div><!-- /feed-layout -->
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
+import FakeAd from '../components/FakeAd.vue'
+import ActiveLeaderboard from '../components/ActiveLeaderboard.vue'
 
 const authStore = useAuthStore()
 const posts = ref([])
@@ -377,10 +392,35 @@ onMounted(fetchPosts)
 </script>
 
 <style scoped>
-.feed-page {
-  max-width: 640px;
-  margin: 0 auto;
+/* 3-column layout */
+.feed-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 640px) 260px;
+  gap: 1.5rem;
+  justify-content: center;
+  align-items: start;
   padding: 1.5rem 1rem;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.feed-sidebar {
+  position: sticky;
+  top: 1.5rem;
+}
+
+/* Hide sidebars on smaller screens */
+@media (max-width: 1024px) {
+  .feed-layout {
+    grid-template-columns: 1fr;
+  }
+  .feed-sidebar {
+    display: none;
+  }
+}
+
+.feed-page {
+  min-width: 0;
 }
 
 .feed-page h1 { margin-bottom: 1.5rem; }

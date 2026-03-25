@@ -27,13 +27,13 @@ SELECT
   '/avatars/default.svg',
   CASE (i % 10)
     WHEN 0 THEN 'Alpaca enthusiast and casual gamer'
-    WHEN 1 THEN 'Love playing pong and collecting alpacas!'
+    WHEN 1 THEN 'Love playing Spit Royale and collecting alpacas!'
     WHEN 2 THEN 'Just here to have fun with friends'
-    WHEN 3 THEN 'Competitive pong player - watch out!'
+    WHEN 3 THEN 'Competitive Spit Royale player - watch out!'
     WHEN 4 THEN 'Building the best alpaca farm ever'
     WHEN 5 THEN 'New to AlpacaParty, say hi!'
     WHEN 6 THEN 'Longtime member, always online'
-    WHEN 7 THEN 'Alpaca breeder and pong champion'
+    WHEN 7 THEN 'Alpaca breeder and Spit Royale champion'
     WHEN 8 THEN 'Looking for friends to play with'
     ELSE 'Hey there! I am using AlpacaParty'
   END,
@@ -41,7 +41,7 @@ SELECT
     WHEN 0 THEN 'Online and ready to play!'
     WHEN 1 THEN 'Busy farming alpacas'
     WHEN 2 THEN 'Away'
-    WHEN 3 THEN 'In a pong match'
+    WHEN 3 THEN 'In a Spit Royale match'
     WHEN 4 THEN 'Chilling'
     ELSE 'Hey there! I am using AlpacaParty'
   END,
@@ -135,7 +135,7 @@ SELECT
   CASE WHEN i % 2 = 0 THEN f.user_id ELSE f.friend_id END,
   CASE WHEN i % 2 = 0 THEN f.friend_id ELSE f.user_id END,
   CASE (i % 20)
-    WHEN 0 THEN 'Hey! Want to play a game of pong?'
+    WHEN 0 THEN 'Hey! Want to play a game of Spit Royale?'
     WHEN 1 THEN 'Sure, let me finish farming first'
     WHEN 2 THEN 'Good game! That was close'
     WHEN 3 THEN 'Have you seen the new alpaca skins?'
@@ -174,7 +174,7 @@ INSERT INTO chat_rooms (name, owner_id, is_private, created_at)
 SELECT
   CASE (i % 25)
     WHEN 0 THEN 'General Chat'
-    WHEN 1 THEN 'Pong Champions'
+    WHEN 1 THEN 'Spit Royale Champions'
     WHEN 2 THEN 'Alpaca Breeders Club'
     WHEN 3 THEN 'Newbie Welcome'
     WHEN 4 THEN 'Strategy Discussion'
@@ -187,7 +187,7 @@ SELECT
     WHEN 11 THEN 'Feature Requests'
     WHEN 12 THEN 'European Players'
     WHEN 13 THEN 'Night Owls'
-    WHEN 14 THEN 'Speed Pong League'
+    WHEN 14 THEN 'Speed Spit League'
     WHEN 15 THEN 'Alpaca Farm Tips'
     WHEN 16 THEN 'Achievement Hunters'
     WHEN 17 THEN 'Casual Games'
@@ -239,7 +239,7 @@ SELECT
     WHEN 1 THEN 'Anyone up for a game?'
     WHEN 2 THEN 'Just unlocked a new achievement!'
     WHEN 3 THEN 'Check out the leaderboard, I climbed 5 spots!'
-    WHEN 4 THEN 'What is the best strategy for pong?'
+    WHEN 4 THEN 'What is the best strategy for Spit Royale?'
     WHEN 5 THEN 'My alpaca farm is looking great'
     WHEN 6 THEN 'Has anyone completed today''s challenge?'
     WHEN 7 THEN 'Good morning everyone!'
@@ -268,7 +268,7 @@ INSERT INTO posts (author_id, content, image_url, is_public, likes_count, create
 SELECT
   (i % 200) + 1,
   CASE (i % 25)
-    WHEN 0 THEN 'Just reached a new high score in pong! Who wants to challenge me?'
+    WHEN 0 THEN 'Just reached a new high score in Spit Royale! Who wants to challenge me?'
     WHEN 1 THEN 'My alpaca farm is thriving! 🦙 Level ' || (1 + i % 10) || ' and counting!'
     WHEN 2 THEN 'Tips for new players: always warm up with daily challenges first'
     WHEN 3 THEN 'Looking for members for our organization. DM me if interested!'
@@ -277,14 +277,14 @@ SELECT
     WHEN 6 THEN 'Rate my alpaca farm setup! Been working on it all week'
     WHEN 7 THEN 'GG to everyone in tonight''s tournament. Great matches all around!'
     WHEN 8 THEN 'Does anyone know the best way to earn coins quickly?'
-    WHEN 9 THEN 'Sharing my pong strategy guide for beginners'
+    WHEN 9 THEN 'Sharing my Spit Royale strategy guide for beginners'
     WHEN 10 THEN 'Just joined AlpacaParty and I''m already hooked!'
     WHEN 11 THEN 'Shoutout to the help desk AI - helped me figure out the game settings'
     WHEN 12 THEN 'My friend and I have been playing for hours. Such a fun game!'
     WHEN 13 THEN 'Reached level 10 today! Veteran achievement unlocked!'
     WHEN 14 THEN 'The community here is so welcoming. Thanks everyone!'
     WHEN 15 THEN 'Working on getting 10 friends for the Social Butterfly badge'
-    WHEN 16 THEN 'Late night pong sessions are the best'
+    WHEN 16 THEN 'Late night Spit Royale sessions are the best'
     WHEN 17 THEN 'Just founded a new organization - Alpaca Legends!'
     WHEN 18 THEN 'Daily challenge completed! That XP bonus is nice'
     WHEN 19 THEN 'Anyone else collecting rare alpaca skins?'
@@ -334,10 +334,10 @@ SELECT
   NOW() - (interval '1 day' * (20 - i))
 FROM (VALUES
   (1,  'Alpaca Legends',       'The legendary alpaca breeders',             1),
-  (2,  'Pong Masters',         'For serious pong competitors',              5),
+  (2,  'Spit Masters',         'For serious Spit Royale competitors',       5),
   (3,  'Casual Gamers',        'Just here to have fun',                    10),
   (4,  'Night Owls',           'Late night gaming crew',                   15),
-  (5,  'Speed Demons',         'Fast-paced pong enthusiasts',              20),
+  (5,  'Speed Demons',         'Fast-paced Spit Royale enthusiasts',       20),
   (6,  'Farm Union',           'Alpaca farm optimization group',           25),
   (7,  'Achievement Hunters',  'Complete every achievement together',      30),
   (8,  'European Alliance',    'European time zone players',               35),
@@ -346,7 +346,7 @@ FROM (VALUES
   (11, 'Meme Team',            'Fun and memes',                            50),
   (12, 'Code Monkeys',         'Developers who play games',               55),
   (13, 'AlpacaParty OGs',      'Original members of the platform',        60),
-  (14, 'The Strategists',      'Deep pong strategy discussions',           65),
+  (14, 'The Strategists',      'Deep Spit Royale strategy discussions',    65),
   (15, 'Weekend Warriors',     'Active on weekends',                       70),
   (16, 'Coin Collectors',      'Maximizing coin earnings',                75),
   (17, 'Level Grinders',       'XP farming strategies',                    80),
@@ -396,7 +396,7 @@ SELECT
     WHEN i > 370 THEN 'waiting'                    -- 10 games waiting
     ELSE 'finished'
   END,
-  CASE WHEN i % 5 = 0 THEN 'pong_classic' ELSE 'pong' END,
+  CASE WHEN i % 5 = 0 THEN 'survival' ELSE 'spit_royale' END,
   '{}'::jsonb,
   ts - interval '5 minutes',
   CASE WHEN i <= 370 THEN ts ELSE NULL END,
@@ -418,7 +418,7 @@ WHERE p1 <> p2;
 INSERT INTO game_stats (user_id, game_type, wins, losses, draws, elo, updated_at)
 SELECT
   i,
-  'pong',
+  'spit_royale',
   (i * 3 + 5) % 50,                               -- wins 5-49
   (i * 2 + 3) % 30,                                -- losses 3-29
   i % 5,                                            -- draws 0-4
@@ -427,11 +427,11 @@ SELECT
 FROM generate_series(1, 100) AS i
 ON CONFLICT (user_id, game_type) DO NOTHING;
 
--- Classic pong stats for some players
+-- Survival mode stats for some players
 INSERT INTO game_stats (user_id, game_type, wins, losses, draws, elo, updated_at)
 SELECT
   i,
-  'pong_classic',
+  'survival',
   (i * 2 + 1) % 20,
   (i + 2) % 15,
   i % 3,
@@ -493,7 +493,7 @@ ON CONFLICT (user_id, achievement_id) DO NOTHING;
 
 INSERT INTO daily_challenges (title, description, xp_reward, active_date)
 VALUES
-  ('Win 3 pong games',        'Win 3 games of any pong variant today',   50, CURRENT_DATE),
+  ('Win 3 Spit Royale games', 'Win 3 games of Spit Royale today',        50, CURRENT_DATE),
   ('Send 5 messages',         'Chat with your friends! Send 5 DMs',      20, CURRENT_DATE),
   ('Like 3 posts',            'Show some love! Like 3 posts on the feed', 15, CURRENT_DATE),
   ('Play 5 games',            'Play any 5 games today',                   30, CURRENT_DATE - 1),
@@ -550,7 +550,7 @@ SELECT
     WHEN 1 THEN 'user_' || ((i * 5) % 200 + 1) || ' accepted your friend request'
     WHEN 2 THEN 'user_' || ((i * 7) % 200 + 1) || ' liked your post'
     WHEN 3 THEN 'You unlocked a new achievement!'
-    WHEN 4 THEN 'user_' || ((i * 11) % 200 + 1) || ' invited you to play pong'
+    WHEN 4 THEN 'user_' || ((i * 11) % 200 + 1) || ' invited you to play Spit Royale'
     WHEN 5 THEN 'You have been invited to join an organization'
     ELSE 'You have a new message from user_' || ((i * 13) % 200 + 1)
   END,

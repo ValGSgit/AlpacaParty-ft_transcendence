@@ -11,8 +11,6 @@ const { updateAI } = alpacaAI();
 const { updatePlayer } = usePlayerControls();
 const { makeSpit } = alpacaHandling()
 
-const activeSpits = []; // Keep track of projectiles in flight
-
 export class Alpaca {
   constructor(model, animations, options = {}) {
     this.model = model;
@@ -84,6 +82,7 @@ export class Alpaca {
   }
 
   update(delta) {
+    if (this.isDead === 1) return;
     const player = gPlayer.value;
     const isPlayer = (player && this.model.uuid === player.model.uuid);
 

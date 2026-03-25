@@ -1,11 +1,11 @@
 /**
  * Playwright Configuration
- * E2E tests run against the full docker-compose stack (nginx at localhost:8080)
+ * E2E tests run against the full docker-compose stack (nginx at localhost:8443)
  * or a locally running dev server.
  */
 import { defineConfig, devices } from '@playwright/test'
 
-const BASE_URL = process.env.E2E_BASE_URL || 'https://localhost:8080'
+const BASE_URL = process.env.E2E_BASE_URL || 'https://localhost:8443'
 
 export default defineConfig({
   testDir: './tests',

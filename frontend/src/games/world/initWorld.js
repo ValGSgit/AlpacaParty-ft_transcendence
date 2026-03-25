@@ -7,14 +7,19 @@ import { setupEnvironment } from './sceneBuilder.js'
 
 
 export async function initWorld(scene, isAuthenticated = false) {
-  setupEnvironment(scene)
-
+  // Load user data BEFORE setting up the environment so that
+  // CONST.FLOOR_RADIUS (which reads gUser.upgrades) is correct
+  // when the floor geometry is created.
   let user = null
   if (isAuthenticated) {
-    user = await loadGameData()
-  } else {
-    console.log('User not logged in, starting fresh.')
+    try {
+      user = await loadGameData()
+    } catch (e) {
+      console.error('Failed to load game data, starting fresh.', e)
+    }
   }
+
+  setupEnvironment(scene)
   await initAlpacas(scene, user)
   await initItems(scene, user?.items)
 }
@@ -63,8 +68,8 @@ async function initSavedItems(savedItems) {
   const loadedItems = new THREE.Group()
   for (const item of savedItems) {
     const loadedItem = await createItem(item.path, item.position, item.rotation, item.scale);
-    loadedItem.name = item.name;
-    loadedItems.add(loadedItem);
+    loadedItem.model.name = item.name;
+    loadedItems.add(loadedItem.model);
   }
   return loadedItems;
 }
