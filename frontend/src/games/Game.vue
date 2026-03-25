@@ -168,7 +168,7 @@ import { useAuthStore } from '../stores/auth.js'
 import { alpacaHandling } from './components/alpacaHandling.js'
 import { alpacaConfig, alpacaShop } from './components/alpacaShop.js'
 import { alpacaStats } from './components/alpacaStats.js'
-import { spawnCoins } from './components/coins.js'
+import { updateCoins } from './components/coins.js'
 import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
 import { itemShop } from './components/itemShop.js'
@@ -261,7 +261,7 @@ const gameLoop = () => {
       }
     }
 
-  spawnCoins(delta);
+  updateCoins(delta);
   updateSpits()
   updateLighting(delta);
 

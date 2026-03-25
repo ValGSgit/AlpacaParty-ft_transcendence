@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CONST } from '../config/constants.js';
 import { gScene, gUser } from '../core/globals.js';
 import { getRandomTimer } from '../utils/randomValues.js';
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js';
@@ -7,21 +8,30 @@ const coinsGroup = new THREE.Group();
 let isGroupAdded = false;
 let timer = 1
 
-export async function spawnCoins(delta) {
-  if (coinsGroup.children.length >= 5 + gUser.value.upgrades)
-    return;
+async function spawnCoin() {
+  timer = getRandomTimer();
 
-  timer -= delta;
-  if (timer <= 0) {
-    timer = getRandomTimer();
-    console.log("Spawn coin!");
-
-    if (!isGroupAdded && gScene.value) {
-      gScene.value.add(coinsGroup);
-      isGroupAdded = true;
-    }
-    const tempGroup = await spawnObjectRandomly('/models/coin.glb', 1, 'collectable');
+  if (!isGroupAdded && gScene.value) {
+    gScene.value.add(coinsGroup);
+    isGroupAdded = true;
+  }
+  const tempGroup = await spawnObjectRandomly('/models/coin.glb', 1, 'collectable');
+  if (tempGroup && tempGroup.children.length > 0) {
     coinsGroup.add(tempGroup.children[0]);
+  }
+}
+
+export async function updateCoins(delta) {
+  const spinSpeed = 1.5;
+  coinsGroup.children.forEach((coin) => {
+    coin.rotation.y += spinSpeed * delta;
+  });
+
+  if (coinsGroup.children.length <= CONST.MAX_COINS) {
+    timer -= delta;
+    if (timer <= 0) {
+      await spawnCoin();
+    }
   }
 }
 

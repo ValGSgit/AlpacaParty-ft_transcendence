@@ -40,6 +40,10 @@ export const CONST = {
     return this.FLOOR_RADIUS - 2
   },
 
+  get MAX_COINS() {
+    return 5 + gUser.value.upgrades;
+  },
+
   get PLAYER_BACKWARD_SPEED() {
     return this.PLAYER_FORWARD_SPEED * 0.5
   }
