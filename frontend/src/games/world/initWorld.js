@@ -52,7 +52,6 @@ export async function initItems(scene, savedItems) {
   if (savedItems && savedItems.length > 0) {
     itemsGroup = await initSavedItems(savedItems);
   } else {
-    //itemsGroup.add(await spawnObjectRandomly('/models/alpaca.glb', 4, 'alpaca'))
     itemsGroup.add(await spawnObjectRandomly('/models/tree.glb', 4, 'item'))
     itemsGroup.add(await spawnObjectRandomly('/models/grass.glb', 30, 'decoration'))
     itemsGroup.add(await spawnObjectRandomly('/models/stones.glb', 4, 'decoration'))

@@ -12,7 +12,7 @@
   
   <div v-if="gameIsReady">
     <div class="hud-left">
-      <div v-if="!gUser.gameMode" class="stat"><span>💰 {{ gUser.coins }}</span></div>
+      <div v-if="!gUser.gameMode" class="stat"><span>🪙 {{ gUser.coins }}</span></div>
       <div v-if="gUser.gameMode" class="stat"><span>🦙 {{ gUser.point }} </span></div>
       <template v-if="gUser.gameMode">
         <div v-if="gUser.hp === 3"><span>❤️❤️❤️</span></div>
@@ -24,7 +24,7 @@
 
     <div class="hud-right">
       <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🪙</button>
-      <button class="hud-btn" @click="openShopMenu()" title="Shop">💰</button>
+      <button class="hud-btn" @click="openShopMenu()" title="Shop">🛍️</button>
       <button class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
       <button class="hud-btn" @click="openLightMenu()" title="Edit Light">☀️</button>
       <button class="hud-btn" @click="changeCamera()" title="Change Camera">🎥</button>
@@ -119,7 +119,7 @@
     </div>
     
     <div v-if="gUI.itemShop" class="modal-overlay">
-        <div class="shop-title">Select Item
+        <div class="shop-title">Buy Item
           <button class="shop-btn" @click="buyItem('/models/tree.glb')" title="Tree">Tree</button>
           <button class="shop-btn" @click="buyItem('/models/fence.glb')" title="Fence">Fence</button>
           <button class="shop-btn" @click="buyItem('/models/hay.glb')" title="Water">Hay</button>
@@ -138,8 +138,9 @@
 
 <div v-if="gUI.lightMenu" class="modal-overlay">
         <div class="shop-title">Edit Light
+          <button class="shop-btn" @click="setTimeOfDay('sunrise')">🌅 Sunrise</button>
           <button class="shop-btn" @click="setTimeOfDay('day')">☀️ Day</button>
-          <button class="shop-btn" @click="setTimeOfDay('sunset')">☀️ Sunset</button>
+          <button class="shop-btn" @click="setTimeOfDay('sunset')">🌄 Sunset</button>
           <button class="shop-btn" @click="setTimeOfDay('night')">🌙 Night</button>
 
           <button class="close-btn" @click="closeLightMenu()" title="Close">✖️</button>
@@ -181,7 +182,7 @@ const clock = new THREE.Clock()
 
 const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
 const { initInput, cleanupInput} = useInput()
-const { setTimeOfDay} = editLight()
+const { setTimeOfDay, updateLighting} = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
@@ -251,6 +252,7 @@ const gameLoop = () => {
 
   spawnCoins(delta);
   updateSpits()
+  updateLighting(delta);
 
   if (gEngine.value?.controls) {
     gEngine.value.controls.update()
