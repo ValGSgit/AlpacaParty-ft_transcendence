@@ -30,6 +30,9 @@ const mockPrisma = {
     findMany: jest.fn(),
     count: jest.fn(),
   },
+  repost: {
+    findMany: jest.fn(),
+  },
   $transaction: jest.fn((fn) => fn(mockPrisma)),
 };
 

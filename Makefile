@@ -141,8 +141,25 @@ generate-secrets:
 # Works on Linux, macOS, Git Bash (Windows), and CI.
 # SANs are required — CN-only certs are rejected by Node.js / Go TLS.
 # Removes any Docker-created placeholder directories before generating.
-ssl-certs:
+prod-ssl-certs:
 	@bash scripts/ssl-certs.sh
+	
+# Generates a self-signed certificate for local HTTPS development.
+ssl-certs:
+	@mkdir -p ssl
+	@if [ ! -f ssl/cert.pem ]; then \
+	  openssl req -x509 -newkey rsa:2048 -nodes \
+	    -keyout ssl/key.pem \
+	    -out ssl/cert.pem \
+	    -days 365 \
+	    -subj '/CN=localhost' 2>/dev/null && \
+	  echo "$(GREEN)✓ Self-signed certificate generated in ssl/$(RESET)"; \
+	else \
+	  echo "$(YELLOW)  Certificate already exists — skipping$(RESET)"; \
+	fi
+	chmod +rw ssl/key.pem
+	chmod +rw ssl/cert.pem
+
 
 # Ensure .env exists with real secrets before any prod command.
 # Does NOT regenerate if .env already exists (keeps DB password stable).

@@ -11,6 +11,7 @@ const mockPrisma = {
   userAchievement: {
     findMany: jest.fn(),
     create: jest.fn(),
+    upsert: jest.fn(),
   },
   dailyChallenge: {
     findMany: jest.fn(),
