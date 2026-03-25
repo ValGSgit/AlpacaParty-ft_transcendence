@@ -13,7 +13,7 @@ export async function saveGame() {
   const saveAlpacas = gAlpacas.map(alpaca => {
     return {
       name: alpaca.model.name,
-      color: alpaca.model.color,
+      color: alpaca.color,
       position: alpaca.model.position.toArray(),
       rotation: alpaca.model.rotation.y,
       scale: alpaca.model.scale.toArray(),
@@ -26,6 +26,7 @@ export async function saveGame() {
 
   const saveItems = gItems.map(item => {
     return {
+      path: item.path,
       position: item.model.position.toArray(),
       rotation: item.model.rotation.y,
       scale: item.model.scale.toArray(),
@@ -33,13 +34,10 @@ export async function saveGame() {
     };
   });
 
-  const jsonStringItems = JSON.stringify(saveItems);
-  const jsonStringAlpacas = JSON.stringify(saveAlpacas);
-
   try {
     await api.put('users/me', {
-      items: jsonStringItems,
-      alpacas: jsonStringAlpacas,
+      items: saveItems,
+      alpacas: saveAlpacas,
       coins: gUser.value.coins,
       upgrades: gUser.value.upgrades
     })

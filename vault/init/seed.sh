@@ -11,6 +11,8 @@
 
 set -e
 
+# In prod VAULT_ADDR is set to https://vault:8200 by compose env.
+# The http fallback is only used by the dev vault container (dev mode, no TLS).
 VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
 VAULT_TOKEN="${VAULT_TOKEN:-${VAULT_DEV_ROOT_TOKEN_ID:-alpacaparty-dev-token}}"
 export VAULT_ADDR VAULT_TOKEN
@@ -40,16 +42,17 @@ fi
 echo "[vault-seed] Writing secrets to secret/alpacaparty ..."
 vault kv put secret/alpacaparty \
   db_user="${DB_USER:-alpacaparty}" \
-  db_password="${DB_PASSWORD:-alpacaparty}" \
+  db_password="${DB_PASSWORD}" \
   db_name="${DB_NAME:-alpacaparty}" \
-  jwt_secret="${JWT_SECRET:-dev-secret-change-me}" \
+  jwt_secret="${JWT_SECRET}" \
   api_keys="${API_KEYS:-change-me-to-a-secure-key}" \
   groq_api_key="${GROQ_API_KEY:-}" \
   huggingface_api_key="${HUGGINGFACE_API_KEY:-}" \
   google_client_id="${GOOGLE_CLIENT_ID:-}" \
   google_client_secret="${GOOGLE_CLIENT_SECRET:-}" \
   github_client_id="${GITHUB_CLIENT_ID:-}" \
-  github_client_secret="${GITHUB_CLIENT_SECRET:-}"
+  github_client_secret="${GITHUB_CLIENT_SECRET:-}" \
+  mod_users="${MOD_USERS:-live_admin}"
 
 echo "[vault-seed] Secrets written."
 
@@ -67,29 +70,20 @@ POLICY
   echo "[vault-seed] Policy created."
 fi
 
-# ── Create a limited backend service token ────────────────────────────────────
-# In dev mode (VAULT_DEV_ROOT_TOKEN_ID is set) the root token is fine.
-# In production the root token must NOT be used by the backend.
-if [ -z "${VAULT_DEV_ROOT_TOKEN_ID:-}" ]; then
-  echo "[vault-seed] Creating limited backend service token (90-day TTL, renewable)..."
-  BACKEND_TOKEN=$(vault token create \
-    -policy=alpacaparty-backend \
-    -ttl=2160h \
-    -renewable=true \
-    -display-name=alpacaparty-backend \
-    -format=json \
-    | grep '"client_token"' \
-    | sed 's/.*"client_token": "\(.*\)".*/\1/')
-
-  echo ""
-  echo "================================================================"
-  echo "  BACKEND SERVICE TOKEN"
-  echo "  Set this as VAULT_TOKEN in your .env, then restart the backend."
-  echo "  This token can ONLY read secret/data/alpacaparty."
-  echo ""
-  echo "  ${BACKEND_TOKEN}"
-  echo ""
-  echo "  Renew before expiry:  vault token renew ${BACKEND_TOKEN}"
-  echo "================================================================"
-  echo ""
+# ── Write-capable policy for admin/mod management (make-admin, seed-admins) ──
+if vault policy list | grep -q '^alpacaparty-admin$'; then
+  echo "[vault-seed] Policy 'alpacaparty-admin' already exists — skipping"
+else
+  echo "[vault-seed] Creating admin management policy..."
+  vault policy write alpacaparty-admin - <<'POLICY'
+# Admin management: read + update the single app secret path (for mod_users).
+path "secret/data/alpacaparty" {
+  capabilities = ["read", "create", "update"]
+}
+POLICY
+  echo "[vault-seed] Admin policy created."
 fi
+
+# Token creation is handled by init-unseal-seed.sh, which writes the token to
+# the vault_keys Docker volume (chmod 600).  Never print tokens to stdout —
+# they end up in docker logs and are effectively public.

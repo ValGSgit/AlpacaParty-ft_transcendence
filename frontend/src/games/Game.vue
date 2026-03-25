@@ -268,7 +268,7 @@ const gameLoop = () => {
 
 onUnmounted(() => {
   saveGame()
-  stopMyWatcher()
+  if (stopMyWatcher) stopMyWatcher()
   cancelAnimationFrame(animationFrameId)
   window.removeEventListener('resize', onResize)
   cleanupFPSstats(stats, gameContainer.value);

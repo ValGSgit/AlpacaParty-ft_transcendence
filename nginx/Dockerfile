@@ -13,19 +13,17 @@ RUN mkdir -p /etc/nginx/conf
 # ── CRS configuration ──────────────────────────────────────────────────
 # The base image reads these env vars at startup to configure CRS.
 ENV MODSEC_RULE_ENGINE=On \
-    MODSEC_REQ_BODY_ACCESS=On \
-    MODSEC_RESP_BODY_ACCESS=Off \
-    MODSEC_REQ_BODY_LIMIT=10485760 \
-    MODSEC_AUDIT_LOG=/proc/self/fd/2 \
-    ANOMALY_INBOUND=10 \
-    ANOMALY_OUTBOUND=4 \
-    PORT=8080 \
-    SSL_PORT=8443
+  MODSEC_REQ_BODY_ACCESS=On \
+  MODSEC_RESP_BODY_ACCESS=Off \
+  MODSEC_REQ_BODY_LIMIT=10485760 \
+  MODSEC_AUDIT_LOG=/proc/self/fd/2 \
+  ANOMALY_INBOUND=10 \
+  ANOMALY_OUTBOUND=4 \
+  PORT=8443 \
+  SSL_PORT=8443
+
+# copy nginx config
+COPY conf/nginx.conf /etc/nginx/templates/conf.d/default.conf.template
 
 # Copy our tuning override (applied after CRS rules)
-COPY nginx/modsecurity/modsecurity.conf /etc/modsecurity.d/99-alpacaparty.conf
-
-# Copy SSL certificates from tracked backend ssl bundle.
-# nginx/ssl is git-ignored for local overrides and may be absent in CI checkouts.
-COPY backend/ssl/cert.pem /etc/nginx/conf/server.crt
-COPY backend/ssl/key.pem /etc/nginx/conf/server.key
+COPY conf/modsecurity.conf /etc/modsecurity.d/99-alpacaparty.conf

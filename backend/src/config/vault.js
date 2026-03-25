@@ -6,7 +6,9 @@
  * before any other module reads configuration.
  *
  * Production behaviour (NODE_ENV=production):
- *   - VAULT_ADDR and VAULT_TOKEN are required. Startup throws if either is absent.
+ *   - VAULT_ADDR is required. Startup throws if absent.
+ *   - VAULT_TOKEN is read from the VAULT_TOKEN env var OR from the keys file written
+ *     by vault-init (/run/vault-keys/keys.env). No manual token management required.
  *   - Vault values ALWAYS overwrite whatever was in the environment — Vault is the
  *     single source of truth. Secrets must NOT be passed as Docker env vars in prod.
  *   - If Vault is unreachable the process throws rather than starting with stale/no secrets.
@@ -17,7 +19,26 @@
  *   - Network errors produce a warning and the app falls back to env vars.
  */
 
-const VAULT_PATH = 'secret/data/alpacaparty';
+import { readFileSync } from 'fs';
+
+const VAULT_PATH    = 'secret/data/alpacaparty';
+// Path where vault-init writes the auto-generated service token
+const VAULT_KEYS_FILE = process.env.VAULT_KEYS_FILE || '/run/vault-keys/keys.env';
+
+/**
+ * Read a single KEY=value line from a flat env file.
+ * Returns undefined if the file doesn't exist or the key isn't present.
+ */
+function readKeyFromFile(filePath, key) {
+  try {
+    const content = readFileSync(filePath, 'utf8');
+    const match = content.match(new RegExp(`^${key}=(.+)$`, 'm'));
+    return match ? match[1].trim() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 
 // Dev-mode placeholder values that Vault should replace.
 const DEV_PLACEHOLDERS = new Set([
@@ -42,6 +63,7 @@ const KEY_MAP = {
   google_client_secret: 'GOOGLE_CLIENT_SECRET',
   github_client_id:     'GITHUB_CLIENT_ID',
   github_client_secret: 'GITHUB_CLIENT_SECRET',
+  mod_users:            'MOD_USERS',
 };
 
 /**
@@ -52,13 +74,19 @@ const KEY_MAP = {
 export async function loadVaultSecrets() {
   // Read at call time — NOT at module load time. Module-scope reads get captured
   // before Docker injects the real values, which breaks secret resolution.
-  const vaultAddr  = process.env.VAULT_ADDR;
-  const vaultToken = process.env.VAULT_TOKEN;
-  const isProd     = process.env.NODE_ENV === 'production';
+  const vaultAddr = process.env.VAULT_ADDR;
+  const isProd    = process.env.NODE_ENV === 'production';
+
+  // VAULT_TOKEN: prefer env var, then fall back to the keys file written by vault-init.
+  // This allows fully-automated token management with no manual .env editing.
+  const vaultToken = process.env.VAULT_TOKEN || readKeyFromFile(VAULT_KEYS_FILE, 'VAULT_TOKEN');
 
   if (!vaultAddr || !vaultToken) {
     if (isProd) {
-      throw new Error('[vault] VAULT_ADDR and VAULT_TOKEN must be set in production');
+      throw new Error(
+        '[vault] VAULT_ADDR must be set and VAULT_TOKEN must be available ' +
+        `(env var or ${VAULT_KEYS_FILE}) in production`
+      );
     }
     console.info('[vault] VAULT_ADDR/VAULT_TOKEN not set — skipping Vault, using env vars directly.');
     return;

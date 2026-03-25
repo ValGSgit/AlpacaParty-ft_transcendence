@@ -133,7 +133,7 @@ describe('config', () => {
     expect(config.cors.origins.length).toBeGreaterThan(0);
     if (!process.env.CORS_ORIGINS) {
       expect(config.cors.origins).toContain('http://localhost:5173');
-      expect(config.cors.origins).toContain('https://localhost:8080');
+      expect(config.cors.origins).toContain('https://localhost:8443');
     }
   });
 

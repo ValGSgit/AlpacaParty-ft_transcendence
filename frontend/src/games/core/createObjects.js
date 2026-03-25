@@ -66,7 +66,7 @@ export async function createCollectable(
   path,
   position = [0, 0, 0],
   rotation = 0,
-  scale = [0, 0, 0],
+  scale = [1, 1, 1],
 ) {
   const { model, animations } = await getModel(path);
   const clone = SkeletonUtils.clone(model);

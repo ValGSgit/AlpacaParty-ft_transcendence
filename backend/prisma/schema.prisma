@@ -182,7 +182,7 @@ model Game {
   player1Score Int?      @default(0) @map("player1_score")
   player2Score Int?      @default(0) @map("player2_score")
   status       String?   @default("waiting") @db.VarChar(20)
-  gameType     String?   @default("pong") @map("game_type") @db.VarChar(30)
+  gameType     String?   @default("spit_royale") @map("game_type") @db.VarChar(30)
   gameData     Json?     @default("{}") @map("game_data")
   startedAt    DateTime? @map("started_at") @db.Timestamptz
   finishedAt   DateTime? @map("finished_at") @db.Timestamptz
@@ -201,7 +201,7 @@ model Game {
 model GameStat {
   id        Int      @id @default(autoincrement())
   userId    Int      @map("user_id")
-  gameType  String   @default("pong") @map("game_type") @db.VarChar(30)
+  gameType  String   @default("spit_royale") @map("game_type") @db.VarChar(30)
   wins      Int?     @default(0)
   losses    Int?     @default(0)
   draws     Int?     @default(0)

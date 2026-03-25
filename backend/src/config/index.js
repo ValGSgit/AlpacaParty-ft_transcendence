@@ -44,13 +44,13 @@ const config = {
   cors: {
     origins: process.env.CORS_ORIGINS
       ? process.env.CORS_ORIGINS.split(',')
-      : ['http://localhost:5173', 'https://localhost:8080'],
+      : ['http://localhost:5173', 'https://localhost:8443'],
   },
 
   // Explicit frontend URL used for OAuth post-login redirects.
   // Falls back to the first CORS origin when not set.
   frontendUrl: process.env.FRONTEND_URL
-    || (process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',')[0] : 'https://localhost:8080'),
+    || (process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',')[0] : 'https://localhost:8443'),
 
   rateLimit: {
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -80,8 +80,22 @@ const config = {
 
   // SSL/TLS certificates
   ssl: {
-    certPath: process.env.SSL_CERT_PATH || path.resolve(__dirname, '../../ssl/cert.pem'),
-    keyPath: process.env.SSL_KEY_PATH || path.resolve(__dirname, '../../ssl/key.pem'),
+    certPath: process.env.SSL_CERT_PATH || path.resolve(__dirname, '../../../ssl/cert.pem'),
+    keyPath: process.env.SSL_KEY_PATH || path.resolve(__dirname, '../../../ssl/key.pem'),
+  },
+
+  // Secrets loaded from Vault (production) or env vars (development).
+  // apiKeys uses a getter so it always reads the current process.env value,
+  // which allows Vault to populate it after module load.
+  get apiKeys() {
+    return new Set(
+      (process.env.API_KEYS || '').split(',').map((k) => k.trim()).filter(Boolean),
+    );
+  },
+  groqApiKey: process.env.GROQ_API_KEY || '',
+  huggingfaceApiKey: process.env.HUGGINGFACE_API_KEY || '',
+  get modUsers() {
+    return (process.env.MOD_USERS || '').split(',').map((s) => s.trim()).filter(Boolean);
   },
 
   // File uploads

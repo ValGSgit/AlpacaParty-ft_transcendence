@@ -37,7 +37,7 @@ export function buildArena(scene) {
   gCtx.fillRect(0, 0, 256, 256);
   const groundTex = new THREE.CanvasTexture(gCanvas);
 
-  const groundGeo = new THREE.CircleGeometry(radius, 64);
+  const groundGeo = new THREE.CircleGeometry(radius, 48);
   const groundMat = new THREE.MeshStandardMaterial({
     map: groundTex,
     roughness: 0.95,
@@ -48,19 +48,19 @@ export function buildArena(scene) {
   ground.receiveShadow = true;
   scene.add(ground);
 
-  const ringGeo = new THREE.RingGeometry(radius * 0.4, radius * 0.42, 64);
+  const ringGeo = new THREE.RingGeometry(radius * 0.4, radius * 0.42, 48);
   const ringMat = new THREE.MeshStandardMaterial({ color: 0x3d7a35, roughness: 1, side: THREE.DoubleSide });
   const ring1 = new THREE.Mesh(ringGeo, ringMat);
   ring1.rotation.x = -Math.PI / 2;
   ring1.position.y = 0.01;
   scene.add(ring1);
 
-  const ring2 = new THREE.Mesh(new THREE.RingGeometry(radius * 0.7, radius * 0.72, 64), ringMat.clone());
+  const ring2 = new THREE.Mesh(new THREE.RingGeometry(radius * 0.7, radius * 0.72, 48), ringMat);
   ring2.rotation.x = -Math.PI / 2;
   ring2.position.y = 0.01;
   scene.add(ring2);
 
-  const wallGeo = new THREE.CylinderGeometry(radius, radius, 1.2, 64, 1, true);
+  const wallGeo = new THREE.CylinderGeometry(radius, radius, 1.2, 48, 1, true);
   const wallMat = new THREE.MeshStandardMaterial({
     color: 0x8b5cf6,
     roughness: 0.6,
@@ -73,7 +73,7 @@ export function buildArena(scene) {
   wall.position.y = 0.6;
   scene.add(wall);
 
-  const glowRingGeo = new THREE.TorusGeometry(radius, 0.15, 8, 80);
+  const glowRingGeo = new THREE.TorusGeometry(radius, 0.15, 6, 48);
   const glowRingMat = new THREE.MeshStandardMaterial({
     color: 0x8b5cf6,
     emissive: 0x8b5cf6,
@@ -86,31 +86,37 @@ export function buildArena(scene) {
   glowRing.position.y = 0.08;
   scene.add(glowRing);
 
+  // Pillars — InstancedMesh for a single draw call instead of 12
   const pillarCount = 12;
+  const pillarGeo = new THREE.CylinderGeometry(0.3, 0.35, 2.5, 6);
+  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x4a3080, roughness: 0.5, metalness: 0.6 });
+  const pillars = new THREE.InstancedMesh(pillarGeo, pillarMat, pillarCount);
+  pillars.castShadow = true;
+
+  const capGeo = new THREE.SphereGeometry(0.35, 6, 4);
+  const capMat = new THREE.MeshStandardMaterial({
+    color: 0xb388ff,
+    emissive: 0x6a1de0,
+    emissiveIntensity: 0.8,
+    roughness: 0.2,
+    metalness: 0.7,
+  });
+  const caps = new THREE.InstancedMesh(capGeo, capMat, pillarCount);
+
+  const _m = new THREE.Matrix4();
   for (let i = 0; i < pillarCount; i += 1) {
     const angle = (i / pillarCount) * Math.PI * 2;
     const px = Math.cos(angle) * (radius - 0.6);
     const pz = Math.sin(angle) * (radius - 0.6);
 
-    const pillarGeo = new THREE.CylinderGeometry(0.3, 0.35, 2.5, 8);
-    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x4a3080, roughness: 0.5, metalness: 0.6 });
-    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-    pillar.position.set(px, 1.25, pz);
-    pillar.castShadow = true;
-    scene.add(pillar);
+    _m.makeTranslation(px, 1.25, pz);
+    pillars.setMatrixAt(i, _m);
 
-    const capGeo = new THREE.SphereGeometry(0.35, 8, 6);
-    const capMat = new THREE.MeshStandardMaterial({
-      color: 0xb388ff,
-      emissive: 0x6a1de0,
-      emissiveIntensity: 0.8,
-      roughness: 0.2,
-      metalness: 0.7,
-    });
-    const cap = new THREE.Mesh(capGeo, capMat);
-    cap.position.set(px, 2.7, pz);
-    scene.add(cap);
+    _m.makeTranslation(px, 2.7, pz);
+    caps.setMatrixAt(i, _m);
   }
+  scene.add(pillars);
+  scene.add(caps);
 
   const starMat = new THREE.MeshStandardMaterial({ color: 0xe9c46a, emissive: 0xe9c46a, emissiveIntensity: 0.5 });
   for (let i = 0; i < 8; i += 1) {
@@ -120,16 +126,16 @@ export function buildArena(scene) {
     scene.add(arm);
   }
 
-  for (let i = 0; i < 20; i += 1) {
+  const patchGeo = new THREE.CircleGeometry(0.6, 6);
+  const patchMatA = new THREE.MeshStandardMaterial({ color: 0x245a20, roughness: 1 });
+  const patchMatB = new THREE.MeshStandardMaterial({ color: 0x3a7a32, roughness: 1 });
+  for (let i = 0; i < 12; i += 1) {
     const angle = Math.random() * Math.PI * 2;
     const r = Math.random() * (radius - 2) + 0.5;
-    const patchGeo = new THREE.CircleGeometry(Math.random() * 0.8 + 0.3, 8);
-    const patchMat = new THREE.MeshStandardMaterial({
-      color: Math.random() > 0.5 ? 0x245a20 : 0x3a7a32,
-      roughness: 1,
-    });
-    const patch = new THREE.Mesh(patchGeo, patchMat);
+    const patch = new THREE.Mesh(patchGeo, i % 2 === 0 ? patchMatA : patchMatB);
     patch.rotation.x = -Math.PI / 2;
+    const s = Math.random() * 0.6 + 0.5;
+    patch.scale.set(s, s, 1);
     patch.position.set(Math.cos(angle) * r, 0.005, Math.sin(angle) * r);
     scene.add(patch);
   }
@@ -140,11 +146,10 @@ export function buildArena(scene) {
     { x: -5, z: 7 },
     { x: 7, z: -4 },
   ];
+  const rockGeo = new THREE.DodecahedronGeometry(0.7, 0);
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0x667788, roughness: 0.9 });
   rockPositions.forEach(({ x, z }) => {
-    const rock = new THREE.Mesh(
-      new THREE.DodecahedronGeometry(0.7, 0),
-      new THREE.MeshStandardMaterial({ color: 0x667788, roughness: 0.9 }),
-    );
+    const rock = new THREE.Mesh(rockGeo, rockMat);
     rock.position.set(x, 0.5, z);
     rock.rotation.set(Math.random(), Math.random(), Math.random());
     rock.castShadow = true;
@@ -152,7 +157,7 @@ export function buildArena(scene) {
     scene.add(rock);
   });
 
-  const starCount = 600;
+  const starCount = 300;
   const starGeo = new THREE.BufferGeometry();
   const positions = new Float32Array(starCount * 3);
   for (let i = 0; i < starCount; i += 1) {
@@ -169,7 +174,7 @@ export function buildArena(scene) {
   const sun = new THREE.DirectionalLight(0xfff5e0, 1.8);
   sun.position.set(10, 20, 10);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.camera.far = 80;
   sun.shadow.camera.left = -25;
   sun.shadow.camera.right = 25;

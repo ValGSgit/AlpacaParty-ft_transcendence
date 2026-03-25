@@ -1,20 +1,22 @@
-# PostgreSQL
+
 services:
   postgres:
-    image: postgres:16-alpine
-    container_name: alpacaparty_db
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-alpacaparty}
       POSTGRES_USER: ${DB_USER:-alpacaparty}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-alpacaparty}
+      DB_PORT: ${DB_PORT}
     ports:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-alpacaparty}"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
       timeout: 5s
       retries: 5
     networks:

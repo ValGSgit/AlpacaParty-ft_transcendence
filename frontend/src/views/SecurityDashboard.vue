@@ -229,7 +229,7 @@ docker exec alpacaparty_vault vault kv patch secret/alpacaparty \
      │
      ▼
 ┌──────────────────────────────────────────────────┐
-│   nginx  (port 8080/443)                         │
+│   nginx  (port 8443/443)                         │
 │   ┌────────────────────────────────────────────┐ │
 │   │  ModSecurity WAF  (OWASP CRS v4)           │ │
 │   │  • SQLi / XSS / RCE detection              │ │

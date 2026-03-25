@@ -55,10 +55,10 @@ export const getUser = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-/** GET /api/public/leaderboard?gameType=pong */
+/** GET /api/public/leaderboard?gameType=spit_royale */
 export const getLeaderboard = async (req, res, next) => {
   try {
-    const { gameType = 'pong', limit = 20, offset = 0 } = req.query;
+    const { gameType = 'spit_royale', limit = 20, offset = 0 } = req.query;
     const anonymize = ['1', 'true', 'yes'].includes(String(req.query.anonymized || '').toLowerCase());
     const leaderboard = await Game.getLeaderboard(gameType, { limit: Number(limit), offset: Number(offset), publicOnly: true });
     const shaped = leaderboard.map((row) => ({
@@ -143,7 +143,7 @@ export const getMockDataset = async (req, res, next) => {
   try {
     const [users, leaderboard, posts, organizations] = await Promise.all([
       User.findAll({ limit: 10, offset: 0 }),
-      Game.getLeaderboard('pong', { limit: 10, offset: 0, publicOnly: true }),
+      Game.getLeaderboard('spit_royale', { limit: 10, offset: 0, publicOnly: true }),
       Post.getFeed({ limit: 10, offset: 0 }),
       Organization.findAll({ limit: 10, offset: 0 }),
     ]);

@@ -14,8 +14,12 @@ export class SpitRoyaleClient {
     this.playerName = '';
     this.mode = 'queue';
     this.currentMatchId = null;
-    this.onLiveMatches = null;
-    this.isSurvival = false;
+    this.onLiveMatches  = null;
+    this.onGameJoined   = null; // fired when the lobby hides and the game begins
+    this.onDisconnected = null; // fired on socket disconnect
+    this.isSurvival     = false;
+    this._lastInputSentAt = 0; // for ping estimation
+    this._pingSmoothed    = 0; // EWMA smoothed ping (ms)
   }
 
   connect(name) {
@@ -47,6 +51,7 @@ export class SpitRoyaleClient {
     this.socket.on('disconnect', () => {
       this.ui?.showStatus('Disconnected. Rejoin to continue.', 0);
       if (this.inputInterval) clearInterval(this.inputInterval);
+      this.onDisconnected?.();
     });
   }
 
@@ -72,6 +77,7 @@ export class SpitRoyaleClient {
     this.socket.on('disconnect', () => {
       this.ui?.showStatus('Disconnected.', 0);
       if (this.inputInterval) clearInterval(this.inputInterval);
+      this.onDisconnected?.();
     });
   }
 
@@ -95,6 +101,11 @@ export class SpitRoyaleClient {
           this.socket.emit('spit', { angle });
         };
 
+        // Floating damage numbers — project 3-D hit position to screen space
+        this.game.onDamage = (screenX, screenY, amount, isLocal) => {
+          this.ui?.spawnDamageNumber(screenX, screenY, amount, isLocal);
+        };
+
         this.ui.onRematch = () => {
           this.socket?.emit('rematch:request');
         };
@@ -104,8 +115,11 @@ export class SpitRoyaleClient {
           this.ui?.setRematchStatus(0, 0);
         };
 
+        this.onGameJoined?.();
+
         this.inputInterval = setInterval(() => {
           if (!this.socket || !this.game || !this.socket.connected || this.mode !== 'player') return;
+          this._lastInputSentAt = Date.now();
           this.socket.emit('input', this.game.getInputPacket());
         }, 33);
 
@@ -135,6 +149,15 @@ export class SpitRoyaleClient {
       case 'tick':
       case 'game_start':
       case 'game_over':
+        // Ping estimation: EWMA of (now - last input sent).
+        // Subtracting half the server tick (25 ms) reduces overestimation.
+        if (msg.type === 'tick' && this._lastInputSentAt > 0) {
+          const raw = Math.max(0, Date.now() - this._lastInputSentAt - 25);
+          this._pingSmoothed = this._pingSmoothed
+            ? Math.round(this._pingSmoothed * 0.8 + raw * 0.2)
+            : raw;
+          this.ui?.updatePing(this._pingSmoothed);
+        }
         this.game?.applyState(msg.state);
         this.ui?.updatePlayers(msg.state.players, this.localPlayerId);
         if (msg.type === 'game_start') {

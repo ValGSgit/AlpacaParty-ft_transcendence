@@ -73,7 +73,7 @@ const GamificationService = {
   /**
    * Process end-of-game: update stats, award XP, check achievements.
    */
-  async processGameEnd(userId, result, gameType = 'pong', context = {}) {
+  async processGameEnd(userId, result, gameType = 'spit_royale', context = {}) {
     const unlocked = [];
     const before = await safeFindUser(userId);
 
@@ -120,7 +120,7 @@ const GamificationService = {
     };
   },
 
-  async getWinStreak(userId, gameType = 'pong') {
+  async getWinStreak(userId, gameType = 'spit_royale') {
     if (typeof Game.getMatchHistory !== 'function') return 0;
 
     let history = [];

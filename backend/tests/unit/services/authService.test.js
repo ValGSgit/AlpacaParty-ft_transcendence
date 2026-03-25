@@ -77,12 +77,28 @@ describe('AuthService', () => {
   });
 
   describe('generateAccessToken — admin flag', () => {
-    test('should embed is_admin=true when user is admin', () => {
-      const adminUser = { id: 7, username: 'admin', isAdmin: true };
-      const token = AuthService.generateAccessToken(adminUser);
-      const decoded = AuthService.verifyToken(token);
-      expect(decoded.isAdmin).toBe(true);
-    });
+  const originalModUsers = process.env.MOD_USERS;
+
+  afterEach(() => {
+    if (originalModUsers === undefined) delete process.env.MOD_USERS;
+    else process.env.MOD_USERS = originalModUsers;
+  });
+
+  test('should embed isAdmin=true when username is in MOD_USERS', () => {
+    process.env.MOD_USERS = 'admin,othermod';
+    const adminUser = { id: 7, username: 'admin', isAdmin: false };
+    const token = AuthService.generateAccessToken(adminUser);
+    const decoded = AuthService.verifyToken(token);
+    expect(decoded.isAdmin).toBe(true);
+  });
+
+  test('should embed isAdmin=false when username is not in MOD_USERS', () => {
+  process.env.MOD_USERS = 'someone_else';
+  const user = { id: 8, username: 'admin', isAdmin: true };
+  const token = AuthService.generateAccessToken(user);
+  const decoded = AuthService.verifyToken(token);
+  expect(decoded.isAdmin).toBe(false);
+});
 
     test('access token should NOT have type field', () => {
       const token = AuthService.generateAccessToken({ id: 1, username: 'u', is_admin: false });

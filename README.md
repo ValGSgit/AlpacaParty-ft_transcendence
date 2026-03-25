@@ -285,7 +285,7 @@ make generate-secrets
 make build && make up
 
 # 5. Open in browser
-# https://localhost:8080
+# https://localhost:8443
 # Accept the self-signed certificate warning in your browser.
 ```
 
@@ -355,7 +355,7 @@ All AI-generated content was reviewed, tested, and adapted by team members. Ever
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Browser (HTTPS)                        │
-│                  https://localhost:8080                   │
+│                  https://localhost:8443                   │
 └────────────────────────┬────────────────────────────────┘
                          │
                   ┌──────▼──────┐
@@ -383,7 +383,7 @@ All AI-generated content was reviewed, tested, and adapted by team members. Ever
 
 | Service | Container | Port Mapping |
 |---------|-----------|-------------|
-| nginx | alpacaparty_nginx | **8080 → 443** (HTTPS), 8000 → 80 (HTTP redirect) |
+| nginx | alpacaparty_nginx | **8443 → 443** (HTTPS), 8000 → 80 (HTTP redirect) |
 | backend | alpacaparty_backend | 3000 |
 | frontend | alpacaparty_frontend | 5173 |
 | postgres | alpacaparty_db | 5432 |

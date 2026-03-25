@@ -11,7 +11,8 @@ const activeSpits = []; // Keep track of projectiles in flight
 export function alpacaHandling() {
 
   const setMoveLocation = (raycaster) => {
-    raycaster.ray.intersectPlane(floorPlane, worldPoint)
+    if (!raycaster.ray.intersectPlane(floorPlane, worldPoint)) return;
+    if (!gPlayer.value) return;
     gPlayer.value.target = worldPoint.clone()
     gPlayer.value.isAutoMoving = true;
   }

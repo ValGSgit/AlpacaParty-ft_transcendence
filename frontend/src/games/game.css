@@ -182,12 +182,8 @@ input[type="color"].custom-picker::-webkit-color-swatch {
 .alpaca-stat {
   font-size: 30px;
   display: flex;
-  flex-direction: none;
-  /* This stacks them vertically */
   gap: 10px;
-  /* This adds clean spacing between them */
   align-items: center;
-  /* Keeps the button from stretching full-width */
 }
 
 .stat-btn {

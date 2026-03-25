@@ -1,18 +1,16 @@
 import { gAlpacas, gCollectables, gCollidables, gEditables, gItems } from "./globals";
 
 export function removeObject(entity) {
-  const classInstance = entity;
   const model = entity.model ? entity.model : entity;
 
-  removeFromRegistry(classInstance, gAlpacas);
-  removeFromRegistry(classInstance, gItems);
-  removeFromRegistry(classInstance, gCollectables);
+  removeFromRegistry(entity, gAlpacas);
+  removeFromRegistry(entity, gItems);
+  removeFromRegistry(entity, gCollectables);
 
   removeFromRegistry(model, gCollidables);
   removeFromRegistry(model, gEditables);
 
   if (model && model.parent) {
-    console.log("removing entity");
     model.removeFromParent()
     removeMatsAndGeo(model);
   }

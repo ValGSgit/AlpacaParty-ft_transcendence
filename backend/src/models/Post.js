@@ -6,8 +6,8 @@ import prisma from '../config/prisma.js';
 
 const AUTHOR_SELECT = { select: { username: true, avatar: true } };
 
-function shapePost(p, likedIds = null) {
-  return {
+function shapePost(p, likedIds = null, repostedIds = null, repostMeta = null) {
+  const shaped = {
     id: p.id,
     author_id: p.authorId,
     content: p.content,
@@ -22,7 +22,14 @@ function shapePost(p, likedIds = null) {
     author_username: p.author?.username,
     author_avatar: p.author?.avatar,
     user_liked: likedIds ? likedIds.has(p.id) : false,
+    user_reposted: repostedIds ? repostedIds.has(p.id) : false,
   };
+  if (repostMeta) {
+    shaped._repostBy = repostMeta.username;
+    shaped._repostById = repostMeta.authorId;
+    shaped._repostComment = repostMeta.comment;
+  }
+  return shaped;
 }
 
 const Post = {
@@ -67,7 +74,8 @@ const Post = {
   },
 
   async getFeed({ limit = 20, offset = 0, viewerId = null } = {}) {
-    const [posts, liked] = await Promise.all([
+    const vid = viewerId ? Number(viewerId) : null;
+    const [posts, liked, viewerReposts, recentReposts] = await Promise.all([
       prisma.post.findMany({
         where: { isPublic: true, author: { isPublic: true } },
         include: { author: AUTHOR_SELECT },
@@ -75,12 +83,43 @@ const Post = {
         take: Number(limit),
         skip: Number(offset),
       }),
-      viewerId
-        ? prisma.postLike.findMany({ where: { userId: Number(viewerId) }, select: { postId: true } })
+      vid
+        ? prisma.postLike.findMany({ where: { userId: vid }, select: { postId: true } })
         : Promise.resolve([]),
+      vid
+        ? prisma.repost.findMany({ where: { authorId: vid }, select: { postId: true } })
+        : Promise.resolve([]),
+      // Fetch recent reposts to interleave into the feed
+      prisma.repost.findMany({
+        include: { post: { include: { author: AUTHOR_SELECT } }, author: AUTHOR_SELECT },
+        orderBy: { createdAt: 'desc' },
+        take: Number(limit),
+        skip: Number(offset),
+      }),
     ]);
     const likedIds = new Set(liked.map((l) => l.postId));
-    return posts.map((p) => shapePost(p, likedIds));
+    const repostedIds = new Set(viewerReposts.map((r) => r.postId));
+
+    // Shape original posts
+    const shaped = posts.map((p) => shapePost(p, likedIds, repostedIds));
+
+    // Shape reposts (carry _repostBy metadata)
+    const seenIds = new Set(shaped.map((p) => `${p.id}`));
+    for (const r of recentReposts) {
+      if (!r.post || !r.post.isPublic) continue;
+      const key = `${r.post.id}-repost-${r.authorId}`;
+      if (seenIds.has(key)) continue;
+      seenIds.add(key);
+      shaped.push(shapePost(r.post, likedIds, repostedIds, {
+        username: r.author?.username,
+        authorId: r.authorId,
+        comment: r.comment,
+      }));
+    }
+
+    // Sort combined feed by created_at desc
+    shaped.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return shaped.slice(0, Number(limit));
   },
 
   async getByUser(userId, { limit = 20, offset = 0 } = {}) {

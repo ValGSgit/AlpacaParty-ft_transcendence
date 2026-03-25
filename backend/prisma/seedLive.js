@@ -1,5 +1,8 @@
 import bcrypt from 'bcrypt';
-import prisma from '../src/config/prisma.js';
+import { loadVaultSecrets } from '../src/config/vault.js';
+
+// Assigned after Vault secrets are loaded so DATABASE_URL is built with real credentials.
+let prisma;
 
 const cfg = {
   users: Number(process.env.SEED_USERS || 240),
@@ -126,6 +129,13 @@ async function seedUsers(passwordHash) {
   const allUsers = [...fixedUsers, ...dynamicUsers];
   await prisma.user.createMany({ data: allUsers, skipDuplicates: true });
 
+  // Idempotent safeguard: if the account already exists from a previous run,
+  // ensure it remains admin even when createMany skips duplicates.
+  await prisma.user.updateMany({
+    where: { email: 'live_admin@alpacaparty.test' },
+    data: { isAdmin: true },
+  });
+
   const users = await prisma.user.findMany({
     where: { email: { endsWith: '@alpacaparty.test' } },
     select: { id: true, username: true },
@@ -133,7 +143,10 @@ async function seedUsers(passwordHash) {
   });
 
   await prisma.gameStat.createMany({
-    data: users.map((u) => ({ userId: u.id, gameType: 'pong', wins: r(0, 30), losses: r(0, 25), draws: r(0, 8), elo: r(850, 1450) })),
+    data: [
+      ...users.map((u) => ({ userId: u.id, gameType: 'spit_royale', wins: r(0, 30), losses: r(0, 25), draws: r(0, 8), elo: r(850, 1450) })),
+      ...users.map((u) => ({ userId: u.id, gameType: 'survival', wins: r(0, 20), losses: r(0, 30), draws: 0, elo: r(800, 1400) })),
+    ],
     skipDuplicates: true,
   });
 
@@ -330,7 +343,7 @@ async function seedRooms(userIds) {
 
 const ORG_NAMES = [
   'Alpaca Riders Guild', 'Farm Defense League', 'Llama Lords', 'Woolly Warriors',
-  'Pong Masters', 'Neon Arena', 'Pixel Farmers Co', 'The Alpaca Academy',
+  'Spit Masters', 'Neon Arena', 'Pixel Farmers Co', 'The Alpaca Academy',
   'Golden Fleece Syndicate', 'Cloud Herders', 'Alpaca Party Official', 'Code Ranchers',
   'Frontier Explorers', 'Turbo Shearers', 'Data Shepherds', 'Midnight Grazers',
   'Alpine Collective', 'Digital Pastures', 'Thunder Herd', 'Cosmic Alpacas',
@@ -387,6 +400,9 @@ async function seedNotifications(userIds) {
 }
 
 async function main() {
+  await loadVaultSecrets();
+  ({ default: prisma } = await import('../src/config/prisma.js'));
+
   console.log('[seed-live] Starting...');
   console.log('[seed-live] Config:', cfg);
 
@@ -430,6 +446,6 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await prisma?.$disconnect();
     process.exit(process.exitCode || 0);
   });

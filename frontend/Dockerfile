@@ -2,7 +2,7 @@
 # @owner fankahou, LukasStefanek
 # @issue https://github.com/ValGSgit/AlpacaParty/issues/1
 
-FROM node:20-alpine
+FROM node:24-alpine3.22
 
 WORKDIR /app
 

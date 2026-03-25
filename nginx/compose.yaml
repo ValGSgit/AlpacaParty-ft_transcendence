@@ -1,20 +1,31 @@
+
+# todo ports wrong probably we should use 443
+# also why does 8000 map to 8080 and not 8080 map to 8080?
+
 # nginx + ModSecurity WAF
 services:
   nginx:
     build:
-      context: ..
-      dockerfile: nginx/Dockerfile
-    container_name: alpacaparty_nginx
+      context: .
+      dockerfile: Dockerfile
+    container_name: nginx
     ports:
-      - "8080:8443"
-      - "8000:8080"
+      - "8443:443"
+      - "8080:80"
     volumes:
-      - ./nginx.conf:/etc/nginx/templates/conf.d/default.conf.template:ro
+      - ssl:/etc/nginx/conf/ssl
+      - ./conf/nginx.conf:/etc/nginx/templates/conf.d/default.conf.template:ro
     depends_on:
       frontend:
         condition: service_started
       backend:
-        condition: service_healthy
-    restart: unless-stopped
+        condition: service_started
+    restart: always
     networks:
       - alpacaparty_net
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

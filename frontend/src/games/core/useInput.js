@@ -23,7 +23,7 @@ export function useInput() {
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
       case 'Space': keys.space = true; break
-      case 'KeyF': gPlayer.value.spit(); break
+      case 'KeyF': if (gPlayer.value) gPlayer.value.spit(); break
       case 'KeyP': printDebug(); break
       case 'Escape': handleEscapeKey(); break
     }
@@ -105,7 +105,7 @@ export function useInput() {
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('wheel', onWheel)
+    window.addEventListener('wheel', onWheel, { passive: true })
     canvas.addEventListener('dblclick', onDoubleClick)
     canvas.addEventListener('pointerdown', onPointerDown)
   }
