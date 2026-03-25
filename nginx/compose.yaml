@@ -1,7 +1,4 @@
 
-# todo ports wrong probably we should use 443
-# also why does 8000 map to 8080 and not 8080 map to 8080?
-
 # nginx + ModSecurity WAF
 services:
   nginx:

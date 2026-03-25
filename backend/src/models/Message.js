@@ -2,12 +2,16 @@
  * Message Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from '../config/prisma.js';
+import prisma from "#lib/prisma.js";
 
 const Message = {
   async create({ senderId, receiverId, content }) {
     return prisma.message.create({
-      data: { senderId: Number(senderId), receiverId: Number(receiverId), content },
+      data: {
+        senderId: Number(senderId),
+        receiverId: Number(receiverId),
+        content,
+      },
     });
   },
 
@@ -20,22 +24,20 @@ const Message = {
         ],
       },
       include: { sender: { select: { username: true, avatar: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: Number(limit),
       skip: Number(offset),
     });
-    return messages
-      .reverse()
-      .map((m) => ({
-        id: m.id,
-        sender_id: m.senderId,
-        receiver_id: m.receiverId,
-        content: m.content,
-        is_read: m.isRead,
-        created_at: m.createdAt,
-        sender_username: m.sender.username,
-        sender_avatar: m.sender.avatar,
-      }));
+    return messages.reverse().map((m) => ({
+      id: m.id,
+      sender_id: m.senderId,
+      receiver_id: m.receiverId,
+      content: m.content,
+      is_read: m.isRead,
+      created_at: m.createdAt,
+      sender_username: m.sender.username,
+      sender_avatar: m.sender.avatar,
+    }));
   },
 
   // DISTINCT ON is PostgreSQL-specific — keep as raw query
@@ -77,7 +79,11 @@ const Message = {
 
   async markAsRead(receiverId, senderId) {
     await prisma.message.updateMany({
-      where: { receiverId: Number(receiverId), senderId: Number(senderId), isRead: false },
+      where: {
+        receiverId: Number(receiverId),
+        senderId: Number(senderId),
+        isRead: false,
+      },
       data: { isRead: true },
     });
   },

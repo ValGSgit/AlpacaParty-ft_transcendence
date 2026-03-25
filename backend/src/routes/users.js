@@ -3,27 +3,40 @@
  * @owner ValGSgit
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/9
  */
-import express from 'express';
+import express from "express";
+import { authenticate } from "#middleware/auth.js";
 import {
-  getMe, updateMe, changePassword, getUser, listUsers,
-  exportMyData, requestDeletion, listDataRequests, deleteMe, generateAvatar, generateImage,
-} from '../controllers/userController.js';
-import { authenticate } from '../middleware/auth.js';
+  getMe,
+  updateMe,
+  changePassword,
+  getUser,
+  listUsers,
+  exportMyData,
+  requestDeletion,
+  listDataRequests,
+  deleteMe,
+  generateAvatar,
+  generateImage,
+} from "#controllers/userController.js";
+import {
+  userPasswordValidation,
+  userUpdateValidation,
+} from "#validators/userValidator.js";
 
 const router = express.Router();
 router.use(authenticate);
 
-router.get('/me', getMe);
-router.put('/me', updateMe);
-router.delete('/me', deleteMe);
-router.put('/me/password', changePassword);
-router.get('/me/export', exportMyData);
-router.post('/me/delete-request', requestDeletion);
-router.get('/me/data-requests', listDataRequests);
-router.post('/me/generate-avatar', generateAvatar);
-router.post('/me/generate-image', generateImage);
+router.get("/me", getMe);
+router.put("/me", userUpdateValidation(), updateProfile);
+router.delete("/me", deleteMe);
+router.put("/me/password", userPasswordValidation(), changePassword);
+router.get("/me/export", exportMyData);
+router.post("/me/delete-request", requestDeletion);
+router.get("/me/data-requests", listDataRequests);
+router.post("/me/generate-avatar", generateAvatar);
+router.post("/me/generate-image", generateImage);
 
-router.get('/', listUsers);
-router.get('/:id', getUser);
+router.get("/", listUsers);
+router.get("/:id", getUser);
 
 export default router;
