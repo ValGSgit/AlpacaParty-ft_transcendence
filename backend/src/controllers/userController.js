@@ -26,7 +26,7 @@ export const getMe = async (req, res) => res.json({ user: shapeUserForClient(req
 /** PUT /api/users/me */
 export const updateMe = async (req, res, next) => {
   try {
-    const { username, email, bio, status, avatar, is_public, coins } = req.body;
+    const { username, email, bio, status, avatar, is_public, coins, alpacas, items, upgrades } = req.body;
 
     if (bio !== undefined && String(bio).length > 500) {
       return res.status(400).json({ error: { message: 'Bio must be 500 characters or fewer' } });
@@ -55,7 +55,7 @@ export const updateMe = async (req, res, next) => {
     }
 
     const updatedUser = await User.update(req.user.id, {
-      username, email, bio, status, avatar, coins,
+      username, email, bio, status, avatar, coins, alpacas, items, upgrades,
       isPublic: is_public,  // body still sends is_public (frontend compat)
     });
     res.json({ user: shapeUserForClient(updatedUser) });

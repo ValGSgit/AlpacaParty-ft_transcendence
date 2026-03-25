@@ -39,6 +39,7 @@ function readKeyFromFile(filePath, key) {
   }
 }
 
+
 // Dev-mode placeholder values that Vault should replace.
 const DEV_PLACEHOLDERS = new Set([
   'changeme',

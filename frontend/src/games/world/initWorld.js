@@ -67,8 +67,8 @@ async function initSavedItems(savedItems) {
   const loadedItems = new THREE.Group()
   for (const item of savedItems) {
     const loadedItem = await createItem(item.path, item.position, item.rotation, item.scale);
-    loadedItem.name = item.name;
-    loadedItems.add(loadedItem);
+    loadedItem.model.name = item.name;
+    loadedItems.add(loadedItem.model);
   }
   return loadedItems;
 }

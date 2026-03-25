@@ -40,4 +40,7 @@ MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes \
   -subj   '/CN=localhost' \
   -addext 'subjectAltName=DNS:localhost,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1'
 
+# Make certs readable by Docker containers that drop privileges (e.g. vault uid 100).
+chmod 644 "$CERT" "$KEY"
+
 echo "SSL certificate generated in nginx/ssl/"

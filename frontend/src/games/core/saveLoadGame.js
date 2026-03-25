@@ -13,7 +13,7 @@ export async function saveGame() {
   const saveAlpacas = gAlpacas.map(alpaca => {
     return {
       name: alpaca.model.name,
-      color: alpaca.model.color,
+      color: alpaca.color,
       position: alpaca.model.position.toArray(),
       rotation: alpaca.model.rotation.y,
       scale: alpaca.model.scale.toArray(),
@@ -24,6 +24,7 @@ export async function saveGame() {
 
   const saveItems = gItems.map(item => {
     return {
+      path: item.path,
       position: item.model.position.toArray(),
       rotation: item.model.rotation.y,
       scale: item.model.scale.toArray(),
@@ -31,22 +32,15 @@ export async function saveGame() {
     };
   });
 
-  // Build the farmData object to match backend expectations
-  const farmData = {
-    alpacas: saveAlpacas,
-    items: saveItems,
-    resources: {
-      gold: gUser.value.coins,
-      // Add other resources as needed (e.g., food)
-    },
-    upgrades: gUser.value.upgrades,
-    // Add other farm state fields as needed
-  };
-
   try {
-    await api.put('/game/farm', { farmData });
-    console.log('✅ Farm stats synced to server');
+    await api.put('users/me', {
+      items: saveItems,
+      alpacas: saveAlpacas,
+      coins: gUser.value.coins,
+      upgrades: gUser.value.upgrades
+    })
+    console.log('✅ Farm stats synced to server')
   } catch (error) {
-    console.error('Failed to sync farm stats:', error);
+    console.error('Failed to sync farm stats:', error)
   }
 }
