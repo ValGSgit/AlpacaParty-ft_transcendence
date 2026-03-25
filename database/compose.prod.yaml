@@ -14,7 +14,6 @@ services:
       - db_password
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-alpacaparty}"]
       interval: 10s

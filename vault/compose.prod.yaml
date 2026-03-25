@@ -23,8 +23,6 @@ services:
       - vault_data:/vault/data
       - ./config/vault-prod.hcl:/vault/config/vault.hcl:ro
       - ./init:/vault/init:ro
-      # TLS certificate — mounted from the root compose.prod.yaml (./nginx/ssl:/vault/ssl:ro)
-      # to avoid Docker Compose include path resolution ambiguity with ../nginx/ssl.
     healthcheck:
       # Returns 200 regardless of seal state — we only need to know the process is up.
       # vault-init handles the init+unseal; backend waits for vault-init to complete.
@@ -60,6 +58,7 @@ services:
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       MOD_USERS: ${MOD_USERS:-live_admin}
     volumes:
+      - ssl:/vault/ssl:ro
       - ./init:/vault/init:ro
       # Shared volume: init-unseal-seed.sh writes keys here; backend reads token from here
       - vault_keys:/vault/keys

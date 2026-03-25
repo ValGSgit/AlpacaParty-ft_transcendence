@@ -4,10 +4,10 @@
 # Works on Linux, macOS, Git Bash (Windows), and CI.
 set -e
 
-CERT=nginx/ssl/cert.pem
-KEY=nginx/ssl/key.pem
+CERT=ssl/cert.pem
+KEY=ssl/key.pem
 
-mkdir -p nginx/ssl
+mkdir -p ssl
 
 # Remove any Docker-created placeholder directories at these paths.
 for f in "$CERT" "$KEY"; do
@@ -43,4 +43,4 @@ MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes \
 # Make certs readable by Docker containers that drop privileges (e.g. vault uid 100).
 chmod 644 "$CERT" "$KEY"
 
-echo "SSL certificate generated in nginx/ssl/"
+echo "SSL certificate generated in ssl/"
