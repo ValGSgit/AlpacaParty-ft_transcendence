@@ -50,7 +50,7 @@ export function editLight() {
         setLighting('#ffd67e', 0.8, '#ffb764', 1.2, '#ffa6cb', '#ffa600');
         break;
       case 'night':
-        setLighting('#333355', 0.6, '#5556aa', 0.8, '#1f316b', '#030614');
+        setLighting('#333355', 1.3, '#5556aa', 0.1, '#1f316b', '#030614');
         break;
       default:
         changeTimeOfDay('day');

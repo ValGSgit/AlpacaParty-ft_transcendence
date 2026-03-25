@@ -17,7 +17,7 @@ export const CONST = {
   MAX_ZOOM: 200.0,
 
   DEBUG: 0,
-  COLLIDER_SIZE: 0.9,
+  COLLIDER_SIZE: 0.8,
 
   MAX_UPGRADES: 5,
   HP: 3,

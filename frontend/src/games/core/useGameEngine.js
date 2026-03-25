@@ -48,7 +48,8 @@ export function useGameEngine(containerRef) {
     renderer.value = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.value.setSize(w, h)
     renderer.value.setPixelRatio(window.devicePixelRatio)
-    renderer.value.shadowMap.enabled = true
+    renderer.value.shadowMap.enabled = true;
+    renderer.value.shadowMap.type = THREE.PCFSoftShadowMap;
     containerRef.value.appendChild(renderer.value.domElement)
 
     // CONTROLS

@@ -16,6 +16,8 @@ function setupLighting(scene) {
 
   sunLight.position.set(10, 45, 3)
   sunLight.castShadow = true
+  sunLight.shadow.mapSize.width = 4096;
+  sunLight.shadow.mapSize.height = 4096;
   sunLight.shadow.bias = -0.001
 
   const d = 60
