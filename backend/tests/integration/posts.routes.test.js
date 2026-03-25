@@ -54,6 +54,7 @@ function auth(req) {
 describe('GET /api/posts', () => {
   test('200 — returns feed without auth', async () => {
     mockPrisma.post.findMany.mockResolvedValueOnce([samplePostPrisma]);
+    mockPrisma.repost.findMany.mockResolvedValueOnce([]);
     const res = await request.get('/api/posts');
     expect(res.status).toBe(200);
     expect(res.body.posts).toHaveLength(1);
@@ -63,6 +64,8 @@ describe('GET /api/posts', () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce(authUser); // optionalAuth
     mockPrisma.post.findMany.mockResolvedValueOnce([samplePostPrisma]);
     mockPrisma.postLike.findMany.mockResolvedValueOnce([]); // liked posts for viewer
+    mockPrisma.repost.findMany.mockResolvedValueOnce([]); // viewer reposts
+    mockPrisma.repost.findMany.mockResolvedValueOnce([]); // recent reposts
     const res = await request.get('/api/posts').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
   });

@@ -128,6 +128,7 @@ describe('GET /api/public/mock', () => {
     mockPrisma.post.findMany.mockResolvedValueOnce([
       { id: 10, authorId: 1, content: 'secret', imageUrl: null, isPublic: true, likesCount: 0, createdAt: '2026-01-01', updatedAt: '2026-01-01', author: { username: 'alice', avatar: '/a.png' } },
     ]);
+    mockPrisma.repost.findMany.mockResolvedValueOnce([]); // recent reposts
     // Organization.findAll → prisma.organization.findMany
     mockPrisma.organization.findMany.mockResolvedValueOnce([
       { id: 3, name: 'Alpha Org', description: 'desc', _count: { members: 1 } },
