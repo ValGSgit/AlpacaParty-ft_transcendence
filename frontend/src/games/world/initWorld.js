@@ -36,10 +36,12 @@ export async function initAlpacas(scene, user) {
         savedData.color,
         savedData.position,
         savedData.rotation,
-        savedData.scale
+        savedData.scale,
       );
       newAlpaca.speedOffset = savedData.speedOffset;
       newAlpaca.rotationOffset = savedData.rotationOffset;
+      newAlpaca.age = savedData.age;
+      newAlpaca.aliveTime = savedData.aliveTime;
     } else {
       newAlpaca = await createAlpaca();
     }
@@ -59,7 +61,6 @@ export async function initItems(scene, savedItems) {
     itemsGroup.add(await spawnObjectRandomly('/models/tree.glb', 4, 'item'))
     itemsGroup.add(await spawnObjectRandomly('/models/grass.glb', 30, 'decoration'))
     itemsGroup.add(await spawnObjectRandomly('/models/stones.glb', 4, 'decoration'))
-    itemsGroup.add(await spawnObjectRandomly('/models/fence.glb', 1, 'item'))
   }
   scene.add(itemsGroup);
 }

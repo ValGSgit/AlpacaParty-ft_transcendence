@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { alpacaAI } from '../../components/alpacaAI.js';
+import { alpacaHandling } from '../../components/alpacaHandling.js';
 import { CONST } from '../../config/constants.js';
-import { gPlayer, gUI, gCollidables, gUser } from '../globals.js';
+import { gCollidables, gPlayer, gUI, gUser } from '../globals.js';
+import { removeFromRegistry } from '../removeObjects.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
-import { alpacaHandling } from '../../components/alpacaHandling.js'
-import { removeFromRegistry } from '../removeObjects.js'
 
 const { updateAI } = alpacaAI();
 const { updatePlayer } = usePlayerControls();
@@ -17,6 +17,7 @@ export class Alpaca {
     this.animations = animations;
     this.name = options.name || "Alpaca";
     this.model.name = this.name;
+    this.color = options.color || "#795740";
 
     const pos = options.position || [0, 0, 0];
     const rotation = options.rotation || 0;
@@ -28,9 +29,7 @@ export class Alpaca {
     this.model.scale.set(...scale);
     this.model.updateMatrixWorld(true);
 
-    if (options.color) {
-      this.setColor(options.color);
-    }
+    this.setColor(this.color);
 
     this.mixer = new THREE.AnimationMixer(this.model);
     if (this.animations && this.animations.length > 1) {
@@ -39,7 +38,12 @@ export class Alpaca {
 
     this.speedOffset = 0;
     this.rotationOffset = 0;
+
     this.woolLevel = 1;
+    this.aliveTime = 0;
+    this.baseAge = 1;
+    this.age = this.baseAge;
+
     this.isMoving = false;
     this.isAutoMoving = false;
     this.target = new THREE.Vector3();
@@ -87,6 +91,9 @@ export class Alpaca {
     const isPlayer = (player && this.model.uuid === player.model.uuid);
 
     if (this.mixer) this.mixer.update(delta);
+
+    this.checkAge(delta);
+
     if (gUI.editMode) {
       this.isMoving = false;
       this.animDir = 0;
@@ -94,9 +101,15 @@ export class Alpaca {
       updateAI(this, delta);
       this.animDir = this.isMoving ? 1 : 0;
     } else {
-        updatePlayer(this, delta);
+      updatePlayer(this, delta);
     }
     handleAnimation(this, this.animDir, this.speed);
+  }
+
+  checkAge(delta) {
+    this.aliveTime += delta;
+    const yearsPassed = Math.floor(this.aliveTime / CONST.SECONDS_PER_INGAME_YEAR);
+    this.age = this.baseAge + yearsPassed;
   }
 
   spit() {
@@ -107,13 +120,13 @@ export class Alpaca {
     if (this.isDead)
       return
     if (this.hp > 0 && gUser.value.gameMode) // only reduce hp in mini games
-      {
-        this.hp--
-        if (this === gPlayer.value)
-          gUser.value.hp--
-      }
+    {
+      this.hp--
+      if (this === gPlayer.value)
+        gUser.value.hp--
+    }
 
-    if (this.hp === 0){
+    if (this.hp === 0) {
       this.isDead = 1 // dead
       //remove itself from gCollidables
       removeFromRegistry(this.model, gCollidables)
@@ -123,12 +136,12 @@ export class Alpaca {
       if (this === gPlayer.value)
         console.log("Gameover")
     }
-/*     else if (this.hp < 0)
-    {
-      this.hp = CONST.HP // resurrection
-      this.isDead = 0
-      //add itself again?
-    } */
+    /*     else if (this.hp < 0)
+        {
+          this.hp = CONST.HP // resurrection
+          this.isDead = 0
+          //add itself again?
+        } */
     else
       this.isDead = -1 // dying
   }
