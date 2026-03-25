@@ -26,11 +26,6 @@
     </div>
 
     <div class="hud-right">
-      <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🪙</button>
-      <button class="hud-btn" @click="openShopMenu()" title="Shop">💰</button>
-      <button class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
-      <button class="hud-btn" @click="openLightMenu()" title="Edit Light">☀️</button>
-      <button class="hud-btn" @click="changeCamera()" title="Change Camera">🎥</button>
       <button class="hud-btn" @click="changeGame()" title="Mini Games">🕹️</button>
         <button v-if="!gUser.gameMode" class="hud-btn" @click="openShopMenu()" title="Shop">💰</button>
         <button v-if="!gUser.gameMode" class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
@@ -218,7 +213,7 @@ onMounted(async () => {
   }
   else
   {
-    stats = initFPSstats(gameContainer.value);
+    //stats = initStats(gameContainer.value);
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
