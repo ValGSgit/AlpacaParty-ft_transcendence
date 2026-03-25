@@ -20,7 +20,7 @@ export async function createAlpaca(
   attachCollider(clone);
 
   const alpaca = new Alpaca(clone, animations, {
-    name, color, position, rotation, scale
+    name, color, position, rotation, scale,
   });
 
   registerEntity(alpaca, 'alpaca');
@@ -70,7 +70,7 @@ export async function createCollectable(
 ) {
   const { model, animations } = await getModel(path);
   const clone = SkeletonUtils.clone(model);
-  attachCollider(collectable.model);
+  attachCollider(clone);
 
   const collectable = new Collectable(clone, animations, { position, rotation, scale });
 

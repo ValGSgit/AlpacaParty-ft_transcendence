@@ -21,22 +21,23 @@
     </div>
 
     <div class="hud-right">
-      <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🤑</button>
+      <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🪙</button>
       <button class="hud-btn" @click="openShopMenu()" title="Shop">💰</button>
       <button class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
-      <button class="hud-btn" @click="openLightMenu()" title="Edit Light">🌟</button>
+      <button class="hud-btn" @click="openLightMenu()" title="Edit Light">☀️</button>
       <button class="hud-btn" @click="changeCamera()" title="Change Camera">🎥</button>
       <button class="hud-btn" @click="changeGame()" title="Mini Games">🕹️</button>
     </div>
     
     <div v-if="gUI.shopMenu" class="modal-overlay">
       <div class="shop-title">Mini Shop
-        <button class="shop-btn" @click="increaseFarmSize()" title="Increase Farm Size">💰 Increase Farm Size</button>
-        <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca">💰 Buy Alpaca</button>
-        <button class="shop-btn" @click="openItemShop()" title="Buy Item">💰 Buy Item</button>
+        <button class="shop-btn" @click="increaseFarmSize()" title="Increase Farm Size">🚜 Increase Farm Size</button>
+        <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca">🦙 Buy Alpaca</button>
+        <button class="shop-btn" @click="openItemShop()" title="Buy Item">🌳 Buy Item</button>
         <button class="close-btn" @click="closeShopMenu()" title="Close">✖️</button>
       </div>
     </div>
+    
     
     <div v-if="gUI.alpacaShop" class="modal-overlay">
       <div class="shop-title">Buy Alpaca
@@ -49,7 +50,7 @@
           <input type="range" v-model.number="alpacaConfig.scale" min="0.75" max="1.25" step="0.05" />
         </div>
           <div class="color-grid">
-          <button class="shop-btn" @click="alpacaConfig.color = '#634632'; buyAlpaca()" title="Brown">Brown</button>
+          <button class="shop-btn" @click="alpacaConfig.color = '#795740'; buyAlpaca()" title="Brown">Brown</button>
           <button class="shop-btn" @click="alpacaConfig.color = '#111111'; buyAlpaca()" title="Black">Black</button>
           <button class="shop-btn" @click="alpacaConfig.color = '#555555'; buyAlpaca()" title="Grey">Grey</button>
           <button class="shop-btn" @click="alpacaConfig.color = '#ffffff'; buyAlpaca()" title="White">White</button>
@@ -64,22 +65,56 @@
       </div>
     </div>
     
-  <div v-if="gUI.alpacaStats" class="modal-overlay">
-        <div class="shop-title">Alpaca Stats
-          
-          <div class="alpaca-stat" :key="updateVue">
+<div v-if="gUI.alpacaStats" class="modal-overlay">
+      <div class="shop-title">Alpaca Stats
+        <div class="stats-content" :key="updateVue">
+          <div class="stat-row">
+            <strong>Name:</strong> 
+            <span v-if="!gUI.isEditingName" class="editable-text">
+              {{ gPlayer.name }}
+              <button class="icon-btn" @click="gUI.isEditingName = true" title="Edit Name">✏️</button>
+            </span>
             
-            <div v-if="gPlayer.speedOffset === 0">Speed: Normal</div>
-            <div v-if="gPlayer.speedOffset > 0">Speed: Fast</div>
-            <div v-if="gPlayer.speedOffset < 0">Speed: Slow</div>
-            
-            <button class="stat-btn" @click="changeSpeed(-1)" title="Speed--">-</button>
-            <button class="stat-btn" @click="changeSpeed(1)" title="Speed++">+</button>
+            <span v-else class="editing-mode">
+              <input 
+                type="text" 
+                v-model="gPlayer.name" 
+                @keyup.enter="changeName(gPlayer.name); gUI.isEditingName = false"
+                class="name-input"
+              />
+            </span>
           </div>
+
+          <div class="stat-row"><strong>Age:</strong> {{ gPlayer.age }}</div>
           
-          <button class="close-btn" @click="closeAlpacaStats()" title="Close">✖️</button>
+          <div class="stat-row">
+            <strong>Color:</strong> 
+            
+            <input 
+              type="color" 
+              v-model="gPlayer.color" 
+              @input="changeColor(gPlayer.color)"
+              class="custom-picker"
+              title="Change Alpaca Color"
+            />
+          </div>
+
+          <div class="stat-row">
+            <strong>Speed:</strong> 
+            <span v-if="gPlayer.speedOffset === 0"> Normal</span>
+            <span v-if="gPlayer.speedOffset > 0"> Fast</span>
+            <span v-if="gPlayer.speedOffset < 0"> Slow</span>
+            <div class="speed-controls">
+              <button class="stat-btn" @click="changeSpeed(-1)" title="Decrease Speed">-</button>
+              <button class="stat-btn" @click="changeSpeed(1)" title="Increase Speed">+</button>
+            </div>
+          </div>
+
         </div>
+        
+        <button class="close-btn" @click="closeAlpacaStats()" title="Close">✖️</button>
       </div>
+    </div>
     
     <div v-if="gUI.itemShop" class="modal-overlay">
         <div class="shop-title">Select Item
@@ -99,15 +134,12 @@
         <button class="shop-btn" @click="deleteItem()" style="background: #ff4444; color: white; border: 2px solid #cc0000;">🗑️ Delete Item</button>
     </div>
 
-    <div v-if="gUI.lightMenu" class="edit-mode-light">
+<div v-if="gUI.lightMenu" class="modal-overlay">
         <div class="shop-title">Edit Light
-          <div class="alpaca-stat">
-           <button class="stat-btn" @click="setLight(0x555555)" title="--">1</button>
-           <button class="stat-btn" @click="setLight(0x888888)" title="-">2</button>
-           <button class="stat-btn" @click="setLight(0xaaaaaa)" title="normal">3</button>
-           <button class="stat-btn" @click="setLight(0xcccccc)" title="+">4</button>
-           <button class="stat-btn" @click="setLight(0xffffff)" title="++">5</button>
-          </div>
+          <button class="shop-btn" @click="setTimeOfDay('day')">☀️ Day</button>
+          <button class="shop-btn" @click="setTimeOfDay('sunset')">☀️ Sunset</button>
+          <button class="shop-btn" @click="setTimeOfDay('night')">🌙 Night</button>
+
           <button class="close-btn" @click="closeLightMenu()" title="Close">✖️</button>
         </div>
     </div>
@@ -130,24 +162,24 @@ import { useShop } from './components/shop.js'
 import { addDebugCoins } from './core/debug.js'
 import { gAlpacas, gCollectables, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
-import { cleanupStats, initStats } from './core/stats.js'
+import { cleanupFPSstats, initFPSstats } from './core/stats.js'
 import { changeCamera, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
 import { useInput } from './core/useInput.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
+import { changeGame } from './mini_games/init.js'
 import { initUser } from './user/initUser.js'
 import { initWorld } from './world/initWorld.js'
-import { changeGame } from './mini_games/init.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
 const clock = new THREE.Clock()
 
-const { changeSpeed, updateVue } = alpacaStats()
+const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
 const { initInput, cleanupInput} = useInput()
-const { setLight } = editLight()
+const { setTimeOfDay} = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
@@ -176,7 +208,7 @@ onMounted(async () => {
   }
   else
   {
-    stats = initStats(gameContainer.value);
+    stats = initFPSstats(gameContainer.value);
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
@@ -234,7 +266,7 @@ onUnmounted(() => {
   stopMyWatcher()
   cancelAnimationFrame(animationFrameId)
   window.removeEventListener('resize', onResize)
-  cleanupStats(stats, gameContainer.value);
+  cleanupFPSstats(stats, gameContainer.value);
   cleanupInput();
   cleanup()
 })

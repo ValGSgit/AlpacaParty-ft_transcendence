@@ -11,6 +11,7 @@ export const gUI = reactive({
   itemShop: false,
   alpacaShop: false,
   alpacaStats: false,
+  isEditingName: false,
   lightMenu: false,
   cameraMode: 0,
   cameraPos: { x: 0, y: 0, z: 0 }
