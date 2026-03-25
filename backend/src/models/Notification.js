@@ -2,7 +2,7 @@
  * Notification Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from '../config/prisma.js';
+import prisma from "#lib/prisma.js";
 
 function shapeNotification(n) {
   if (!n) return n;
@@ -25,7 +25,7 @@ const Notification = {
       data: {
         userId: Number(userId),
         type,
-        title: title || '',
+        title: title || "",
         message,
         referenceType: referenceType || null,
         referenceId: referenceId ? Number(referenceId) : null,
@@ -34,10 +34,16 @@ const Notification = {
     return shapeNotification(row);
   },
 
-  async getForUser(userId, { limit = 30, offset = 0, unreadOnly = false } = {}) {
+  async getForUser(
+    userId,
+    { limit = 30, offset = 0, unreadOnly = false } = {},
+  ) {
     const rows = await prisma.notification.findMany({
-      where: { userId: Number(userId), ...(unreadOnly ? { isRead: false } : {}) },
-      orderBy: { createdAt: 'desc' },
+      where: {
+        userId: Number(userId),
+        ...(unreadOnly ? { isRead: false } : {}),
+      },
+      orderBy: { createdAt: "desc" },
       take: Number(limit),
       skip: Number(offset),
     });
@@ -50,7 +56,9 @@ const Notification = {
       data: { isRead: true },
     });
     if (result.count > 0) {
-      const row = await prisma.notification.findUnique({ where: { id: Number(id) } });
+      const row = await prisma.notification.findUnique({
+        where: { id: Number(id) },
+      });
       return shapeNotification(row);
     }
     return null;
@@ -64,7 +72,9 @@ const Notification = {
   },
 
   async countUnread(userId) {
-    return prisma.notification.count({ where: { userId: Number(userId), isRead: false } });
+    return prisma.notification.count({
+      where: { userId: Number(userId), isRead: false },
+    });
   },
 
   async delete(id, userId) {

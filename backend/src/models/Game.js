@@ -2,12 +2,12 @@
  * Game Model — Prisma data access layer (games, game_stats, alpaca_farms)
  * @owner ValGSgit
  */
-import prisma from '../config/prisma.js';
+import prisma from "#lib/prisma.js";
 
 const Game = {
-  async create({ player1Id, gameType = 'pong' }) {
+  async create({ player1Id, gameType = "pong" }) {
     return prisma.game.create({
-      data: { player1Id: Number(player1Id), gameType, status: 'waiting' },
+      data: { player1Id: Number(player1Id), gameType, status: "waiting" },
     });
   },
 
@@ -18,7 +18,7 @@ const Game = {
   async findWaiting(gameType, excludePlayerId) {
     return prisma.game.findFirst({
       where: {
-        status: 'waiting',
+        status: "waiting",
         gameType,
         player1Id: { not: Number(excludePlayerId) },
         player2Id: null,
@@ -29,7 +29,11 @@ const Game = {
   async joinGame(gameId, player2Id) {
     return prisma.game.update({
       where: { id: Number(gameId) },
-      data: { player2Id: Number(player2Id), status: 'playing', startedAt: new Date() },
+      data: {
+        player2Id: Number(player2Id),
+        status: "playing",
+        startedAt: new Date(),
+      },
     });
   },
 
@@ -37,7 +41,7 @@ const Game = {
     return prisma.game.update({
       where: { id: Number(gameId) },
       data: {
-        status: 'finished',
+        status: "finished",
         winnerId: winnerId ? Number(winnerId) : null,
         player1Score: player1Score ?? 0,
         player2Score: player2Score ?? 0,
@@ -49,7 +53,7 @@ const Game = {
   async cancelGame(gameId) {
     return prisma.game.update({
       where: { id: Number(gameId) },
-      data: { status: 'cancelled' },
+      data: { status: "cancelled" },
     });
   },
 
@@ -57,28 +61,45 @@ const Game = {
     return prisma.game.findMany({
       where: {
         OR: [{ player1Id: Number(userId) }, { player2Id: Number(userId) }],
-        status: 'finished',
+        status: "finished",
         ...(gameType ? { gameType } : {}),
       },
-      orderBy: { finishedAt: 'desc' },
+      orderBy: { finishedAt: "desc" },
       take: Number(limit),
       skip: Number(offset),
     });
   },
 
-  async getStats(userId, gameType = 'pong') {
+  async getStats(userId, gameType = "pong") {
     const stat = await prisma.gameStat.findUnique({
       where: { userId_gameType: { userId: Number(userId), gameType } },
     });
-    return stat || { userId: Number(userId), gameType, wins: 0, losses: 0, draws: 0, elo: 1000 };
+    return (
+      stat || {
+        userId: Number(userId),
+        gameType,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        elo: 1000,
+      }
+    );
   },
 
   async updateStats(userId, gameType, result) {
-    const field = result === 'win' ? 'wins' : result === 'loss' ? 'losses' : 'draws';
+    const field =
+      result === "win" ? "wins" : result === "loss" ? "losses" : "draws";
     await prisma.gameStat.upsert({
       where: { userId_gameType: { userId: Number(userId), gameType } },
       update: { [field]: { increment: 1 } },
-      create: { userId: Number(userId), gameType, [field]: 1, wins: 0, losses: 0, draws: 0 },
+      create: {
+        userId: Number(userId),
+        gameType,
+        [field]: 1,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+      },
     });
   },
 
@@ -90,14 +111,19 @@ const Game = {
     });
   },
 
-  async getLeaderboard(gameType = 'pong', { limit = 20, offset = 0, publicOnly = false } = {}) {
+  async getLeaderboard(
+    gameType = "pong",
+    { limit = 20, offset = 0, publicOnly = false } = {},
+  ) {
     const rows = await prisma.gameStat.findMany({
       where: {
         gameType,
         ...(publicOnly ? { user: { isPublic: true } } : {}),
       },
-      include: { user: { select: { username: true, avatar: true, level: true } } },
-      orderBy: { elo: 'desc' },
+      include: {
+        user: { select: { username: true, avatar: true, level: true } },
+      },
+      orderBy: { elo: "desc" },
       take: Number(limit),
       skip: Number(offset),
     });
@@ -115,7 +141,7 @@ const Game = {
   },
 
   async countActive() {
-    return prisma.game.count({ where: { status: 'playing' } });
+    return prisma.game.count({ where: { status: "playing" } });
   },
 
   // ── Alpaca Farm ──────────────────────────────────────────────────────────

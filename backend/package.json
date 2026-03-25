@@ -4,6 +4,17 @@
   "description": "AlpacaParty Express.js backend",
   "main": "src/server.js",
   "type": "module",
+  "imports": {
+    "#generated/*.js": "./generated/*.js",
+    "#config/*.js": "./src/config/*.js",
+    "#controllers/*.js": "./src/controllers/*.js",
+    "#lib/*.js": "./src/lib/*.js",
+    "#middleware/*.js": "./src/middleware/*.js",
+    "#routes/*.js": "./src/routes/*.js",
+    "#services/*.js": "./src/services/*.js",
+    "#utils/*.js": "./src/utils/*.js",
+    "#validators/*.js": "./src/validators/*.js"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
@@ -29,6 +40,7 @@
     "dotenv": "^16.4.0",
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.0",
+    "express-validator": "^7.3.1",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.0",

@@ -78,7 +78,7 @@ help:
 	@echo ""
 
 # ── DOCKER ──────────────────────────────────────────────────
-up: ssl-certs
+up: ssl-certs create_dirs
 	$(DC) up -d
 
 down:
@@ -95,6 +95,25 @@ restart:
 
 ps:
 	$(DC) ps
+
+# ── PRODUCTION ──────────────────────────────────────────────
+prod-up: .env ssl-certs
+	$(DC_PROD) up -d --build
+
+prod-down:
+	$(DC_PROD) down
+
+prod-build: .env
+	$(DC_PROD) build --no-cache
+
+prod-logs:
+	$(DC_PROD) logs -f
+
+# ──────────────────────────────────────────────────────────────────────────── #
+# SETUP
+create_dirs:
+	@mkdir backend/node_modules
+	@mkdir frontend/node_modules
 
 # ── SECRETS ─────────────────────────────────────────────────
 # Generates .env from .env.example with cryptographically random
@@ -142,18 +161,6 @@ ssl-certs:
 	@echo "$(YELLOW)No .env found — generating one with random secrets…$(RESET)"
 	@$(MAKE) --no-print-directory generate-secrets
 
-# ── PRODUCTION ──────────────────────────────────────────────
-prod-up: .env ssl-certs
-	$(DC_PROD) up -d --build
-
-prod-down:
-	$(DC_PROD) down
-
-prod-build: .env
-	$(DC_PROD) build --no-cache
-
-prod-logs:
-	$(DC_PROD) logs -f
 
 # ── LOCAL DEV ───────────────────────────────────────────────
 install:
@@ -215,9 +222,8 @@ waf-logs:
 clean:
 	$(DC) down --rmi all --remove-orphans
 	$(DC_PROD) down --rmi all --remove-orphans
-		sudo rm -rf backend/generated
-	sudo rm -rf backend/node_modules && \
-	mkdir backend/node_modules
+	@sudo rm -rf backend/generated
+	@sudo rm -rf backend/node_modules
 
 clean-volumes:
 	$(DC) down --rmi all --volumes --remove-orphans
@@ -226,12 +232,18 @@ clean-volumes:
 fclean:
 	$(DC) down --rmi all --volumes --remove-orphans
 	$(DC_PROD) down --rmi all --volumes --remove-orphans
-	@docker network ls --format '{{.ID}} {{.Name}}' | awk '$$2=="$(COMPOSE_PROJECT)_alpacaparty_net" {print $$1}' | xargs -r docker network rm >/dev/null 2>&1 || true
-	@docker volume ls -q --filter "label=com.docker.compose.project=$(COMPOSE_PROJECT)" | xargs -r docker volume rm -f >/dev/null 2>&1 || true
+	@docker network ls --format '{{.ID}} {{.Name}}' | \
+	awk '$$2=="$(COMPOSE_PROJECT)_alpacaparty_net" {print $$1}' | \
+	xargs -r docker network rm >/dev/null 2>&1 || true
+	@docker volume ls -q --filter "label=com.docker.compose.project=$(COMPOSE_PROJECT)" | \
+	xargs -r docker volume rm -f >/dev/null 2>&1 || true
 	@docker volume prune -f >/dev/null
 	@docker network prune -f >/dev/null
 	@docker image prune -f >/dev/null
 	@docker builder prune -f >/dev/null
+	@sudo rm -rf backend/generated
+	@sudo rm -rf backend/node_modules
+	@sudo rm -rf frontend/node_modules
 	@echo "$(GREEN)✓ Full Docker cleanup complete for project $(COMPOSE_PROJECT)$(RESET)"
 
 deep-clean:
@@ -240,4 +252,7 @@ deep-clean:
 	$(DC_PROD) down --rmi all --volumes --remove-orphans || true
 	@docker system prune -af --volumes
 	@docker builder prune -af
+	@sudo rm -rf backend/generated
+	@sudo rm -rf backend/node_modules
+	@sudo rm -rf frontend/node_modules
 	@echo "$(GREEN)✓ Aggressive Docker cleanup complete$(RESET)"

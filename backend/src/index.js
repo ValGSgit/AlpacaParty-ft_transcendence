@@ -3,20 +3,20 @@
  * @owner DavidPoetsch, ValGSgit
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/2
  */
-import express from 'express';
-import https from 'https';
-import http from 'http';
-import fs from 'fs';
-import cors from 'cors';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import path from 'path';
-import config from './config/index.js';
-import routes from './routes/index.js';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
-import { initializeSocket } from './services/socketService.js';
-import { initializePassport } from './services/oauthService.js';
-import prisma from './config/prisma.js';
+import express from "express";
+import https from "https";
+import http from "http";
+import fs from "fs";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import path from "path";
+import config from "./config/index.js";
+import routes from "./routes/index.js";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { initializeSocket } from "./services/socketService.js";
+import { initializePassport } from "./services/oauthService.js";
+import prisma from "#lib/prisma.js";
 
 const app = express();
 
@@ -33,32 +33,37 @@ if (config.ssl.certPath && config.ssl.keyPath) {
       console.warn(`[ssl] Key file not found: ${config.ssl.keyPath}`);
     } else {
       // Try to read the certificates
-      const key = fs.readFileSync(config.ssl.keyPath, 'utf8');
-      const cert = fs.readFileSync(config.ssl.certPath, 'utf8');
-      
+      const key = fs.readFileSync(config.ssl.keyPath, "utf8");
+      const cert = fs.readFileSync(config.ssl.certPath, "utf8");
+
       httpServer = https.createServer({ key, cert }, app);
       useHttps = true;
-      console.log('[ssl] ✓ HTTPS enabled with certificates from', config.ssl.certPath);
+      console.log(
+        "[ssl] ✓ HTTPS enabled with certificates from",
+        config.ssl.certPath,
+      );
     }
   } catch (err) {
     console.warn(`[ssl] Failed to load certificates: ${err.message}`);
-    console.warn('[ssl] Falling back to HTTP');
+    console.warn("[ssl] Falling back to HTTP");
   }
 }
 
 // Fallback to HTTP if certificates not loaded
 if (!useHttps) {
   httpServer = http.createServer(app);
-  console.warn('[ssl] ⚠ Backend running on HTTP - certificates not properly configured');
+  console.warn(
+    "[ssl] ⚠ Backend running on HTTP - certificates not properly configured",
+  );
 }
 
 // Trust proxy (behind nginx reverse proxy)
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // Enforce HTTPS (check X-Forwarded-Proto header from nginx)
 app.use((req, _res, next) => {
-  const proto = req.get('X-Forwarded-Proto');
-  if (proto === 'http') {
+  const proto = req.get("X-Forwarded-Proto");
+  if (proto === "http") {
     console.warn(`[ssl] Non-HTTPS request received: ${req.method} ${req.path}`);
     // In production, you might want to redirect to HTTPS here
     // res.redirect(301, `https://${req.get('host')}${req.url}`);
@@ -67,40 +72,47 @@ app.use((req, _res, next) => {
 });
 
 // Security
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-}));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 
 // CORS
-app.use(cors({
-  origin: config.cors.origins,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
-}));
+app.use(
+  cors({
+    origin: config.cors.origins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-API-Key"],
+  }),
+);
 
 // Rate limiting
-app.use('/api', rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.max,
-  message: 'Too many requests, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-}));
+app.use(
+  "/api",
+  rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    max: config.rateLimit.max,
+    message: "Too many requests, please try again later.",
+    standardHeaders: true,
+    legacyHeaders: false,
+  }),
+);
 
 // Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Passport (OAuth)
 const passport = initializePassport();
 app.use(passport.initialize());
 
 // Serve uploaded files
-app.use('/uploads', express.static(config.uploads.dir));
+app.use("/uploads", express.static(config.uploads.dir));
 
 // Dev request logging
-if (config.nodeEnv === 'development') {
+if (config.nodeEnv === "development") {
   app.use((req, _res, next) => {
     console.log(`${req.method} ${req.path}`);
     next();
@@ -108,26 +120,26 @@ if (config.nodeEnv === 'development') {
 }
 
 // API routes
-app.use('/api', routes);
+app.use("/api", routes);
 
 // Root endpoint
-app.get('/', (_req, res) => {
+app.get("/", (_req, res) => {
   res.json({
-    name: 'AlpacaParty API',
-    version: '0.1.0',
+    name: "AlpacaParty API",
+    version: "0.1.0",
     endpoints: {
-      health: '/api/health',
-      auth: '/api/auth',
-      users: '/api/users',
-      friends: '/api/friends',
-      chat: '/api/chat',
-      game: '/api/game',
-      posts: '/api/posts',
-      organizations: '/api/organizations',
-      notifications: '/api/notifications',
-      uploads: '/api/uploads',
-      admin: '/api/admin',
-      publicApi: '/api/public',
+      health: "/api/health",
+      auth: "/api/auth",
+      users: "/api/users",
+      friends: "/api/friends",
+      chat: "/api/chat",
+      game: "/api/game",
+      posts: "/api/posts",
+      organizations: "/api/organizations",
+      notifications: "/api/notifications",
+      uploads: "/api/uploads",
+      admin: "/api/admin",
+      publicApi: "/api/public",
     },
   });
 });
@@ -142,7 +154,9 @@ initializeSocket(httpServer, config.cors.origins);
 // Start server
 const PORT = config.port;
 const server = httpServer.listen(PORT, () => {
-  console.log(`[server] AlpacaParty API running on port ${PORT} (${config.nodeEnv})`);
+  console.log(
+    `[server] AlpacaParty API running on port ${PORT} (${config.nodeEnv})`,
+  );
 });
 
 const shutdown = async (signal) => {
@@ -151,13 +165,17 @@ const shutdown = async (signal) => {
     try {
       await prisma.$disconnect();
     } catch (err) {
-      console.error('[prisma] disconnect error:', err.message);
+      console.error("[prisma] disconnect error:", err.message);
     }
     process.exit(0);
   });
 };
 
-process.on('SIGINT', () => { shutdown('SIGINT'); });
-process.on('SIGTERM', () => { shutdown('SIGTERM'); });
+process.on("SIGINT", () => {
+  shutdown("SIGINT");
+});
+process.on("SIGTERM", () => {
+  shutdown("SIGTERM");
+});
 
 export default app;
