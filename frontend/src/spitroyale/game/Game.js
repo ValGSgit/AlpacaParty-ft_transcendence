@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { getModel } from '../../games/core/modelCache.js';
 import { buildArena } from './Arena.js';
 import { buildAlpaca } from './Alpaca.js';
 import { ParticleSystem } from './Particles.js';
@@ -15,7 +15,6 @@ export class Game {
     this.pendingAlpacaSpawns = new Set();
     this.spitMeshes = {};
     this.powerupMeshes = {};
-    this.gltfLoader = new GLTFLoader();
     this.llamaTemplatePromise = null;
     this.lastState = null;
     this.clock = new THREE.Clock();
@@ -109,11 +108,11 @@ export class Game {
       { path: '/models/fence_end.glb', count: 4, ring: RING + 1.2, targetH: 1.4 },
     ];
     for (const { path, count, ring, targetH } of assets) {
-      let gltf;
-      try { gltf = await this.gltfLoader.loadAsync(path); } catch { continue; }
+      let template;
+      try { template = await getModel(path); } catch { continue; }
       for (let i = 0; i < count; i++) {
         if (this.isDestroyed) return;
-        const obj = clone(gltf.scene);
+        const obj = clone(template.model);
         const angle = (i / count) * Math.PI * 2 + (Math.PI / count);
         obj.position.set(Math.cos(angle) * ring, 0, Math.sin(angle) * ring);
         obj.rotation.y = -angle + Math.PI;
@@ -134,8 +133,7 @@ export class Game {
 
   async #getLlamaTemplate() {
     if (!this.llamaTemplatePromise) {
-      this.llamaTemplatePromise = this.gltfLoader.loadAsync('/models/alpaca.glb')
-        .catch(() => null);
+      this.llamaTemplatePromise = getModel('/models/alpaca.glb').catch(() => null);
     }
     return this.llamaTemplatePromise;
   }
@@ -170,11 +168,11 @@ export class Game {
   }
 
   async #buildAlpacaModel(colorHex) {
-    const gltf = await this.#getLlamaTemplate();
-    if (!gltf) return buildAlpaca(colorHex);
+    const template = await this.#getLlamaTemplate();
+    if (!template) return buildAlpaca(colorHex);
 
     const group = new THREE.Group();
-    const model = clone(gltf.scene);
+    const model = clone(template.model);
     this.#tintModel(model, colorHex);
     this.#normalizeModelHeight(model);
     group.add(model);
@@ -183,14 +181,14 @@ export class Game {
     let mixer = null;
     let idleAction = null;
     let walkAction = null;
-    if (gltf.animations?.length > 1) {
+    if (template.animations?.length > 1) {
       mixer = new THREE.AnimationMixer(model);
-      if (gltf.animations[1]) {
-        idleAction = mixer.clipAction(gltf.animations[1]);
+      if (template.animations[1]) {
+        idleAction = mixer.clipAction(template.animations[1]);
         idleAction.play();
       }
-      if (gltf.animations[5]) {
-        walkAction = mixer.clipAction(gltf.animations[5]);
+      if (template.animations[5]) {
+        walkAction = mixer.clipAction(template.animations[5]);
       }
     }
 
