@@ -70,11 +70,11 @@
                 </td>
                 <td>{{ u.email }}</td>
                 <td>{{ u.level || 1 }}</td>
-                <td>{{ (u.is_admin || u.isAdmin) ? '✅' : '—' }}</td>
-                <td><span class="dot" :class="{ online: u.is_online || u.isOnline }"></span></td>
+                <td>{{ u.is_admin ? '✅' : '—' }}</td>
+                <td><span class="dot" :class="{ online: u.is_online }"></span></td>
                 <td class="actions">
-                  <button class="btn-sm" @click="toggleAdmin(u)" :title="(u.is_admin || u.isAdmin) ? 'Remove admin' : 'Make admin'">
-                    {{ (u.is_admin || u.isAdmin) ? '👤' : '👑' }}
+                  <button class="btn-sm" @click="toggleAdmin(u)" :title="u.is_admin ? 'Remove admin' : 'Make admin'">
+                    {{ u.is_admin ? '👤' : '👑' }}
                   </button>
                   <button class="btn-sm btn-danger" @click="deleteUser(u)" title="Delete user">🗑️</button>
                 </td>
@@ -163,8 +163,7 @@ function searchUsers() {
 async function toggleAdmin(user) {
   try {
     const { data } = await api.put(`/admin/users/${user.id}/toggle-admin`)
-    user.isAdmin = data.user?.isAdmin ?? !user.isAdmin
-    user.is_admin = user.isAdmin
+    user.is_admin = data.user?.is_admin ?? !user.is_admin
   } catch (e) {
     alert(e.response?.data?.error?.message || 'Failed')
   }

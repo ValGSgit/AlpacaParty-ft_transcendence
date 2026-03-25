@@ -11,7 +11,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import swaggerUi from 'swagger-ui-express';
 import config from './config/index.js';
+import swaggerSpec from './config/swagger.js';
 import routes from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { initializeSocket } from './services/socketService.js';
@@ -130,6 +132,9 @@ if (config.nodeEnv === 'development') {
     next();
   });
 }
+
+// API docs (Swagger UI)
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // API routes
 app.use('/api', routes);
