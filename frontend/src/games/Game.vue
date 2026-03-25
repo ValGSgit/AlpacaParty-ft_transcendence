@@ -14,10 +14,12 @@
     <div class="hud-left">
       <div v-if="!gUser.gameMode" class="stat"><span>💰 {{ gUser.coins }}</span></div>
       <div v-if="gUser.gameMode" class="stat"><span>🦙 {{ gUser.point }} </span></div>
-      <div v-if="gUser.hp === 3"><span>❤️❤️❤️</span></div>
-      <div v-if="gUser.hp === 2"><span>❤️❤️💔</span></div>
-      <div v-if="gUser.hp === 1"><span>❤️💔💔</span></div>
-      <div v-if="gUser.hp === 0"><span>💔💔💔</span></div>
+      <template v-if="gUser.gameMode">
+        <div v-if="gUser.hp === 3"><span>❤️❤️❤️</span></div>
+        <div v-if="gUser.hp === 2"><span>❤️❤️💔</span></div>
+        <div v-if="gUser.hp === 1"><span>❤️💔💔</span></div>
+        <div v-if="gUser.hp === 0"><span>💔💔💔</span></div>
+      </template>
     </div>
 
     <div class="hud-right">
