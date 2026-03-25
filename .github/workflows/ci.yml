@@ -1,17 +1,17 @@
-# Cleanscendence — Continuous Integration
+# AlpacaParty — Continuous Integration
 #
 # Jobs:
-#   1. backend-unit  — Jest unit + integration tests (mocked DB)
-#   2. frontend-unit — Vitest component + store tests
-#   3. e2e           — Playwright full-stack tests (push only)
+#   1. backend-unit   — Jest unit + integration tests (mocked DB)
+#   2. frontend-unit  — Vitest unit tests
+#   3. e2e            — Playwright full-stack tests with seed data (push only)
 
 name: CI
 
 on:
   push:
-    branches: [main, dev, backend]
+    branches: [main, dev, backend-main, backend-Val, fix-Unit/E2E]
   pull_request:
-    branches: [main, dev, backend]
+    branches: [main, dev, backend-main, backend-Val, fix-Unit/E2E]
 
 # Cancel in-progress runs for the same branch/PR on new push
 concurrency:
@@ -35,17 +35,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run tests with coverage
         run: npm test
@@ -54,7 +52,7 @@ jobs:
           JWT_SECRET: ci-test-secret-do-not-use-in-prod
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: backend-coverage
@@ -74,23 +72,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run tests with coverage
         run: npm test
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: frontend-coverage
@@ -109,18 +105,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: e2e/package-lock.json
 
       - name: Install E2E dependencies
         working-directory: e2e
-        run: npm ci
+        run: npm install
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -132,27 +126,49 @@ jobs:
       - name: Install Playwright browsers
         working-directory: e2e
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium firefox
+        run: npx playwright install --with-deps chromium
 
       - name: Install Playwright system deps (cache hit)
         working-directory: e2e
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium firefox
+        run: npx playwright install-deps chromium
+
+      # -- Generate SSL certs (mirrors `make ssl-certs`) -----------
+      - name: Generate self-signed SSL certificates
+        run: |
+          mkdir -p nginx/ssl backend/ssl
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout nginx/ssl/key.pem \
+            -out nginx/ssl/cert.pem \
+            -days 365 \
+            -subj '/CN=localhost' \
+            -addext 'subjectAltName=DNS:localhost,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1'
+          cp nginx/ssl/cert.pem backend/ssl/cert.pem
+          cp nginx/ssl/key.pem  backend/ssl/key.pem
+
+      # -- Install deps so bind-mount volumes exist ----------------
+      - name: Install backend and frontend dependencies
+        run: |
+          cd backend && npm install --ignore-scripts && cd ..
+          cd frontend && npm install && cd ..
 
       # -- Start the full stack -------------------------------------
       - name: Start application stack
-        run: docker compose up -d --build
+        run: |
+          docker compose build --no-cache nginx
+          docker compose up -d --build postgres backend frontend nginx
         env:
+          NODE_ENV: test
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-e2e-secret-change-in-prod' }}
-          DB_NAME: cleanscendence
-          DB_USER: cleanscendence
-          DB_PASSWORD: cleanscendence
+          DB_NAME: alpacaparty
+          DB_USER: alpacaparty
+          DB_PASSWORD: alpacaparty
 
       - name: Wait for backend to be healthy
         run: |
           echo "Waiting for backend health endpoint..."
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8080/api/health > /dev/null 2>&1; then
+            if curl -ksfL https://localhost:8443/api/health > /dev/null 2>&1; then
               echo "Backend is healthy after ${i} attempts"
               exit 0
             fi
@@ -163,16 +179,40 @@ jobs:
           docker compose logs
           exit 1
 
+      # -- Seed data for E2E tests ----------------------------------
+      - name: Seed live data for E2E tests
+        run: docker compose exec -T backend npm run seed:live
+        env:
+          SEED_USERS: "50"
+          SEED_POSTS: "100"
+          SEED_ORGS: "5"
+          SEED_DM_MESSAGES: "200"
+          SEED_ROOMS: "5"
+          SEED_ROOM_MESSAGES: "200"
+          SEED_NOTIFICATIONS: "100"
+
+      - name: Ensure seeded admin account has admin role
+        run: |
+          docker compose exec -T postgres psql -U alpacaparty -d alpacaparty \
+            -c "UPDATE users SET is_admin = TRUE WHERE email = 'live_admin@alpacaparty.test';"
+          is_admin=$(docker compose exec -T postgres psql -U alpacaparty -d alpacaparty -tA \
+            -c "SELECT COALESCE(is_admin::text, 'false') FROM users WHERE email = 'live_admin@alpacaparty.test' LIMIT 1;")
+          if [ "$is_admin" != "true" ]; then
+            echo "live_admin@alpacaparty.test is not admin after seeding"
+            exit 1
+          fi
+          echo "Verified live_admin@alpacaparty.test has admin access"
+
       # -- Run tests ------------------------------------------------
       - name: Run Playwright tests
         working-directory: e2e
         run: npm test
         env:
-          E2E_BASE_URL: http://localhost:8080
+          E2E_BASE_URL: https://localhost:8443
 
       # -- Artifacts ------------------------------------------------
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: playwright-report
@@ -180,7 +220,7 @@ jobs:
           retention-days: 7
 
       - name: Upload traces and screenshots on failure
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: playwright-traces

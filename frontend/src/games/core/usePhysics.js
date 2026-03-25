@@ -1,7 +1,7 @@
 import { OBB } from 'three/addons/math/OBB.js'
-import { gAlpacas, gItems } from './globals.js'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
+import { gCollidables } from './globals.js'
 
 const sourceOBB = new OBB()
 const obstacleOBB = new OBB()
@@ -20,7 +20,8 @@ export function usePhysics() {
 
     for (const obstacle of objects) {
       const obstacleModel = obstacle.model || obstacle
-      if (obstacleModel.uuid === sourceObj.uuid) continue
+      if (!obstacleModel) continue
+      if (obstacleModel === sourceObj || obstacleModel.uuid === sourceObj.uuid || obstacleModel.id === sourceObj.id) continue
 
       const obstacleCollider = obstacleModel.userData.collider
       if (!obstacleCollider || !obstacleCollider.userData.baseOBB) continue
@@ -49,10 +50,7 @@ export function usePhysics() {
     if (nextRotY !== undefined) player.rotation.y = nextRotY
     player.updateMatrixWorld(true)
 
-    let hasCollision = checkCollisionWith(player, gAlpacas.value)
-    if (!hasCollision) {
-      hasCollision = checkCollisionWith(player, gItems.value)
-    }
+    let hasCollision = checkCollisionWith(player, gCollidables)
     if (hasCollision) {
       player.position.x = oldX
       player.position.z = oldZ
@@ -62,13 +60,31 @@ export function usePhysics() {
     return hasCollision
   }
 
-  const checkWithinBounds = (x, z) => {
-    const distance = Math.sqrt(x * x + z * z)
-    const withinBounds = distance < CONST.MAX_MOVE_RADIUS
-    return withinBounds
+  return { checkCollision, checkCollisionWith }
+}
+
+export function checkWithinBounds(x, z) {
+  const distance = Math.sqrt(x * x + z * z)
+  const withinBounds = distance < CONST.MAX_MOVE_RADIUS
+  return withinBounds
+}
+
+export function usePos() {
+
+  const storePos = (model) => {
+    model.userData.originalPos = model.position.clone()
+    model.userData.originalRotY = model.rotation.y
   }
 
-  return { checkCollision, checkCollisionWith, checkWithinBounds }
+  const restorePos = (model) => {
+    if (model.userData.originalPos) {
+      model.position.x = model.userData.originalPos.x;
+      model.position.z = model.userData.originalPos.z;
+      model.rotation.y = model.userData.originalRotY;
+    }
+  }
+
+  return { storePos, restorePos }
 }
 
 function drawDebugBox(hitMesh) {

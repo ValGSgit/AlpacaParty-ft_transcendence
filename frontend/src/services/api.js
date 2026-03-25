@@ -1,14 +1,16 @@
 /**
  * API Service — Axios instance for backend communication
  * @owner fankahou, LukasStefanek
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/1
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/1
  *
  * Includes JWT interceptors for automatic token management.
  */
 import axios from 'axios'
 
+const env = import.meta?.env || {}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: env.VITE_API_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },

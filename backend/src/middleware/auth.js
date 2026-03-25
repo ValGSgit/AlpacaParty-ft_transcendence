@@ -1,7 +1,7 @@
 /**
  * Auth Middleware — JWT verification
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/8
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import AuthService from '../services/authService.js';
 import User from '../models/User.js';

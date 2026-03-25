@@ -10,6 +10,10 @@ build/
 .env.local
 .env.production
 
+# ── SSL certificates ────────────────────────────────────────
+nginx/ssl/
+backend/ssl/
+
 # ── IDE ──────────────────────────────────────────────────────
 .vscode/
 .idea/
@@ -28,6 +32,10 @@ npm-debug.log*
 
 # ── Docker persistent data (local) ──────────────────────────
 data/
+
+# ── Uploaded files ───────────────────────────────────────────
+backend/uploads/*
+!backend/uploads/.gitkeep
 
 # ── Test artifacts ───────────────────────────────────────────
 coverage/

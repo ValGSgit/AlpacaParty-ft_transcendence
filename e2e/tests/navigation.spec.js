@@ -1,100 +1,43 @@
-/**
- * E2E: Navigation & Route Guard Tests
- */
-import { test, expect } from '@playwright/test'
+import { test, expect } from '@playwright/test';
+import { createUser, setAuthToken } from './helpers/api.js';
 
-test.describe('Navigation', () => {
-  test('home page loads correctly', async ({ page }) => {
-    await page.goto('/')
-    await expect(page.locator('h1')).toContainText('Welcome to Cleanscendence')
-    await expect(page.locator('.nav-logo')).toBeVisible()
-  })
+const publicRoutes = ['/', '/login', '/register', '/privacy', '/terms', '/docs', '/showcase'];
+const protectedRoutes = ['/profile', '/friends', '/messages', '/settings', '/feed', '/help'];
 
-  test('navbar always shows Home link', async ({ page }) => {
-    await page.goto('/')
-    await expect(page.locator('a.nav-link[href="/"]')).toBeVisible()
-  })
+test.describe('Navigation and Route Guards', () => {
+  test('public routes render without auth', async ({ page }) => {
+    for (const route of publicRoutes) {
+      await page.goto(route);
+      await expect(page).toHaveURL(new RegExp(`${route === '/' ? '/$' : route}`));
+      await expect(page.locator('body')).toBeVisible();
+    }
+  });
 
-  test('unauthenticated user sees login/register in navbar', async ({ page }) => {
-    await page.goto('/')
-    await expect(page.locator('a[href="/login"]')).toBeVisible()
-    await expect(page.locator('a[href="/register"]')).toBeVisible()
-    await expect(page.locator('a[href="/profile"]')).not.toBeVisible()
-  })
+  test('protected routes redirect guests to login', async ({ page }) => {
+    for (const route of protectedRoutes) {
+      await page.goto(route);
+      await expect(page).toHaveURL(/\/login/);
+    }
+  });
 
-  test('clicking logo navigates to home', async ({ page }) => {
-    await page.goto('/login')
-    await page.locator('.nav-logo').click()
-    await expect(page).toHaveURL('/')
-  })
+  test('authenticated user can access protected routes', async ({ page, request }) => {
+    const user = await createUser(request, 'nav');
+    await setAuthToken(page, user.accessToken);
 
-  test('clicking login link navigates to login page', async ({ page }) => {
-    await page.goto('/')
-    await page.locator('a[href="/login"]').click()
-    await expect(page).toHaveURL('/login')
-    await expect(page.locator('h2')).toHaveText('Login')
-  })
+    for (const route of protectedRoutes) {
+      await page.goto(route);
+      await expect(page).toHaveURL(new RegExp(route));
+      await expect(page.locator('body')).toBeVisible();
+    }
+  });
 
-  test('clicking register link navigates to register page', async ({ page }) => {
-    await page.goto('/')
-    await page.locator('a[href="/register"]').click()
-    await expect(page).toHaveURL('/register')
-    await expect(page.locator('h2')).toHaveText('Create Account')
-  })
-})
+  test('/api/health is healthy', async ({ request }) => {
+    const res = await request.get('/api/health');
+    expect(res.ok()).toBeTruthy();
 
-test.describe('Route Guards', () => {
-  test('redirects unauthenticated users from /profile to /login', async ({ page }) => {
-    // Clear any stored tokens
-    await page.goto('/')
-    await page.evaluate(() => {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
-    })
-
-    await page.goto('/profile')
-    await expect(page).toHaveURL(/\/login/)
-  })
-
-  test('redirects authenticated users from /login to home', async ({ page }) => {
-    // Register and login first
-    const uid = `navtest${Date.now()}`
-    await page.goto('/register')
-    await page.fill('input#username', uid)
-    await page.fill('input#email', `${uid}@test.com`)
-    await page.fill('input#password', 'NavTest123')
-    await page.fill('input#confirm', 'NavTest123')
-    await page.click('button[type="submit"]')
-    await page.waitForURL('/')
-
-    // Now try to visit login page
-    await page.goto('/login')
-    await expect(page).toHaveURL('/')
-  })
-
-  test('redirects authenticated users from /register to home', async ({ page }) => {
-    const uid = `navtest2${Date.now()}`
-    await page.goto('/register')
-    await page.fill('input#username', uid)
-    await page.fill('input#email', `${uid}@test.com`)
-    await page.fill('input#password', 'NavTest123')
-    await page.fill('input#confirm', 'NavTest123')
-    await page.click('button[type="submit"]')
-    await page.waitForURL('/')
-
-    await page.goto('/register')
-    await expect(page).toHaveURL('/')
-  })
-})
-
-test.describe('API Health', () => {
-  test('/api/health returns ok', async ({ request }) => {
-    const response = await request.get('/api/health')
-    expect(response.ok()).toBe(true)
-
-    const body = await response.json()
-    expect(body.status).toBe('ok')
-    expect(body.message).toMatch(/running/i)
-    expect(body.version).toBe('0.0.1')
-  })
-})
+    const body = await res.json();
+    expect(body.status).toBe('ok');
+    expect(body.message).toContain('running');
+    expect(body.version).toBe('0.1.0');
+  });
+});

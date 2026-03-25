@@ -1,6 +1,6 @@
-# Cleanscendence — Backend
+# AlpacaParty — Backend
 
-> Express.js REST API for the Cleanscendence project (42 Transcendence).  
+> Express.js REST API for the AlpacaParty project (42 Transcendence).  
 > Owners: **ValGSgit** · **DavidPoetsch**
 
 ---
@@ -64,7 +64,7 @@ backend/
 
 ### Base URL
 ```
-Docker:    http://localhost:8080/api
+Docker:    http://localhost:8443/api
 Local dev: http://localhost:3000/api
 ```
 
@@ -133,10 +133,10 @@ Copy `.env.example` from the project root and fill in the values.
 | `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh token lifetime |
 | `DB_HOST` | `localhost` | PostgreSQL host |
 | `DB_PORT` | `5432` | PostgreSQL port |
-| `DB_NAME` | `cleanscendence` | Database name |
-| `DB_USER` | `cleanscendence` | Database user |
-| `DB_PASSWORD` | `cleanscendence` | Database password |
-| `CORS_ORIGINS` | `http://localhost:5173,http://localhost:8080` | Comma-separated allowed origins |
+| `DB_NAME` | `alpacaparty` | Database name |
+| `DB_USER` | `alpacaparty` | Database user |
+| `DB_PASSWORD` | `alpacaparty` | Database password |
+| `CORS_ORIGINS` | `http://localhost:5173,http://localhost:8443` | Comma-separated allowed origins |
 
 ---
 
@@ -146,7 +146,7 @@ Copy `.env.example` from the project root and fill in the values.
 ```bash
 # From project root
 make build && make up
-# Backend available at http://localhost:8080/api
+# Backend available at http://localhost:8443/api
 ```
 
 **Without Docker**
@@ -184,7 +184,7 @@ graph TB
         VUE["Vue 3 + Vite SPA\n(port 5173)"]
     end
 
-    subgraph Proxy["🔀 nginx (port 8080)"]
+    subgraph Proxy["🔀 nginx (port 8443)"]
         NGINX["Reverse Proxy\n/api → backend\n/ → frontend"]
     end
 
@@ -274,7 +274,7 @@ graph TB
 Browser / Client
       │
       ▼
-  nginx :8080
+  nginx :8443
       │  /api/*
       ▼
   index.js
@@ -323,4 +323,3 @@ See [`PostgreSQL/init.sql`](../PostgreSQL/init.sql) for full schema.
 - [ ] `/api/friends` route module
 - [ ] `/api/chat` route module (Socket.io events)
 - [ ] `/api/game` route module (match-making)
-- [ ] 2FA (TOTP, `two_factor_secret` column already in DB)

@@ -1,41 +1,27 @@
 # Backend Dockerfile (Production)
 # @owner ValGSgit
-# @issue https://github.com/ValGSgit/Cleanscendence/issues/3
+# @issue https://github.com/ValGSgit/AlpacaParty/issues/3
 
-# ── Stage 1: Build dependencies ──────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:24-alpine3.22
 
-# Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++
-
-WORKDIR /app
-
-# Copy package files and install ALL dependencies (including dev)
-COPY package*.json ./
-RUN npm ci
-
-# Copy application source
-COPY . .
-
-# ── Stage 2: Production runtime ──────────────────────────────
-FROM node:20-alpine
-
-# Install runtime dependencies for native modules
-RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+  adduser -S nodejs -u 1001
 
-# Copy package files and install production dependencies only
-COPY package*.json ./
-RUN npm ci --only=production && \
-    npm cache clean --force
+# Copy package files from backend for install
+COPY . .
 
-# Copy application from builder
-COPY --from=builder --chown=nodejs:nodejs /app/src ./src
+# Install dependencies (clean build)
+RUN npm install --no-audit --no-fund --loglevel=error
+
+RUN npx prisma generate && npm prune --omit=dev
+
+# Create uploads and ssl directories with correct ownership
+RUN mkdir -p /app/uploads /app/ssl && \
+  chown -R nodejs:nodejs /app/uploads /app/ssl
 
 # Switch to non-root user
 USER nodejs
@@ -43,8 +29,6 @@ USER nodejs
 # Expose backend port
 EXPOSE 3000
 
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
-
-# Run in production mode
-CMD ["node", "src/index.js"]
+# Start the server. Schema is managed by database/init.sql on first init,
+# and by running `docker exec alpacaparty_backend_prod npx prisma db push` for incremental changes.
+CMD ["node", "src/server.js"]

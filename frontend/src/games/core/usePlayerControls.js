@@ -1,86 +1,85 @@
 import { CONST } from '../config/constants.js'
 import { useInput } from './useInput.js'
-import { usePhysics } from './usePhysics.js'
-import { gPlayer } from './globals.js'
+import { checkWithinBounds, usePhysics } from './usePhysics.js'
+import { alpacaAI } from '../components/alpacaAI.js';
 
 export function usePlayerControls() {
   const { keys } = useInput()
-  const { checkCollision, checkWithinBounds } = usePhysics()
+  const { checkCollision } = usePhysics()
 
-  let currentAction = null
-  let isJumping = false
-  let isFalling = false
+  const handleJumping = (player) => {
+    const { model } = player;
+    let isVerticalMoving = false;
 
-  const handleMovement = (player) => {
-    let speed = CONST.PLAYER_FORWARD_SPEED + gPlayer.value.speedOffset
-    const rotation = CONST.PLAYER_ROTATION + gPlayer.value.rotationOffset
-    let dir = 0, dx = 0, dz = 0
-    let isMoving = false
-    let nextRotY = player.rotation.y
-
-    if (keys.w) { dir = 1; isMoving = true }
-    if (keys.s) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isMoving = true }
-    if (keys.a) { nextRotY += rotation; isMoving = true }
-    if (keys.d) { nextRotY -= rotation; isMoving = true }
-    if (keys.space && player.position.y <= CONST.JUMPING_MAX_HEIGHT && !isFalling) { player.position.y += CONST.JUMPING_SPEED; isMoving = true; isJumping = true }
-    if (player.position.y > 0 && (!keys.space || isFalling)) { player.position.y -= CONST.JUMPING_SPEED; isJumping = true }
-    if (player.position.y < 0) player.position.y = 0 // reset y if it goes below the ground
-    if (player.position.y === 0) { isJumping = false; if (!keys.space) isFalling = false }
-    if (player.position.y >= CONST.JUMPING_MAX_HEIGHT) isFalling = true
-
-    if (isMoving) {
-      dx = Math.sin(nextRotY) * speed * dir
-      dz = Math.cos(nextRotY) * speed * dir
-
-      let nextX = player.position.x + dx
-      let nextZ = player.position.z + dz
-
-      if (checkWithinBounds(nextX, nextZ)) {
-        checkCollision(player, nextX, nextZ, nextRotY)
-      }
+    // Jump up
+    if (keys.space && model.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) {
+      model.position.y += CONST.JUMPING_SPEED;
+      player.isJumping = true;
+      isVerticalMoving = true;
     }
-    return { isMoving, speed }
+    // Fall down
+    if (model.position.y > 0 && (!keys.space || player.isFalling)) {
+      model.position.y -= CONST.JUMPING_SPEED;
+      player.isJumping = true;
+    }
+    // Hit the ground
+    if (model.position.y <= 0) {
+      model.position.y = 0;
+      player.isJumping = false;
+      if (!keys.space) player.isFalling = false;
+    }
+    // Hit the ceiling/max height of jump
+    if (model.position.y >= CONST.JUMPING_MAX_HEIGHT) {
+      player.isFalling = true;
+    }
+
+    return isVerticalMoving;
   }
 
-  const handleAnimation = (mixer, animations, isMoving, speed) => {
-    const idleAction = mixer.clipAction(animations[1])
-    const walkAction = mixer.clipAction(animations[5])
-    const jumpAction = mixer.clipAction(animations[2])
+  const handleWalking = (player) => {
+    const { model } = player;
 
-    let newAction
+    const rotSpeed = player.rotationSpeed;
+    let speed = player.speed;
+    let dir = 0;
+    let nextRotY = model.rotation.y;
+    let isWalking = false;
 
-    if (!currentAction) {
-      currentAction = idleAction
-      currentAction.play()
-    }
+    if (keys.w) { dir = 1; isWalking = true; }
+    if (keys.s) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isWalking = true; }
+    if (keys.a) { nextRotY += rotSpeed; isWalking = true; }
+    if (keys.d) { nextRotY -= rotSpeed; isWalking = true; }
 
-    if (isMoving) {
-      const animDir = keys.w ? 1 : -1
-      if (isJumping)
-        newAction = jumpAction
-      else
-        newAction = walkAction
-      walkAction.timeScale = (speed * CONST.CALIBRATION) * animDir
-    } else {
-      newAction = idleAction
-    }
+    return { dir, speed, nextRotY, isWalking };
+  }
 
-    if (currentAction !== newAction) {
-      currentAction.fadeOut(0.4)
-      newAction.reset()
-      if (newAction === jumpAction) {
-        newAction.time = 0.15;
-      }
-      newAction.fadeIn(0.4).play()
-      currentAction = newAction
+  const checkMovement = (model, dir, speed, nextRotY) => {
+    const dx = Math.sin(nextRotY) * speed * dir;
+    const dz = Math.cos(nextRotY) * speed * dir;
+
+    const nextX = model.position.x + dx;
+    const nextZ = model.position.z + dz;
+
+    if (checkWithinBounds(nextX, nextZ)) {
+      checkCollision(model, nextX, nextZ, nextRotY);
     }
   }
 
-  const updatePlayer = (player, mixer, animations) => {
-    if (!player) return
+  const updatePlayer = (player, delta) => {
+    if (!player || !player.model || player.isDead) return;
 
-    const { isMoving, speed } = handleMovement(player)
-    handleAnimation(mixer, animations, isMoving, speed)
+    const { model } = player;
+    const isJumping = handleJumping(player);
+    const { dir, speed, nextRotY, isWalking } = handleWalking(player);
+    const { handleMoving } = alpacaAI(); // for double click moving
+
+    if (isWalking) {
+      checkMovement(model, dir, speed, nextRotY);
+    }
+    else if (player.isAutoMoving)
+      handleMoving(player, delta)
+    player.isMoving = isWalking || isJumping || player.isAutoMoving;
+    player.animDir = keys.s ? -1 : (player.isMoving ? 1 : 0);
   }
 
   return { updatePlayer }

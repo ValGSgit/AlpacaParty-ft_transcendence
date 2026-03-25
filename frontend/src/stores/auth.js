@@ -1,7 +1,7 @@
 /**
  * Auth Store — Pinia store for authentication state
  * @owner fankahou, LukasStefanek
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/8
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
@@ -96,6 +96,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Handle tokens received after a successful OAuth redirect.
+   * Called by OAuthCallback.vue after the backend redirects back.
+   */
+  async function handleOAuthTokens({ accessToken, refreshToken }) {
+    localStorage.setItem('accessToken', accessToken)
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
+    const { data } = await api.get('/auth/me')
+    user.value = data.user
+  }
+
+  /**
    * Update the current user's profile.
    */
   async function updateProfile(fields) {
@@ -126,6 +137,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     fetchUser,
+    handleOAuthTokens,
     updateProfile,
   }
 })

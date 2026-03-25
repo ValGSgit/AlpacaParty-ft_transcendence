@@ -1,8 +1,8 @@
-import * as THREE from 'three'
-import { shallowRef } from 'vue'
+import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { gScene, gAlpacas, gItems, gUser } from './globals.js'
-import { CONST } from '../config/constants.js'
+import { shallowRef } from 'vue';
+import { CONST } from '../config/constants.js';
+import { gAlpacas, gCollectables, gCollidables, gEditables, gEditState, gItems, gScene, gUser } from './globals.js';
 
 export function useGameEngine(containerRef) {
   // Use shallowRef for Three.js objects (prevents Vue from making them reactive and slow)
@@ -16,27 +16,26 @@ export function useGameEngine(containerRef) {
   const init = () => {
     if (!containerRef.value) return null
     // memory cleanup
-    if (gScene.value) {clearScene(gScene.value)}
-    gAlpacas.value = []
-    gItems.value = []
+    if (gScene.value) { clearScene(gScene.value) }
+
+    resetGArrays()
+
     gUser.value = null
 
     scene.value = new THREE.Scene()
     gScene.value = scene.value
     gScene.value.floor = null
+
     // lights
     gScene.value.ambientLight = null
     gScene.value.sunLight = null
+
     // for selection
-    gScene.value.selected = null
-    gScene.value.selectedGhost = null
-    // flags for UI
-    gScene.value.pause = false
-    gScene.value.edit = false
-    gScene.value.itemMenu = false
-    gScene.value.alpacaMenu = false
-    gScene.value.newAlpaca = false
-    gScene.value.lightMenu = false
+    gEditState.selected = null
+    gEditState.ghost = null
+
+    // camera mode
+    gScene.value.cameraMode = 0
 
     // CAMERA
     const w = containerRef.value.clientWidth
@@ -61,8 +60,6 @@ export function useGameEngine(containerRef) {
     //to limit the camera movement to hemisphere instead of full sphere
     controls.value.maxPolarAngle = Math.PI / 2 - 0.1
 
-    animate()
-
     return {
       scene: scene.value,
       camera: camera.value,
@@ -71,48 +68,40 @@ export function useGameEngine(containerRef) {
     }
   }
 
-  const animate = () => {
-    if (!renderer.value || !scene.value || !camera.value) return
-    animationId = requestAnimationFrame(animate)
-    if (controls.value) controls.value.update()
-    renderer.value.render(scene.value, camera.value)
-  }
-
   const clearScene = (scene) => {
-  if (!scene) return;
+    if (!scene) return;
 
-  scene.traverse((object) => {
-    if (object.geometry) object.geometry.dispose();
-    if (object.material) {
-      if (Array.isArray(object.material)) {
-        object.material.forEach(cleanupMaterial);
-      } else {
-        cleanupMaterial(object.material);
+    scene.traverse((object) => {
+      if (object.geometry) object.geometry.dispose();
+      if (object.material) {
+        if (Array.isArray(object.material)) {
+          object.material.forEach(cleanupMaterial);
+        } else {
+          cleanupMaterial(object.material);
+        }
+      }
+    });
+    while (scene.children.length > 0) {
+      const child = scene.children[0];
+      scene.remove(child);
+    }
+  };
+  const cleanupMaterial = (material) => {
+    for (const key in material) {
+      const value = material[key];
+      if (value && value.isTexture) {
+        value.dispose();
       }
     }
-  });
-  while (scene.children.length > 0) {
-    const child = scene.children[0];
-    scene.remove(child);
-  }
-};
-const cleanupMaterial = (material) => {
-  for (const key in material) {
-    const value = material[key];
-    if (value && value.isTexture) {
-      value.dispose();
-    }
-  }
-  material.dispose();
-};
-//
+    material.dispose();
+  };
+
   const cleanup = () => {
     clearScene(scene.value)
-    scene.value.sunLight.dispose() // the two leaks
-    scene.value.background.dispose()
+    if (scene.value.sunLight) scene.value.sunLight.dispose() // the two leaks
+    if (scene.value.background) scene.value.background.dispose()
     if (animationId) cancelAnimationFrame(animationId)
-    gAlpacas.value = [];
-    gItems.value = [];
+    resetGArrays()
     // check for leaks
     if (renderer.value) {
       renderer.value.dispose()
@@ -131,5 +120,13 @@ const cleanupMaterial = (material) => {
     renderer.value.setSize(w, h)
   }
 
-  return { init, cleanup, onResize }
+  const resetGArrays = () => {
+    gAlpacas.length = 0;
+    gCollectables.length = 0;
+    gCollidables.length = 0;
+    gItems.length = 0;
+    gEditables.length = 0;
+  }
+
+  return { init, cleanup, onResize, clearScene, resetGArrays }
 }

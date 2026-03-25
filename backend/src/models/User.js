@@ -1,145 +1,221 @@
 /**
- * User Model — Database access layer for users table
+ * User Model — Prisma data access layer
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/9
  */
-import { query } from '../config/database.js';
+import prisma from '../config/prisma.js';
+
+// Fields returned for normal (safe) user queries — no password hash
+const SAFE_SELECT = {
+  id: true,
+  username: true,
+  email: true,
+  avatar: true,
+  bio: true,
+  alpacas: true,
+  items: true,
+  coins: true,
+  upgrades: true,
+  status: true,
+  isPublic: true,
+  isOnline: true,
+  isAdmin: true,
+  oauthProvider: true,
+  xp: true,
+  level: true,
+  lastSeen: true,
+  createdAt: true,
+  updatedAt: true,
+};
+
+/**
+ * Map Prisma camelCase user fields to snake_case for the frontend.
+ * Omits passwordHash.
+ */
+export function shapeUserForClient(u) {
+  if (!u) return u;
+  return {
+    id: u.id,
+    username: u.username,
+    email: u.email,
+    avatar: u.avatar,
+    bio: u.bio,
+    alpacas: u.alpacas,
+    items: u.items,
+    coins: u.coins,
+    upgrades: u.upgrades,
+    status: u.status,
+    isAdmin: !!u.isAdmin,
+    is_public: u.isPublic,
+    is_admin: !!u.isAdmin,
+    is_online: u.isOnline,
+    oauth_provider: u.oauthProvider,
+    xp: u.xp,
+    level: u.level,
+    last_seen: u.lastSeen,
+    created_at: u.createdAt,
+    updated_at: u.updatedAt,
+  };
+}
 
 const User = {
-  /**
-   * Create a new user.
-   * @param {{ username: string, email: string, passwordHash: string }} data
-   * @returns {Promise<object>} The created user (without password_hash).
-   */
   async create({ username, email, passwordHash }) {
-    const { rows } = await query(
-      `INSERT INTO users (username, email, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id, username, email, avatar, bio, status, is_online, is_admin, created_at`,
-      [username, email, passwordHash],
-    );
-    return rows[0];
+    return prisma.user.create({
+      data: { username, email, passwordHash },
+      select: SAFE_SELECT,
+    });
   },
 
-  /**
-   * Find a user by ID (public-safe fields).
-   */
+  async findOrCreateOAuth({ provider, oauthId, username, email, avatar }) {
+    const existing = await prisma.user.findUnique({
+      where: { idx_users_oauth: { oauthProvider: provider, oauthId } },
+      select: SAFE_SELECT,
+    });
+    if (existing) return { user: existing, created: false };
+
+    // Upsert: if email already exists (local account), link OAuth
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: { oauthProvider: provider, oauthId },
+      create: {
+        username,
+        email,
+        oauthProvider: provider,
+        oauthId,
+        avatar: avatar || '/avatars/default.svg',
+        passwordHash: '',
+      },
+      select: SAFE_SELECT,
+    });
+    return { user, created: true };
+  },
+
   async findById(id) {
-    const { rows } = await query(
-      `SELECT id, username, email, avatar, bio, status, is_online, is_admin, last_seen, created_at, coins, upgrades, items, alpacas
-       FROM users WHERE id = $1`,
-      [id],
-    );
-    return rows[0] || null;
+    return prisma.user.findUnique({ where: { id: Number(id) }, select: SAFE_SELECT });
   },
 
-  /**
-   * Find a user by ID — includes password_hash for auth checks.
-   */
   async findByIdWithPassword(id) {
-    const { rows } = await query(
-      `SELECT * FROM users WHERE id = $1`,
-      [id],
-    );
-    return rows[0] || null;
+    return prisma.user.findUnique({ where: { id: Number(id) } });
   },
 
-  /**
-   * Find a user by username.
-   */
   async findByUsername(username) {
-    const { rows } = await query(
-      `SELECT * FROM users WHERE username = $1`,
-      [username],
-    );
-    return rows[0] || null;
+    return prisma.user.findUnique({ where: { username } });
   },
 
-  /**
-   * Find a user by email.
-   */
   async findByEmail(email) {
-    const { rows } = await query(
-      `SELECT * FROM users WHERE email = $1`,
-      [email],
-    );
-    return rows[0] || null;
+    return prisma.user.findUnique({ where: { email } });
   },
 
-  /**
-   * Update a user's profile fields.
-   * @param {number} id
-   * @param {{ username?: string, email?: string, avatar?: string, bio?: string, status?: string }} fields
-   */
   async update(id, fields) {
-    const allowed = ['username', 'email', 'avatar', 'bio', 'status', 'coins', 'upgrades', 'items', 'alpacas'];
-    const sets = [];
-    const values = [];
-    let idx = 1;
-
+    const allowed = ['username', 'email', 'avatar', 'bio', 'status', 'coins', 'isPublic', 'alpacas', 'items', 'upgrades'];
+    const data = {};
     for (const key of allowed) {
-      if (fields[key] !== undefined) {
-        sets.push(`${key} = $${idx}`);
-        values.push(fields[key]);
-        idx++;
-      }
+      if (fields[key] !== undefined) data[key] = fields[key];
     }
-
-    if (sets.length === 0) return this.findById(id);
-
-    sets.push(`updated_at = NOW()`);
-    values.push(id);
-
-    const { rows } = await query(
-      `UPDATE users SET ${sets.join(', ')} WHERE id = $${idx}
-       RETURNING id, username, email, avatar, bio, status, is_online, is_admin, created_at, updated_at`,
-      values,
-    );
-    return rows[0] || null;
+    if (Object.keys(data).length === 0) return this.findById(id);
+    return prisma.user.update({ where: { id: Number(id) }, data, select: SAFE_SELECT });
   },
 
-  /**
-   * Update password hash.
-   */
   async updatePassword(id, passwordHash) {
-    await query(
-      `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
-      [passwordHash, id],
-    );
+    await prisma.user.update({ where: { id: Number(id) }, data: { passwordHash } });
   },
 
-  /**
-   * Set online/offline status.
-   */
   async setOnline(id, isOnline) {
-    await query(
-      `UPDATE users SET is_online = $1, last_seen = NOW() WHERE id = $2`,
-      [isOnline, id],
-    );
+    await prisma.user.update({
+      where: { id: Number(id) },
+      data: { isOnline, lastSeen: new Date() },
+    });
   },
 
-  /**
-   * List all users (paginated, public fields only).
-   */
+  async addXp(id, amount) {
+    const updated = await prisma.user.update({
+      where: { id: Number(id) },
+      data: { xp: { increment: amount } },
+      select: { id: true, xp: true, level: true },
+    });
+    const newLevel = Math.max(1, Math.floor(updated.xp / 100) + 1);
+    if (newLevel !== updated.level) {
+      return prisma.user.update({
+        where: { id: Number(id) },
+        data: { level: newLevel },
+        select: SAFE_SELECT,
+      });
+    }
+    return this.findById(id);
+  },
+
   async findAll({ limit = 50, offset = 0 } = {}) {
-    const { rows } = await query(
-      `SELECT id, username, avatar, bio, status, is_online, last_seen, created_at
-       FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-      [limit, offset],
-    );
-    return rows;
+    return prisma.user.findMany({
+      select: {
+        id: true, username: true, avatar: true, bio: true,
+        status: true, isPublic: true, isOnline: true, xp: true,
+        level: true, lastSeen: true, createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: Number(limit),
+      skip: Number(offset),
+    });
   },
 
-  /**
-   * Search users by username prefix.
-   */
-  async search(term, { limit = 20 } = {}) {
-    const { rows } = await query(
-      `SELECT id, username, avatar, is_online
-       FROM users WHERE username ILIKE $1 LIMIT $2`,
-      [`${term}%`, limit],
-    );
-    return rows;
+  async count() {
+    return prisma.user.count();
+  },
+
+  async search(term, { limit = 20, offset = 0 } = {}) {
+    return prisma.user.findMany({
+      where: {
+        OR: [
+          { username: { startsWith: term, mode: 'insensitive' } },
+          { bio: { contains: term, mode: 'insensitive' } },
+        ],
+      },
+      select: { id: true, username: true, avatar: true, isOnline: true, xp: true, level: true, isPublic: true },
+      take: Number(limit),
+      skip: Number(offset),
+    });
+  },
+
+  async deleteById(id) {
+    try {
+      await prisma.user.delete({ where: { id: Number(id) } });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  async getFullExport(id) {
+    const [user, friends, messages, games, posts] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: Number(id) },
+        select: { id: true, username: true, email: true, bio: true, status: true, xp: true, level: true, createdAt: true },
+      }),
+      prisma.friend.findMany({
+        where: { userId: Number(id) },
+        include: { friend: { select: { id: true, username: true } } },
+      }),
+      prisma.message.findMany({
+        where: { senderId: Number(id) },
+        select: { id: true, receiverId: true, content: true, createdAt: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.game.findMany({
+        where: { OR: [{ player1Id: Number(id) }, { player2Id: Number(id) }] },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.post.findMany({
+        where: { authorId: Number(id) },
+        select: { id: true, content: true, imageUrl: true, createdAt: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    return {
+      user,
+      friends: friends.map((f) => ({ friendId: f.friend.id, username: f.friend.username })),
+      messages,
+      games,
+      posts,
+    };
   },
 };
 

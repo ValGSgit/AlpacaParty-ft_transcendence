@@ -1,0 +1,56 @@
+# Backend (Express) — Production
+#
+# Secrets (DB_PASSWORD, JWT_SECRET, OAuth creds, API keys) are NOT passed here.
+# They are fetched from Vault by server.js at startup via loadVaultSecrets().
+# Only non-sensitive infrastructure config and the Vault bootstrap token are set.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: alpacaparty_backend_prod
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+
+      # ── Infrastructure (non-secret) ───────────────────────────
+      DB_HOST: postgres
+      DB_PORT: 5432
+
+      # ── App config (non-secret) ───────────────────────────────
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://localhost:8443}
+      FRONTEND_URL: ${FRONTEND_URL:-https://localhost:8443}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://localhost:8443/api/auth/google/callback}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-https://localhost:8443/api/auth/github/callback}
+      SSL_CERT_PATH: /app/ssl/cert.pem
+      SSL_KEY_PATH: /app/ssl/key.pem
+
+      # ── Vault bootstrap ────────────────────────────────────────
+      VAULT_ADDR: https://vault:8200
+      # Trust the shared self-signed cert for HTTPS connections to Vault
+      NODE_EXTRA_CA_CERTS: /app/ssl/cert.pem
+      # VAULT_TOKEN is read automatically from /run/vault-keys/keys.env by vault.js.
+      # No manual token management required.
+    volumes:
+      - ssl:/app/ssl
+      - ssl:/ssl
+      - backend_uploads:/app/uploads
+      # Read-only access to the keys written by vault-init (VAULT_TOKEN)
+      - vault_keys:/run/vault-keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # Wait for vault-init to complete: ensures vault is initialized, unsealed,
+      # and all secrets are seeded before backend attempts to connect.
+      vault-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-check-certificate --quiet --tries=1 --spider https://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: always
+    networks:
+      - alpacaparty_net

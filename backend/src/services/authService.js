@@ -1,7 +1,7 @@
 /**
  * Auth Service — JWT generation, password hashing
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/Cleanscendence/issues/8
+ * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
@@ -28,8 +28,9 @@ const AuthService = {
    * Generate an access token (short-lived).
    */
   generateAccessToken(user) {
+    const isAdmin = config.modUsers.includes(user.username);
     return jwt.sign(
-      { id: user.id, username: user.username, is_admin: user.is_admin },
+      { id: user.id, username: user.username, isAdmin },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn },
     );
