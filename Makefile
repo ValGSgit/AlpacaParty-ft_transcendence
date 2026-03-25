@@ -137,13 +137,6 @@ generate-secrets:
 	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
 
 # ── SSL CERTIFICATES ────────────────────────────────────────
-# Generates a self-signed cert with SANs directly via the host openssl binary.
-# Works on Linux, macOS, Git Bash (Windows), and CI.
-# SANs are required — CN-only certs are rejected by Node.js / Go TLS.
-# Removes any Docker-created placeholder directories before generating.
-prod-ssl-certs:
-	@bash scripts/ssl-certs.sh
-	
 # Generates a self-signed certificate for local HTTPS development.
 # Includes SANs so the cert is valid for inter-service TLS (vault, backend, nginx).
 ssl-certs:
@@ -154,7 +147,7 @@ ssl-certs:
 	    -out ssl/cert.pem \
 	    -days 365 \
 	    -subj '/CN=localhost' \
-	    -addext 'subjectAltName=DNS:localhost,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1' \
+	    -addext 'subjectAltName=DNS:localhost,DNS:frontend,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1' \
 	    2>/dev/null && \
 	  echo "$(GREEN)✓ Self-signed certificate generated in ssl/$(RESET)"; \
 	else \
