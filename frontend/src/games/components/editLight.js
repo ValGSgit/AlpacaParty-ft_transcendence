@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CONST } from '../config/constants.js';
-import { gScene } from '../core/globals.js';
+import { gScene, gUI } from '../core/globals.js';
 import { useUIManager } from '../core/useUIManager.js';
 
 const newAmbient = new THREE.Color('#ffffff');
@@ -50,11 +50,18 @@ export function editLight() {
         setLighting('#ffd67e', 0.8, '#ffb764', 1.2, '#ffa6cb', '#ffa600');
         break;
       case 'night':
-        setLighting('#333355', 0.8, '#5555aa', 1.0, '#1f316b', '#030614');
+        setLighting('#333355', 0.6, '#5556aa', 0.8, '#1f316b', '#030614');
         break;
       default:
         changeTimeOfDay('day');
         break;
+    }
+  };
+
+  const toggleLightCycle = () => {
+    gUI.isLightCycling = !gUI.isLightCycling;
+    if (gUI.isLightCycling) {
+      waitTimer = 0;
     }
   };
 
@@ -85,7 +92,7 @@ export function editLight() {
   const updateColors = (scene, delta) => {
     const ambient = scene.ambientLight;
     const sun = scene.sunLight;
-    const lerpSpeed = transitionFaster ? delta * 3 : delta * 0.1;
+    const lerpSpeed = transitionFaster ? delta * 3 : delta * 0.5;
 
     if (ambient) {
       ambient.color.lerp(newAmbient, lerpSpeed);
@@ -117,11 +124,13 @@ export function editLight() {
       if (transitionFaster) {
         transitionFaster = false;
       }
-      waitTimer += delta;
+      if (gUI.isLightCycling) {
+        waitTimer += delta;
 
-      if (waitTimer >= (CONST.SECONDS_PER_DAYPHASE / getSunState())) {
-        currentCycleIndex = (currentCycleIndex + 1) % dayCycle.length;
-        changeTimeOfDay(dayCycle[currentCycleIndex]);
+        if (waitTimer >= (CONST.SECONDS_PER_DAYPHASE / getSunState())) {
+          currentCycleIndex = (currentCycleIndex + 1) % dayCycle.length;
+          changeTimeOfDay(dayCycle[currentCycleIndex]);
+        }
       }
     } else {
       waitTimer = 0;
@@ -147,5 +156,5 @@ export function editLight() {
     cycleLighting(delta)
   };
 
-  return { setTimeOfDay, updateLighting };
+  return { setTimeOfDay, updateLighting, toggleLightCycle };
 }

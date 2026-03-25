@@ -138,6 +138,17 @@
 
 <div v-if="gUI.lightMenu" class="modal-overlay">
         <div class="shop-title">Edit Light
+          <div class="toggle-row">
+            <span>Day/Night Cycle</span>
+            <label class="switch" title="Toggle Auto Cycle">
+              <input 
+                type="checkbox" 
+                :checked="gUI.isLightCycling" 
+                @change="toggleLightCycle()"
+              >
+              <span class="slider"></span>
+            </label>
+          </div>
           <button class="shop-btn" @click="setTimeOfDay('sunrise')">🌅 Sunrise</button>
           <button class="shop-btn" @click="setTimeOfDay('day')">☀️ Day</button>
           <button class="shop-btn" @click="setTimeOfDay('sunset')">🌄 Sunset</button>
@@ -182,7 +193,7 @@ const clock = new THREE.Clock()
 
 const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
 const { initInput, cleanupInput} = useInput()
-const { setTimeOfDay, updateLighting} = editLight()
+const { setTimeOfDay, updateLighting, toggleLightCycle} = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
