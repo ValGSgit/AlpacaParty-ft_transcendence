@@ -105,6 +105,12 @@ export class Alpaca {
     handleAnimation(this, this.animDir, this.speed);
   }
 
+  checkAge(delta) {
+    this.aliveTime += delta;
+    const yearsPassed = Math.floor(this.aliveTime / CONST.SECONDS_PER_INGAME_YEAR);
+    this.age = this.baseAge + yearsPassed;
+  }
+
   spit() {
     makeSpit(this)
   }

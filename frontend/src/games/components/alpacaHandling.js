@@ -5,7 +5,7 @@ import { useUIManager } from '../core/useUIManager.js';
 
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const worldPoint = new THREE.Vector3();
-const { closeMenus, openAlpacaStats } = useUIManager();
+const { openAlpacaStats } = useUIManager();
 const activeSpits = []; // Keep track of projectiles in flight
 
 export function alpacaHandling() {
@@ -22,10 +22,7 @@ export function alpacaHandling() {
       setMoveLocation(raycaster)
     }
     else if (gPlayer.value === alpacaToSwitch) // open menu for clicking self
-    {
-      closeMenus();
       openAlpacaStats();
-    }
     else
       gPlayer.value = alpacaToSwitch
     return true
@@ -70,6 +67,11 @@ export function alpacaHandling() {
       s.mesh.position.copy(s.currentPos);
       s.distanceTraveled += s.speed;
 
+      // 2. Raycast from current position to check for hits in this "frame"
+      const raycaster = new THREE.Raycaster(s.currentPos, s.direction, 0, s.speed);
+      const targets = gAlpacas.map(a => a.model);
+      const hits = raycaster.intersectObjects(targets, true);
+
       if (hits.length > 0 || s.distanceTraveled > s.maxDistance) {
         // Logic for hitting an alpaca
         if (hits.length > 0) {
@@ -77,44 +79,35 @@ export function alpacaHandling() {
           hitAlpaca.beingHit(s.owner)
         }
 
-        if (hits.length > 0 || s.distanceTraveled > s.maxDistance) {
-          // Logic for hitting an alpaca
-          if (hits.length > 0) {
-            const hitAlpaca = findAlpaca(hits[0].object);
-            hitAlpaca.beingHit()
-          }
-
-          // Cleanup
-          gScene.value.remove(s.mesh);
-          s.mesh.geometry.dispose();
-          activeSpits.splice(i, 1);
-        }
+        // Cleanup
+        gScene.value.remove(s.mesh);
+        s.mesh.geometry.dispose();
+        activeSpits.splice(i, 1);
       }
-    };
-
-    return { switchAlpaca, makeSpit, updateSpits }
-  }
-
-  const createLaserBeam = (origin, direction, length) => {
-    const geo = new THREE.CylinderGeometry(0.05, 0.05, length, 8);
-    geo.translate(0, length / 2, 0);
-    const laser = new THREE.Mesh(geo, MATS.spit);
-    laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
-    laser.position.copy(origin);
-
-    return laser;
+    }
   };
 
-  const findAlpaca = (alpaca) => {
-    while (alpaca) {
-      for (let i = 0; i < gAlpacas.length; ++i) {
-        if (alpaca.id === gAlpacas[i].model.id) {
-          return gAlpacas[i]
-        }
-      }
-      alpaca = alpaca.parent
-    }
-    return null
-  }
+  return { switchAlpaca, makeSpit, updateSpits }
 }
 
+const createLaserBeam = (origin, direction, length) => {
+  const geo = new THREE.CylinderGeometry(0.05, 0.05, length, 8);
+  geo.translate(0, length / 2, 0);
+  const laser = new THREE.Mesh(geo, MATS.spit);
+  laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+  laser.position.copy(origin);
+
+  return laser;
+};
+
+const findAlpaca = (alpaca) => {
+  while (alpaca) {
+    for (let i = 0; i < gAlpacas.length; ++i) {
+      if (alpaca.id === gAlpacas[i].model.id) {
+        return gAlpacas[i]
+      }
+    }
+    alpaca = alpaca.parent
+  }
+  return null
+}
