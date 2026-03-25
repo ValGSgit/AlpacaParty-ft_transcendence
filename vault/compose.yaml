@@ -13,6 +13,7 @@ services:
       - "8200:8200"
     volumes:
       - ./init:/vault/init:ro
+      - ssl:/vault/ssl:ro
     command: >-
       sh -c '
         vault server -dev &

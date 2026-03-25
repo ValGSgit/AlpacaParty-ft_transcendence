@@ -21,10 +21,6 @@ include:
 # Extend the vault service (defined in vault/compose.prod.yaml) with the TLS cert
 # mount. Path here is relative to THIS file (repo root), so ./nginx/ssl is unambiguous
 # regardless of Docker Compose version's include path resolution behaviour.
-services:
-  vault:
-    volumes:
-      - ./nginx/ssl:/vault/ssl:ro
 
 volumes:
   pg_data:
@@ -35,6 +31,12 @@ volumes:
     driver: local
   backend_uploads:
     driver: local
+  ssl:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./ssl
 
 networks:
   alpacaparty_net:

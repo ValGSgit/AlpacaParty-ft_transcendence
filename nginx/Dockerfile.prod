@@ -13,17 +13,15 @@ RUN mkdir -p /etc/nginx/conf
 # ── CRS configuration ──────────────────────────────────────────────────
 # The base image reads these env vars at startup to configure CRS.
 ENV MODSEC_RULE_ENGINE=On \
-  MODSEC_REQ_BODY_ACCESS=On \
-  MODSEC_RESP_BODY_ACCESS=Off \
-  MODSEC_REQ_BODY_LIMIT=10485760 \
-  MODSEC_AUDIT_LOG=/proc/self/fd/2 \
-  ANOMALY_INBOUND=10 \
-  ANOMALY_OUTBOUND=4 \
-  PORT=8443 \
-  SSL_PORT=8443
-
-# copy nginx config
-COPY conf/nginx.conf /etc/nginx/templates/conf.d/default.conf.template
+    MODSEC_REQ_BODY_ACCESS=On \
+    MODSEC_RESP_BODY_ACCESS=Off \
+    MODSEC_REQ_BODY_LIMIT=10485760 \
+    MODSEC_AUDIT_LOG=/proc/self/fd/2 \
+    ANOMALY_INBOUND=10 \
+    ANOMALY_OUTBOUND=4 \
+    PORT=8443 \
+    SSL_PORT=8443
 
 # Copy our tuning override (applied after CRS rules)
 COPY conf/modsecurity.conf /etc/modsecurity.d/99-alpacaparty.conf
+COPY conf/nginx.prod.conf /etc/nginx/templates/conf.d/default.conf.template
