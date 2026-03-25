@@ -146,6 +146,12 @@ jobs:
           cp nginx/ssl/cert.pem backend/ssl/cert.pem
           cp nginx/ssl/key.pem  backend/ssl/key.pem
 
+      # -- Install deps so bind-mount volumes exist ----------------
+      - name: Install backend and frontend dependencies
+        run: |
+          cd backend && npm install --ignore-scripts && cd ..
+          cd frontend && npm install && cd ..
+
       # -- Start the full stack -------------------------------------
       - name: Start application stack
         run: |
