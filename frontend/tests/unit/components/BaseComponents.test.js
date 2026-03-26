@@ -5,6 +5,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import BaseButton from '../../../src/components/BaseButton.vue'
 import BaseInput from '../../../src/components/BaseInput.vue'
+import BaseModal from '../../../src/components/BaseModal.vue'
 import NotifBadge from '../../../src/components/NotifBadge.vue'
 import ErrorBanner from '../../../src/components/ErrorBanner.vue'
 import EmptyState from '../../../src/components/EmptyState.vue'
@@ -39,6 +40,18 @@ describe('BaseButton', () => {
     // Just verify it renders correctly
     expect(w.find('button').exists()).toBe(true)
   })
+
+  it('shows loading indicator when loading prop is true', () => {
+    const w = mount(BaseButton, { props: { loading: true }, slots: { default: 'Submit' } })
+    expect(w.find('button').attributes('disabled')).toBeDefined()
+    // The button should still be rendered
+    expect(w.find('button').exists()).toBe(true)
+  })
+
+  it('is not disabled when neither disabled nor loading', () => {
+    const w = mount(BaseButton, { props: { disabled: false, loading: false }, slots: { default: 'Go' } })
+    expect(w.find('button').attributes('disabled')).toBeUndefined()
+  })
 })
 
 // ── BaseInput ───────────────────────────────────────────────────
@@ -63,6 +76,64 @@ describe('BaseInput', () => {
     const w = mount(BaseInput, { props: { type: 'textarea', modelValue: '' } })
     expect(w.find('textarea').exists()).toBe(true)
     expect(w.find('input').exists()).toBe(false)
+  })
+
+  it('does not show error when error prop is not set', () => {
+    const w = mount(BaseInput, { props: { modelValue: '' } })
+    expect(w.find('.input-error').exists()).toBe(false)
+  })
+
+  it('applies error class when error prop is provided', () => {
+    const w = mount(BaseInput, { props: { modelValue: '', error: 'Invalid' } })
+    expect(w.find('.input-error').exists()).toBe(true)
+    expect(w.find('.input-error').text()).toBe('Invalid')
+  })
+})
+
+// ── BaseModal ───────────────────────────────────────────────────
+describe('BaseModal', () => {
+  const modalGlobal = { global: { stubs: { teleport: true } } }
+
+  it('renders with title', () => {
+    const w = mount(BaseModal, { ...modalGlobal, props: { title: 'Confirm Action' }, slots: { default: 'Are you sure?' } })
+    expect(w.find('.modal-title').text()).toBe('Confirm Action')
+    expect(w.text()).toContain('Are you sure?')
+  })
+
+  it('emits close when close button is clicked', async () => {
+    const w = mount(BaseModal, { ...modalGlobal, props: { title: 'Test' }, slots: { default: 'Content' } })
+    await w.find('.modal-close').trigger('click')
+    expect(w.emitted('close')).toBeTruthy()
+    expect(w.emitted('close').length).toBe(1)
+  })
+
+  it('emits close when backdrop is clicked', async () => {
+    const w = mount(BaseModal, { ...modalGlobal, props: { title: 'Test' }, slots: { default: 'Content' } })
+    await w.find('.modal-backdrop').trigger('click')
+    expect(w.emitted('close')).toBeTruthy()
+  })
+
+  it('renders slot content in body', () => {
+    const w = mount(BaseModal, { ...modalGlobal, props: { title: 'Info' }, slots: { default: '<p>Hello modal</p>' } })
+    expect(w.find('.modal-body').text()).toContain('Hello modal')
+  })
+
+  it('renders footer slot when provided', () => {
+    const w = mount(BaseModal, {
+      ...modalGlobal,
+      props: { title: 'With Footer' },
+      slots: {
+        default: 'Body',
+        footer: '<button>OK</button>',
+      },
+    })
+    expect(w.find('.modal-footer').exists()).toBe(true)
+    expect(w.find('.modal-footer').text()).toContain('OK')
+  })
+
+  it('does not render footer when no footer slot', () => {
+    const w = mount(BaseModal, { ...modalGlobal, props: { title: 'No Footer' }, slots: { default: 'Body' } })
+    expect(w.find('.modal-footer').exists()).toBe(false)
   })
 })
 

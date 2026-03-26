@@ -33,6 +33,10 @@
             <span class="stat-label">Posts</span>
           </div>
           <div class="stat-card">
+            <span class="stat-value">{{ stats.totalMessages || 0 }}</span>
+            <span class="stat-label">Messages</span>
+          </div>
+          <div class="stat-card">
             <span class="stat-value">{{ stats.totalOrgs || 0 }}</span>
             <span class="stat-label">Orgs</span>
           </div>
@@ -78,6 +82,11 @@
             </tbody>
           </table>
         </div>
+        <div class="pagination" v-if="userTotal > userLimit">
+          <button class="btn-sm" :disabled="userOffset === 0" @click="userOffset -= userLimit; fetchUsers()">Previous</button>
+          <span class="page-info">{{ Math.floor(userOffset / userLimit) + 1 }} / {{ Math.ceil(userTotal / userLimit) }}</span>
+          <button class="btn-sm" :disabled="userOffset + userLimit >= userTotal" @click="userOffset += userLimit; fetchUsers()">Next</button>
+        </div>
       </section>
 
       <!-- Data Requests -->
@@ -108,6 +117,9 @@ const stats = ref({})
 const statsLoading = ref(true)
 const users = ref([])
 const userSearch = ref('')
+const userTotal = ref(0)
+const userLimit = ref(50)
+const userOffset = ref(0)
 const dataRequests = ref([])
 
 onMounted(async () => {
@@ -133,22 +145,25 @@ onMounted(async () => {
 
 async function fetchUsers() {
   try {
-    const params = userSearch.value ? { search: userSearch.value } : {}
+    const params = { limit: userLimit.value, offset: userOffset.value }
+    if (userSearch.value) params.search = userSearch.value
     const { data } = await api.get('/admin/users', { params })
     users.value = data.users || []
+    userTotal.value = data.total || 0
   } catch {}
 }
 
 let searchTimeout = null
 function searchUsers() {
   clearTimeout(searchTimeout)
+  userOffset.value = 0
   searchTimeout = setTimeout(fetchUsers, 300)
 }
 
 async function toggleAdmin(user) {
   try {
-    await api.put(`/admin/users/${user.id}/toggle-admin`)
-    user.is_admin = !user.is_admin
+    const { data } = await api.put(`/admin/users/${user.id}/toggle-admin`)
+    user.is_admin = data.user?.is_admin ?? !user.is_admin
   } catch (e) {
     alert(e.response?.data?.error?.message || 'Failed')
   }
@@ -322,4 +337,17 @@ async function processRequest(id) {
 .status-tag.pending { background: #ffd93d33; color: #ffd93d; }
 .status-tag.processing { background: #00f0ff33; color: #00f0ff; }
 .status-tag.completed { background: #00ff8833; color: #00ff88; }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.page-info {
+  font-size: 0.85rem;
+  color: #999;
+}
 </style>

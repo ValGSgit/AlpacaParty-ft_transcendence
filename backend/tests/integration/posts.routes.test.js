@@ -4,13 +4,19 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 import supertest from 'supertest';
 
-const mockQuery = jest.fn();
-const mockClient = { query: jest.fn(), release: jest.fn() };
-jest.unstable_mockModule('../../src/config/database.js', () => ({
-  query: mockQuery,
-  getClient: jest.fn().mockResolvedValue(mockClient),
-  default: { on: jest.fn(), query: mockQuery },
-}));
+// ── Mock prisma ──
+const mockPrisma = {
+  user: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn(), count: jest.fn(), upsert: jest.fn() },
+  post: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), deleteMany: jest.fn(), count: jest.fn() },
+  postLike: { findMany: jest.fn(), create: jest.fn(), deleteMany: jest.fn(), count: jest.fn() },
+  achievement: { findUnique: jest.fn(), findMany: jest.fn(), upsert: jest.fn() },
+  repost: { findMany: jest.fn() },
+  userAchievement: { findMany: jest.fn(), create: jest.fn(), upsert: jest.fn() },
+  notification: { create: jest.fn(), findMany: jest.fn(), updateMany: jest.fn(), deleteMany: jest.fn(), count: jest.fn(), findUnique: jest.fn() },
+  $transaction: jest.fn(),
+  $queryRaw: jest.fn(),
+};
+jest.unstable_mockModule('../../src/config/prisma.js', () => ({ default: mockPrisma }));
 
 const { createTestApp } = await import('../helpers/createApp.js');
 const { default: AuthService } = await import('../../src/services/authService.js');
@@ -19,37 +25,47 @@ let app;
 let request;
 let token;
 
-const authUser = { id: 1, username: 'poster', email: 'p@test.com', is_admin: false };
-const samplePost = { id: 10, author_id: 1, content: 'Hello world', is_public: true };
+const authUser = { id: 1, username: 'poster', email: 'p@test.com', isAdmin: false, isPublic: true };
+
+// Prisma camelCase post with author
+const samplePostPrisma = {
+  id: 10, authorId: 1, content: 'Hello world', isPublic: true,
+  imageUrl: null, likesCount: 0,
+  createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+  author: { username: 'poster', avatar: null },
+};
 
 beforeEach(async () => {
-  mockQuery.mockReset();
-  mockClient.query.mockReset();
-  mockClient.release.mockReset();
-  mockQuery.mockResolvedValue({ rows: [] });
-  mockClient.query.mockResolvedValue({ rows: [] });
+  jest.clearAllMocks();
+  mockPrisma.$transaction.mockImplementation((fnOrOps) =>
+    typeof fnOrOps === 'function' ? fnOrOps(mockPrisma) : Promise.all(fnOrOps),
+  );
   app = await createTestApp();
   request = supertest(app);
-  token = AuthService.generateAccessToken({ id: 1, username: 'poster', is_admin: false });
+  token = AuthService.generateAccessToken({ id: 1, username: 'poster', isAdmin: false });
 });
 
 function auth(req) {
-  mockQuery.mockResolvedValueOnce({ rows: [authUser] });
+  mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
   return req.set('Authorization', `Bearer ${token}`);
 }
 
 // ── GET /api/posts (public feed, optionalAuth) ────────────────
 describe('GET /api/posts', () => {
   test('200 — returns feed without auth', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [samplePost] });
+    mockPrisma.post.findMany.mockResolvedValueOnce([samplePostPrisma]);
+    mockPrisma.repost.findMany.mockResolvedValueOnce([]);
     const res = await request.get('/api/posts');
     expect(res.status).toBe(200);
     expect(res.body.posts).toHaveLength(1);
   });
 
-  test('200 — returns feed with auth', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] }); // optionalAuth
-    mockQuery.mockResolvedValueOnce({ rows: [samplePost] });
+  test('200 — returns feed with auth (viewerId included)', async () => {
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser); // optionalAuth
+    mockPrisma.post.findMany.mockResolvedValueOnce([samplePostPrisma]);
+    mockPrisma.postLike.findMany.mockResolvedValueOnce([]); // liked posts for viewer
+    mockPrisma.repost.findMany.mockResolvedValueOnce([]); // viewer reposts
+    mockPrisma.repost.findMany.mockResolvedValueOnce([]); // recent reposts
     const res = await request.get('/api/posts').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
   });
@@ -58,7 +74,7 @@ describe('GET /api/posts', () => {
 // ── GET /api/posts/user/:userId ───────────────────────────────
 describe('GET /api/posts/user/:userId', () => {
   test('200 — returns user posts', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [samplePost] });
+    mockPrisma.post.findMany.mockResolvedValueOnce([samplePostPrisma]);
     const res = await request.get('/api/posts/user/1');
     expect(res.status).toBe(200);
     expect(res.body.posts).toHaveLength(1);
@@ -68,14 +84,14 @@ describe('GET /api/posts/user/:userId', () => {
 // ── GET /api/posts/:id ────────────────────────────────────────
 describe('GET /api/posts/:id', () => {
   test('200 — returns post by id', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [samplePost] });
+    mockPrisma.post.findUnique.mockResolvedValueOnce(samplePostPrisma);
     const res = await request.get('/api/posts/10');
     expect(res.status).toBe(200);
     expect(res.body.post.id).toBe(10);
   });
 
   test('404 — post not found', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [] });
+    mockPrisma.post.findUnique.mockResolvedValueOnce(null);
     const res = await request.get('/api/posts/999');
     expect(res.status).toBe(404);
   });
@@ -95,15 +111,20 @@ describe('POST /api/posts', () => {
   });
 
   test('201 — creates post', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] }); // auth
-    mockQuery.mockResolvedValueOnce({ rows: [{ ...samplePost, content: 'New post' }] }); // Post.create
-    // GamificationService.checkPostAchievements: Achievement.unlock → empty (fine), then User.addXp needs a user
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // Achievement.unlock → rows[0]=undefined → tryUnlock returns null
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 1, level: 1, xp: 10 }] }); // User.addXp
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser); // authenticate
+    mockPrisma.post.create.mockResolvedValueOnce({ ...samplePostPrisma, content: 'New post' });
+    // checkPostAchievements → tryUnlock('first_post') → achievement not found → null
+    mockPrisma.achievement.findUnique.mockResolvedValueOnce(null);
+    // awardXp → User.addXp → user.update (xp increment)
+    mockPrisma.user.update.mockResolvedValueOnce({ id: 1, xp: 10, level: 1 });
+    // addXp: newLevel === level → calls findById
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+
     const res = await request
       .post('/api/posts')
       .set('Authorization', `Bearer ${token}`)
       .send({ content: 'New post' });
+
     expect(res.status).toBe(201);
     expect(res.body.post.content).toBe('New post');
   });
@@ -112,22 +133,27 @@ describe('POST /api/posts', () => {
 // ── PUT /api/posts/:id ────────────────────────────────────────
 describe('PUT /api/posts/:id', () => {
   test('404 — post not found or not yours', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // update returns nothing
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    // Post.update uses .catch(() => null), so rejecting returns null → 404
+    mockPrisma.post.update.mockRejectedValueOnce(new Error('record not found'));
+
     const res = await request
       .put('/api/posts/99')
       .set('Authorization', `Bearer ${token}`)
       .send({ content: 'Updated' });
+
     expect(res.status).toBe(404);
   });
 
   test('200 — updates post', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [{ ...samplePost, content: 'Updated' }] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.post.update.mockResolvedValueOnce({ ...samplePostPrisma, content: 'Updated' });
+
     const res = await request
       .put('/api/posts/10')
       .set('Authorization', `Bearer ${token}`)
       .send({ content: 'Updated' });
+
     expect(res.status).toBe(200);
     expect(res.body.post.content).toBe('Updated');
   });
@@ -136,11 +162,14 @@ describe('PUT /api/posts/:id', () => {
 // ── DELETE /api/posts/:id ─────────────────────────────────────
 describe('DELETE /api/posts/:id', () => {
   test('200 — deletes post', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 }); // Post.delete uses rowCount, not rows
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    // Post.delete → post.deleteMany → { count: 1 } → returns true
+    mockPrisma.post.deleteMany.mockResolvedValueOnce({ count: 1 });
+
     const res = await request
       .delete('/api/posts/10')
       .set('Authorization', `Bearer ${token}`);
+
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/deleted/i);
   });
@@ -149,21 +178,27 @@ describe('DELETE /api/posts/:id', () => {
 // ── POST /api/posts/:id/like ──────────────────────────────────
 describe('POST /api/posts/:id/like', () => {
   test('404 — post not found', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // findById → not found
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.post.findUnique.mockResolvedValueOnce(null);
+
     const res = await request
       .post('/api/posts/999/like')
       .set('Authorization', `Bearer ${token}`);
+
     expect(res.status).toBe(404);
   });
 
   test('200 — likes post', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] }); // auth
-    mockQuery.mockResolvedValueOnce({ rows: [{ ...samplePost, author_id: 2 }] }); // Post.findById
-    // Post.like uses getClient transaction — mockClient handles BEGIN/INSERT/UPDATE/COMMIT
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser); // auth
+    // Post.findById — authorId 2 (not our user), so notification fires (fire-and-forget)
+    mockPrisma.post.findUnique.mockResolvedValueOnce({ ...samplePostPrisma, authorId: 2 });
+    // Post.like → $transaction(async tx => { postLike.create, postLike.count, post.update })
+    // Default jest.fn() returns suffice for tx internals
+
     const res = await request
       .post('/api/posts/10/like')
       .set('Authorization', `Bearer ${token}`);
+
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/liked/i);
   });
@@ -172,6 +207,7 @@ describe('POST /api/posts/:id/like', () => {
 // ── DELETE /api/posts/:id/like ────────────────────────────────
 describe('DELETE /api/posts/:id/like', () => {
   test('200 — unlikes post', async () => {
+    // Post.unlike → $transaction(async tx => { postLike.deleteMany, postLike.count, post.update })
     const res = await auth(request.delete('/api/posts/10/like'));
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/unliked/i);

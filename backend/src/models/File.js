@@ -38,6 +38,10 @@ const File = {
     );
   },
 
+  async findByStoredName(storedName) {
+    return safeFile(await prisma.file.findFirst({ where: { storedName } }));
+  },
+
   async getByUploader(uploaderId, { limit = 50, offset = 0 } = {}) {
     const rows = await prisma.file.findMany({
       where: { uploaderId: Number(uploaderId) },

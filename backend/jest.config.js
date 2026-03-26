@@ -9,16 +9,19 @@ export default {
   collectCoverageFrom: [
     'src/**/*.js',
     '!src/index.js',
+    '!src/server.js',
     '!src/config/database.js',
+    '!src/config/prisma.js',
     '!src/services/oauthService.js',
     '!src/services/socketService.js',
+    '!src/services/spitRoyaleNamespace.js',
   ],
   coverageThreshold: {
     global: {
-      branches: 58,
-      functions: 63,
-      lines: 66,
-      statements: 66,
+      branches: 75,
+      functions: 73,
+      lines: 73,
+      statements: 73,
     },
   },
   setupFiles: ['./tests/setup.js'],

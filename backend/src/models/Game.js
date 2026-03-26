@@ -5,7 +5,7 @@
 import prisma from "#lib/prisma.js";
 
 const Game = {
-  async create({ player1Id, gameType = "pong" }) {
+  async create({ player1Id, gameType = 'spit_royale' }) {
     return prisma.game.create({
       data: { player1Id: Number(player1Id), gameType, status: "waiting" },
     });
@@ -70,7 +70,7 @@ const Game = {
     });
   },
 
-  async getStats(userId, gameType = "pong") {
+  async getStats(userId, gameType = 'spit_royale') {
     const stat = await prisma.gameStat.findUnique({
       where: { userId_gameType: { userId: Number(userId), gameType } },
     });
@@ -92,14 +92,7 @@ const Game = {
     await prisma.gameStat.upsert({
       where: { userId_gameType: { userId: Number(userId), gameType } },
       update: { [field]: { increment: 1 } },
-      create: {
-        userId: Number(userId),
-        gameType,
-        [field]: 1,
-        wins: 0,
-        losses: 0,
-        draws: 0,
-      },
+      create: { userId: Number(userId), gameType, wins: 0, losses: 0, draws: 0, [field]: 1 },
     });
   },
 
@@ -111,10 +104,7 @@ const Game = {
     });
   },
 
-  async getLeaderboard(
-    gameType = "pong",
-    { limit = 20, offset = 0, publicOnly = false } = {},
-  ) {
+  async getLeaderboard(gameType = 'spit_royale', { limit = 20, offset = 0, publicOnly = false } = {}) {
     const rows = await prisma.gameStat.findMany({
       where: {
         gameType,

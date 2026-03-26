@@ -13,22 +13,17 @@ import prisma from "#lib/prisma.js";
 /** GET /api/admin/stats — site-wide statistics */
 export const getStats = async (req, res, next) => {
   try {
-    const [userTotal, usersOnline, gamesActive, postTotal, pendingRequests] =
-      await Promise.all([
-        User.count(),
-        prisma.user.count({ where: { isOnline: true } }),
-        Game.countActive(),
-        Post.count(),
-        DataRequest.getPending().then((r) => r.length),
-      ]);
+    const [totalUsers, onlineUsers, totalGames, totalPosts, totalMessages, totalOrgs, pendingRequests] = await Promise.all([
+      User.count(),
+      prisma.user.count({ where: { isOnline: true } }),
+      Game.countActive(),
+      Post.count(),
+      prisma.message.count(),
+      prisma.organization.count(),
+      DataRequest.getPending().then((r) => r.length),
+    ]);
     res.json({
-      stats: {
-        userTotal,
-        usersOnline,
-        gamesActive,
-        postTotal,
-        pendingRequests,
-      },
+      stats: { totalUsers, onlineUsers, totalGames, totalPosts, totalMessages, totalOrgs, pendingRequests },
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
@@ -40,19 +35,19 @@ export const getStats = async (req, res, next) => {
 export const listUsers = async (req, res, next) => {
   try {
     const { search, limit = 50, offset = 0 } = req.query;
-    let users;
-    if (search) {
-      users = await User.search(search, {
-        limit: Number(limit),
-        offset: Number(offset),
-      });
-    } else {
-      users = await User.findAll({
-        limit: Number(limit),
-        offset: Number(offset),
-      });
-    }
-    const total = await User.count();
+    const where = search
+      ? { OR: [{ username: { startsWith: search, mode: 'insensitive' } }, { email: { contains: search, mode: 'insensitive' } }] }
+      : {};
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: { id: true, username: true, email: true, avatar: true, isOnline: true, isAdmin: true, level: true, xp: true, createdAt: true },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: Number(limit),
+        skip: Number(offset),
+      }),
+      prisma.user.count({ where }),
+    ]);
     res.json({ users, total });
   } catch (err) {
     next(err);

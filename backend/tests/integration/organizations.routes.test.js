@@ -4,13 +4,18 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 import supertest from 'supertest';
 
-const mockQuery = jest.fn();
-const mockClient = { query: jest.fn(), release: jest.fn() };
-jest.unstable_mockModule('../../src/config/database.js', () => ({
-  query: mockQuery,
-  getClient: jest.fn().mockResolvedValue(mockClient),
-  default: { on: jest.fn(), query: mockQuery },
-}));
+// ── Mock prisma ──
+const mockPrisma = {
+  user: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn(), count: jest.fn(), upsert: jest.fn() },
+  organization: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
+  organizationMember: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn(), upsert: jest.fn(), deleteMany: jest.fn() },
+  achievement: { findUnique: jest.fn(), findMany: jest.fn() },
+  userAchievement: { findMany: jest.fn(), create: jest.fn() },
+  notification: { create: jest.fn(), findMany: jest.fn(), updateMany: jest.fn(), deleteMany: jest.fn(), count: jest.fn(), findUnique: jest.fn() },
+  $transaction: jest.fn(),
+  $queryRaw: jest.fn(),
+};
+jest.unstable_mockModule('../../src/config/prisma.js', () => ({ default: mockPrisma }));
 
 const { createTestApp } = await import('../helpers/createApp.js');
 const { default: AuthService } = await import('../../src/services/authService.js');
@@ -19,28 +24,25 @@ let app;
 let request;
 let token;
 
-const authUser = { id: 1, username: 'orguser', email: 'o@test.com', is_admin: false };
-const sampleOrg = {
-  id: 5,
-  name: 'AlpacaClub',
-  description: 'A club for alpacas',
-  owner_id: 1,
-  member_count: 1,
+const authUser = { id: 1, username: 'orguser', email: 'o@test.com', isAdmin: false, isPublic: true };
+// Prisma camelCase org (with _count for findAll/search)
+const sampleOrgPrisma = {
+  id: 5, name: 'AlpacaClub', description: 'A club for alpacas',
+  ownerId: 1, avatar: '/avatars/default-org.svg', _count: { members: 1 },
 };
 
 beforeEach(async () => {
-  mockQuery.mockReset();
-  mockClient.query.mockReset();
-  mockClient.release.mockReset();
-  mockQuery.mockResolvedValue({ rows: [] });
-  mockClient.query.mockResolvedValue({ rows: [] });
+  jest.clearAllMocks();
+  mockPrisma.$transaction.mockImplementation((fnOrOps) =>
+    typeof fnOrOps === 'function' ? fnOrOps(mockPrisma) : Promise.all(fnOrOps),
+  );
   app = await createTestApp();
   request = supertest(app);
-  token = AuthService.generateAccessToken({ id: 1, username: 'orguser', is_admin: false });
+  token = AuthService.generateAccessToken({ id: 1, username: 'orguser', isAdmin: false });
 });
 
 function auth(req) {
-  mockQuery.mockResolvedValueOnce({ rows: [authUser] });
+  mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
   return req.set('Authorization', `Bearer ${token}`);
 }
 
@@ -52,18 +54,20 @@ describe('GET /api/organizations', () => {
   });
 
   test('200 — returns organizations list', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [sampleOrg] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    // Organization.findAll → organization.findMany (with _count)
+    mockPrisma.organization.findMany.mockResolvedValueOnce([sampleOrgPrisma]);
     const res = await request.get('/api/organizations').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.organizations).toHaveLength(1);
   });
 
   test('200 — filters by search query', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    // Organization.search → organization.findMany
+    mockPrisma.organization.findMany.mockResolvedValueOnce([]);
     const res = await request
-      .get('/api/organizations?q=alpaca')
+      .get('/api/organizations?search=alpaca')
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.organizations).toHaveLength(0);
@@ -73,8 +77,11 @@ describe('GET /api/organizations', () => {
 // ── GET /api/organizations/mine ───────────────────────────────
 describe('GET /api/organizations/mine', () => {
   test('200 — returns user orgs', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [sampleOrg] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    // Organization.getUserOrgs → organizationMember.findMany(include: { org: true })
+    mockPrisma.organizationMember.findMany.mockResolvedValueOnce([
+      { org: { id: 5, name: 'AlpacaClub', description: 'A club', ownerId: 1 }, role: 'owner' },
+    ]);
     const res = await request
       .get('/api/organizations/mine')
       .set('Authorization', `Bearer ${token}`);
@@ -86,8 +93,8 @@ describe('GET /api/organizations/mine', () => {
 // ── GET /api/organizations/:id ────────────────────────────────
 describe('GET /api/organizations/:id', () => {
   test('404 — not found', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // Organization.findById → empty
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.organization.findUnique.mockResolvedValueOnce(null);
     const res = await request
       .get('/api/organizations/999')
       .set('Authorization', `Bearer ${token}`);
@@ -95,8 +102,10 @@ describe('GET /api/organizations/:id', () => {
   });
 
   test('200 — returns organization', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [sampleOrg] });
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.organization.findUnique.mockResolvedValueOnce({ id: 5, name: 'AlpacaClub', ownerId: 1 });
+    // getMembers → organizationMember.findMany
+    mockPrisma.organizationMember.findMany.mockResolvedValueOnce([]);
     const res = await request.get('/api/organizations/5').set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.organization.name).toBe('AlpacaClub');
@@ -112,17 +121,20 @@ describe('POST /api/organizations', () => {
   });
 
   test('201 — creates organization', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] }); // auth
-    // Organization.create uses getClient transaction: BEGIN, INSERT org, INSERT member, COMMIT
-    mockClient.query.mockResolvedValueOnce({ rows: [] }); // BEGIN
-    mockClient.query.mockResolvedValueOnce({ rows: [sampleOrg] }); // INSERT org → rows[0] used
-    mockClient.query.mockResolvedValueOnce({ rows: [] }); // INSERT member
-    mockClient.query.mockResolvedValueOnce({ rows: [] }); // COMMIT
-    // GamificationService.checkOrgAchievements → Achievement.unlock → default { rows: [] } → fine
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser); // authenticate
+    // Organization.create → $transaction(async tx => { organization.create, organizationMember.create })
+    mockPrisma.organization.create.mockResolvedValueOnce({
+      id: 5, name: 'AlpacaClub', description: 'A club for alpacas', ownerId: 1,
+    });
+    mockPrisma.organizationMember.create.mockResolvedValueOnce({});
+    // checkOrgAchievements → tryUnlock('org_founder') → achievement.findUnique → null
+    mockPrisma.achievement.findUnique.mockResolvedValueOnce(null);
+
     const res = await request
       .post('/api/organizations')
       .set('Authorization', `Bearer ${token}`)
       .send({ name: 'AlpacaClub', description: 'A club for alpacas' });
+
     expect(res.status).toBe(201);
     expect(res.body.organization.name).toBe('AlpacaClub');
   });
@@ -131,9 +143,9 @@ describe('POST /api/organizations', () => {
 // ── PUT /api/organizations/:id ────────────────────────────────
 describe('PUT /api/organizations/:id', () => {
   test('403 — non-member cannot update', async () => {
-    // updateOrg checks isMember FIRST (no findById), so empty membership → 403
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] }); // auth
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // isMember → null → 403
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    // Organization.isMember → organizationMember.findUnique → null
+    mockPrisma.organizationMember.findUnique.mockResolvedValueOnce(null);
     const res = await request
       .put('/api/organizations/999')
       .set('Authorization', `Bearer ${token}`)
@@ -142,8 +154,8 @@ describe('PUT /api/organizations/:id', () => {
   });
 
   test('403 — not owner or admin', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] }); // auth
-    mockQuery.mockResolvedValueOnce({ rows: [{ role: 'member' }] }); // isMember → member role → 403
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.organizationMember.findUnique.mockResolvedValueOnce({ role: 'member' });
     const res = await request
       .put('/api/organizations/5')
       .set('Authorization', `Bearer ${token}`)
@@ -152,10 +164,9 @@ describe('PUT /api/organizations/:id', () => {
   });
 
   test('200 — owner can update', async () => {
-    const updated = { ...sampleOrg, name: 'Updated Club' };
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] }); // auth
-    mockQuery.mockResolvedValueOnce({ rows: [{ role: 'owner' }] }); // isMember → owner → passes
-    mockQuery.mockResolvedValueOnce({ rows: [updated] }); // Organization.update
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.organizationMember.findUnique.mockResolvedValueOnce({ role: 'owner' });
+    mockPrisma.organization.update.mockResolvedValueOnce({ id: 5, name: 'Updated Club', ownerId: 1 });
     const res = await request
       .put('/api/organizations/5')
       .set('Authorization', `Bearer ${token}`)
@@ -167,8 +178,9 @@ describe('PUT /api/organizations/:id', () => {
 // ── DELETE /api/organizations/:id ────────────────────────────
 describe('DELETE /api/organizations/:id', () => {
   test('404 — not found', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // findById → empty
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    // Organization.findById → organization.findUnique → null
+    mockPrisma.organization.findUnique.mockResolvedValueOnce(null);
     const res = await request
       .delete('/api/organizations/999')
       .set('Authorization', `Bearer ${token}`);
@@ -176,8 +188,9 @@ describe('DELETE /api/organizations/:id', () => {
   });
 
   test('403 — not the owner', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [{ ...sampleOrg, owner_id: 99 }] }); // findById
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    // org.ownerId !== req.user.id (99 !== 1)
+    mockPrisma.organization.findUnique.mockResolvedValueOnce({ id: 5, name: 'AlpacaClub', ownerId: 99 });
     const res = await request
       .delete('/api/organizations/5')
       .set('Authorization', `Bearer ${token}`);
@@ -185,9 +198,9 @@ describe('DELETE /api/organizations/:id', () => {
   });
 
   test('200 — owner can delete', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-    mockQuery.mockResolvedValueOnce({ rows: [sampleOrg] }); // findById — owner_id: 1
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // delete
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.organization.findUnique.mockResolvedValueOnce({ id: 5, name: 'AlpacaClub', ownerId: 1 });
+    mockPrisma.organization.delete.mockResolvedValueOnce({});
     const res = await request
       .delete('/api/organizations/5')
       .set('Authorization', `Bearer ${token}`);
@@ -205,9 +218,8 @@ describe('POST /api/organizations/:id/members', () => {
   });
 
   test('403 — non-owner cannot add members', async () => {
-    // addMember checks isMember FIRST, not findById
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] }); // auth
-    mockQuery.mockResolvedValueOnce({ rows: [{ role: 'member' }] }); // isMember → member role → 403
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.organizationMember.findUnique.mockResolvedValueOnce({ role: 'member' });
     const res = await request
       .post('/api/organizations/5/members')
       .set('Authorization', `Bearer ${token}`)
@@ -216,11 +228,11 @@ describe('POST /api/organizations/:id/members', () => {
   });
 
   test('201 — owner can add members', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [authUser] }); // auth
-    mockQuery.mockResolvedValueOnce({ rows: [{ role: 'owner' }] }); // isMember → owner → passes
-    mockQuery.mockResolvedValueOnce({ rows: [sampleOrg] }); // Organization.findById
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // Organization.addMember
-    // NotificationService.orgInvite is fire-and-forget (.catch(() => {})), won't block response
+    mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
+    mockPrisma.organizationMember.findUnique.mockResolvedValueOnce({ role: 'owner' });
+    mockPrisma.organization.findUnique.mockResolvedValueOnce({ id: 5, name: 'AlpacaClub', ownerId: 1 });
+    mockPrisma.organizationMember.upsert.mockResolvedValueOnce({});
+    // NotificationService.orgInvite is fire-and-forget (.catch(() => {}))
     const res = await request
       .post('/api/organizations/5/members')
       .set('Authorization', `Bearer ${token}`)

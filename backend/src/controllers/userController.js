@@ -238,7 +238,11 @@ export const deleteMe = async (req, res, next) => {
 /** POST /api/users/me/generate-avatar */
 export const generateAvatar = async (req, res, next) => {
   try {
-    const result = await _callHuggingFace(req, res, "avatar");
+    const user = await User.findById(req.user.id);
+    if (!user || user.coins < IMAGE_GENERATION_COST) {
+      return res.status(402).json({ error: { message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.` } });
+    }
+    const result = await _callHuggingFace(req, res, 'avatar');
     if (!result) return;
     const { buffer, ext } = result;
     const filename = `avatar-${req.user.id}-${crypto.randomBytes(8).toString("hex")}${ext}`;
@@ -246,7 +250,7 @@ export const generateAvatar = async (req, res, next) => {
     fs.mkdirSync(config.uploads.dir, { recursive: true });
     fs.writeFileSync(filepath, buffer);
     const avatarUrl = `/uploads/${filename}`;
-    const updatedUser = await User.update(req.user.id, { avatar: avatarUrl });
+    const updatedUser = await User.update(req.user.id, { avatar: avatarUrl, coins: user.coins - IMAGE_GENERATION_COST });
     res.json({ user: shapeUserForClient(updatedUser), avatarUrl });
   } catch (err) {
     next(err);
@@ -256,13 +260,18 @@ export const generateAvatar = async (req, res, next) => {
 /** POST /api/users/me/generate-image */
 export const generateImage = async (req, res, next) => {
   try {
-    const result = await _callHuggingFace(req, res, "image");
+    const user = await User.findById(req.user.id);
+    if (!user || user.coins < IMAGE_GENERATION_COST) {
+      return res.status(402).json({ error: { message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.` } });
+    }
+    const result = await _callHuggingFace(req, res, 'image');
     if (!result) return;
     const { buffer, ext } = result;
     const filename = `generated-${req.user.id}-${crypto.randomBytes(8).toString("hex")}${ext}`;
     const filepath = path.join(config.uploads.dir, filename);
     fs.mkdirSync(config.uploads.dir, { recursive: true });
     fs.writeFileSync(filepath, buffer);
+    await User.update(req.user.id, { coins: user.coins - IMAGE_GENERATION_COST });
     res.json({ imageUrl: `/uploads/${filename}` });
   } catch (err) {
     next(err);
@@ -270,7 +279,7 @@ export const generateImage = async (req, res, next) => {
 };
 
 async function _callHuggingFace(req, res, mode) {
-  const apiKey = process.env.HUGGINGFACE_API_KEY;
+  const apiKey = config.huggingfaceApiKey;
   if (!apiKey) {
     res.status(503).json({
       error: { message: "Image generation service is not configured" },

@@ -138,4 +138,69 @@ describe('Feed.vue', () => {
 
     expect(api.post).toHaveBeenCalledWith('/posts', expect.objectContaining({ content: 'Test post content' }))
   })
+
+  it('does not show create post form when not authenticated', async () => {
+    const store = useAuthStore()
+    store.user = null
+
+    const wrapper = mount(Feed, { global: { plugins: [pinia, router] } })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.create-post').exists()).toBe(false)
+    expect(wrapper.find('textarea').exists()).toBe(false)
+  })
+
+  it('renders post cards from API response', async () => {
+    const { default: api } = await import('../../../src/services/api.js')
+    api.get.mockResolvedValue({
+      data: {
+        posts: [
+          { id: 1, content: 'First post', author_id: 2, author_username: 'bob', likes_count: 3, created_at: new Date().toISOString() },
+          { id: 2, content: 'Second post', author_id: 3, author_username: 'carol', likes_count: 0, created_at: new Date().toISOString() },
+        ],
+      },
+    })
+
+    const store = useAuthStore()
+    store.user = { id: 1, username: 'alice' }
+
+    const wrapper = mount(Feed, { global: { plugins: [pinia, router] } })
+    // Wait for onMounted fetchPosts to resolve
+    await vi.dynamicImportSettled()
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+
+    const postCards = wrapper.findAll('.post-card')
+    expect(postCards.length).toBe(2)
+    expect(wrapper.text()).toContain('First post')
+    expect(wrapper.text()).toContain('Second post')
+  })
+
+  it('like button calls API when clicked', async () => {
+    const { default: api } = await import('../../../src/services/api.js')
+    api.get.mockResolvedValue({
+      data: {
+        posts: [
+          { id: 42, content: 'Likeable post', author_id: 2, author_username: 'bob', likes_count: 0, user_liked: false, created_at: new Date().toISOString() },
+        ],
+      },
+    })
+    api.post.mockResolvedValue({ data: {} })
+
+    const store = useAuthStore()
+    store.user = { id: 1, username: 'alice' }
+
+    const wrapper = mount(Feed, { global: { plugins: [pinia, router] } })
+    await vi.dynamicImportSettled()
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+
+    const likeBtn = wrapper.find('.action-btn')
+    await likeBtn.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(api.post).toHaveBeenCalledWith('/posts/42/like')
+  })
 })

@@ -45,9 +45,7 @@
 
 <script setup>
 import { useAuthStore } from '../stores/auth.js'
-import FakeAd from '@/components/FakeAd.vue'
 const authStore = useAuthStore()
-
 </script>
 
 <style scoped>

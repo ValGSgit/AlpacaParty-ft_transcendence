@@ -40,7 +40,7 @@ This guide explains how to run AlpacaParty in a fully containerized environment 
    ```
 
 5. **Access the application:**
-   - **Full application (recommended):** http://localhost:8080
+   - **Full application (recommended):** http://localhost:8443
    - Frontend (direct): http://localhost:5173
    - Backend API: http://localhost:3000/api
    - Database: postgresql://localhost:5432
@@ -75,7 +75,7 @@ This guide explains how to run AlpacaParty in a fully containerized environment 
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                      nginx:8080                          │
+│                      nginx:8443                          │
 │                   (Reverse Proxy)                        │
 └──────────┬──────────────────────────┬───────────────────┘
            │                          │
@@ -155,7 +155,7 @@ docker compose -f docker-compose.prod.yml logs -f
 
 ### Nginx (nginx)
 - **Image:** `nginx:alpine`
-- **Port:** 8080 (dev) or 80 (prod)
+- **Port:** 8443 (dev) or 80 (prod)
 - **Routes:**
   - `/api/*` → backend
   - `/socket.io/*` → backend (WebSocket)
@@ -193,17 +193,17 @@ docker compose restart postgres
 
 ### Port already in use
 
-If ports 5173, 3000, 5432, or 8080 are in use:
+If ports 5173, 3000, 5432, or 8443 are in use:
 
 1. Edit `docker-compose.yml` and change the host port (left side):
    ```yaml
    ports:
-     - "8081:80"  # Changed from 8080:80
+     - "8081:80"  # Changed from 8443:80
    ```
 
 2. Or stop conflicting services:
    ```bash
-   lsof -i :8080  # Find what's using the port
+   lsof -i :8443  # Find what's using the port
    ```
 
 ### Permission issues
@@ -221,7 +221,7 @@ docker ps
 ### Frontend can't connect to backend
 
 Make sure you're accessing through nginx:
-- ✅ Use: http://localhost:8080
+- ✅ Use: http://localhost:8443
 - ❌ Don't use: http://localhost:5173 (direct frontend access won't work with API)
 
 ### Clear everything and start fresh

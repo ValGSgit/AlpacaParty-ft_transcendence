@@ -2,8 +2,6 @@
  * Vue Router Configuration
  * @owner fankahou, LukasStefanek
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/1
- *
- * Route guards and auth-gated routes will be added with Issue #8 (Authentication)
  */
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
@@ -13,10 +11,10 @@ const Login    = () => import('../views/Login.vue')
 const Register = () => import('../views/Register.vue')
 const Profile  = () => import('../views/Profile.vue')
 const UserProfile = () => import('../views/UserProfile.vue')
-const ApiTest  = () => import('../views/ApiTest.vue')
 const Friends  = () => import('../views/Friends.vue')
 const Messages = () => import('../views/Messages.vue')
 const Game     = () => import('../games/Game.vue')
+const SpitRoyale = () => import('../views/SpitRoyale.vue')
 const Settings = () => import('../views/Settings.vue')
 const Help     = () => import('../views/Help.vue')
 const Feed     = () => import('../views/Feed.vue')
@@ -27,6 +25,7 @@ const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
 const TermsOfService = () => import('../views/TermsOfService.vue')
 const PublicShowcase = () => import('../views/PublicShowcase.vue')
 const SecurityDashboard = () => import('../views/SecurityDashboard.vue')
+const ApiDocs  = () => import('../views/ApiDocs.vue')
 
 const routes = [
   {
@@ -54,12 +53,6 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/api-test',
-    name: 'ApiTest',
-    component: ApiTest,
-    meta: { requiresAuth: false },
-  },
-  {
     path: '/friends',
     name: 'Friends',
     component: Friends,
@@ -78,6 +71,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/spit-royale',
+    name: 'SpitRoyale',
+    component: SpitRoyale,
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/settings',
     name: 'Settings',
     component: Settings,
@@ -88,6 +87,36 @@ const routes = [
     name: 'Help',
     component: Help,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/feed',
+    name: 'Feed',
+    component: Feed,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: Admin,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/security',
+    name: 'SecurityDashboard',
+    component: SecurityDashboard,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/docs',
+    name: 'ApiDocs',
+    component: ApiDocs,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/showcase',
+    name: 'PublicShowcase',
+    component: PublicShowcase,
+    meta: { requiresAuth: false },
   },
   {
     path: '/oauth-callback',
@@ -112,30 +141,6 @@ const routes = [
     name: 'UserProfile',
     component: UserProfile,
     meta: { requiresAuth: false },
-  },
-  {
-    path: '/feed',
-    name: 'Feed',
-    component: Feed,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/admin',
-    name: 'Admin',
-    component: Admin,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/showcase',
-    name: 'PublicShowcase',
-    component: PublicShowcase,
-    meta: { requiresAuth: false },
-  },
-  {
-    path: '/security',
-    name: 'SecurityDashboard',
-    component: SecurityDashboard,
-    meta: { requiresAuth: true },
   },
   {
     path: '/:pathMatch(.*)*',

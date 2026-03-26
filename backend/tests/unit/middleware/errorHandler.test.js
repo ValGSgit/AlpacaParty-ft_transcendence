@@ -121,5 +121,107 @@ describe('errorHandler middleware', () => {
       expect(captured.status).toBe(404);
       expect(captured.message).toBe('Not Found');
     });
+
+    // ── New tests ───────────────────────────────────────────────────────────
+
+    test('should preserve 429 rate limit status code', () => {
+      const err = new Error('Too Many Requests');
+      err.status = 429;
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(429);
+      expect(res._json.error.message).toBe('Too Many Requests');
+    });
+
+    test('should preserve 503 service unavailable status code', () => {
+      const err = new Error('Service Unavailable');
+      err.status = 503;
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(503);
+      expect(res._json.error.message).toBe('Service Unavailable');
+    });
+
+    test('should preserve 409 conflict status code', () => {
+      const err = new Error('Conflict');
+      err.status = 409;
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(409);
+      expect(res._json.error.message).toBe('Conflict');
+    });
+
+    test('should handle error with both message and status correctly', () => {
+      const err = new Error('Custom error with status');
+      err.status = 418; // I'm a teapot
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(418);
+      expect(res._json.error.message).toBe('Custom error with status');
+    });
+
+    test('should use message from error even when status defaults to 500', () => {
+      const err = new Error('Specific error without status');
+      // No err.status set, should default to 500
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(500);
+      expect(res._json.error.message).toBe('Specific error without status');
+    });
+
+    test('should handle error object with status=0 as 500', () => {
+      const err = { message: 'Zero status', status: 0 };
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      // 0 is falsy, so it falls back to 500
+      expect(res._status).toBe(500);
+      expect(res._json.error.message).toBe('Zero status');
+    });
+
+    test('should handle 401 unauthorized status', () => {
+      const err = new Error('Unauthorized');
+      err.status = 401;
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(401);
+      expect(res._json.error.message).toBe('Unauthorized');
+    });
+
+    test('should NOT include stack in test environment', () => {
+      // NODE_ENV is 'test' during tests, not 'development'
+      const err = new Error('Test error');
+      err.status = 500;
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._json.error.stack).toBeUndefined();
+    });
+
+    test('error response should have correct structure', () => {
+      const err = new Error('Structured error');
+      err.status = 400;
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._json).toHaveProperty('error');
+      expect(res._json.error).toHaveProperty('message');
+      expect(typeof res._json.error.message).toBe('string');
+    });
   });
 });

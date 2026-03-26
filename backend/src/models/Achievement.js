@@ -25,16 +25,21 @@ const Achievement = {
       where: { key: achievementKey },
     });
 
-    if (!achievement) {
-      throw new Error(`Achievement with key ${achievementKey} not found.`);
-    }
-
-    return await prisma.userAchievement.create({
-      data: {
-        userId: userId,
+    // Use upsert to avoid unique constraint errors
+    await prisma.userAchievement.upsert({
+      where: {
+        userId_achievementId: {
+          userId: Number(userId),
+          achievementId: achievement.id,
+        },
+      },
+      update: {}, // do nothing if exists
+      create: {
+        userId: Number(userId),
         achievementId: achievement.id,
       },
     });
+    return { achievement };
   },
 
   async getUserChallengeProgress(userId) {

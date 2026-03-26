@@ -1,21 +1,30 @@
-import { shallowRef, ref, computed } from 'vue'
+import { reactive, ref, shallowReactive, shallowRef } from 'vue'
 
 export const gEngine = shallowRef(null)
-export const gScene = ref(null) // need ref for vue to refresh UI
-
+export const gScene = shallowRef(null)
 export const gPlayer = shallowRef(null)
-export const gUser = ref(null) // used to store user infos
+export const gUser = ref(null)
 
-export const gAlpacas = ref([]) // need to be ref to change speed in vue UI
-export const gItems = shallowRef([])
-
-export const gSelectable = computed(() => {
-  // Extract just the Three.js models from your custom alpaca objects
-  const alpacaModels = gAlpacas.value.map(alpaca => alpaca.model)
-
-  // Combine the extracted models with your items
-  return [...alpacaModels, ...gItems.value]
+export const gUI = reactive({
+  editMode: false,
+  shopMenu: false,
+  itemShop: false,
+  alpacaShop: false,
+  alpacaStats: false,
+  isEditingName: false,
+  lightMenu: false,
+  cameraMode: 0,
+  cameraPos: { x: 0, y: 0, z: 0 }
 })
 
-// export const gSelectable 
-// export const gColliders
+export const gEditState = shallowReactive({
+  selected: null,
+  ghost: null
+});
+
+export const gAlpacas = []
+export const gCollectables = []
+export const gCollidables = []
+export const gEditables = []
+export const gItems = []
+

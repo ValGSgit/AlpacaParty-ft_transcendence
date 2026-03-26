@@ -1,9 +1,6 @@
 # ── Dependencies ─────────────────────────────────────────────
 node_modules/
 
-# ── Generated ─────────────────────────────────────────────
-backend/generated/
-
 # ── Build outputs ────────────────────────────────────────────
 dist/
 build/
@@ -14,7 +11,8 @@ build/
 .env.production
 
 # ── SSL certificates ────────────────────────────────────────
-ssl
+nginx/ssl/
+backend/ssl/
 
 # ── IDE ──────────────────────────────────────────────────────
 .vscode/

@@ -20,6 +20,7 @@ import ChatRoom from '../models/ChatRoom.js';
 import Game from '../models/Game.js';
 import NotificationService from './notificationService.js';
 import GamificationService from './gamificationService.js';
+import { initializeSpitRoyaleNamespace } from './spitRoyaleNamespace.js';
 
 /**
  * Compute Elo delta. Simple 32-K factor implementation.
@@ -42,6 +43,7 @@ export function initializeSocket(httpServer, corsOrigins) {
 
   // Share io with NotificationService so it can push real-time notifications
   NotificationService.setIo(io);
+  initializeSpitRoyaleNamespace(io);
 
   // ── Auth middleware ──────────────────────────────────────────
   io.use(async (socket, next) => {
@@ -180,7 +182,7 @@ export function initializeSocket(httpServer, corsOrigins) {
     });
 
     // ── Game: matchmaking ────────────────────────────────────
-    socket.on('game:queue', async ({ gameType = 'pong' }, ack) => {
+    socket.on('game:queue', async ({ gameType = 'spit_royale' }, ack) => {
       try {
         // Look for a waiting game
         let game = await Game.findWaiting(gameType, user.id);

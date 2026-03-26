@@ -5,6 +5,7 @@
  * Uses the Groq API (OpenAI-compatible) with Llama 3 models.
  * Streams responses back to the client via Server-Sent Events.
  */
+import config from '../config/index.js';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'llama-3.3-70b-versatile';
@@ -34,7 +35,7 @@ export const chat = async (req, res, next) => {
       return res.status(400).json({ error: { message: 'messages array is required' } });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey = config.groqApiKey;
     if (!apiKey) {
       return res.status(503).json({ error: { message: 'Help service is not configured' } });
     }
@@ -84,7 +85,7 @@ export const chatStream = async (req, res, next) => {
       return res.status(400).json({ error: { message: 'messages array is required' } });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey = config.groqApiKey;
     if (!apiKey) {
       return res.status(503).json({ error: { message: 'Help service is not configured' } });
     }

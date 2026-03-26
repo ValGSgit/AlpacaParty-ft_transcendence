@@ -20,6 +20,7 @@ coverage
 *.test.js
 *.spec.js
 __tests__
+tests
 
 # IDE
 .vscode
@@ -40,10 +41,8 @@ LICENSE
 
 # Docker
 Dockerfile*
-*compose*
+docker-compose*
 .dockerignore
 
 # Local data
 data
-generated
-prisma/migrations

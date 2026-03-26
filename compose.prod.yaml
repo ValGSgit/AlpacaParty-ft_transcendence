@@ -1,8 +1,16 @@
-# Docker Compose — Development
+# Docker Compose — Production
 # @owner ValGSgit
 # @issue https://github.com/ValGSgit/AlpacaParty/issues/3
+#
+# Usage:
+#   make prod-up
+#
+# Vault is fully automated:
+#   - vault-init initializes, unseals, and seeds Vault on first boot
+#   - Unseal key + service token are saved to the vault_keys Docker volume
+#   - On reboots vault-init reads the key from the volume and unseals automatically
+#   - The backend reads VAULT_TOKEN from the volume — no manual steps required
 
-# include each service
 include:
   - ./backend/compose.prod.yaml
   - ./frontend/compose.prod.yaml
@@ -10,9 +18,19 @@ include:
   - ./database/compose.prod.yaml
   - ./vault/compose.prod.yaml
 
+# Extend the vault service (defined in vault/compose.prod.yaml) with the TLS cert
+# mount. Path here is relative to THIS file (repo root), so ./nginx/ssl is unambiguous
+# regardless of Docker Compose version's include path resolution behaviour.
 
 volumes:
   pg_data:
+    driver: local
+  vault_data:
+    driver: local
+  vault_keys:
+    driver: local
+  backend_uploads:
+    driver: local
   ssl:
     driver: local
     driver_opts:
@@ -23,3 +41,4 @@ volumes:
 networks:
   alpacaparty_net:
     name: alpacaparty_net
+    driver: bridge

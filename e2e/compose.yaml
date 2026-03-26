@@ -1,13 +1,12 @@
-
-# ── E2E Tests (Playwright) — on-demand ─────────────────────
+# E2E Tests (Playwright) — on-demand
 services:
   e2e:
     build:
-      context: ./e2e
+      context: .
       dockerfile: Dockerfile
-    container_name: e2e
+    container_name: alpacaparty_e2e
     environment:
-      E2E_BASE_URL: http://nginx:8080
+      E2E_BASE_URL: https://nginx:443
       PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/chromium-browser
     depends_on:
       - nginx

@@ -19,7 +19,7 @@ ENV MODSEC_RULE_ENGINE=On \
   MODSEC_AUDIT_LOG=/proc/self/fd/2 \
   ANOMALY_INBOUND=10 \
   ANOMALY_OUTBOUND=4 \
-  PORT=8080 \
+  PORT=8443 \
   SSL_PORT=8443
 
 # copy nginx config
