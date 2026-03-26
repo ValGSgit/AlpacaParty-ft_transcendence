@@ -174,7 +174,10 @@ router.get('/me/data-requests', listDataRequests);
  * /users/me/generate-avatar:
  *   post:
  *     tags: [Users]
- *     summary: Generate an AI avatar image (costs coins)
+ *     summary: Generate an AI avatar image (costs 50 coins)
+ *     description: |
+ *       Uses Hugging Face FLUX.1-schnell to generate a custom alpaca-themed avatar.
+ *       Costs **50 coins** per generation. The prompt is appended to a base avatar template.
  *     requestBody:
  *       required: false
  *       content:
@@ -182,17 +185,32 @@ router.get('/me/data-requests', listDataRequests);
  *           schema:
  *             type: object
  *             properties:
- *               prompt: { type: string, maxLength: 500, example: "Cute alpaca warrior in pixel art style" }
+ *               prompt: { type: string, maxLength: 200, example: "Cute alpaca warrior in pixel art style" }
  *     responses:
  *       200:
- *         description: Generated avatar URL
+ *         description: Avatar generated and set on user profile
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 avatarUrl: { type: string, example: "/uploads/avatar-42-generated.png" }
- *       402: { description: Not enough coins }
+ *                 user: { $ref: '#/components/schemas/User' }
+ *                 avatarUrl: { type: string, example: "/uploads/avatar-42-a1b2c3d4e5f6g7h8.png" }
+ *       402:
+ *         description: Insufficient coins (need 50)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       502:
+ *         description: Image generation service temporarily unavailable
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       503:
+ *         description: Image generation service not configured
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
  */
 router.post('/me/generate-avatar', generateAvatar);
 
@@ -201,7 +219,11 @@ router.post('/me/generate-avatar', generateAvatar);
  * /users/me/generate-image:
  *   post:
  *     tags: [Users]
- *     summary: Generate an AI image for use in posts (costs coins)
+ *     summary: Generate an AI image for posts (costs 50 coins)
+ *     description: |
+ *       Uses Hugging Face FLUX.1-schnell to generate an image from a text prompt.
+ *       Costs **50 coins** per generation. The image is saved to `/uploads/` and can be
+ *       attached to posts via the `imageUrl` field.
  *     requestBody:
  *       required: true
  *       content:
@@ -210,7 +232,7 @@ router.post('/me/generate-avatar', generateAvatar);
  *             type: object
  *             required: [prompt]
  *             properties:
- *               prompt: { type: string, maxLength: 500, example: "Alpaca riding a skateboard at sunset" }
+ *               prompt: { type: string, maxLength: 200, example: "Alpaca riding a skateboard at sunset" }
  *     responses:
  *       200:
  *         description: Generated image URL
@@ -219,8 +241,22 @@ router.post('/me/generate-avatar', generateAvatar);
  *             schema:
  *               type: object
  *               properties:
- *                 imageUrl: { type: string }
- *       402: { description: Not enough coins }
+ *                 imageUrl: { type: string, example: "/uploads/generated-42-a1b2c3d4e5f6g7h8.jpg" }
+ *       402:
+ *         description: Insufficient coins (need 50)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       502:
+ *         description: Image generation service temporarily unavailable
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       503:
+ *         description: Image generation service not configured
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
  */
 router.post('/me/generate-image', generateImage);
 
