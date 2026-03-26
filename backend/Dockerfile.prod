@@ -17,7 +17,7 @@ COPY . .
 # Install dependencies (clean build)
 RUN npm install --no-audit --no-fund --loglevel=error
 
-RUN npx prisma generate && npm prune --omit=dev
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate && npm prune --omit=dev
 
 # Create uploads and ssl directories with correct ownership
 RUN mkdir -p /app/uploads /app/ssl && \

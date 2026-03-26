@@ -145,6 +145,7 @@ export const listOrganizations = async (req, res, next) => {
       name: anonymize ? `org_${org.id}` : org.name,
       description: anonymize ? 'Anonymized organization' : org.description,
       avatar: anonymize ? maskAvatar : org.avatar,
+      memberCount: org.memberCount ?? 0,
       created_at: org.createdAt ?? org.created_at,
     }));
     res.json({ organizations: shaped });
