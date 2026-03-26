@@ -15,29 +15,7 @@ include:
 volumes:
   pg_data:
   backend_node_modules:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./backend/node_modules
   frontend_node_modules:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./frontend/node_modules
-  backend_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./backend
-  frontend_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./frontend
   ssl:
     driver: local
     driver_opts:
