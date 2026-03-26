@@ -15,7 +15,7 @@ services:
 
       # ── Infrastructure (non-secret) ───────────────────────────
       DB_HOST: postgres
-      DB_PORT: 5432
+      DB_PORT: ${DB_PORT:-5432}
 
       # ── App config (non-secret) ───────────────────────────────
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
