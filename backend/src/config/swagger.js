@@ -11,7 +11,7 @@ const options = {
       title: 'AlpacaParty API',
       version: '0.1.0',
       description: `
-REST API for the **AlpacaParty** multiplayer card-game social platform.
+REST API for the **AlpacaParty** multiplayer social platform.
 
 ## Quick start
 1. Call **POST /auth/register** or **POST /auth/login**
