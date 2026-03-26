@@ -44,7 +44,6 @@ export function shapeUserForClient(u) {
     coins: u.coins,
     upgrades: u.upgrades,
     status: u.status,
-    isAdmin: !!u.isAdmin,
     is_public: u.isPublic,
     is_admin: !!u.isAdmin,
     is_online: u.isOnline,

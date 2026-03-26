@@ -9,7 +9,7 @@ listener "tcp" {
 }
 
 api_addr     = "https://vault:8200"
-cluster_addr = "http://vault:8201"
+cluster_addr = "https://vault:8201"
 ui           = true
 log_level    = "warn"
 

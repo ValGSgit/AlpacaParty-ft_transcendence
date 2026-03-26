@@ -14,8 +14,6 @@ CREATE TABLE "users" (
     "is_public" BOOLEAN DEFAULT true,
     "is_online" BOOLEAN DEFAULT false,
     "is_admin" BOOLEAN DEFAULT false,
-    "two_factor_enabled" BOOLEAN DEFAULT false,
-    "two_factor_secret" VARCHAR(255),
     "oauth_provider" VARCHAR(20),
     "oauth_id" VARCHAR(255),
     "xp" INTEGER DEFAULT 0,
@@ -113,7 +111,7 @@ CREATE TABLE "games" (
     "player1_score" INTEGER DEFAULT 0,
     "player2_score" INTEGER DEFAULT 0,
     "status" VARCHAR(20) DEFAULT 'waiting',
-    "game_type" VARCHAR(30) DEFAULT 'pong',
+    "game_type" VARCHAR(30) DEFAULT 'spit_royale',
     "game_data" JSONB DEFAULT '{}',
     "started_at" TIMESTAMPTZ,
     "finished_at" TIMESTAMPTZ,
@@ -126,7 +124,7 @@ CREATE TABLE "games" (
 CREATE TABLE "game_stats" (
     "id" SERIAL NOT NULL,
     "user_id" INTEGER NOT NULL,
-    "game_type" VARCHAR(30) NOT NULL DEFAULT 'pong',
+    "game_type" VARCHAR(30) NOT NULL DEFAULT 'spit_royale',
     "wins" INTEGER DEFAULT 0,
     "losses" INTEGER DEFAULT 0,
     "draws" INTEGER DEFAULT 0,
@@ -203,6 +201,8 @@ CREATE TABLE "posts" (
     "image_url" VARCHAR(512),
     "is_public" BOOLEAN DEFAULT true,
     "likes_count" INTEGER DEFAULT 0,
+    "comments_count" INTEGER DEFAULT 0,
+    "reposts_count" INTEGER DEFAULT 0,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -217,6 +217,29 @@ CREATE TABLE "post_likes" (
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "post_likes_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "comments" (
+    "id" SERIAL NOT NULL,
+    "post_id" INTEGER NOT NULL,
+    "author_id" INTEGER NOT NULL,
+    "content" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "comments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "reposts" (
+    "id" SERIAL NOT NULL,
+    "post_id" INTEGER NOT NULL,
+    "author_id" INTEGER NOT NULL,
+    "comment" TEXT,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "reposts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -358,6 +381,15 @@ CREATE INDEX "posts_author_id_idx" ON "posts"("author_id");
 CREATE UNIQUE INDEX "post_likes_post_id_user_id_key" ON "post_likes"("post_id", "user_id");
 
 -- CreateIndex
+CREATE INDEX "comments_post_id_idx" ON "comments"("post_id");
+
+-- CreateIndex
+CREATE INDEX "reposts_post_id_idx" ON "reposts"("post_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "reposts_post_id_author_id_key" ON "reposts"("post_id", "author_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "organizations_name_key" ON "organizations"("name");
 
 -- CreateIndex
@@ -452,6 +484,18 @@ ALTER TABLE "post_likes" ADD CONSTRAINT "post_likes_post_id_fkey" FOREIGN KEY ("
 
 -- AddForeignKey
 ALTER TABLE "post_likes" ADD CONSTRAINT "post_likes_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "comments" ADD CONSTRAINT "comments_post_id_fkey" FOREIGN KEY ("post_id") REFERENCES "posts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "comments" ADD CONSTRAINT "comments_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "reposts" ADD CONSTRAINT "reposts_post_id_fkey" FOREIGN KEY ("post_id") REFERENCES "posts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "reposts" ADD CONSTRAINT "reposts_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "organizations" ADD CONSTRAINT "organizations_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

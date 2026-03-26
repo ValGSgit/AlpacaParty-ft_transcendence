@@ -126,7 +126,7 @@ onMounted(async () => {
 
 async function sendFriendRequest() {
   try {
-    await api.post('/friends/requests', { receiverId: profile.value.id })
+    await api.post('/friends/requests', { userId: profile.value.id })
     alert('Friend request sent!')
   } catch (e) {
     alert(e.response?.data?.error?.message || 'Failed to send request')

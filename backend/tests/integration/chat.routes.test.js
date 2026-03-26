@@ -200,6 +200,7 @@ describe('POST /api/chat/rooms/:id/members', () => {
 // ── DELETE /api/chat/rooms/:id/members/:userId ────────────────
 describe('DELETE /api/chat/rooms/:id/members/:userId', () => {
   test('200 — removes member', async () => {
+    mockPrisma.chatRoom.findUnique.mockResolvedValueOnce({ id: 10, name: 'General', ownerId: 1, isPrivate: false });
     // ChatRoom.removeMember → chatRoomMember.deleteMany
     const res = await auth(request.delete('/api/chat/rooms/10/members/2'));
     expect(res.status).toBe(200);

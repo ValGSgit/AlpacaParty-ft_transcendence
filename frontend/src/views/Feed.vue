@@ -355,7 +355,18 @@ async function deleteComment(post, comment) {
 
 // ── Repost ────────────────────────────────────────────────────────────────
 
-function openRepostModal(post) {
+async function openRepostModal(post) {
+  if (post.user_reposted) {
+    // Already reposted — toggle off immediately without opening modal
+    try {
+      await api.delete(`/posts/${post.id}/repost`)
+      post.reposts_count = Math.max(0, (post.reposts_count || 1) - 1)
+      post.user_reposted = false
+    } catch (e) {
+      error.value = e.response?.data?.error?.message || 'Failed to remove repost'
+    }
+    return
+  }
   repostModalPost.value = post
   repostComment.value = ''
 }
@@ -375,16 +386,7 @@ async function submitRepost(withComment) {
     post.user_reposted = true
     closeRepostModal()
   } catch (e) {
-    const msg = e.response?.data?.error?.message
-    if (msg === 'Already reposted') {
-      // toggle off
-      await api.delete(`/posts/${post.id}/repost`)
-      post.reposts_count = Math.max(0, (post.reposts_count || 1) - 1)
-      post.user_reposted = false
-      closeRepostModal()
-    } else {
-      error.value = msg || 'Failed to repost'
-    }
+    error.value = e.response?.data?.error?.message || 'Failed to repost'
   }
 }
 
