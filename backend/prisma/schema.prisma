@@ -16,8 +16,6 @@ model User {
   email     String    @unique @db.VarChar(255)
   avatar    String?   @default("/avatars/default.svg") @db.VarChar(512)
   bio       String?   @default("") @db.Text
-  coins     Int?      @default(10)
-  upgrades  Int?      @default(0)
   status    String?   @default("Hey there! I am using AlpacaParty") @db.VarChar(255)
   isOnline  Boolean?  @default(false) @map("is_online")
   lastSeen  DateTime? @default(now()) @map("last_seen") @db.Timestamptz
@@ -67,7 +65,7 @@ model UserAuth {
   oauthId          String?
 
   // Relations
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int  @unique
 
   @@unique([oauthProvider, oauthId], name: "idx_users_oauth")
@@ -79,7 +77,7 @@ model UserStats {
   level Int? @default(1)
 
   // Relations
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int  @unique
 
   @@map("user_stats")
@@ -90,7 +88,7 @@ model UserSettings {
   isAdmin  Boolean? @default(false) @map("is_admin")
 
   // Relations
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int  @unique
 
   @@index([isPublic])
@@ -111,7 +109,7 @@ model FriendRequest {
 
   @@unique([senderId, receiverId])
   @@index([receiverId])
-  @@map("friend_requests")
+  @@map("friend_request")
 }
 
 // ── Friends ──────────────────────────────────────────────────────────────
@@ -398,9 +396,10 @@ model File {
 // ── Alpaca Farm ──────────────────────────────────────────────────────────
 model AlpacaFarm {
   id        Int      @id @default(autoincrement())
-  farmData  Json?    @default("{\"alpacas\":[],\"resources\":{\"gold\":100,\"food\":50},\"level\":1}") @map("farm_data")
-  alpacas   Json?    @default("[]")
   items     Json?    @default("[]")
+  alpacas   Json?    @default("[]")
+  coins     Int?     @default(10)
+  upgrades  Int?     @default(0)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations

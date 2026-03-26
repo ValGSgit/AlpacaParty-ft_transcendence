@@ -19,11 +19,12 @@
  *   - Network errors produce a warning and the app falls back to env vars.
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync } from "fs";
 
-const VAULT_PATH    = 'secret/data/alpacaparty';
+const VAULT_PATH = "secret/data/alpacaparty";
 // Path where vault-init writes the auto-generated service token
-const VAULT_KEYS_FILE = process.env.VAULT_KEYS_FILE || '/run/vault-keys/keys.env';
+const VAULT_KEYS_FILE =
+  process.env.VAULT_KEYS_FILE || "/run/vault-keys/keys.env";
 
 /**
  * Read a single KEY=value line from a flat env file.
@@ -31,39 +32,38 @@ const VAULT_KEYS_FILE = process.env.VAULT_KEYS_FILE || '/run/vault-keys/keys.env
  */
 function readKeyFromFile(filePath, key) {
   try {
-    const content = readFileSync(filePath, 'utf8');
-    const match = content.match(new RegExp(`^${key}=(.+)$`, 'm'));
+    const content = readFileSync(filePath, "utf8");
+    const match = content.match(new RegExp(`^${key}=(.+)$`, "m"));
     return match ? match[1].trim() : undefined;
   } catch {
     return undefined;
   }
 }
 
-
 // Dev-mode placeholder values that Vault should replace.
 const DEV_PLACEHOLDERS = new Set([
-  'changeme',
-  'test-api-key',
-  'dev-secret-change-me',
-  'YouCouldLeaveThisAsIsIDGAF',
-  '',
+  "changeme",
+  "test-api-key",
+  "dev-secret-change-me",
+  "YouCouldLeaveThisAsIsIDGAF",
+  "",
 ]);
 
 // Vault key → environment variable name.
 // Add new secrets here AND to vault/init/seed.sh.
 const KEY_MAP = {
-  db_password:          'DB_PASSWORD',
-  db_user:              'DB_USER',
-  db_name:              'DB_NAME',
-  jwt_secret:           'JWT_SECRET',
-  api_keys:             'API_KEYS',
-  groq_api_key:         'GROQ_API_KEY',
-  huggingface_api_key:  'HUGGINGFACE_API_KEY',
-  google_client_id:     'GOOGLE_CLIENT_ID',
-  google_client_secret: 'GOOGLE_CLIENT_SECRET',
-  github_client_id:     'GITHUB_CLIENT_ID',
-  github_client_secret: 'GITHUB_CLIENT_SECRET',
-  mod_users:            'MOD_USERS',
+  db_password: "DB_PASSWORD",
+  db_user: "DB_USER",
+  db_name: "DB_NAME",
+  jwt_secret: "JWT_SECRET",
+  api_keys: "API_KEYS",
+  groq_api_key: "GROQ_API_KEY",
+  huggingface_api_key: "HUGGINGFACE_API_KEY",
+  google_client_id: "GOOGLE_CLIENT_ID",
+  google_client_secret: "GOOGLE_CLIENT_SECRET",
+  github_client_id: "GITHUB_CLIENT_ID",
+  github_client_secret: "GITHUB_CLIENT_SECRET",
+  mod_users: "MOD_USERS",
 };
 
 /**
@@ -75,27 +75,30 @@ export async function loadVaultSecrets() {
   // Read at call time — NOT at module load time. Module-scope reads get captured
   // before Docker injects the real values, which breaks secret resolution.
   const vaultAddr = process.env.VAULT_ADDR;
-  const isProd    = process.env.NODE_ENV === 'production';
+  const isProd = process.env.NODE_ENV === "production";
 
   // VAULT_TOKEN: prefer env var, then fall back to the keys file written by vault-init.
   // This allows fully-automated token management with no manual .env editing.
-  const vaultToken = process.env.VAULT_TOKEN || readKeyFromFile(VAULT_KEYS_FILE, 'VAULT_TOKEN');
+  const vaultToken =
+    process.env.VAULT_TOKEN || readKeyFromFile(VAULT_KEYS_FILE, "VAULT_TOKEN");
 
   if (!vaultAddr || !vaultToken) {
     if (isProd) {
       throw new Error(
-        '[vault] VAULT_ADDR must be set and VAULT_TOKEN must be available ' +
-        `(env var or ${VAULT_KEYS_FILE}) in production`
+        "[vault] VAULT_ADDR must be set and VAULT_TOKEN must be available " +
+          `(env var or ${VAULT_KEYS_FILE}) in production`,
       );
     }
-    console.info('[vault] VAULT_ADDR/VAULT_TOKEN not set — skipping Vault, using env vars directly.');
+    console.info(
+      "[vault] VAULT_ADDR/VAULT_TOKEN not set — skipping Vault, using env vars directly.",
+    );
     return;
   }
 
   let data;
   try {
     const res = await fetch(`${vaultAddr}/v1/${VAULT_PATH}`, {
-      headers: { 'X-Vault-Token': vaultToken },
+      headers: { "X-Vault-Token": vaultToken },
     });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
@@ -109,7 +112,7 @@ export async function loadVaultSecrets() {
       throw new Error(`${msg} — refusing to start without secrets`);
     }
     console.warn(msg);
-    console.warn('[vault] Falling back to environment variables.');
+    console.warn("[vault] Falling back to environment variables.");
     return;
   }
 
@@ -136,19 +139,18 @@ export async function loadVaultSecrets() {
   // never embedded in the container environment and always stays in sync with
   // DB_PASSWORD. DB_HOST and DB_PORT are infrastructure config (not secrets) and
   // come from the compose env.
-  const dbUser     = process.env.DB_USER;
+  const dbUser = process.env.DB_USER;
   const dbPassword = process.env.DB_PASSWORD;
-  const dbName     = process.env.DB_NAME;
-  const dbHost     = process.env.DB_HOST || 'postgres';
-  const dbPort     = process.env.DB_PORT || '5432';
+  const dbName = process.env.DB_NAME;
+  const dbHost = process.env.DB_HOST || "postgres";
+  const dbPort = process.env.DB_PORT || "5432";
 
   if (dbUser && dbPassword && dbName) {
-    process.env.DATABASE_URL =
-      `postgresql://${dbUser}:${encodeURIComponent(dbPassword)}@${dbHost}:${dbPort}/${dbName}`;
+    process.env.DATABASE_URL = `postgresql://${dbUser}:${encodeURIComponent(dbPassword)}@${dbHost}:${dbPort}/${dbName}`;
   }
 
   console.info(
     `[vault] Loaded ${Object.keys(data).length} secret(s) from ${vaultAddr}; ` +
-    `injected ${injected} into process.env`,
+      `injected ${injected} into process.env`,
   );
 }

@@ -11,17 +11,7 @@ const SAFE_SELECT = {
   email: true,
   avatar: true,
   bio: true,
-  alpacas: true,
-  items: true,
-  coins: true,
-  upgrades: true,
   status: true,
-  isPublic: true,
-  isOnline: true,
-  isAdmin: true,
-  oauthProvider: true,
-  xp: true,
-  level: true,
   lastSeen: true,
   createdAt: true,
   updatedAt: true,
@@ -133,9 +123,9 @@ const User = {
   },
 
   async updatePassword(id, passwordHash) {
-    await prisma.user.update({
-      where: { id: Number(id) },
-      data: { passwordHash },
+    await prisma.userAuth.update({
+      where: { userId: id },
+      data: { passwordHash: passwordHash },
     });
   },
 

@@ -8,6 +8,9 @@ import Achievement from "../models/Achievement.js";
 import AuthService from "../services/authService.js";
 import { oauthTokensForUser } from "../services/oauthService.js";
 import config from "../config/index.js";
+import { customValidationResult } from "#validators/validatorUtils.js";
+import prisma from "#lib/prisma.js";
+import CustomError from "#utils/CustomError.js";
 
 /**
  * POST /api/auth/register
@@ -70,21 +73,20 @@ export const login = async (req, res, next) => {
     // Allow login with username or email
     const user = await prisma.user.findFirst({
       where: { OR: [{ username: username }, { email: username }] },
+      include: { userAuth: true },
     });
     if (!user) throw new CustomError("Invalid credentials", 401);
 
+    // console.log(`${user}`);
+    console.log(JSON.stringify(user, null, 2));
+
     const valid = await AuthService.comparePassword(
       password,
-      user.password_hash,
+      user.userAuth.passwordHash,
     );
     if (!valid) throw new CustomError("Invalid credentials", 401);
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { isOnline: true },
-    });
-
-    await User.setOnline();
+    await User.setOnline(user.id);
 
     const accessToken = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
@@ -108,10 +110,7 @@ export const login = async (req, res, next) => {
 export const logout = async (req, res, next) => {
   try {
     if (req.user) {
-      await prisma.user.update({
-        where: { id: req.user.id },
-        data: { isOnline: false },
-      });
+      await User.setOffline(req.user.id);
     }
     res.json({ message: "Logged out" });
   } catch (err) {
@@ -143,6 +142,12 @@ export const refresh = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * GET /api/auth/me
+ */
+export const me = async (req, res) =>
+  res.json({ user: shapeUserForClient(req.user) });
 
 /** OAuth callback (Google / GitHub) */
 export const oauthCallback = (req, res) => {

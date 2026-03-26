@@ -8,7 +8,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    container_name: alpacaparty_backend_prod
+    container_name: backend_prod
     environment:
       NODE_ENV: production
       PORT: ${API_PORT:-3000}
@@ -34,7 +34,6 @@ services:
       # No manual token management required.
     volumes:
       - ssl:/app/ssl
-      - ssl:/ssl
       - backend_uploads:/app/uploads
       # Read-only access to the keys written by vault-init (VAULT_TOKEN)
       - vault_keys:/run/vault-keys:ro

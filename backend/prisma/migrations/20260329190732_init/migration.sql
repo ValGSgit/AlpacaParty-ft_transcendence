@@ -5,8 +5,6 @@ CREATE TABLE "user" (
     "email" VARCHAR(255) NOT NULL,
     "avatar" VARCHAR(512) DEFAULT '/avatars/default.svg',
     "bio" TEXT DEFAULT '',
-    "coins" INTEGER DEFAULT 10,
-    "upgrades" INTEGER DEFAULT 0,
     "status" VARCHAR(255) DEFAULT 'Hey there! I am using AlpacaParty',
     "is_online" BOOLEAN DEFAULT false,
     "last_seen" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -44,7 +42,7 @@ CREATE TABLE "user_settings" (
 );
 
 -- CreateTable
-CREATE TABLE "friend_requests" (
+CREATE TABLE "friend_request" (
     "id" SERIAL NOT NULL,
     "sender_id" INTEGER NOT NULL,
     "receiver_id" INTEGER NOT NULL,
@@ -52,7 +50,7 @@ CREATE TABLE "friend_requests" (
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "friend_requests_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "friend_request_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -276,9 +274,10 @@ CREATE TABLE "file" (
 -- CreateTable
 CREATE TABLE "alpaca_farm" (
     "id" SERIAL NOT NULL,
-    "farm_data" JSONB DEFAULT '{"alpacas":[],"resources":{"gold":100,"food":50},"level":1}',
-    "alpacas" JSONB DEFAULT '[]',
     "items" JSONB DEFAULT '[]',
+    "alpacas" JSONB DEFAULT '[]',
+    "coins" INTEGER DEFAULT 10,
+    "upgrades" INTEGER DEFAULT 0,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "user_id" INTEGER NOT NULL,
 
@@ -331,10 +330,10 @@ CREATE UNIQUE INDEX "user_settings_userId_key" ON "user_settings"("userId");
 CREATE INDEX "user_settings_is_public_idx" ON "user_settings"("is_public");
 
 -- CreateIndex
-CREATE INDEX "friend_requests_receiver_id_idx" ON "friend_requests"("receiver_id");
+CREATE INDEX "friend_request_receiver_id_idx" ON "friend_request"("receiver_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "friend_requests_sender_id_receiver_id_key" ON "friend_requests"("sender_id", "receiver_id");
+CREATE UNIQUE INDEX "friend_request_sender_id_receiver_id_key" ON "friend_request"("sender_id", "receiver_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "friend_user_id_friend_id_key" ON "friend"("user_id", "friend_id");
@@ -406,19 +405,19 @@ CREATE UNIQUE INDEX "password_reset_token_token_key" ON "password_reset_token"("
 CREATE INDEX "data_request_user_id_idx" ON "data_request"("user_id");
 
 -- AddForeignKey
-ALTER TABLE "user_auth" ADD CONSTRAINT "user_auth_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "user_auth" ADD CONSTRAINT "user_auth_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "user_stats" ADD CONSTRAINT "user_stats_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "user_stats" ADD CONSTRAINT "user_stats_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "user_settings" ADD CONSTRAINT "user_settings_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "friend_requests" ADD CONSTRAINT "friend_requests_sender_id_fkey" FOREIGN KEY ("sender_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "friend_request" ADD CONSTRAINT "friend_request_sender_id_fkey" FOREIGN KEY ("sender_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "friend_requests" ADD CONSTRAINT "friend_requests_receiver_id_fkey" FOREIGN KEY ("receiver_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "friend_request" ADD CONSTRAINT "friend_request_receiver_id_fkey" FOREIGN KEY ("receiver_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "friend" ADD CONSTRAINT "friend_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -21,19 +21,18 @@ const Achievement = {
    * Unlock an achievement for a user. Returns null if already unlocked.
    */
   async unlock(userId, achievementKey) {
-    const achievement = prisma.achievement.findFirst({
+    const achievement = await prisma.achievement.findFirst({
       where: { key: achievementKey },
     });
 
-    // Use upsert to avoid unique constraint errors
     await prisma.userAchievement.upsert({
       where: {
         userId_achievementId: {
           userId: Number(userId),
-          achievementId: achievement.id,
+          achievementId: Number(achievement.id),
         },
       },
-      update: {}, // do nothing if exists
+      update: {}, // No changes if it already exists
       create: {
         userId: Number(userId),
         achievementId: achievement.id,

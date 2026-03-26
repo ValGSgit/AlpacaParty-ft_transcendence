@@ -1,16 +1,16 @@
-import api from '../../services/api.js'
-import { useAuthStore } from '../../stores/auth.js'
-import { gAlpacas, gItems, gUser } from './globals.js'
+import api from "../../services/api.js";
+import { useAuthStore } from "../../stores/auth.js";
+import { gAlpacas, gItems, gUser } from "./globals.js";
 
-const { isAuthenticated } = useAuthStore()
+const { isAuthenticated } = useAuthStore();
 
 export async function saveGame() {
   if (!isAuthenticated) {
-    console.log("user not logged in, not saving")
-    return
+    console.log("user not logged in, not saving");
+    return;
   }
 
-  const saveAlpacas = gAlpacas.map(alpaca => {
+  const saveAlpacas = gAlpacas.map((alpaca) => {
     return {
       name: alpaca.model.name,
       color: alpaca.color,
@@ -24,25 +24,25 @@ export async function saveGame() {
     };
   });
 
-  const saveItems = gItems.map(item => {
+  const saveItems = gItems.map((item) => {
     return {
       path: item.path,
       position: item.model.position.toArray(),
       rotation: item.model.rotation.y,
       scale: item.model.scale.toArray(),
-      name: item.model.name
+      name: item.model.name,
     };
   });
 
   try {
-    await api.put('users/me', {
+    await api.put("users/me/farmData", {
       items: saveItems,
       alpacas: saveAlpacas,
       coins: gUser.value.coins,
-      upgrades: gUser.value.upgrades
-    })
-    console.log('✅ Farm stats synced to server')
+      upgrades: gUser.value.upgrades,
+    });
+    console.log("✅ Farm stats synced to server");
   } catch (error) {
-    console.error('Failed to sync farm stats:', error)
+    console.error("Failed to sync farm stats:", error);
   }
 }

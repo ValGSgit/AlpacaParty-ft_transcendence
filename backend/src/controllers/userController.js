@@ -6,13 +6,16 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { InferenceClient } from "@huggingface/inference";
-import User, { shapeUserForClient } from "../models/User.js";
-import AuthService from "../services/authService.js";
-import DataExportService from "../services/dataExportService.js";
-import DataRequest from "../models/DataRequest.js";
-import NotificationService from "../services/notificationService.js";
-import Friend from "../models/Friend.js";
-import config from "../config/index.js";
+import User, { shapeUserForClient } from "#models/User.js";
+import AuthService from "#services/authService.js";
+import DataExportService from "#services/dataExportService.js";
+import DataRequest from "#models/DataRequest.js";
+import NotificationService from "#services/notificationService.js";
+import config from "#config/index.js";
+import { customValidationResult } from "#validators/validatorUtils.js";
+import prisma from "#lib/prisma.js";
+import CustomError from "#utils/CustomError.js";
+import { getPagination } from "#utils/pagination.js";
 
 /**
  * GET /api/users/me
@@ -92,11 +95,7 @@ export const changePassword = async (req, res, next) => {
     if (!valid) throw new CustomError("Current password is incorrect", 401);
 
     const hash = await AuthService.hashPassword(newPassword);
-    await prisma.userAuth.update({
-      where: { userId: id },
-      data: { passwordHash: hash },
-    });
-
+    await User.updatePassword(id, hash);
     res.json({ message: "Password updated" });
   } catch (err) {
     next(err);
@@ -133,7 +132,7 @@ export const listUsers = async (req, res, next) => {
 
     let whereRule = {};
     if (!req.user.is_admin) {
-      whereRule = { isPublic: true };
+      whereRule = { userSettings: { isPublic: true } };
     }
 
     const users = await prisma.user.findMany({
@@ -147,6 +146,8 @@ export const listUsers = async (req, res, next) => {
 
     // Fetch the total count of users (to calculate total pages)
     const totalUsers = await prisma.user.count();
+
+    console.log(`users: ${totalUsers}`);
 
     // Calculate total pages
     const totalPages = Math.ceil(totalUsers / pageSizeNumber);
@@ -240,9 +241,13 @@ export const generateAvatar = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user || user.coins < IMAGE_GENERATION_COST) {
-      return res.status(402).json({ error: { message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.` } });
+      return res.status(402).json({
+        error: {
+          message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.`,
+        },
+      });
     }
-    const result = await _callHuggingFace(req, res, 'avatar');
+    const result = await _callHuggingFace(req, res, "avatar");
     if (!result) return;
     const { buffer, ext } = result;
     const filename = `avatar-${req.user.id}-${crypto.randomBytes(8).toString("hex")}${ext}`;
@@ -250,7 +255,10 @@ export const generateAvatar = async (req, res, next) => {
     fs.mkdirSync(config.uploads.dir, { recursive: true });
     fs.writeFileSync(filepath, buffer);
     const avatarUrl = `/uploads/${filename}`;
-    const updatedUser = await User.update(req.user.id, { avatar: avatarUrl, coins: user.coins - IMAGE_GENERATION_COST });
+    const updatedUser = await User.update(req.user.id, {
+      avatar: avatarUrl,
+      coins: user.coins - IMAGE_GENERATION_COST,
+    });
     res.json({ user: shapeUserForClient(updatedUser), avatarUrl });
   } catch (err) {
     next(err);
@@ -262,16 +270,22 @@ export const generateImage = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user || user.coins < IMAGE_GENERATION_COST) {
-      return res.status(402).json({ error: { message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.` } });
+      return res.status(402).json({
+        error: {
+          message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.`,
+        },
+      });
     }
-    const result = await _callHuggingFace(req, res, 'image');
+    const result = await _callHuggingFace(req, res, "image");
     if (!result) return;
     const { buffer, ext } = result;
     const filename = `generated-${req.user.id}-${crypto.randomBytes(8).toString("hex")}${ext}`;
     const filepath = path.join(config.uploads.dir, filename);
     fs.mkdirSync(config.uploads.dir, { recursive: true });
     fs.writeFileSync(filepath, buffer);
-    await User.update(req.user.id, { coins: user.coins - IMAGE_GENERATION_COST });
+    await User.update(req.user.id, {
+      coins: user.coins - IMAGE_GENERATION_COST,
+    });
     res.json({ imageUrl: `/uploads/${filename}` });
   } catch (err) {
     next(err);
