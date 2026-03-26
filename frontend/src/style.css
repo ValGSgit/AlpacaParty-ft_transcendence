@@ -208,3 +208,43 @@ input:checked+.slider:before {
   background-color: #000;
   /* Makes the knob pop against the neon track */
 }
+
+/* Container ensures the text floats above the 3D canvas but doesn't block clicks */
+.floating-text-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  /* Let clicks pass right through to the game! */
+  z-index: 500;
+}
+
+/* The actual text styling and animation */
+.floating-text {
+  position: absolute;
+  color: #ffd700;
+  font-size: 28px;
+  font-weight: 900;
+  text-shadow: 0px 3px 0px #b8860b, 0px 4px 6px rgba(0, 0, 0, 0.5);
+
+  /* Run the floatUp animation for 1 second */
+  animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translate(-100%, -50%) translateY(0) scale(0.5);
+  }
+
+  30% {
+    transform: translate(-100%, -50%) translateY(-20px) scale(1.5);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-100%, -50%) translateY(-80px) scale(1);
+  }
+}

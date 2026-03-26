@@ -38,3 +38,4 @@ export async function updateCoins(delta) {
 export function spendCoins(cost) {
   gUser.value.coins -= cost
 }
+

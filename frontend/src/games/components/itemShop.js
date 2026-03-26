@@ -9,6 +9,7 @@ export function itemShop() {
   async function buyItem(path) {
     const item = await createItem(path);
     const model = item.model;
+    //setBlendshape(model, 'furry', 1.0);
     model.userData.cost = 1;
     closeMenus();
     setupPlacement(model);

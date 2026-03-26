@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { alpacaAI } from '../../components/alpacaAI.js';
 import { alpacaHandling } from '../../components/alpacaHandling.js';
 import { CONST } from '../../config/constants.js';
-import { gCollidables, gPlayer, gUI, gUser } from '../globals.js';
+import { gAlpacas, gCollidables, gPlayer, gUI, gUser } from '../globals.js';
 import { removeFromRegistry } from '../removeObjects.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
@@ -143,5 +143,12 @@ export class Alpaca {
         } */
     else
       this.isDead = -1 // dying
+  }
+}
+
+export function updateAlpacas(delta) {
+  for (let i = 0; i < gAlpacas.length; i++) {
+    const alpaca = gAlpacas[i]
+    alpaca.update(delta);
   }
 }

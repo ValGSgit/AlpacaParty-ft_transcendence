@@ -41,7 +41,7 @@ export const CONST = {
   },
 
   get MAX_COINS() {
-    return 5 + gUser.value.upgrades;
+    return 3 + gUser.value.upgrades;
   },
 
   get PLAYER_BACKWARD_SPEED() {

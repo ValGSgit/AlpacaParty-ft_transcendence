@@ -22,6 +22,17 @@
       </template>
     </div>
 
+    <div class="floating-text-container">
+    <div 
+      v-for="popup in floatingTexts" 
+      :key="popup.id" 
+      class="floating-text"
+      :style="{ left: popup.x + 'px', top: popup.y + 'px' }"
+    >
+      {{ popup.text }}
+    </div>
+  </div>
+
     <div class="hud-right">
       <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🪙</button>
       <button class="hud-btn" @click="openShopMenu()" title="Shop">🛍️</button>
@@ -171,11 +182,14 @@ import { alpacaStats } from './components/alpacaStats.js'
 import { updateCoins } from './components/coins.js'
 import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
+import { useFloatingText } from './components/floatingText.js'
 import { itemShop } from './components/itemShop.js'
 import { useShop } from './components/shop.js'
 import { addDebugCoins } from './core/debug.js'
+import { updateAlpacas } from './core/entities/Alpaca.js'
+import { updateCollectables } from './core/entities/Collectable.js'
 import { cleanupFPSstats, initFPSstats } from './core/FPSstats.js'
-import { gAlpacas, gCollectables, gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
+import { gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
 import { changeCamera, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
@@ -203,7 +217,8 @@ const { isAuthenticated } = useAuthStore()
 const { cancelPlacement, deleteItem} =  useEditMode()
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
-const { updateSpits } = alpacaHandling()
+const { updateSpits } = alpacaHandling();
+const { floatingTexts} = useFloatingText();
 
 let animationFrameId
 let cameraUpdate = null;
@@ -249,18 +264,8 @@ const gameLoop = () => {
     }
   }
 
-  for (let i = 0; i < gAlpacas.length; i++) {
-    const alpaca = gAlpacas[i]
-    alpaca.update(delta);
-  }
-
-    if (player && player.model) {
-      for (let i = gCollectables.length - 1; i >= 0; i--) {
-        const coin = gCollectables[i];
-        if (coin.update) coin.update(delta);
-      }
-    }
-
+  updateAlpacas(delta);
+  updateCollectables(player, delta);
   updateCoins(delta);
   updateSpits()
   updateLighting(delta);
