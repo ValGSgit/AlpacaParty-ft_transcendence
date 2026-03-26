@@ -21,7 +21,6 @@ let app;
 let request;
 
 beforeEach(async () => {
-  mockQuery.mockReset();
   app = await createTestApp();
   request = supertest(app);
 });
