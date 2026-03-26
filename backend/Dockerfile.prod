@@ -2,31 +2,46 @@
 # @owner ValGSgit
 # @issue https://github.com/ValGSgit/AlpacaParty/issues/3
 
-FROM node:24-alpine3.22
+# ── Stage 1: Build ────────────────────────────────────────────
+FROM node:24-alpine3.22 AS builder
 
+WORKDIR /app
+
+# Install deps before copying source — layer is only re-built when package*.json changes.
+COPY package*.json ./
+RUN npm install --no-audit --no-fund --loglevel=error
+
+# Copy source (after install so code changes don't bust the npm cache layer).
+COPY . .
+
+# Generate Prisma client, prune devDeps, and clear npm cache — all in one layer
+# so no intermediate fat state is committed to the image.
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate \
+    && npm prune --omit=dev \
+    && npm cache clean --force
+
+# ── Stage 2: Runtime ──────────────────────────────────────────
+FROM node:24-alpine3.22
 
 WORKDIR /app
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-  adduser -S nodejs -u 1001
+    adduser -S nodejs -u 1001
 
-# Copy package files from backend for install
-COPY . .
-
-# Install dependencies (clean build)
-RUN npm install --no-audit --no-fund --loglevel=error
-
-RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate && npm prune --omit=dev
+# Copy only what the server needs to run — no devDeps, no build tooling, no test files.
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/src          ./src
+COPY --from=builder /app/prisma       ./prisma
+COPY --from=builder /app/prisma.config.js ./prisma.config.js
+COPY --from=builder /app/package.json ./package.json
 
 # Create uploads and ssl directories with correct ownership
 RUN mkdir -p /app/uploads /app/ssl && \
-  chown -R nodejs:nodejs /app/uploads /app/ssl
+    chown -R nodejs:nodejs /app/uploads /app/ssl
 
-# Switch to non-root user
 USER nodejs
 
-# Expose backend port
 EXPOSE 3000
 
 # Start the server. Schema is managed by database/init.sql on first init,
