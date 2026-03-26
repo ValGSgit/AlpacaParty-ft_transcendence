@@ -160,18 +160,18 @@ app.use('/uploads', async (req, res, next) => {
         return res.status(403).json({ error: { message: 'Access denied' } });
       }
     }
+
+    // Use 'inline' for images so they render in <img> tags; 'attachment' for others
+    if (IMAGE_MIME_TYPES.has(record?.mimeType)) {
+      res.setHeader('Content-Disposition', 'inline');
+    } else {
+      res.setHeader('Content-Disposition', 'attachment');
+    }
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    next();
   } catch {
     return res.status(500).json({ error: { message: 'File access check failed' } });
   }
-
-  // Use 'inline' for images so they render in <img> tags; 'attachment' for others
-  if (IMAGE_MIME_TYPES.has(record?.mimeType)) {
-    res.setHeader('Content-Disposition', 'inline');
-  } else {
-    res.setHeader('Content-Disposition', 'attachment');
-  }
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  next();
 }, express.static(config.uploads.dir));
 
 // Dev request logging
