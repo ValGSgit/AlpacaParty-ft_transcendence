@@ -3,12 +3,6 @@
  */
 import { jest, describe, test, expect, beforeAll } from '@jest/globals';
 
-// Mock database (imported transitively by config)
-jest.unstable_mockModule('../../../src/config/database.js', () => ({
-  query: jest.fn(),
-  getClient: jest.fn(),
-  default: { on: jest.fn(), query: jest.fn() },
-}));
 
 const { default: AuthService } = await import('../../../src/services/authService.js');
 const { default: config } = await import('../../../src/config/index.js');

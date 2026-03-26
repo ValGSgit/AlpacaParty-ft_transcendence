@@ -3,12 +3,6 @@
  */
 import { jest, describe, test, expect } from '@jest/globals';
 
-// Mock database to prevent pool creation side effects
-jest.unstable_mockModule('../../../src/config/database.js', () => ({
-  query: jest.fn(),
-  getClient: jest.fn(),
-  default: { on: jest.fn(), query: jest.fn() },
-}));
 
 const { default: config } = await import('../../../src/config/index.js');
 
