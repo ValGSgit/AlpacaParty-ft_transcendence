@@ -135,8 +135,19 @@ app.use('/uploads', async (req, res, next) => {
   try {
     const record = await File.findByStoredName(storedName);
 
-    // File not tracked in DB — deny to prevent serving orphaned files
-    if (!record) return res.status(404).json({ error: { message: 'File not found' } });
+    // AI-generated files are saved to disk but not tracked in the File table —
+    // allow serving them if the file exists on disk (images only).
+    if (!record) {
+      const diskPath = path.join(config.uploads.dir, storedName);
+      const mime = storedName.endsWith('.png') ? 'image/png'
+        : storedName.endsWith('.jpg') || storedName.endsWith('.jpeg') ? 'image/jpeg'
+        : storedName.endsWith('.webp') ? 'image/webp' : null;
+      if (mime && IMAGE_MIME_TYPES.has(mime) && fs.existsSync(diskPath)) {
+        res.setHeader('Content-Type', mime);
+        return next();
+      }
+      return res.status(404).json({ error: { message: 'File not found' } });
+    }
 
     // Non-image files require authentication
     if (!IMAGE_MIME_TYPES.has(record.mimeType)) {
@@ -153,7 +164,12 @@ app.use('/uploads', async (req, res, next) => {
     return res.status(500).json({ error: { message: 'File access check failed' } });
   }
 
-  res.setHeader('Content-Disposition', 'attachment');
+  // Use 'inline' for images so they render in <img> tags; 'attachment' for others
+  if (IMAGE_MIME_TYPES.has(record?.mimeType)) {
+    res.setHeader('Content-Disposition', 'inline');
+  } else {
+    res.setHeader('Content-Disposition', 'attachment');
+  }
   res.setHeader('X-Content-Type-Options', 'nosniff');
   next();
 }, express.static(config.uploads.dir));
