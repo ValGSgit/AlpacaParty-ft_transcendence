@@ -10,7 +10,7 @@ export function setupEnvironment(scene) {
   createFloor(scene)
 }
 
-function setupLighting(scene) {
+export function setupLighting(scene) {
   const ambientLight = new THREE.AmbientLight('#ffffff', 0.8)
   const sunLight = new THREE.DirectionalLight('#ffffff', 1.2)
 

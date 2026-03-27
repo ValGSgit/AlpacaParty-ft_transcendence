@@ -1,15 +1,15 @@
-import { CONST } from '../config/constants.js'
-import { gScene, gUser } from '../core/globals.js'
+import { CONST } from '../config/constants.js';
+import { gScene, gUser } from '../core/globals.js';
 
 
 export function useShop() {
 
   const increaseFarmSize = () => {
+    if (!checkCoins(CONST.UPGRADE_COST)) return;
+
     if (gUser.value.upgrades === CONST.MAX_UPGRADES) {
       alert("You reached max upgrades!")
     }
-    else if (gUser.value.coins < CONST.UPGRADE_COST)
-      alert('Not enough coins!')
     else {
       const floor = gScene.value.floor
 
@@ -21,4 +21,12 @@ export function useShop() {
   }
 
   return { increaseFarmSize }
+}
+
+export function checkCoinsPrice(cost) {
+  if (gUser.value.coins < cost) {
+    alert('Not enough coins!');
+    return false;
+  }
+  return true;
 }

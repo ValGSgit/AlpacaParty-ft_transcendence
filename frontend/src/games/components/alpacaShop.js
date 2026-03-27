@@ -1,31 +1,31 @@
 import { reactive } from 'vue';
 import { CONST } from '../config/constants';
 import { createAlpaca } from '../core/createObjects';
-import { gUser } from "../core/globals";
 import { useUIManager } from "../core/useUIManager";
 import { setupPlacement } from './editMode';
+import { checkCoinsPrice } from './shop';
 
 export function alpacaShop() {
   const { closeMenus } = useUIManager()
 
   async function buyAlpaca() {
-    if (gUser.value.coins >= CONST.ALPACA_COST) {
-      const pos = [0, 0, 0];
-      const s = alpacaConfig.scale;
-      const scale = [s, s, s];
-      const alpaca = await createAlpaca(
-        alpacaConfig.name,
-        alpacaConfig.color,
-        pos,
-        0,
-        scale);
-      alpaca.model.userData.cost = 1;
-      closeMenus();
-      resetAlpacaConfig();
-      setupPlacement(alpaca.model);
+    if (!checkCoinsPrice(CONST.ALPACA_COST)) {
+      return;
     }
-    else
-      alert('Not enough coins!')
+
+    const pos = [0, 0, 0];
+    const s = alpacaConfig.scale;
+    const scale = [s, s, s];
+    const alpaca = await createAlpaca(
+      alpacaConfig.name,
+      alpacaConfig.color,
+      pos,
+      0,
+      scale);
+    alpaca.model.userData.cost = 1;
+    closeMenus();
+    resetAlpacaConfig();
+    setupPlacement(alpaca.model);
   }
   return { buyAlpaca }
 }

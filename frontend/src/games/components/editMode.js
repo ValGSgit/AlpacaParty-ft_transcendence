@@ -10,7 +10,6 @@ import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
 import { useUIManager } from '../core/useUIManager.js'
 import { spendCoins } from './coins.js'
 
-
 const pointer = new THREE.Vector2()
 const raycaster = new THREE.Raycaster()
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
@@ -137,7 +136,6 @@ export function useEditMode() {
     if (gEditState.ghost) {
       gEditState.ghost.rotation.y += rotationAmount
     }
-    moveItem(e)
   }
 
   const placeItem = () => {

@@ -1,5 +1,3 @@
-<!---------------------- HTML --------------------------->
-
 <template>
   <div v-if="showLoginWarning" class="modal-overlay">
     <div class="shop-title">Welcome to Alpaca Party!
@@ -7,11 +5,13 @@
       <router-link to="/login" class="shop-btn">Login</router-link>
     </div>
   </div>
+  
   <div ref="gameContainer" class="scene-container"></div>
   <div v-if="!gameIsReady" class="modal-overlay">Loading...</div>
   
   <div v-if="gameIsReady">
-    <div class="hud-left">
+    
+    <div class="hud-container hud-left">
       <div v-if="!gUser.gameMode" class="stat"><span>🪙 {{ gUser.coins }}</span></div>
       <div v-if="gUser.gameMode" class="stat"><span>🦙 {{ gUser.point }} </span></div>
       <template v-if="gUser.gameMode">
@@ -23,17 +23,17 @@
     </div>
 
     <div class="floating-text-container">
-    <div 
-      v-for="popup in floatingTexts" 
-      :key="popup.id" 
-      class="floating-text"
-      :style="{ left: popup.x + 'px', top: popup.y + 'px' }"
-    >
-      {{ popup.text }}
+      <div 
+        v-for="popup in floatingTexts" 
+        :key="popup.id" 
+        class="floating-text"
+        :style="{ left: popup.x + 'px', top: popup.y + 'px' }"
+      >
+        {{ popup.text }}
+      </div>
     </div>
-  </div>
 
-    <div class="hud-right">
+    <div class="hud-container hud-right">
       <button class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🪙</button>
       <button class="hud-btn" @click="openShopMenu()" title="Shop">🛍️</button>
       <button class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
@@ -51,6 +51,21 @@
       </div>
     </div>
     
+    <div v-if="gUI.itemShop" class="modal-overlay">
+      <div class="shop-modal">
+        <div class="shop-title"> Buy Item </div>
+        <div class="itemshop-grid">
+          <button v-for="item in shopItems" :key="item.name" class="itemshop-card" @click="buyItem(item)">
+            <span class="item-name">{{ item.name }}</span>
+            <div class="icon-container">
+              <img :src="item.icon" :alt="item.name" class="item-icon" />
+              <span class="item-cost">{{ item.cost }}🪙</span>
+            </div>
+          </button>
+        </div>
+        <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
+      </div>
+    </div>
     
     <div v-if="gUI.alpacaShop" class="modal-overlay">
       <div class="shop-title">Buy Alpaca
@@ -62,23 +77,21 @@
           <label>Size </label>
           <input type="range" v-model.number="alpacaConfig.scale" min="0.75" max="1.25" step="0.05" />
         </div>
-          <div class="color-grid">
+        <div class="color-grid">
           <button class="shop-btn" @click="alpacaConfig.color = '#795740'; buyAlpaca()" title="Brown">Brown</button>
           <button class="shop-btn" @click="alpacaConfig.color = '#111111'; buyAlpaca()" title="Black">Black</button>
           <button class="shop-btn" @click="alpacaConfig.color = '#555555'; buyAlpaca()" title="Grey">Grey</button>
           <button class="shop-btn" @click="alpacaConfig.color = '#ffffff'; buyAlpaca()" title="White">White</button>
         </div>
-
         <div class="custom-color-row">
           <input type="color" v-model="alpacaConfig.color" class="custom-picker" />
           <button class="shop-btn" @click="buyAlpaca()" title="Custom">Custom</button>
         </div>
-
         <button class="close-btn" @click="closeAlpacaShop()" title="Close">✖️</button>
       </div>
     </div>
     
-<div v-if="gUI.alpacaStats" class="modal-overlay">
+    <div v-if="gUI.alpacaStats" class="modal-overlay">
       <div class="shop-title">Alpaca Stats
         <div class="stats-content" :key="updateVue">
           <div class="stat-row">
@@ -87,31 +100,15 @@
               {{ gPlayer.name }}
               <button class="icon-btn" @click="gUI.isEditingName = true" title="Edit Name">✏️</button>
             </span>
-            
             <span v-else class="editing-mode">
-              <input 
-                type="text" 
-                v-model="gPlayer.name" 
-                @keyup.enter="changeName(gPlayer.name); gUI.isEditingName = false"
-                class="name-input"
-              />
+              <input type="text" v-model="gPlayer.name" @keyup.enter="changeName(gPlayer.name); gUI.isEditingName = false" class="name-input" />
             </span>
           </div>
-
           <div class="stat-row"><strong>Age:</strong> {{ gPlayer.age }}</div>
-          
           <div class="stat-row">
             <strong>Color:</strong> 
-            
-            <input 
-              type="color" 
-              v-model="gPlayer.color" 
-              @input="changeColor(gPlayer.color)"
-              class="custom-picker"
-              title="Change Alpaca Color"
-            />
+            <input type="color" v-model="gPlayer.color" @input="changeColor(gPlayer.color)" class="custom-picker" title="Change Alpaca Color" />
           </div>
-
           <div class="stat-row">
             <strong>Speed:</strong> 
             <span v-if="gPlayer.speedOffset === 0"> Normal</span>
@@ -122,52 +119,40 @@
               <button class="stat-btn" @click="changeSpeed(1)" title="Increase Speed">+</button>
             </div>
           </div>
-
         </div>
-        
         <button class="close-btn" @click="closeAlpacaStats()" title="Close">✖️</button>
       </div>
     </div>
-    
-    <div v-if="gUI.itemShop" class="modal-overlay">
-        <div class="shop-title">Buy Item
-          <button class="shop-btn" @click="buyItem('/models/tree.glb')" title="Tree">Tree</button>
-          <button class="shop-btn" @click="buyItem('/models/fence.glb')" title="Fence">Fence</button>
-          <button class="shop-btn" @click="buyItem('/models/hay.glb')" title="Water">Hay</button>
-          <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
-        </div>
-    </div>
-    
+        
     <div v-if="gUI.editMode" class="edit-mode">
-        Click and Move Item <button class="close-btn" @click="closeEditMode()" title="Close">✖️</button>
+      <div class="shop-title"> Edit Mode
+        <div class="info-text"> Click and Move Item </div>
+        <button class="close-btn" @click="closeEditMode()" title="Close">✖️</button>
+      </div>
     </div>
-
+    
     <div v-if="gUI.editMode && gEditState.selected" class="edit-actions" style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10;">
         <button class="shop-btn" @click="cancelPlacement()">✖️ Cancel</button>
         <button class="shop-btn" @click="deleteItem()" style="background: #ff4444; color: white; border: 2px solid #cc0000;">🗑️ Delete Item</button>
     </div>
 
-<div v-if="gUI.lightMenu" class="modal-overlay">
-        <div class="shop-title">Edit Light
-          <div class="toggle-row">
-            <span>Day/Night Cycle</span>
-            <label class="switch" title="Toggle Auto Cycle">
-              <input 
-                type="checkbox" 
-                :checked="gUI.isLightCycling" 
-                @change="toggleLightCycle()"
-              >
-              <span class="slider"></span>
-            </label>
-          </div>
-          <button class="shop-btn" @click="setTimeOfDay('sunrise')">🌅 Sunrise</button>
-          <button class="shop-btn" @click="setTimeOfDay('day')">☀️ Day</button>
-          <button class="shop-btn" @click="setTimeOfDay('sunset')">🌄 Sunset</button>
-          <button class="shop-btn" @click="setTimeOfDay('night')">🌙 Night</button>
-
-          <button class="close-btn" @click="closeLightMenu()" title="Close">✖️</button>
+    <div v-if="gUI.lightMenu" class="modal-overlay">
+      <div class="shop-title">Edit Light
+        <div class="toggle-row">
+          <span>Day/Night Cycle</span>
+          <label class="switch" title="Toggle Day/Night Cycle">
+            <input type="checkbox" :checked="gUI.isLightCycling" @change="toggleLightCycle()">
+            <span class="slider"></span>
+          </label>
         </div>
+        <button class="shop-btn" @click="setTimeOfDay('sunrise')">🌅 Sunrise</button>
+        <button class="shop-btn" @click="setTimeOfDay('day')">☀️ Day</button>
+        <button class="shop-btn" @click="setTimeOfDay('sunset')">🌄 Sunset</button>
+        <button class="shop-btn" @click="setTimeOfDay('night')">🌙 Night</button>
+        <button class="close-btn" @click="closeLightMenu()" title="Close">✖️</button>
+      </div>
     </div>
+
   </div>
 </template>
 
@@ -212,7 +197,7 @@ const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = useShop()
-const { buyItem } = itemShop()
+const { buyItem, shopItems } = itemShop()
 const { isAuthenticated } = useAuthStore()
 const { cancelPlacement, deleteItem} =  useEditMode()
 const showLoginWarning = ref(false);
@@ -231,6 +216,8 @@ onMounted(async () => {
   else
     showLoginWarning.value = false
   gEngine.value = init()
+
+  //generateIcons();
 
   if (!gEngine.value) {
     console.error('Init failed: Scene not returned from globalEngine.')
