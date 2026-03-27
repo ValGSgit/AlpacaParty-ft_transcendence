@@ -9,6 +9,8 @@ import {
 import { authenticate } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/admin.js';
 import rateLimit from 'express-rate-limit';
+import { validate, z } from '../middleware/validate.js';
+import { positiveId, paginationQuery } from '../schemas/shared.js';
 
 const router = express.Router();
 router.use(authenticate, requireAdmin);
@@ -64,7 +66,9 @@ router.get('/stats', getStats);
  *                 users: { type: array, items: { $ref: '#/components/schemas/User' } }
  *                 total: { type: integer }
  */
-router.get('/users', listUsers);
+router.get('/users', validate({
+  query: paginationQuery.extend({ search: z.string().optional() }),
+}), listUsers);
 
 /**
  * @openapi
@@ -90,7 +94,7 @@ router.get('/users', listUsers);
  *       403: { description: Cannot delete another admin }
  *       404: { description: User not found }
  */
-router.delete('/users/:id', deleteUser);
+router.delete('/users/:id', validate({ params: z.object({ id: positiveId }) }), deleteUser);
 
 /**
  * @openapi
@@ -114,7 +118,7 @@ router.delete('/users/:id', deleteUser);
  *                 user: { $ref: '#/components/schemas/User' }
  *       404: { description: User not found }
  */
-router.put('/users/:id/toggle-admin', toggleAdmin);
+router.put('/users/:id/toggle-admin', validate({ params: z.object({ id: positiveId }) }), toggleAdmin);
 
 /**
  * @openapi
@@ -178,6 +182,12 @@ router.get('/data-requests', listDataRequests);
  *       400: { description: Invalid action }
  *       404: { description: Request not found }
  */
-router.post('/data-requests/:id/process', processDataRequest);
+router.post('/data-requests/:id/process', validate({
+  params: z.object({ id: positiveId }),
+  body:   z.object({
+    action: z.enum(['approve', 'reject']),
+    note:   z.string().nullable().optional(),
+  }),
+}), processDataRequest);
 
 export default router;

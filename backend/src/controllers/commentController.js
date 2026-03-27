@@ -18,9 +18,6 @@ export const getComments = async (req, res, next) => {
 export const createComment = async (req, res, next) => {
   try {
     const { content } = req.body;
-    if (!content?.trim()) return res.status(400).json({ error: { message: 'content is required' } });
-    if (content.length > 2000) return res.status(400).json({ error: { message: 'comment must be 2000 characters or fewer' } });
-
     const post = await Post.findById(Number(req.params.id));
     if (!post) return res.status(404).json({ error: { message: 'Post not found' } });
 
@@ -47,9 +44,6 @@ export const deleteComment = async (req, res, next) => {
 export const repostPost = async (req, res, next) => {
   try {
     const { comment = null } = req.body;
-    if (comment && comment.length > 500) {
-      return res.status(400).json({ error: { message: 'repost comment must be 500 characters or fewer' } });
-    }
     const post = await Post.findById(Number(req.params.id));
     if (!post) return res.status(404).json({ error: { message: 'Post not found' } });
 

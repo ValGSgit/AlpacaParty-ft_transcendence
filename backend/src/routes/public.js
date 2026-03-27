@@ -18,6 +18,8 @@ import {
   listUsers, getUser, getLeaderboard, getPosts, listOrganizations, getMockDataset,
   createPost, updatePost, deletePost,
 } from '../controllers/publicApiController.js';
+import { validate, z } from '../middleware/validate.js';
+import { positiveId, imageUrlSchema } from '../schemas/shared.js';
 
 const router = express.Router();
 
@@ -211,7 +213,13 @@ router.get('/leaderboard', getLeaderboard);
  *                 post: { $ref: '#/components/schemas/Post' }
  */
 router.get('/posts', getPosts);
-router.post('/posts', createPost);
+router.post('/posts', validate({
+  body: z.object({
+    content:  z.string().min(1, 'content is required').max(5000).trim(),
+    authorId: z.coerce.number().int().positive('authorId must be a positive integer'),
+    imageUrl: imageUrlSchema,
+  }),
+}), createPost);
 
 /**
  * @openapi
@@ -266,8 +274,14 @@ router.post('/posts', createPost);
  *                 message: { type: string }
  *       404: { description: Post not found }
  */
-router.put('/posts/:id', updatePost);
-router.delete('/posts/:id', deletePost);
+router.put('/posts/:id', validate({
+  params: z.object({ id: positiveId }),
+  body:   z.object({
+    content:  z.string().min(1).max(5000).trim().optional(),
+    imageUrl: imageUrlSchema,
+  }),
+}), updatePost);
+router.delete('/posts/:id', validate({ params: z.object({ id: positiveId }) }), deletePost);
 
 /**
  * @openapi

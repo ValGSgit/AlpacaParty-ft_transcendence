@@ -7,6 +7,8 @@ import {
   listRooms, createRoom, getRoomMessages, addMember, removeMember, deleteRoom,
 } from '../controllers/chatController.js';
 import { authenticate } from '../middleware/auth.js';
+import { validate, z } from '../middleware/validate.js';
+import { positiveId, paginationQuery } from '../schemas/shared.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -82,7 +84,10 @@ router.get('/unread', getUnreadCount);
  *                 messages: { type: array, items: { $ref: '#/components/schemas/Message' } }
  *       400: { description: Invalid user ID or cannot message yourself }
  */
-router.get('/dm/:userId', getConversation);
+router.get('/dm/:userId', validate({
+  params: z.object({ userId: positiveId }),
+  query:  paginationQuery,
+}), getConversation);
 
 /**
  * @openapi
@@ -124,7 +129,12 @@ router.get('/dm/:userId', getConversation);
  *       400: { description: Room name is required or too long }
  */
 router.get('/rooms', listRooms);
-router.post('/rooms', createRoom);
+router.post('/rooms', validate({
+  body: z.object({
+    name:      z.string().min(1, 'Room name is required').max(100, 'Room name must be 100 characters or fewer').trim(),
+    isPrivate: z.boolean().optional(),
+  }),
+}), createRoom);
 
 /**
  * @openapi
@@ -151,7 +161,10 @@ router.post('/rooms', createRoom);
  *                 messages: { type: array, items: { $ref: '#/components/schemas/Message' } }
  *       403: { description: Not a member of this room }
  */
-router.get('/rooms/:id/messages', getRoomMessages);
+router.get('/rooms/:id/messages', validate({
+  params: z.object({ id: positiveId }),
+  query:  paginationQuery,
+}), getRoomMessages);
 
 /**
  * @openapi
@@ -186,7 +199,10 @@ router.get('/rooms/:id/messages', getRoomMessages);
  *       403: { description: Only the room owner can add members }
  *       404: { description: Room not found }
  */
-router.post('/rooms/:id/members', addMember);
+router.post('/rooms/:id/members', validate({
+  params: z.object({ id: positiveId }),
+  body:   z.object({ userId: z.coerce.number().int().positive({ message: 'userId must be a positive integer' }) }),
+}), addMember);
 
 /**
  * @openapi
@@ -217,7 +233,9 @@ router.post('/rooms/:id/members', addMember);
  *       403: { description: Only the room owner can remove other members }
  *       404: { description: Room not found }
  */
-router.delete('/rooms/:id/members/:userId', removeMember);
+router.delete('/rooms/:id/members/:userId', validate({
+  params: z.object({ id: positiveId, userId: positiveId }),
+}), removeMember);
 
 /**
  * @openapi
@@ -242,6 +260,6 @@ router.delete('/rooms/:id/members/:userId', removeMember);
  *       403: { description: Not the room owner }
  *       404: { description: Room not found }
  */
-router.delete('/rooms/:id', deleteRoom);
+router.delete('/rooms/:id', validate({ params: z.object({ id: positiveId }) }), deleteRoom);
 
 export default router;

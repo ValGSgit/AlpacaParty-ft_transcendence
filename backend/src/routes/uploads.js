@@ -5,6 +5,8 @@ import express from 'express';
 import { uploadFiles, listMyFiles, deleteFile } from '../controllers/uploadController.js';
 import { authenticate } from '../middleware/auth.js';
 import { upload } from '../services/uploadService.js';
+import { validate, z } from '../middleware/validate.js';
+import { positiveId } from '../schemas/shared.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -88,6 +90,6 @@ router.get('/', listMyFiles);
  *       403: { description: Not your file }
  *       404: { description: File not found }
  */
-router.delete('/:id', deleteFile);
+router.delete('/:id', validate({ params: z.object({ id: positiveId }) }), deleteFile);
 
 export default router;

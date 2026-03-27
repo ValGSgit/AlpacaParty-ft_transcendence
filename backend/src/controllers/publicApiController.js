@@ -98,8 +98,6 @@ export const getPosts = async (req, res, next) => {
 export const createPost = async (req, res, next) => {
   try {
     const { content, authorId, imageUrl } = req.body;
-    if (!content?.trim()) return res.status(400).json({ error: { message: 'content is required' } });
-    if (!authorId) return res.status(400).json({ error: { message: 'authorId is required' } });
     const post = await Post.create({ authorId: Number(authorId), content: content.trim(), imageUrl: imageUrl || null });
     res.status(201).json({ post });
   } catch (err) { next(err); }

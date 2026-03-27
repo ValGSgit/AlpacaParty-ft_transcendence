@@ -9,6 +9,8 @@ import {
   exportMyData, requestDeletion, listDataRequests, deleteMe, generateAvatar, generateImage,
 } from '../controllers/userController.js';
 import { authenticate } from '../middleware/auth.js';
+import { validate, z } from '../middleware/validate.js';
+import { positiveId, paginationQuery, usernameSchema, imageUrlSchema } from '../schemas/shared.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -69,7 +71,16 @@ router.use(authenticate);
  *                 message: { type: string, example: "Account deleted" }
  */
 router.get('/me', getMe);
-router.put('/me', updateMe);
+router.put('/me', validate({
+  body: z.object({
+    username:  usernameSchema.optional(),
+    email:     z.string().email('Invalid email format').max(254, 'Email must be 254 characters or fewer').optional(),
+    bio:       z.string().max(500, 'Bio must be 500 characters or fewer').nullable().optional(),
+    status:    z.string().max(200, 'Status must be 200 characters or fewer').nullable().optional(),
+    avatar:    imageUrlSchema,
+    is_public: z.boolean().optional(),
+  }).passthrough(),
+}), updateMe);
 router.delete('/me', deleteMe);
 
 /**
@@ -100,7 +111,12 @@ router.delete('/me', deleteMe);
  *       400: { description: Validation error or same password }
  *       401: { description: Current password is wrong }
  */
-router.put('/me/password', changePassword);
+router.put('/me/password', validate({
+  body: z.object({
+    currentPassword: z.string().min(1, 'currentPassword is required'),
+    newPassword:     z.string().min(8, 'Password must be at least 8 characters'),
+  }),
+}), changePassword);
 
 /**
  * @openapi
@@ -212,7 +228,9 @@ router.get('/me/data-requests', listDataRequests);
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
  */
-router.post('/me/generate-avatar', generateAvatar);
+router.post('/me/generate-avatar', validate({
+  body: z.object({ prompt: z.string().max(200).optional() }),
+}), generateAvatar);
 
 /**
  * @openapi
@@ -258,7 +276,9 @@ router.post('/me/generate-avatar', generateAvatar);
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
  */
-router.post('/me/generate-image', generateImage);
+router.post('/me/generate-image', validate({
+  body: z.object({ prompt: z.string().min(1, 'prompt is required').max(200) }),
+}), generateImage);
 
 /**
  * @openapi
@@ -283,7 +303,9 @@ router.post('/me/generate-image', generateImage);
  *               properties:
  *                 users: { type: array, items: { $ref: '#/components/schemas/User' } }
  */
-router.get('/', listUsers);
+router.get('/', validate({
+  query: paginationQuery.extend({ search: z.string().optional() }),
+}), listUsers);
 
 /**
  * @openapi
@@ -308,6 +330,6 @@ router.get('/', listUsers);
  *                 user: { $ref: '#/components/schemas/User' }
  *       404: { description: User not found or profile is private }
  */
-router.get('/:id', getUser);
+router.get('/:id', validate({ params: z.object({ id: positiveId }) }), getUser);
 
 export default router;

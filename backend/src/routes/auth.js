@@ -8,6 +8,8 @@ import passport from 'passport';
 import rateLimit from 'express-rate-limit';
 import { register, login, logout, refresh, me, oauthCallback } from '../controllers/authController.js';
 import { authenticate } from '../middleware/auth.js';
+import { validate, z } from '../middleware/validate.js';
+import { usernameSchema } from '../schemas/shared.js';
 
 const router = express.Router();
 
@@ -54,7 +56,13 @@ const authLimiter = rateLimit({
  *       400: { description: Validation error }
  *       409: { description: Username or email already taken }
  */
-router.post('/register', authLimiter, register);
+router.post('/register', authLimiter, validate({
+  body: z.object({
+    username: usernameSchema,
+    email: z.string().email('Invalid email format'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+  }),
+}), register);
 
 /**
  * @openapi
@@ -86,7 +94,12 @@ router.post('/register', authLimiter, register);
  *                 user: { $ref: '#/components/schemas/User' }
  *       401: { description: Invalid credentials }
  */
-router.post('/login', authLimiter, login);
+router.post('/login', authLimiter, validate({
+  body: z.object({
+    username: z.string().min(1, 'username is required'),
+    password: z.string().min(1, 'password is required'),
+  }),
+}), login);
 
 /**
  * @openapi
@@ -128,7 +141,9 @@ router.post('/logout', authenticate, logout);
  *                 refreshToken: { type: string }
  *       401: { description: Invalid or expired refresh token }
  */
-router.post('/refresh', refresh);
+router.post('/refresh', validate({
+  body: z.object({ refreshToken: z.string().min(1, 'refreshToken is required') }),
+}), refresh);
 
 /**
  * @openapi

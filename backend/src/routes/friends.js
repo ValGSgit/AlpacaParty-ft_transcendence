@@ -9,6 +9,7 @@ import {
 } from '../controllers/friendController.js';
 import { authenticate } from '../middleware/auth.js';
 import { validate, z } from '../middleware/validate.js';
+import { positiveId } from '../schemas/shared.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -105,7 +106,7 @@ router.post('/requests', validate({ body: z.object({ userId: z.coerce.number().i
  *       403: { description: Not your request to accept }
  *       404: { description: Request not found }
  */
-router.put('/requests/:id/accept', acceptRequest);
+router.put('/requests/:id/accept', validate({ params: z.object({ id: positiveId }) }), acceptRequest);
 
 /**
  * @openapi
@@ -127,7 +128,7 @@ router.put('/requests/:id/accept', acceptRequest);
  *               properties:
  *                 request: { $ref: '#/components/schemas/FriendRequest' }
  */
-router.put('/requests/:id/decline', declineRequest);
+router.put('/requests/:id/decline', validate({ params: z.object({ id: positiveId }) }), declineRequest);
 
 /**
  * @openapi
@@ -150,7 +151,7 @@ router.put('/requests/:id/decline', declineRequest);
  *               properties:
  *                 message: { type: string }
  */
-router.delete('/:id', removeFriend);
+router.delete('/:id', validate({ params: z.object({ id: positiveId }) }), removeFriend);
 
 /**
  * @openapi
@@ -199,6 +200,6 @@ router.post('/block', validate({ body: z.object({ userId: z.coerce.number().int(
  *               properties:
  *                 message: { type: string }
  */
-router.delete('/block/:id', unblockUser);
+router.delete('/block/:id', validate({ params: z.object({ id: positiveId }) }), unblockUser);
 
 export default router;

@@ -7,6 +7,8 @@ import {
   addMember, removeMember,
 } from '../controllers/organizationController.js';
 import { authenticate } from '../middleware/auth.js';
+import { validate, z } from '../middleware/validate.js';
+import { positiveId, paginationQuery, imageUrlSchema } from '../schemas/shared.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -59,8 +61,16 @@ router.use(authenticate);
  *       400: { description: Name is required }
  *       409: { description: Name already taken }
  */
-router.get('/', listOrgs);
-router.post('/', createOrg);
+router.get('/', validate({
+  query: paginationQuery.extend({ search: z.string().optional() }),
+}), listOrgs);
+router.post('/', validate({
+  body: z.object({
+    name:        z.string().min(1, 'Organization name is required').max(100, 'Organization name must be 100 characters or fewer').trim(),
+    description: z.string().max(2000, 'Description must be 2000 characters or fewer').nullable().optional(),
+    avatar:      imageUrlSchema,
+  }),
+}), createOrg);
 
 /**
  * @openapi
@@ -151,9 +161,16 @@ router.get('/mine', listMyOrgs);
  *       403: { description: Not the owner }
  *       404: { description: Organization not found }
  */
-router.get('/:id', getOrg);
-router.put('/:id', updateOrg);
-router.delete('/:id', deleteOrg);
+router.get('/:id', validate({ params: z.object({ id: positiveId }) }), getOrg);
+router.put('/:id', validate({
+  params: z.object({ id: positiveId }),
+  body: z.object({
+    name:        z.string().min(1).max(100).trim().optional(),
+    description: z.string().max(2000).nullable().optional(),
+    avatar:      imageUrlSchema,
+  }),
+}), updateOrg);
+router.delete('/:id', validate({ params: z.object({ id: positiveId }) }), deleteOrg);
 
 /**
  * @openapi
@@ -187,7 +204,10 @@ router.delete('/:id', deleteOrg);
  *       403: { description: Not the owner }
  *       404: { description: Organization or user not found }
  */
-router.post('/:id/members', addMember);
+router.post('/:id/members', validate({
+  params: z.object({ id: positiveId }),
+  body:   z.object({ userId: z.coerce.number().int().positive({ message: 'userId must be a positive integer' }) }),
+}), addMember);
 
 /**
  * @openapi
@@ -217,6 +237,8 @@ router.post('/:id/members', addMember);
  *       403: { description: Not authorized }
  *       404: { description: Organization not found }
  */
-router.delete('/:id/members/:userId', removeMember);
+router.delete('/:id/members/:userId', validate({
+  params: z.object({ id: positiveId, userId: positiveId }),
+}), removeMember);
 
 export default router;

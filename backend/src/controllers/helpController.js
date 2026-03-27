@@ -31,10 +31,6 @@ Your role:
 export const chat = async (req, res, next) => {
   try {
     const { messages } = req.body;
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: { message: 'messages array is required' } });
-    }
-
     const apiKey = config.groqApiKey;
     if (!apiKey) {
       return res.status(503).json({ error: { message: 'Help service is not configured' } });
@@ -81,10 +77,6 @@ export const chat = async (req, res, next) => {
 export const chatStream = async (req, res, next) => {
   try {
     const { messages } = req.body;
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: { message: 'messages array is required' } });
-    }
-
     const apiKey = config.groqApiKey;
     if (!apiKey) {
       return res.status(503).json({ error: { message: 'Help service is not configured' } });

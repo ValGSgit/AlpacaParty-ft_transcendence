@@ -47,7 +47,6 @@ export const getFarm = async (req, res, next) => {
 export const saveFarm = async (req, res, next) => {
   try {
     const farmData = req.body.farmData ?? req.body.farm;
-    if (!farmData) return res.status(400).json({ error: { message: 'farmData is required' } });
     const farm = await Game.updateFarm(req.user.id, farmData);
     res.json({ farm });
   } catch (err) { next(err); }

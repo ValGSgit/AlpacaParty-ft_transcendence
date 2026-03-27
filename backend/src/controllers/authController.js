@@ -14,16 +14,6 @@ export const register = async (req, res, next) => {
   try {
     const { username, email, password } = req.body;
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ error: { message: 'username, email and password are required' } });
-    }
-    if (username.length < 3 || username.length > 32) {
-      return res.status(400).json({ error: { message: 'Username must be 3-32 characters' } });
-    }
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-      return res.status(400).json({ error: { message: 'Username may only contain letters, numbers, hyphens and underscores' } });
-    }
-
     const { valid, errors } = AuthService.validatePassword(password);
     if (!valid) return res.status(400).json({ error: { message: errors.join('. ') } });
 
@@ -50,9 +40,6 @@ export const register = async (req, res, next) => {
 export const login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ error: { message: 'username and password are required' } });
-    }
 
     // Allow login with username or email — findByUsername/Email returns full row (with passwordHash)
     let user = await User.findByUsername(username);
@@ -86,8 +73,6 @@ export const logout = async (req, res, next) => {
 export const refresh = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken) return res.status(400).json({ error: { message: 'refreshToken is required' } });
-
     const decoded = AuthService.verifyToken(refreshToken);
     if (!decoded || decoded.type !== 'refresh') {
       return res.status(401).json({ error: { message: 'Invalid refresh token' } });
