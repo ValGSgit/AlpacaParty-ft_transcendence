@@ -190,7 +190,7 @@ const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = useShop()
 const { buyItem } = itemShop()
-const { isAuthenticated } = useAuthStore()
+//const { isAuthenticated } = useAuthStore()
 const { cancelPlacement, deleteItem} =  useEditMode()
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
@@ -202,6 +202,7 @@ let stopMyWatcher
 let stats;
 
 onMounted(async () => {
+  const { isAuthenticated } = useAuthStore()
   if (!isAuthenticated)
     showLoginWarning.value = true
   else
@@ -246,13 +247,15 @@ const gameLoop = () => {
   }
 
     if (player && player.model) {
+      //console.log(gCollectables.length)
       for (let i = gCollectables.length - 1; i >= 0; i--) {
         const coin = gCollectables[i];
         if (coin.update) coin.update(delta);
       }
     }
 
-  spawnCoins(delta);
+  if (!gUser.value.gameMode)
+    spawnCoins(delta);
   updateSpits()
 
   if (gEngine.value?.controls) {

@@ -86,7 +86,7 @@ export class Alpaca {
   }
 
   update(delta) {
-    if (this.isDead === 1) return;
+    //if (this.isDead === 1) return;
     const player = gPlayer.value;
     const isPlayer = (player && this.model.uuid === player.model.uuid);
 

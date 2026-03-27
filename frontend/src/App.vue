@@ -22,6 +22,7 @@
           <!-- Public links -->
           <router-link to="/docs" class="nav-link" @click="mobileOpen = false">Docs</router-link>
           <router-link to="/showcase" class="nav-link" @click="mobileOpen = false">Showcase</router-link>
+          <router-link to="/game" class="nav-link nav-game" @click="mobileOpen = false">AlpacaFarm</router-link>
 
           <template v-if="authStore.isAuthenticated">
             <!-- Divider -->
@@ -33,7 +34,6 @@
             <router-link to="/messages" class="nav-link" @click="mobileOpen = false">Messages</router-link>
 
             <!-- Game -->
-            <router-link to="/game" class="nav-link nav-game" @click="mobileOpen = false">AlpacaFarm</router-link>
             <router-link to="/spit-royale" class="nav-link nav-game" @click="mobileOpen = false">SpitRoyale</router-link>
 
             <!-- Divider -->

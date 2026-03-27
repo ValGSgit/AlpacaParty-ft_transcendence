@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { createAlpaca, createItem } from '../core/createObjects.js'
+import { createAlpaca, createDecoration, createItem } from '../core/createObjects.js'
 import { gPlayer } from '../core/globals.js'
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js'
 import { loadGameData } from './dataLoader.js'
@@ -68,7 +68,11 @@ export async function initItems(scene, savedItems) {
 async function initSavedItems(savedItems) {
   const loadedItems = new THREE.Group()
   for (const item of savedItems) {
-    const loadedItem = await createItem(item.path, item.position, item.rotation, item.scale);
+    let loadedItem
+    if (item.type === 'item')
+      loadedItem = await createItem(item.path, item.position, item.rotation, item.scale);
+    else
+      loadedItem = await createDecoration(item.path, item.position, item.rotation, item.scale);
     loadedItem.model.name = item.name;
     loadedItems.add(loadedItem.model);
   }

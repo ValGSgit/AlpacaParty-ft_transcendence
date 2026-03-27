@@ -28,3 +28,8 @@ export async function spawnCoins(delta) {
 export function spendCoins(cost) {
   gUser.value.coins -= cost
 }
+
+export function clearCoins() {
+  coinsGroup.children.length = 0
+  isGroupAdded = false
+}
