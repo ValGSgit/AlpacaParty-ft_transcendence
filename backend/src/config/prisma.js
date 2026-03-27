@@ -8,8 +8,6 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import dotenv from 'dotenv';
-import { defineConfig, env } from "prisma/config";
-
 /*
 export default defineConfig({
   schema: "prisma/schema.prisma",

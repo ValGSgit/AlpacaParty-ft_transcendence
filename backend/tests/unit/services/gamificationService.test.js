@@ -11,9 +11,6 @@ const mockPrisma = {
   friend: { count: jest.fn() },
 };
 jest.unstable_mockModule('../../../src/config/prisma.js', () => ({ default: mockPrisma }));
-jest.unstable_mockModule('../../../src/config/database.js', () => ({
-  query: jest.fn(), getClient: jest.fn(), default: { on: jest.fn(), query: jest.fn() },
-}));
 
 // Mock User model
 const mockUser = { addXp: jest.fn() };

@@ -34,7 +34,6 @@
 
             <!-- Game -->
             <router-link to="/game" class="nav-link nav-game" @click="mobileOpen = false">AlpacaFarm</router-link>
-            <router-link to="/spit-royale" class="nav-link nav-game" @click="mobileOpen = false">SpitRoyale</router-link>
 
             <!-- Divider -->
             <span class="nav-divider"></span>
