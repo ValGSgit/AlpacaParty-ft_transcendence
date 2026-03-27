@@ -22,9 +22,9 @@ export const paginationQuery = z.object({
 
 /** Username: 3-32 alphanumeric + hyphens/underscores */
 export const usernameSchema = z
-  .string()
-  .min(3, 'Username must be at least 3 characters')
-  .max(32, 'Username must be 32 characters or fewer')
+  .string({ required_error: 'username is required' })
+  .min(3, 'Username must be 3-32 characters')
+  .max(32, 'Username must be 3-32 characters')
   .regex(/^[a-zA-Z0-9_-]+$/, 'Username may only contain letters, numbers, hyphens and underscores');
 
 /** Optional nullable image/avatar URL (max 2048 chars) */

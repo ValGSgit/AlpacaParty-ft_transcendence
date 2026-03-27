@@ -66,7 +66,7 @@ router.get('/', validate({
 }), listOrgs);
 router.post('/', validate({
   body: z.object({
-    name:        z.string().min(1, 'Organization name is required').max(100, 'Organization name must be 100 characters or fewer').trim(),
+    name:        z.string({ required_error: 'Organization name is required' }).trim().min(1, 'Organization name is required').max(100, 'Organization name must be 100 characters or fewer'),
     description: z.string().max(2000, 'Description must be 2000 characters or fewer').nullable().optional(),
     avatar:      imageUrlSchema,
   }),
@@ -206,7 +206,7 @@ router.delete('/:id', validate({ params: z.object({ id: positiveId }) }), delete
  */
 router.post('/:id/members', validate({
   params: z.object({ id: positiveId }),
-  body:   z.object({ userId: z.coerce.number().int().positive({ message: 'userId must be a positive integer' }) }),
+  body:   z.object({ userId: z.preprocess((v) => (v != null) ? Number(v) : v, z.number({ required_error: 'userId is required', invalid_type_error: 'userId is required' }).int().positive()) }),
 }), addMember);
 
 /**

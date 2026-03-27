@@ -63,7 +63,7 @@ const router = express.Router();
 router.get('/', optionalAuth, validate({ query: paginationQuery }), getFeed);
 router.post('/', authenticate, validate({
   body: z.object({
-    content:   z.string().min(1, 'content is required').max(5000, 'content must be 5000 characters or fewer').trim(),
+    content:   z.string({ required_error: 'content is required' }).trim().min(1, 'content is required').max(5000, 'content must be 5000 characters or fewer'),
     imageUrl:  imageUrlSchema,
     image_url: imageUrlSchema,
     isPublic:  z.boolean().optional(),

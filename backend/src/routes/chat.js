@@ -131,7 +131,7 @@ router.get('/dm/:userId', validate({
 router.get('/rooms', listRooms);
 router.post('/rooms', validate({
   body: z.object({
-    name:      z.string().min(1, 'Room name is required').max(100, 'Room name must be 100 characters or fewer').trim(),
+    name:      z.string({ required_error: 'Room name is required' }).trim().min(1, 'Room name is required').max(100, 'Room name must be 100 characters or fewer'),
     isPrivate: z.boolean().optional(),
   }),
 }), createRoom);

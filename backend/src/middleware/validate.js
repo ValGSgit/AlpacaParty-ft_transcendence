@@ -37,7 +37,8 @@ export function validate(schemas) {
     }
 
     if (Object.keys(errors).length > 0) {
-      return res.status(400).json({ error: { message: 'Validation failed', fields: errors } });
+      const message = errors[Object.keys(errors)[0]];
+      return res.status(400).json({ error: { message, fields: errors } });
     }
 
     next();

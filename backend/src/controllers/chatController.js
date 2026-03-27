@@ -19,6 +19,8 @@ export const listConversations = async (req, res, next) => {
 export const getConversation = async (req, res, next) => {
   try {
     const otherId = Number(req.params.userId);
+    if (!Number.isFinite(otherId) || otherId <= 0)
+      return res.status(400).json({ error: { message: 'Invalid user ID' } });
     if (otherId === req.user.id) return res.status(400).json({ error: { message: 'Cannot message yourself' } });
     const { limit = 50, offset = 0 } = req.query;
     const messages = await Message.getConversation(req.user.id, otherId, {

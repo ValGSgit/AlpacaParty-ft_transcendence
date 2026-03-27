@@ -28,8 +28,17 @@ export const getUserPosts = async (req, res, next) => {
 export const createPost = async (req, res, next) => {
   try {
     const { content, imageUrl, image_url, isPublic = true } = req.body;
+    const trimmed = typeof content === 'string' ? content.trim() : '';
+    if (!content || !trimmed)
+      return res.status(400).json({ error: { message: 'content is required' } });
+    if (trimmed.length > 5000)
+      return res.status(400).json({ error: { message: 'content must be 5000 characters or fewer' } });
     const normalizedImageUrl = imageUrl ?? image_url ?? null;
-    const post = await Post.create({ authorId: req.user.id, content: content.trim(), imageUrl: normalizedImageUrl, isPublic: !!isPublic });
+    if (normalizedImageUrl != null) {
+      if (typeof normalizedImageUrl !== 'string' || normalizedImageUrl.length > 2048)
+        return res.status(400).json({ error: { message: 'invalid imageUrl' } });
+    }
+    const post = await Post.create({ authorId: req.user.id, content: trimmed, imageUrl: normalizedImageUrl, isPublic: !!isPublic });
     await GamificationService.checkPostAchievements(req.user.id);
     res.status(201).json({ post });
   } catch (err) { next(err); }
@@ -48,7 +57,16 @@ export const getPost = async (req, res, next) => {
 export const updatePost = async (req, res, next) => {
   try {
     const { content, imageUrl, image_url, isPublic } = req.body;
+    if (content !== undefined) {
+      const trimmed = typeof content === 'string' ? content.trim() : '';
+      if (!trimmed || trimmed.length < 1 || trimmed.length > 5000)
+        return res.status(400).json({ error: { message: 'content must be between 1 and 5000 characters' } });
+    }
     const normalizedImageUrl = imageUrl ?? image_url;
+    if (normalizedImageUrl != null) {
+      if (typeof normalizedImageUrl !== 'string' || normalizedImageUrl.length > 2048)
+        return res.status(400).json({ error: { message: 'invalid imageUrl' } });
+    }
     const post = await Post.update(Number(req.params.id), req.user.id, {
       content: content?.trim(), imageUrl: normalizedImageUrl, isPublic,
     });

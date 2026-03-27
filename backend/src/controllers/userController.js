@@ -30,6 +30,19 @@ export const updateMe = async (req, res, next) => {
   try {
     const { username, email, bio, status, avatar, is_public, coins, alpacas, items, upgrades } = req.body;
 
+    if (bio != null && bio.length > 500)
+      return res.status(400).json({ error: { message: 'Bio must be 500 characters or fewer' } });
+    if (status != null && status.length > 200)
+      return res.status(400).json({ error: { message: 'Status must be 200 characters or fewer' } });
+    if (username != null) {
+      if (username.length < 3 || username.length > 32)
+        return res.status(400).json({ error: { message: 'Username must be 3-32 characters' } });
+      if (!/^[a-zA-Z0-9_-]+$/.test(username))
+        return res.status(400).json({ error: { message: 'Username may only contain letters, numbers, hyphens and underscores' } });
+    }
+    if (email != null && email.length > 254)
+      return res.status(400).json({ error: { message: 'Email must be 254 characters or fewer' } });
+
     if (username && username !== req.user.username) {
       const existing = await User.findByUsername(username);
       if (existing) return res.status(409).json({ error: { message: 'Username already taken' } });
@@ -52,6 +65,8 @@ export const updateMe = async (req, res, next) => {
 export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword)
+      return res.status(400).json({ error: { message: 'currentPassword and newPassword are required' } });
     const userWithPw = await User.findByIdWithPassword(req.user.id);
     const valid = await AuthService.comparePassword(currentPassword, userWithPw.passwordHash);
     if (!valid) return res.status(401).json({ error: { message: 'Current password is incorrect' } });

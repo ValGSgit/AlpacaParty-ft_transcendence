@@ -215,8 +215,8 @@ router.get('/leaderboard', getLeaderboard);
 router.get('/posts', getPosts);
 router.post('/posts', validate({
   body: z.object({
-    content:  z.string().min(1, 'content is required').max(5000).trim(),
-    authorId: z.coerce.number().int().positive('authorId must be a positive integer'),
+    content:  z.string({ required_error: 'content is required' }).trim().min(1, 'content is required').max(5000),
+    authorId: z.preprocess((v) => (v != null) ? Number(v) : v, z.number({ required_error: 'authorId is required', invalid_type_error: 'authorId is required' }).int().positive()),
     imageUrl: imageUrlSchema,
   }),
 }), createPost);
