@@ -2,13 +2,16 @@ import api from '../../services/api.js'
 import { useAuthStore } from '../../stores/auth.js'
 import { gAlpacas, gItems, gUser } from './globals.js'
 
-const { isAuthenticated } = useAuthStore()
 
 export async function saveGame() {
+  const { isAuthenticated } = useAuthStore()
   if (!isAuthenticated) {
     console.log("user not logged in, not saving")
     return
   }
+
+  if (gUser.value.gameMode)
+    return
 
   const saveAlpacas = gAlpacas.map(alpaca => {
     return {
@@ -30,7 +33,8 @@ export async function saveGame() {
       position: item.model.position.toArray(),
       rotation: item.model.rotation.y,
       scale: item.model.scale.toArray(),
-      name: item.model.name
+      name: item.model.name,
+      type: item.type
     };
   });
 

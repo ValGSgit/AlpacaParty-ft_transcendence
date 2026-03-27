@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { saveGame } from '../core/saveLoadGame.js'
 import { useGameEngine } from '../core/useGameEngine.js'
-import { gScene, gPlayer, gAlpacas, gUI, gUser} from '../core/globals.js';
+import { gScene, gPlayer, gAlpacas, gUI, gUser, gCollidables} from '../core/globals.js';
 import { initWorld } from '../world/initWorld.js'
 import { createAlpaca, createItem } from '../core/createObjects.js'
 import { useAuthStore } from '../../stores/auth.js'
@@ -9,21 +9,22 @@ import { setupEnvironment } from '../world/sceneBuilder.js'
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js';
 import { CONST } from '../config/constants.js';
 import { registerEntity } from '../core/registerEntity.js';
+import { clearCoins } from '../components/coins.js'
 import * as GRADIENT from "../utils/createGradient.js"
 
 const miniGameContainer = ref(null)
-
-const { isAuthenticated } = useAuthStore()
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
 
 export async function changeGame() {
   if (!gPlayer.value || !gUser.value) return;
 
+  const { isAuthenticated } = useAuthStore()
   gPlayer.value.hp = CONST.HP
   gUser.value.hp = CONST.HP
   gPlayer.value.point = 0
   gUser.value.point = 0
   clearScene(gScene.value)
+  clearCoins()
   resetGArrays()
   if (gUser.value.gameMode === 0)
     initGame1()
