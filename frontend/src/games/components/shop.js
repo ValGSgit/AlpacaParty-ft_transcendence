@@ -5,7 +5,7 @@ import { gScene, gUser } from '../core/globals.js';
 export function useShop() {
 
   const increaseFarmSize = () => {
-    if (!checkCoins(CONST.UPGRADE_COST)) return;
+    if (!checkCoinsPrice(CONST.UPGRADE_COST)) return;
 
     if (gUser.value.upgrades === CONST.MAX_UPGRADES) {
       alert("You reached max upgrades!")
