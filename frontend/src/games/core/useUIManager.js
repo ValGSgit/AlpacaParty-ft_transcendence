@@ -1,5 +1,6 @@
 import { useEditMode } from "../components/editMode";
-import { gEngine, gUI } from "./globals";
+import { gEngine, gUI, gUser } from "./globals";
+import { changeGame } from '../mini_games/init.js'
 
 export function useUIManager() {
 
@@ -11,6 +12,7 @@ export function useUIManager() {
     if (gUI.lightMenu) closeLightMenu();
     if (gUI.editMode) closeEditMode();
     if (gUI.shopMenu) closeShopMenu();
+    if (gUI.gameMenu) closeGameMenu();
   }
 
   const openEditMode = () => {
@@ -71,6 +73,17 @@ export function useUIManager() {
     gUI.lightMenu = false
   }
 
+  const openGameMenu = () => {
+    if (gUser.value.gameMode)
+      changeGame()
+    else
+      gUI.gameMenu = true
+  }
+
+  const closeGameMenu = () => {
+    gUI.gameMenu = false
+  }
+
   return {
     closeMenus,
     openEditMode,
@@ -84,6 +97,8 @@ export function useUIManager() {
     openItemShop,
     closeItemShop,
     openLightMenu,
-    closeLightMenu
+    closeLightMenu,
+    openGameMenu,
+    closeGameMenu
   }
 }

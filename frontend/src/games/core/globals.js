@@ -13,6 +13,7 @@ export const gUI = reactive({
   alpacaStats: false,
   isEditingName: false,
   lightMenu: false,
+  gameMenu: false,
   cameraMode: 0,
   cameraPos: { x: 0, y: 0, z: 0 }
 })
