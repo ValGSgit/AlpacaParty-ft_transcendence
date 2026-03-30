@@ -20,23 +20,13 @@ else
   npm clean-install --ignore-scripts
 fi
 
-# Check if migration folder exists
-if [ -d "prisma/migrations" ]; then
-  echo "Migrations exist"
-  npx prisma migrate dev --url $DATABASE_URL --name init
-else
-  echo "No migrations available"
+# Create migration files from schema if none exist, then apply all pending migrations.
+# migrate dev generates the initial migration on first run (creates the folder),
+# then on subsequent runs it's a no-op when schema is in sync.
+echo "Applying database migrations..."
+npx prisma migrate dev --name init
 
-  # Reset database and apply all migrations (all data will be lost)
-  echo "Reset migrations"
-  npx prisma migrate reset --force --config prisma.config.js
-
-  # Create sql migration file
-  echo "Running Prisma migrate"
-  npx prisma migrate dev --url $DATABASE_URL --name init
-fi
-
-# Generate the client
+# Regenerate client in case node_modules was freshly volume-mounted.
 npx prisma generate
 
 exec "$@"

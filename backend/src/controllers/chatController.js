@@ -19,7 +19,8 @@ export const listConversations = async (req, res, next) => {
 export const getConversation = async (req, res, next) => {
   try {
     const otherId = Number(req.params.userId);
-    if (isNaN(otherId)) return res.status(400).json({ error: { message: 'Invalid user ID' } });
+    if (!Number.isFinite(otherId) || otherId <= 0)
+      return res.status(400).json({ error: { message: 'Invalid user ID' } });
     if (otherId === req.user.id) return res.status(400).json({ error: { message: 'Cannot message yourself' } });
     const { limit = 50, offset = 0 } = req.query;
     const messages = await Message.getConversation(req.user.id, otherId, {
@@ -52,8 +53,6 @@ export const listRooms = async (req, res, next) => {
 export const createRoom = async (req, res, next) => {
   try {
     const { name, isPrivate } = req.body;
-    if (!name?.trim()) return res.status(400).json({ error: { message: 'Room name is required' } });
-    if (name.length > 100) return res.status(400).json({ error: { message: 'Room name must be 100 characters or fewer' } });
     const room = await ChatRoom.create({ name: name.trim(), ownerId: req.user.id, isPrivate: !!isPrivate });
     res.status(201).json({ room });
   } catch (err) { next(err); }
@@ -74,9 +73,11 @@ export const getRoomMessages = async (req, res, next) => {
 export const addMember = async (req, res, next) => {
   try {
     const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: { message: 'userId is required' } });
     const room = await ChatRoom.findById(Number(req.params.id));
     if (!room) return res.status(404).json({ error: { message: 'Room not found' } });
+    if (room.ownerId !== req.user.id && !req.user.isAdmin) {
+      return res.status(403).json({ error: { message: 'Only the room owner can add members' } });
+    }
     const member = await ChatRoom.addMember(room.id, Number(userId));
     res.status(201).json({ member });
   } catch (err) { next(err); }
@@ -85,7 +86,15 @@ export const addMember = async (req, res, next) => {
 /** DELETE /api/chat/rooms/:id/members/:userId */
 export const removeMember = async (req, res, next) => {
   try {
-    await ChatRoom.removeMember(Number(req.params.id), Number(req.params.userId));
+    const roomId = Number(req.params.id);
+    const targetUserId = Number(req.params.userId);
+    const room = await ChatRoom.findById(roomId);
+    if (!room) return res.status(404).json({ error: { message: 'Room not found' } });
+    const isSelf = targetUserId === req.user.id;
+    if (!isSelf && room.ownerId !== req.user.id && !req.user.isAdmin) {
+      return res.status(403).json({ error: { message: 'Only the room owner can remove other members' } });
+    }
+    await ChatRoom.removeMember(roomId, targetUserId);
     res.json({ message: 'Member removed' });
   } catch (err) { next(err); }
 };

@@ -14,6 +14,8 @@ import NotificationService from '../services/notificationService.js';
 import Friend from '../models/Friend.js';
 import config from '../config/index.js';
 
+const IMAGE_GENERATION_COST = 50;
+
 function sanitizeUserForViewer(user, viewer) {
   if (viewer.id === user.id || viewer.isAdmin) return user;
   const { id, username, avatar, bio, status, isPublic, isOnline, xp, level, lastSeen, createdAt, updatedAt } = user;
@@ -28,28 +30,25 @@ export const updateMe = async (req, res, next) => {
   try {
     const { username, email, bio, status, avatar, is_public, coins, alpacas, items, upgrades } = req.body;
 
-    if (bio !== undefined && String(bio).length > 500) {
+    if (bio != null && bio.length > 500)
       return res.status(400).json({ error: { message: 'Bio must be 500 characters or fewer' } });
-    }
-    if (status !== undefined && String(status).length > 200) {
+    if (status != null && status.length > 200)
       return res.status(400).json({ error: { message: 'Status must be 200 characters or fewer' } });
+    if (username != null) {
+      if (username.length < 3 || username.length > 32)
+        return res.status(400).json({ error: { message: 'Username must be 3-32 characters' } });
+      if (!/^[a-zA-Z0-9_-]+$/.test(username))
+        return res.status(400).json({ error: { message: 'Username may only contain letters, numbers, hyphens and underscores' } });
     }
+    if (email != null && email.length > 254)
+      return res.status(400).json({ error: { message: 'Email must be 254 characters or fewer' } });
 
     if (username && username !== req.user.username) {
-      if (username.length < 3 || username.length > 32) {
-        return res.status(400).json({ error: { message: 'Username must be 3-32 characters' } });
-      }
-      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-        return res.status(400).json({ error: { message: 'Username may only contain letters, numbers, hyphens and underscores' } });
-      }
       const existing = await User.findByUsername(username);
       if (existing) return res.status(409).json({ error: { message: 'Username already taken' } });
     }
 
     if (email && email !== req.user.email) {
-      if (email.length > 254) {
-        return res.status(400).json({ error: { message: 'Email must be 254 characters or fewer' } });
-      }
       const existing = await User.findByEmail(email);
       if (existing) return res.status(409).json({ error: { message: 'Email already registered' } });
     }
@@ -66,10 +65,8 @@ export const updateMe = async (req, res, next) => {
 export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
+    if (!currentPassword || !newPassword)
       return res.status(400).json({ error: { message: 'currentPassword and newPassword are required' } });
-    }
-
     const userWithPw = await User.findByIdWithPassword(req.user.id);
     const valid = await AuthService.comparePassword(currentPassword, userWithPw.passwordHash);
     if (!valid) return res.status(401).json({ error: { message: 'Current password is incorrect' } });
@@ -165,6 +162,10 @@ export const deleteMe = async (req, res, next) => {
 /** POST /api/users/me/generate-avatar */
 export const generateAvatar = async (req, res, next) => {
   try {
+    const user = await User.findById(req.user.id);
+    if (!user || user.coins < IMAGE_GENERATION_COST) {
+      return res.status(402).json({ error: { message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.` } });
+    }
     const result = await _callHuggingFace(req, res, 'avatar');
     if (!result) return;
     const { buffer, ext } = result;
@@ -173,7 +174,7 @@ export const generateAvatar = async (req, res, next) => {
     fs.mkdirSync(config.uploads.dir, { recursive: true });
     fs.writeFileSync(filepath, buffer);
     const avatarUrl = `/uploads/${filename}`;
-    const updatedUser = await User.update(req.user.id, { avatar: avatarUrl });
+    const updatedUser = await User.update(req.user.id, { avatar: avatarUrl, coins: user.coins - IMAGE_GENERATION_COST });
     res.json({ user: shapeUserForClient(updatedUser), avatarUrl });
   } catch (err) { next(err); }
 };
@@ -181,6 +182,10 @@ export const generateAvatar = async (req, res, next) => {
 /** POST /api/users/me/generate-image */
 export const generateImage = async (req, res, next) => {
   try {
+    const user = await User.findById(req.user.id);
+    if (!user || user.coins < IMAGE_GENERATION_COST) {
+      return res.status(402).json({ error: { message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.` } });
+    }
     const result = await _callHuggingFace(req, res, 'image');
     if (!result) return;
     const { buffer, ext } = result;
@@ -188,6 +193,7 @@ export const generateImage = async (req, res, next) => {
     const filepath = path.join(config.uploads.dir, filename);
     fs.mkdirSync(config.uploads.dir, { recursive: true });
     fs.writeFileSync(filepath, buffer);
+    await User.update(req.user.id, { coins: user.coins - IMAGE_GENERATION_COST });
     res.json({ imageUrl: `/uploads/${filename}` });
   } catch (err) { next(err); }
 };

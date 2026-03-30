@@ -34,7 +34,6 @@
             <router-link to="/messages" class="nav-link" @click="mobileOpen = false">Messages</router-link>
 
             <!-- Game -->
-            <router-link to="/spit-royale" class="nav-link nav-game" @click="mobileOpen = false">SpitRoyale</router-link>
 
             <!-- Divider -->
             <span class="nav-divider"></span>

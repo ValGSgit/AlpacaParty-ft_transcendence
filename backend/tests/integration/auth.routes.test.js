@@ -22,7 +22,7 @@ let app;
 let request;
 
 beforeEach(async () => {
-  jest.clearAllMocks();
+  jest.resetAllMocks();
   mockPrisma.$transaction.mockImplementation((fnOrOps) =>
     typeof fnOrOps === 'function' ? fnOrOps(mockPrisma) : Promise.all(fnOrOps),
   );

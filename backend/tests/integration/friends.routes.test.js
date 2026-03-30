@@ -108,7 +108,7 @@ describe('POST /api/friends/requests', () => {
   test('400 — missing userId', async () => {
     const res = await auth(request.post('/api/friends/requests')).send({});
     expect(res.status).toBe(400);
-    expect(res.body.error.message).toMatch(/userId/i);
+    expect(res.body.error.fields).toHaveProperty('userId');
   });
 
   test('400 — cannot friend yourself', async () => {

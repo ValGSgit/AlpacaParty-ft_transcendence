@@ -210,7 +210,7 @@ const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = useShop()
 const { buyItem } = itemShop()
-const { isAuthenticated } = useAuthStore()
+//const { isAuthenticated } = useAuthStore()
 const { cancelPlacement, deleteItem} =  useEditMode()
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
@@ -222,7 +222,7 @@ let stopMyWatcher
 let stats;
 
 onMounted(async () => {
-  const { isAuthenticated } = useAuthStore() // check every time after login logout refresh
+  const { isAuthenticated } = useAuthStore()
   if (!isAuthenticated)
     showLoginWarning.value = true
   else

@@ -28,7 +28,7 @@ const authUser = { id: 1, username: 'authed', email: 'a@b.com', avatar: '/avatar
 const adminUser = { ...authUser, id: 99, username: 'admin', email: 'admin@test.com', isAdmin: true };
 
 beforeEach(async () => {
-  jest.clearAllMocks();
+  jest.resetAllMocks();
   mockPrisma.$transaction.mockImplementation((fnOrOps) =>
     typeof fnOrOps === 'function' ? fnOrOps(mockPrisma) : Promise.all(fnOrOps),
   );

@@ -351,7 +351,14 @@ describe('listOrganizations', () => {
     const { req, res, next } = createReqRes();
     await listOrganizations(req, res, next);
     expect(mockOrganization.findAll).toHaveBeenCalledWith({ limit: 20, offset: 0 });
-    expect(res._json.organizations).toEqual(orgs);
+    expect(res._json.organizations).toEqual([{
+      id: 1,
+      name: 'Org1',
+      description: 'desc',
+      avatar: undefined,
+      memberCount: 0,
+      created_at: undefined,
+    }]);
   });
 
   test('uses search when provided', async () => {

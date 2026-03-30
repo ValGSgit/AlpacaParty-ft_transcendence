@@ -125,7 +125,7 @@
 
             <!-- Action buttons when image is ready -->
             <div v-if="generatedImageUrl" class="image-actions">
-              <a :href="generatedImageUrl" download class="action-btn download-btn">⬇ Download</a>
+              <button class="action-btn download-btn" @click="downloadImage">⬇ Download</button>
               <button class="action-btn post-btn" @click="postImage" :disabled="postingImage">
                 {{ postingImage ? 'Posting…' : '📤 Share as Post' }}
               </button>
@@ -291,6 +291,24 @@ async function setAsAvatar() {
     genSuccess.value = 'Set as your profile avatar! 🎉'
   } catch (e) {
     genError.value = e.response?.data?.error?.message || 'Failed to set avatar.'
+  }
+}
+
+async function downloadImage() {
+  if (!generatedImageUrl.value) return
+  try {
+    const response = await fetch(generatedImageUrl.value)
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = generatedImageUrl.value.split('/').pop() || 'generated-image.png'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch {
+    genError.value = 'Failed to download image.'
   }
 }
 

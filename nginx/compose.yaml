@@ -20,6 +20,8 @@ services:
         condition: service_started
       backend:
         condition: service_started
+      vault:
+        condition: service_healthy
     restart: always
     networks:
       - alpacaparty_net
