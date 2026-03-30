@@ -210,7 +210,7 @@ const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = useShop()
 const { buyItem } = itemShop()
-//const { isAuthenticated } = useAuthStore()
+const { isAuthenticated } = useAuthStore()
 const { cancelPlacement, deleteItem} =  useEditMode()
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
