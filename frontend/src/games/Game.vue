@@ -12,6 +12,7 @@
   
   <div v-if="gameIsReady">
     <div v-if="gUser.gameMode === 1 && gUser.hp" class="title">Spit Royale</div>
+    <div v-if="gUser.gameMode === 2 && gUser.hp" class="title">Spit Royale</div>
     <div v-if="gUser.gameMode && !gUser.isPlaying" class="modal-overlay">
       <div class="shop-title">
       <div v-if="!gUser.hp">Game Over!</div>

@@ -39,9 +39,8 @@ export class SpitRoyaleClient {
     switch (msg.type) {
       case 'joined':
         this.localPlayerId = msg.playerId;
-        this.onJoined?.(this.localPlayerId);
-        
-        // Start sending input to the server ~30 times a second
+        // Pass the spawn data to the callback!
+        this.onJoined?.(this.localPlayerId, msg.spawn); 
         this.inputInterval = setInterval(() => {
           if (this.socket?.connected) {
             this.socket.emit('input', this.getInput());

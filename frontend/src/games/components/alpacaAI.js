@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { checkWithinBounds, usePhysics } from '../core/usePhysics.js';
 import { getRandomPos, getRandomTimer } from '../utils/randomValues.js';
+import { gUser } from '../core/globals.js'
 
 const dummy = new THREE.Object3D();
 
@@ -58,6 +59,8 @@ export function alpacaAI() {
   };
 
   const updateAI = (alpaca, delta) => {
+    if (gUser.value.gameMode === 2) // no AI update in multiplayer
+      return
     switch (alpaca.ai.state) {
       case 'idle':
         handleIdle(alpaca, delta);
