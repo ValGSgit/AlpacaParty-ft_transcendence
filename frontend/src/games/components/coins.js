@@ -36,6 +36,9 @@ export async function updateCoins(delta) {
 }
 
 export function spendCoins(cost) {
-  gUser.value.coins -= cost
+  gUser.value.coins -= cost;
 }
 
+export function addCoins(amount) {
+  gUser.value.coins += amount;
+}

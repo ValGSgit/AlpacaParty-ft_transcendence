@@ -22,7 +22,7 @@ export function alpacaShop() {
       pos,
       0,
       scale);
-    alpaca.model.userData.cost = 1;
+    alpaca.model.userData.cost = CONST.ALPACA_COST;
     closeMenus();
     resetAlpacaConfig();
     setupPlacement(alpaca.model);

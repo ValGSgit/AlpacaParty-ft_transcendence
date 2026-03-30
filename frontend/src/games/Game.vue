@@ -132,8 +132,8 @@
     </div>
     
     <div v-if="gUI.editMode && gEditState.selected" class="edit-actions" style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10;">
+        <button class="shop-btn" @click="sellItem()">💰 Sell Item</button>
         <button class="shop-btn" @click="cancelPlacement()">✖️ Cancel</button>
-        <button class="shop-btn" @click="deleteItem()" style="background: #ff4444; color: white; border: 2px solid #cc0000;">🗑️ Delete Item</button>
     </div>
 
     <div v-if="gUI.lightMenu" class="modal-overlay">
@@ -199,7 +199,7 @@ const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = useShop()
 const { buyItem, shopItems } = itemShop()
 const { isAuthenticated } = useAuthStore()
-const { cancelPlacement, deleteItem} =  useEditMode()
+const { cancelPlacement, deleteItem, sellItem} =  useEditMode()
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
 const { updateSpits } = alpacaHandling();

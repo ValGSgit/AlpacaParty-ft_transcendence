@@ -8,7 +8,7 @@ import { removeObject } from '../core/removeObjects.js'
 import { saveGame } from '../core/saveLoadGame.js'
 import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
 import { useUIManager } from '../core/useUIManager.js'
-import { spendCoins } from './coins.js'
+import { addCoins, spendCoins } from './coins.js'
 
 const pointer = new THREE.Vector2()
 const raycaster = new THREE.Raycaster()
@@ -128,6 +128,10 @@ export function useEditMode() {
     }
   }
 
+  const scaleItem = (e) => {
+
+  }
+
   const rotateItem = (e) => {
     const direction = e.deltaY > 0 ? 1 : -1
     const steps = 16
@@ -173,6 +177,27 @@ export function useEditMode() {
     resetSelected()
   }
 
+  const sellItem = () => {
+    if (!gEditState.selected) return;
+
+    const isAlpaca = gAlpacas.some(alpaca => alpaca.model === gEditState.selected)
+
+    if (isAlpaca && gAlpacas.length === 1) {
+      alert("Can't sell last alpaca!");
+      cancelPlacement();
+      return;
+    }
+
+    const selected = gEditState.selected
+    if (gEditState.ghost) {
+      gScene.value.remove(gEditState.ghost);
+    }
+    addCoins(selected.userData.cost / 2);
+    resetSelected();
+    removeObject(selected);
+  }
+
+
   const deleteItem = () => {
     if (!gEditState.selected) return;
 
@@ -192,7 +217,7 @@ export function useEditMode() {
     removeObject(selected);
   }
 
-  return { deleteItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement }
+  return { deleteItem, sellItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement }
 }
 
 function resetSelected() {
