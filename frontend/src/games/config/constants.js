@@ -29,7 +29,7 @@ export const CONST = {
   },
 
   get UPGRADE_COST() {
-    return gUser.value.upgrades + 1.0
+    return (gUser.value.upgrades + 1) * 10
   },
 
   get FLOOR_RADIUS() {

@@ -14,6 +14,7 @@ export const gUI = reactive({
   isEditingName: false,
   isLightCycling: true,
   lightMenu: false,
+  farmMenu: false,
   cameraMode: 0,
   cameraPos: { x: 0, y: 0, z: 0 }
 })

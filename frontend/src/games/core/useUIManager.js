@@ -11,6 +11,7 @@ export function useUIManager() {
     if (gUI.lightMenu) closeLightMenu();
     if (gUI.editMode) closeEditMode();
     if (gUI.shopMenu) closeShopMenu();
+    if (gUI.farmMenu) closeFarmMenu();
   }
 
   const openEditMode = () => {
@@ -71,9 +72,21 @@ export function useUIManager() {
     gUI.lightMenu = false
   }
 
+  const openFarmMenu = () => {
+    gUI.farmMenu = true
+    gUI.shopMenu = false
+  }
+
+  const closeFarmMenu = () => {
+    gUI.farmMenu = false
+  }
+
+
   return {
     closeMenus,
     openEditMode,
+    closeFarmMenu,
+    openFarmMenu,
     closeEditMode,
     openShopMenu,
     closeShopMenu,
