@@ -1,10 +1,10 @@
 import * as THREE from 'three'
+import { shopItems } from '../core/entities/Item.js'
 import { createAlpaca, createItem } from '../core/createObjects.js'
 import { gPlayer } from '../core/globals.js'
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js'
 import { loadGameData } from './dataLoader.js'
 import { setupEnvironment } from './sceneBuilder.js'
-
 
 export async function initWorld(scene, isAuthenticated = false) {
   setupEnvironment(scene)
@@ -52,9 +52,14 @@ export async function initItems(scene, savedItems) {
   if (savedItems && savedItems.length > 0) {
     itemsGroup = await initSavedItems(savedItems);
   } else {
-    itemsGroup.add(await spawnObjectRandomly('/models/tree.glb', 4, 'item'))
-    itemsGroup.add(await spawnObjectRandomly('/models/grass.glb', 30, 'decoration'))
-    itemsGroup.add(await spawnObjectRandomly('/models/stones.glb', 4, 'decoration'))
+    const tree = shopItems.find(item => item.name === 'Tree');
+    itemsGroup.add(await spawnObjectRandomly(tree, 4));
+
+    const stones = shopItems.find(item => item.name === 'Stones');
+    itemsGroup.add(await spawnObjectRandomly(stones, 4));
+
+    const grass = shopItems.find(item => item.name === 'Grass');
+    itemsGroup.add(await spawnObjectRandomly(grass, 30));
   }
   scene.add(itemsGroup);
 }

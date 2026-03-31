@@ -11,6 +11,8 @@ const { updateAI } = alpacaAI();
 const { updatePlayer } = usePlayerControls();
 const { makeSpit } = alpacaHandling()
 
+export const alpaca = { name: 'Alpaca', path: '/models/alpaca.glb', type: 'alpaca' };
+
 export class Alpaca {
   constructor(model, animations, options = {}) {
     this.model = model;

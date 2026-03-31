@@ -5,6 +5,10 @@ import { removeObject } from '../removeObjects';
 
 const { spawnFloatingText } = useFloatingText();
 
+export const collectables = [
+  { name: 'Coin', path: '/models/coin.glb', type: 'collectable' }
+]
+
 export class Collectable {
   constructor(model, animations, options = {}) {
     this.model = model;

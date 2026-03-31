@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CONST } from '../config/constants.js';
+import { collectables } from '../core/entities/Collectable.js';
 import { gScene, gUser } from '../core/globals.js';
 import { getRandomTimer } from '../utils/randomValues.js';
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js';
@@ -7,6 +8,7 @@ import { spawnObjectRandomly } from '../utils/spawnRandomly.js';
 const coinsGroup = new THREE.Group();
 let isGroupAdded = false;
 let timer = 1
+const coin = collectables.find(item => item.name === 'Coin');
 
 async function spawnCoin() {
   timer = getRandomTimer();
@@ -15,7 +17,7 @@ async function spawnCoin() {
     gScene.value.add(coinsGroup);
     isGroupAdded = true;
   }
-  const tempGroup = await spawnObjectRandomly('/models/coin.glb', 1, 'collectable');
+  const tempGroup = await spawnObjectRandomly(coin, 1);
   if (tempGroup && tempGroup.children.length > 0) {
     coinsGroup.add(tempGroup.children[0]);
   }
