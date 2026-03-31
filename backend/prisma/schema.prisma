@@ -11,27 +11,16 @@ datasource db {
 
 // ── Users ────────────────────────────────────────────────────────────────
 model User {
-  id               Int       @id @default(autoincrement())
-  username         String    @unique @db.VarChar(32)
-  email            String    @unique @db.VarChar(255)
-  passwordHash     String?   @map("password_hash") @db.VarChar(255)
-  avatar           String?   @default("/avatars/default.svg") @db.VarChar(512)
-  bio              String?   @default("") @db.Text
-  alpacas          Json?     @default("[]")
-  items            Json?     @default("[]")
-  coins            Int?      @default(10)
-  upgrades         Int?      @default(0)
-  status           String?   @default("Hey there! I am using AlpacaParty") @db.VarChar(255)
-  isPublic         Boolean?  @default(true) @map("is_public")
-  isOnline         Boolean?  @default(false) @map("is_online")
-  isAdmin          Boolean?  @default(false) @map("is_admin")
-  oauthProvider    String?   @map("oauth_provider") @db.VarChar(20)
-  oauthId          String?   @map("oauth_id") @db.VarChar(255)
-  xp               Int?      @default(0)
-  level            Int?      @default(1)
-  lastSeen         DateTime? @default(now()) @map("last_seen") @db.Timestamptz
-  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id        Int       @id @default(autoincrement())
+  username  String    @unique @db.VarChar(32)
+  email     String    @unique @db.VarChar(255)
+  avatar    String?   @default("/avatars/default.svg") @db.VarChar(512)
+  bio       String?   @default("") @db.Text
+  status    String?   @default("Hey there! I am using AlpacaParty") @db.VarChar(255)
+  isOnline  Boolean?  @default(false) @map("is_online")
+  lastSeen  DateTime? @default(now()) @map("last_seen") @db.Timestamptz
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   sentFriendRequests     FriendRequest[]      @relation("sentRequests")
@@ -54,18 +43,56 @@ model User {
   notifications          Notification[]
   posts                  Post[]
   postLikes              PostLike[]
-  comments               Comment[]
-  reposts                Repost[]
   ownedOrganizations     Organization[]       @relation("orgOwner")
   orgMemberships         OrganizationMember[]
   uploadedFiles          File[]
   alpacaFarm             AlpacaFarm?
   passwordResetTokens    PasswordResetToken[]
   dataRequests           DataRequest[]
+  userAuth               UserAuth?
+  userStats              UserStats?
+  userSettings           UserSettings?
+
+  @@map("user")
+}
+
+model UserAuth {
+  id               Int     @id @default(autoincrement())
+  passwordHash     String? @db.VarChar(255)
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String? @db.VarChar(255)
+  oauthProvider    String?
+  oauthId          String?
+
+  // Relations
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @unique
 
   @@unique([oauthProvider, oauthId], name: "idx_users_oauth")
+  @@map("user_auth")
+}
+
+model UserStats {
+  xp    Int? @default(0)
+  level Int? @default(1)
+
+  // Relations
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @unique
+
+  @@map("user_stats")
+}
+
+model UserSettings {
+  isPublic Boolean? @default(true) @map("is_public")
+  isAdmin  Boolean? @default(false) @map("is_admin")
+
+  // Relations
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @unique
+
   @@index([isPublic])
-  @@map("users")
+  @@map("user_settings")
 }
 
 // ── Friend Requests ──────────────────────────────────────────────────────
@@ -82,7 +109,7 @@ model FriendRequest {
 
   @@unique([senderId, receiverId])
   @@index([receiverId])
-  @@map("friend_requests")
+  @@map("friend_request")
 }
 
 // ── Friends ──────────────────────────────────────────────────────────────
@@ -96,7 +123,7 @@ model Friend {
   friend User @relation("friendUsers", fields: [friendId], references: [id], onDelete: Cascade)
 
   @@unique([userId, friendId])
-  @@map("friends")
+  @@map("friend")
 }
 
 // ── Blocked Users ────────────────────────────────────────────────────────
@@ -110,7 +137,7 @@ model BlockedUser {
   blockedUser User @relation("blockedByUser", fields: [blockedUserId], references: [id], onDelete: Cascade)
 
   @@unique([userId, blockedUserId])
-  @@map("blocked_users")
+  @@map("blocked_user")
 }
 
 // ── Chat Messages (DM) ──────────────────────────────────────────────────
@@ -127,7 +154,7 @@ model Message {
 
   @@index([senderId])
   @@index([receiverId])
-  @@map("messages")
+  @@map("message")
 }
 
 // ── Chat Rooms (group chats) ────────────────────────────────────────────
@@ -142,7 +169,7 @@ model ChatRoom {
   members  ChatRoomMember[]
   messages ChatRoomMessage[]
 
-  @@map("chat_rooms")
+  @@map("chat_room")
 }
 
 model ChatRoomMember {
@@ -156,7 +183,7 @@ model ChatRoomMember {
   user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([roomId, userId])
-  @@map("chat_room_members")
+  @@map("chat_room_member")
 }
 
 model ChatRoomMessage {
@@ -170,7 +197,7 @@ model ChatRoomMessage {
   sender User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([roomId])
-  @@map("chat_room_messages")
+  @@map("chat_room_message")
 }
 
 // ── Games ────────────────────────────────────────────────────────────────
@@ -182,7 +209,7 @@ model Game {
   player1Score Int?      @default(0) @map("player1_score")
   player2Score Int?      @default(0) @map("player2_score")
   status       String?   @default("waiting") @db.VarChar(20)
-  gameType     String?   @default("spit_royale") @map("game_type") @db.VarChar(30)
+  gameType     String?   @default("pong") @map("game_type") @db.VarChar(30)
   gameData     Json?     @default("{}") @map("game_data")
   startedAt    DateTime? @map("started_at") @db.Timestamptz
   finishedAt   DateTime? @map("finished_at") @db.Timestamptz
@@ -194,14 +221,14 @@ model Game {
 
   @@index([player1Id])
   @@index([player2Id])
-  @@map("games")
+  @@map("game")
 }
 
 // ── Game Statistics ──────────────────────────────────────────────────────
 model GameStat {
   id        Int      @id @default(autoincrement())
   userId    Int      @map("user_id")
-  gameType  String   @default("spit_royale") @map("game_type") @db.VarChar(30)
+  gameType  String   @default("pong") @map("game_type") @db.VarChar(30)
   wins      Int?     @default(0)
   losses    Int?     @default(0)
   draws     Int?     @default(0)
@@ -212,7 +239,7 @@ model GameStat {
 
   @@unique([userId, gameType])
   @@index([userId])
-  @@map("game_stats")
+  @@map("game_stat")
 }
 
 // ── Achievements / Badges ────────────────────────────────────────────────
@@ -226,7 +253,7 @@ model Achievement {
 
   users UserAchievement[]
 
-  @@map("achievements")
+  @@map("achievement")
 }
 
 model UserAchievement {
@@ -239,7 +266,7 @@ model UserAchievement {
   achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 
   @@unique([userId, achievementId])
-  @@map("user_achievements")
+  @@map("user_achievement")
 }
 
 // ── Daily Challenges ─────────────────────────────────────────────────────
@@ -252,7 +279,7 @@ model DailyChallenge {
 
   userChallenges UserDailyChallenge[]
 
-  @@map("daily_challenges")
+  @@map("daily_challenge")
 }
 
 model UserDailyChallenge {
@@ -266,7 +293,7 @@ model UserDailyChallenge {
   challenge DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, challengeId])
-  @@map("user_daily_challenges")
+  @@map("user_daily_challenge")
 }
 
 // ── Notifications ────────────────────────────────────────────────────────
@@ -284,29 +311,25 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@map("notifications")
+  @@map("notification")
 }
 
 // ── Posts / Feed ─────────────────────────────────────────────────────────
 model Post {
-  id            Int      @id @default(autoincrement())
-  authorId      Int      @map("author_id")
-  content       String   @db.Text
-  imageUrl      String?  @map("image_url") @db.VarChar(512)
-  isPublic      Boolean? @default(true) @map("is_public")
-  likesCount    Int?     @default(0) @map("likes_count")
-  commentsCount Int?     @default(0) @map("comments_count")
-  repostsCount  Int?     @default(0) @map("reposts_count")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id         Int      @id @default(autoincrement())
+  authorId   Int      @map("author_id")
+  content    String   @db.Text
+  imageUrl   String?  @map("image_url") @db.VarChar(512)
+  isPublic   Boolean? @default(true) @map("is_public")
+  likesCount Int?     @default(0) @map("likes_count")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  author   User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  likes    PostLike[]
-  comments Comment[]
-  reposts  Repost[]
+  author User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes  PostLike[]
 
   @@index([authorId])
-  @@map("posts")
+  @@map("post")
 }
 
 model PostLike {
@@ -319,37 +342,7 @@ model PostLike {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
-  @@map("post_likes")
-}
-
-model Comment {
-  id        Int      @id @default(autoincrement())
-  postId    Int      @map("post_id")
-  authorId  Int      @map("author_id")
-  content   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  @@index([postId])
-  @@map("comments")
-}
-
-model Repost {
-  id        Int      @id @default(autoincrement())
-  postId    Int      @map("post_id")
-  authorId  Int      @map("author_id")
-  comment   String?  @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  @@unique([postId, authorId])
-  @@index([postId])
-  @@map("reposts")
+  @@map("post_like")
 }
 
 // ── Organizations ────────────────────────────────────────────────────────
@@ -365,7 +358,7 @@ model Organization {
   owner   User                 @relation("orgOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members OrganizationMember[]
 
-  @@map("organizations")
+  @@map("organization")
 }
 
 model OrganizationMember {
@@ -380,7 +373,7 @@ model OrganizationMember {
 
   @@unique([orgId, userId])
   @@index([userId])
-  @@map("organization_members")
+  @@map("organization_member")
 }
 
 // ── Files / Uploads ──────────────────────────────────────────────────────
@@ -397,19 +390,23 @@ model File {
   uploader User @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
 
   @@index([uploaderId])
-  @@map("files")
+  @@map("file")
 }
 
 // ── Alpaca Farm ──────────────────────────────────────────────────────────
 model AlpacaFarm {
   id        Int      @id @default(autoincrement())
-  userId    Int      @unique @map("user_id")
-  farmData  Json?    @default("{\"alpacas\":[],\"resources\":{\"gold\":100,\"food\":50},\"level\":1}") @map("farm_data")
+  items     Json?    @default("[]")
+  alpacas   Json?    @default("[]")
+  coins     Int?     @default(10)
+  upgrades  Int?     @default(0)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Relations
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @unique @map("user_id")
 
-  @@map("alpaca_farms")
+  @@map("alpaca_farm")
 }
 
 // ── Password Reset Tokens ────────────────────────────────────────────────
@@ -422,7 +419,7 @@ model PasswordResetToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("password_reset_tokens")
+  @@map("password_reset_token")
 }
 
 // ── GDPR Data Requests ──────────────────────────────────────────────────
@@ -438,5 +435,5 @@ model DataRequest {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@map("data_requests")
+  @@map("data_request")
 }

@@ -2,7 +2,7 @@
  * Post Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from '../config/prisma.js';
+import prisma from "#lib/prisma.js";
 
 const AUTHOR_SELECT = { select: { username: true, avatar: true } };
 
@@ -58,11 +58,13 @@ const Post = {
     if (fields.isPublic !== undefined) data.isPublic = fields.isPublic;
     if (Object.keys(data).length === 0) return this.findById(id);
 
-    const post = await prisma.post.update({
-      where: { id: Number(id), authorId: Number(authorId) },
-      data,
-      include: { author: AUTHOR_SELECT },
-    }).catch(() => null);
+    const post = await prisma.post
+      .update({
+        where: { id: Number(id), authorId: Number(authorId) },
+        data,
+        include: { author: AUTHOR_SELECT },
+      })
+      .catch(() => null);
     return post ? shapePost(post) : null;
   },
 
@@ -79,7 +81,7 @@ const Post = {
       prisma.post.findMany({
         where: { isPublic: true, author: { isPublic: true } },
         include: { author: AUTHOR_SELECT },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         take: Number(limit),
         skip: Number(offset),
       }),
@@ -126,7 +128,7 @@ const Post = {
     const posts = await prisma.post.findMany({
       where: { authorId: Number(userId) },
       include: { author: AUTHOR_SELECT },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: Number(limit),
       skip: Number(offset),
     });
@@ -136,21 +138,35 @@ const Post = {
   async like(postId, userId) {
     await prisma.$transaction(async (tx) => {
       try {
-        await tx.postLike.create({ data: { postId: Number(postId), userId: Number(userId) } });
+        await tx.postLike.create({
+          data: { postId: Number(postId), userId: Number(userId) },
+        });
       } catch (e) {
-        if (e.code === 'P2002') return; // already liked
+        if (e.code === "P2002") return; // already liked
         throw e;
       }
-      const count = await tx.postLike.count({ where: { postId: Number(postId) } });
-      await tx.post.update({ where: { id: Number(postId) }, data: { likesCount: count } });
+      const count = await tx.postLike.count({
+        where: { postId: Number(postId) },
+      });
+      await tx.post.update({
+        where: { id: Number(postId) },
+        data: { likesCount: count },
+      });
     });
   },
 
   async unlike(postId, userId) {
     await prisma.$transaction(async (tx) => {
-      await tx.postLike.deleteMany({ where: { postId: Number(postId), userId: Number(userId) } });
-      const count = await tx.postLike.count({ where: { postId: Number(postId) } });
-      await tx.post.update({ where: { id: Number(postId) }, data: { likesCount: count } });
+      await tx.postLike.deleteMany({
+        where: { postId: Number(postId), userId: Number(userId) },
+      });
+      const count = await tx.postLike.count({
+        where: { postId: Number(postId) },
+      });
+      await tx.post.update({
+        where: { id: Number(postId) },
+        data: { likesCount: count },
+      });
     });
   },
 

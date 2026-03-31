@@ -2,7 +2,7 @@
  * User Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from '../config/prisma.js';
+import prisma from "#lib/prisma.js";
 
 // Fields returned for normal (safe) user queries — no password hash
 const SAFE_SELECT = {
@@ -11,17 +11,7 @@ const SAFE_SELECT = {
   email: true,
   avatar: true,
   bio: true,
-  alpacas: true,
-  items: true,
-  coins: true,
-  upgrades: true,
   status: true,
-  isPublic: true,
-  isOnline: true,
-  isAdmin: true,
-  oauthProvider: true,
-  xp: true,
-  level: true,
   lastSeen: true,
   createdAt: true,
   updatedAt: true,
@@ -80,8 +70,8 @@ const User = {
         email,
         oauthProvider: provider,
         oauthId,
-        avatar: avatar || '/avatars/default.svg',
-        passwordHash: '',
+        avatar: avatar || "/avatars/default.svg",
+        passwordHash: "",
       },
       select: SAFE_SELECT,
     });
@@ -89,7 +79,10 @@ const User = {
   },
 
   async findById(id) {
-    return prisma.user.findUnique({ where: { id: Number(id) }, select: SAFE_SELECT });
+    return prisma.user.findUnique({
+      where: { id: Number(id) },
+      select: SAFE_SELECT,
+    });
   },
 
   async findByIdWithPassword(id) {
@@ -105,23 +98,48 @@ const User = {
   },
 
   async update(id, fields) {
-    const allowed = ['username', 'email', 'avatar', 'bio', 'status', 'coins', 'isPublic', 'alpacas', 'items', 'upgrades'];
+    const allowed = [
+      "username",
+      "email",
+      "avatar",
+      "bio",
+      "status",
+      "coins",
+      "isPublic",
+      "alpacas",
+      "items",
+      "upgrades",
+    ];
     const data = {};
     for (const key of allowed) {
       if (fields[key] !== undefined) data[key] = fields[key];
     }
     if (Object.keys(data).length === 0) return this.findById(id);
-    return prisma.user.update({ where: { id: Number(id) }, data, select: SAFE_SELECT });
+    return prisma.user.update({
+      where: { id: Number(id) },
+      data,
+      select: SAFE_SELECT,
+    });
   },
 
   async updatePassword(id, passwordHash) {
-    await prisma.user.update({ where: { id: Number(id) }, data: { passwordHash } });
+    await prisma.userAuth.update({
+      where: { userId: id },
+      data: { passwordHash: passwordHash },
+    });
   },
 
-  async setOnline(id, isOnline) {
+  async setOnline(id) {
     await prisma.user.update({
       where: { id: Number(id) },
-      data: { isOnline, lastSeen: new Date() },
+      data: { isOnline: true, lastSeen: new Date() },
+    });
+  },
+
+  async setOffline(id) {
+    await prisma.user.update({
+      where: { id: Number(id) },
+      data: { isOnline: false, lastSeen: new Date() },
     });
   },
 
@@ -145,11 +163,19 @@ const User = {
   async findAll({ limit = 50, offset = 0 } = {}) {
     return prisma.user.findMany({
       select: {
-        id: true, username: true, avatar: true, bio: true,
-        status: true, isPublic: true, isOnline: true, xp: true,
-        level: true, lastSeen: true, createdAt: true,
+        id: true,
+        username: true,
+        avatar: true,
+        bio: true,
+        status: true,
+        isPublic: true,
+        isOnline: true,
+        xp: true,
+        level: true,
+        lastSeen: true,
+        createdAt: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: Number(limit),
       skip: Number(offset),
     });
@@ -163,11 +189,19 @@ const User = {
     return prisma.user.findMany({
       where: {
         OR: [
-          { username: { startsWith: term, mode: 'insensitive' } },
-          { bio: { contains: term, mode: 'insensitive' } },
+          { username: { startsWith: term, mode: "insensitive" } },
+          { bio: { contains: term, mode: "insensitive" } },
         ],
       },
-      select: { id: true, username: true, avatar: true, isOnline: true, xp: true, level: true, isPublic: true },
+      select: {
+        id: true,
+        username: true,
+        avatar: true,
+        isOnline: true,
+        xp: true,
+        level: true,
+        isPublic: true,
+      },
       take: Number(limit),
       skip: Number(offset),
     });
@@ -186,7 +220,16 @@ const User = {
     const [user, friends, messages, games, posts] = await Promise.all([
       prisma.user.findUnique({
         where: { id: Number(id) },
-        select: { id: true, username: true, email: true, bio: true, status: true, xp: true, level: true, createdAt: true },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          bio: true,
+          status: true,
+          xp: true,
+          level: true,
+          createdAt: true,
+        },
       }),
       prisma.friend.findMany({
         where: { userId: Number(id) },
@@ -195,22 +238,25 @@ const User = {
       prisma.message.findMany({
         where: { senderId: Number(id) },
         select: { id: true, receiverId: true, content: true, createdAt: true },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: "asc" },
       }),
       prisma.game.findMany({
         where: { OR: [{ player1Id: Number(id) }, { player2Id: Number(id) }] },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: "asc" },
       }),
       prisma.post.findMany({
         where: { authorId: Number(id) },
         select: { id: true, content: true, imageUrl: true, createdAt: true },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: "asc" },
       }),
     ]);
 
     return {
       user,
-      friends: friends.map((f) => ({ friendId: f.friend.id, username: f.friend.username })),
+      friends: friends.map((f) => ({
+        friendId: f.friend.id,
+        username: f.friend.username,
+      })),
       messages,
       games,
       posts,

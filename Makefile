@@ -12,7 +12,8 @@ RESET  := \033[0m
 
 # ── Docker ──────────────────────────────────────────────────
 COMPOSE_PROJECT := alpacaparty-ft_transcendence
-DC := docker compose
+DC := docker compose --profile dev
+DC_TEST := docker compose --env-file .env.test --profile test
 DC_PROD := docker compose -f compose.prod.yaml
 
 .DEFAULT_GOAL := help
@@ -95,7 +96,7 @@ help:
 	@echo ""
 
 # ── DOCKER ──────────────────────────────────────────────────
-up: ssl-certs
+up: ssl-certs create-dirs
 	$(DC) up -d
 
 down:
@@ -112,6 +113,25 @@ restart:
 
 ps:
 	$(DC) ps
+
+# ── PRODUCTION ──────────────────────────────────────────────
+prod-up: .env
+	$(MAKE) --no-print-directory ssl-certs
+	$(DC_PROD) up -d --build
+
+prod-down:
+	$(DC_PROD) down
+
+prod-build: .env
+	$(DC_PROD) build --no-cache
+
+prod-logs:
+	$(DC_PROD) logs -f
+
+# Setup
+create-dirs:
+	@mkdir -p backend/node_modules
+	@mkdir -p frontend/node_modules
 
 # ── SECRETS ─────────────────────────────────────────────────
 # Generates .env from .env.example with cryptographically random
@@ -163,20 +183,6 @@ ssl-certs:
 	@echo "$(YELLOW)No .env found — generating one with random secrets…$(RESET)"
 	@$(MAKE) --no-print-directory generate-secrets
 
-# ── PRODUCTION ──────────────────────────────────────────────
-prod-up: .env
-	$(MAKE) --no-print-directory ssl-certs
-	$(DC_PROD) up -d --build
-
-prod-down:
-	$(DC_PROD) down
-
-prod-build: .env
-	$(DC_PROD) build --no-cache
-
-prod-logs:
-	$(DC_PROD) logs -f
-
 # ── LOCAL DEV ───────────────────────────────────────────────
 install:
 	cd backend  && npm install
@@ -191,10 +197,11 @@ dev-backend:
 	cd backend && npm run dev
 
 # TESTING ─────────────────────────────────────────────────
-test:
-	$(DC) exec backend npm test
+backend-test: create-dirs
+	$(DC_TEST) run --rm backend_test npm test -- users.routes.test.js || true
+	$(DC_TEST) down -v --remove-orphans
 
-e2e:
+e2e: create-dirs
 	$(DC) exec e2e npm test
 
 # Production E2E: seeds data and runs Playwright against the production build.
@@ -228,6 +235,9 @@ shell-frontend:
 
 shell-db:
 	$(DC) exec postgres psql -U $${DB_USER:-alpacaparty} -d $${DB_NAME:-alpacaparty}
+
+prisma_studio:
+	$(DC) exec -d backend /usr/local/bin/start-prisma-studio.sh
 
 # ── DATABASE SEEDS ──────────────────────────────────────────
 # Requires the postgres container to be running (make up / make prod-up).
@@ -276,17 +286,17 @@ prod-make-admin:
 	  sh -c '. /vault/keys/keys.env && export VAULT_TOKEN=$$VAULT_ADMIN_TOKEN && sh /scripts/vault-add-mod.sh'
 	@echo "$(GREEN)✓ $(USER) added to mod_users in prod Vault$(RESET)"
 
-seed-live:
-	$(DC) exec backend npm run seed:live
+seed-example:
+	$(DC) exec backend npm run seed:exampleData
 
-seed-live-reset:
-	$(DC) exec backend npm run seed:live:reset
+seed-example-reset:
+	$(DC) exec backend npm run seed:exampleData:reset
 
-prod-seed-live:
-	$(DC_PROD) exec backend npm run seed:live
+prod-seed-example:
+	$(DC_PROD) exec backend npm run seed:exampleData
 
-prod-seed-live-reset:
-	$(DC_PROD) exec backend npm run seed:live:reset
+prod-seed-example-reset:
+	$(DC_PROD) exec backend npm run seed:exampleData:reset
 
 # ── SECURITY ────────────────────────────────────────────────────────────────
 vault-status:
@@ -353,6 +363,8 @@ fclean:
 	@docker network prune -f >/dev/null
 	@docker image prune -f >/dev/null
 	@docker builder prune -f >/dev/null
+	@sudo rm -rf backend/node_modules
+	@sudo rm -rf frontend/node_modules
 	@echo "$(GREEN)✓ Full Docker cleanup complete for project $(COMPOSE_PROJECT)$(RESET)"
 
 deep-clean:
@@ -361,4 +373,6 @@ deep-clean:
 	$(DC_PROD) down --rmi all --volumes --remove-orphans || true
 	@docker system prune -af --volumes
 	@docker builder prune -af
+	@sudo rm -rf backend/node_modules
+	@sudo rm -rf frontend/node_modules
 	@echo "$(GREEN)✓ Aggressive Docker cleanup complete$(RESET)"

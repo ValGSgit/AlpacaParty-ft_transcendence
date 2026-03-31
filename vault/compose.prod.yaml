@@ -4,7 +4,7 @@
 services:
   vault:
     image: hashicorp/vault:1.16
-    container_name: alpacaparty_vault_prod
+    container_name: vault_prod
     user: "0"        # start as root so we can chown /vault/data before dropping to vault user
     # Fix named-volume ownership (root:root on first creation) then drop to vault (uid 100 gid 1000).
     # su-exec is shipped in the hashicorp/vault image; -config=/vault/config loads vault.hcl from

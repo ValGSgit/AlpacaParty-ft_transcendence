@@ -1,23 +1,38 @@
 
 # Frontend
 services:
-  frontend:
+  frontend_base:
+    profiles:
+      - template
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: frontend
     ports:
       - "5173:5173"
     environment:
       CHOKIDAR_USEPOLLING: "true"
       VITE_API_URL: /api
     volumes:
-      - .:/app
+      - frontend_data:/app
       - frontend_node_modules:/app/node_modules
-    depends_on:
-      backend:
-        condition: service_started
     restart: unless-stopped
     networks:
       - alpacaparty_net
 
+  frontend:
+    profiles:
+      - dev
+    extends: frontend_base
+    container_name: frontend
+    depends_on:
+      backend:
+        condition: service_started
+
+  frontend_test:
+    profiles:
+      - test
+    extends: frontend_base
+    container_name: frontend_test
+    depends_on:
+      backend_test:
+        condition: service_started

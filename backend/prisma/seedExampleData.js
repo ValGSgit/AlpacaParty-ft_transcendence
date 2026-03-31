@@ -1,5 +1,5 @@
-import bcrypt from 'bcrypt';
-import { loadVaultSecrets } from '../src/config/vault.js';
+import bcrypt from "bcrypt";
+import { loadVaultSecrets } from "../src/config/vault.js";
 
 // Assigned after Vault secrets are loaded so DATABASE_URL is built with real credentials.
 let prisma;
@@ -15,8 +15,9 @@ const cfg = {
   avgFriends: Number(process.env.SEED_AVG_FRIENDS || 16),
 };
 
-const seedPassword = process.env.SEED_PASSWORD || 'LiveSeed123!';
-const shouldReset = process.argv.includes('--reset') || process.env.SEED_RESET === 'true';
+const seedPassword = process.env.SEED_PASSWORD || "LiveSeed123!";
+const shouldReset =
+  process.argv.includes("--reset") || process.env.SEED_RESET === "true";
 const runTag = `seed_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
 function r(min, max) {
@@ -35,12 +36,12 @@ function randomDateLastDays(days = 45) {
 
 function makeContent(prefix) {
   const tails = [
-    'alpacas are thriving today',
-    'great match in the arena',
-    'new upgrade unlocked',
-    'party chat is super active',
-    'farm economy looks good',
-    'friend request accepted',
+    "alpacas are thriving today",
+    "great match in the arena",
+    "new upgrade unlocked",
+    "party chat is super active",
+    "farm economy looks good",
+    "friend request accepted",
   ];
   return `${prefix} ${pick(tails)} #${r(100, 9999)}`;
 }
@@ -74,37 +75,36 @@ async function hardReset() {
 async function seedUsers(passwordHash) {
   const fixedUsers = [
     {
-      username: 'live_admin',
-      email: 'live_admin@alpacaparty.test',
+      username: "live_admin",
+      email: "live_admin@alpacaparty.test",
       passwordHash,
-      isAdmin: true,
       isOnline: true,
       level: 20,
       xp: 4200,
-      bio: 'Live admin seed account',
-      status: 'Managing the alpaca world',
+      bio: "Live admin seed account",
+      status: "Managing the alpaca world",
       isPublic: true,
     },
     {
-      username: 'live_demo',
-      email: 'live_demo@alpacaparty.test',
+      username: "live_demo",
+      email: "live_demo@alpacaparty.test",
       passwordHash,
       isOnline: true,
       level: 10,
       xp: 1800,
-      bio: 'Demo account for QA',
-      status: 'Exploring features',
+      bio: "Demo account for QA",
+      status: "Exploring features",
       isPublic: true,
     },
     {
-      username: 'live_mod',
-      email: 'live_mod@alpacaparty.test',
+      username: "live_mod",
+      email: "live_mod@alpacaparty.test",
       passwordHash,
       isOnline: true,
       level: 14,
       xp: 2600,
-      bio: 'Moderator account',
-      status: 'Keeping chats tidy',
+      bio: "Moderator account",
+      status: "Keeping chats tidy",
       isPublic: true,
     },
   ];
@@ -112,7 +112,7 @@ async function seedUsers(passwordHash) {
   const dynamicCount = Math.max(cfg.users - fixedUsers.length, 0);
   const dynamicUsers = Array.from({ length: dynamicCount }, (_, i) => {
     const idx = i + 1;
-    const id = String(idx).padStart(4, '0');
+    const id = String(idx).padStart(4, "0");
     return {
       username: `live_user_${id}`,
       email: `live_user_${id}@alpacaparty.test`,
@@ -121,31 +121,66 @@ async function seedUsers(passwordHash) {
       level: r(1, 25),
       xp: r(0, 6000),
       bio: `Seeded user ${id}`,
-      status: 'Ready to party',
+      status: "Ready to party",
       isPublic: Math.random() < 0.95,
     };
   });
 
   const allUsers = [...fixedUsers, ...dynamicUsers];
-  await prisma.user.createMany({ data: allUsers, skipDuplicates: true });
-
-  // Idempotent safeguard: if the account already exists from a previous run,
-  // ensure it remains admin even when createMany skips duplicates.
-  await prisma.user.updateMany({
-    where: { email: 'live_admin@alpacaparty.test' },
-    data: { isAdmin: true },
-  });
+  const sanitizedUsers = allUsers.map(
+    ({ passwordHash, level, xp, isPublic, ...sanUsers }) => sanUsers,
+  );
+  await prisma.user.createMany({ data: sanitizedUsers, skipDuplicates: true });
 
   const users = await prisma.user.findMany({
-    where: { email: { endsWith: '@alpacaparty.test' } },
+    where: { email: { endsWith: "@alpacaparty.test" } },
     select: { id: true, username: true },
-    orderBy: { id: 'asc' },
+    orderBy: { id: "asc" },
   });
+
+  await prisma.userSettings.createMany({
+    data: [
+      ...users.map((u) => ({
+        userId: u.id,
+      })),
+      ...users.map((u) => ({
+        userId: u.id,
+      })),
+    ],
+    skipDuplicates: true,
+  });
+
+  const admins = await prisma.user.findMany({
+    where: { email: "live_admin@alpacaparty.test" },
+    select: { id: true },
+  });
+
+  const adminIds = admins.map((a) => a.id);
+  if (adminIds.length > 0) {
+    await prisma.userSettings.updateMany({
+      where: { userId: { in: adminIds } },
+      data: { isAdmin: true },
+    });
+  }
 
   await prisma.gameStat.createMany({
     data: [
-      ...users.map((u) => ({ userId: u.id, gameType: 'spit_royale', wins: r(0, 30), losses: r(0, 25), draws: r(0, 8), elo: r(850, 1450) })),
-      ...users.map((u) => ({ userId: u.id, gameType: 'survival', wins: r(0, 20), losses: r(0, 30), draws: 0, elo: r(800, 1400) })),
+      ...users.map((u) => ({
+        userId: u.id,
+        gameType: "spit_royale",
+        wins: r(0, 30),
+        losses: r(0, 25),
+        draws: r(0, 8),
+        elo: r(850, 1450),
+      })),
+      ...users.map((u) => ({
+        userId: u.id,
+        gameType: "survival",
+        wins: r(0, 20),
+        losses: r(0, 30),
+        draws: 0,
+        elo: r(800, 1400),
+      })),
     ],
     skipDuplicates: true,
   });
@@ -153,15 +188,11 @@ async function seedUsers(passwordHash) {
   await prisma.alpacaFarm.createMany({
     data: users.map((u) => ({
       userId: u.id,
-      farmData: {
-        alpacas: Array.from({ length: r(1, 5) }, (_, i) => ({
-          id: `${u.id}-${i + 1}`,
-          name: `Alpaca_${u.id}_${i + 1}`,
-          level: r(1, 8),
-        })),
-        resources: { gold: r(20, 3000), food: r(10, 2000) },
-        level: r(1, 20),
-      },
+      alpacas: Array.from({ length: r(1, 5) }, (_, i) => ({
+        id: `${u.id}-${i + 1}`,
+        name: `Alpaca_${u.id}_${i + 1}`,
+        level: r(1, 8),
+      })),
     })),
     skipDuplicates: true,
   });
@@ -182,7 +213,7 @@ function buildFriendPairs(userIds) {
   }
 
   return Array.from(uniquePairs).map((k) => {
-    const [a, b] = k.split('-').map(Number);
+    const [a, b] = k.split("-").map(Number);
     return [a, b];
   });
 }
@@ -205,38 +236,41 @@ async function seedSocialGraph(users) {
     const senderId = pick(userIds);
     const receiverId = pick(userIds);
     if (senderId !== receiverId) {
-      pendingRequests.push({ senderId, receiverId, status: 'pending' });
+      pendingRequests.push({ senderId, receiverId, status: "pending" });
     }
   }
-  await prisma.friendRequest.createMany({ data: pendingRequests, skipDuplicates: true });
+  await prisma.friendRequest.createMany({
+    data: pendingRequests,
+    skipDuplicates: true,
+  });
 
   return pairs;
 }
 
 const SEED_IMAGES = [
-  'https://images.pexels.com/photos/5840695/pexels-photo-5840695.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',     // fluffy white alpaca close-up
-  'https://images.pexels.com/photos/30318570/pexels-photo-30318570/free-photo-of-close-up-portrait-of-a-curious-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // curious brown alpaca portrait
-  'https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80',           // group of alpacas grazing on farm
-  'https://images.pexels.com/photos/30417713/pexels-photo-30417713/free-photo-of-cute-baby-alpaca-portrait-in-ljubljana-zoo.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // cute baby alpaca close-up
-  'https://images.pexels.com/photos/17955330/pexels-photo-17955330/free-photo-of-white-head-of-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // fluffy white alpaca face detail
-  'https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80',           // mixed group of alpacas standing in field
-  'https://images.pexels.com/photos/17955330/pexels-photo-17955330/free-photo-of-white-head-of-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // another fluffy close-up for variety
-  'https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80',           // herd grazing scene
-  'https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80',           // alpacas in open field
-  'https://images.pexels.com/photos/30318570/pexels-photo-30318570/free-photo-of-close-up-portrait-of-a-curious-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // expressive brown alpaca
-  'https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80',           // group grazing together
-  'https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80',           // colorful mix of alpacas
-  'https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80',           // farm herd scene
-  'https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80',           // alpacas in pasture
-  'https://images.pexels.com/photos/30417713/pexels-photo-30417713/free-photo-of-cute-baby-alpaca-portrait-in-ljubljana-zoo.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',  // adorable baby alpaca
-  'https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80',           // more farm group grazing
+  "https://images.pexels.com/photos/5840695/pexels-photo-5840695.jpeg?auto=compress&cs=tinysrgb&w=600&h=400", // fluffy white alpaca close-up
+  "https://images.pexels.com/photos/30318570/pexels-photo-30318570/free-photo-of-close-up-portrait-of-a-curious-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400", // curious brown alpaca portrait
+  "https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80", // group of alpacas grazing on farm
+  "https://images.pexels.com/photos/30417713/pexels-photo-30417713/free-photo-of-cute-baby-alpaca-portrait-in-ljubljana-zoo.jpeg?auto=compress&cs=tinysrgb&w=600&h=400", // cute baby alpaca close-up
+  "https://images.pexels.com/photos/17955330/pexels-photo-17955330/free-photo-of-white-head-of-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400", // fluffy white alpaca face detail
+  "https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80", // mixed group of alpacas standing in field
+  "https://images.pexels.com/photos/17955330/pexels-photo-17955330/free-photo-of-white-head-of-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400", // another fluffy close-up for variety
+  "https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80", // herd grazing scene
+  "https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80", // alpacas in open field
+  "https://images.pexels.com/photos/30318570/pexels-photo-30318570/free-photo-of-close-up-portrait-of-a-curious-alpaca.jpeg?auto=compress&cs=tinysrgb&w=600&h=400", // expressive brown alpaca
+  "https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80", // group grazing together
+  "https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80", // colorful mix of alpacas
+  "https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80", // farm herd scene
+  "https://images.unsplash.com/photo-1720055703134-0a3bbedd6a19?auto=format&fit=crop&w=600&h=400&q=80", // alpacas in pasture
+  "https://images.pexels.com/photos/30417713/pexels-photo-30417713/free-photo-of-cute-baby-alpaca-portrait-in-ljubljana-zoo.jpeg?auto=compress&cs=tinysrgb&w=600&h=400", // adorable baby alpaca
+  "https://images.unsplash.com/photo-1721495669150-c116779ad34b?auto=format&fit=crop&w=600&h=400&q=80", // more farm group grazing
 ];
 
 async function seedPostsAndLikes(userIds) {
   const postsData = Array.from({ length: cfg.posts }, (_, i) => ({
     authorId: pick(userIds),
-    content: `${makeContent('Live feed:')} [${runTag}]`,
-    imageUrl: (i % 7 === 0) ? pick(SEED_IMAGES) : null,
+    content: `${makeContent("Live feed:")} [${runTag}]`,
+    imageUrl: i % 7 === 0 ? pick(SEED_IMAGES) : null,
     isPublic: Math.random() < 0.97,
     createdAt: randomDateLastDays(),
     updatedAt: randomDateLastDays(),
@@ -259,7 +293,11 @@ async function seedPostsAndLikes(userIds) {
       const key = `${post.id}-${liker}`;
       if (seen.has(key) || liker === post.authorId) continue;
       seen.add(key);
-      likesData.push({ postId: post.id, userId: liker, createdAt: randomDateLastDays() });
+      likesData.push({
+        postId: post.id,
+        userId: liker,
+        createdAt: randomDateLastDays(),
+      });
       likesByPost.set(post.id, (likesByPost.get(post.id) || 0) + 1);
     }
   }
@@ -269,7 +307,10 @@ async function seedPostsAndLikes(userIds) {
   }
 
   for (const [postId, count] of likesByPost.entries()) {
-    await prisma.post.update({ where: { id: postId }, data: { likesCount: count } });
+    await prisma.post.update({
+      where: { id: postId },
+      data: { likesCount: count },
+    });
   }
 }
 
@@ -283,7 +324,7 @@ async function seedMessages(friendPairs) {
     return {
       senderId,
       receiverId,
-      content: makeContent('DM:'),
+      content: makeContent("DM:"),
       isRead: Math.random() < 0.7,
       createdAt: randomDateLastDays(),
     };
@@ -294,7 +335,7 @@ async function seedMessages(friendPairs) {
 
 async function seedRooms(userIds) {
   const rooms = Array.from({ length: cfg.rooms }, (_, i) => ({
-    name: `${runTag}-room-${String(i + 1).padStart(2, '0')}`,
+    name: `${runTag}-room-${String(i + 1).padStart(2, "0")}`,
     ownerId: pick(userIds),
     isPrivate: Math.random() < 0.25,
     createdAt: randomDateLastDays(),
@@ -320,11 +361,18 @@ async function seedRooms(userIds) {
     membersByRoom.set(room.id, memberIds);
 
     for (const id of memberIds) {
-      membersData.push({ roomId: room.id, userId: id, role: id === room.ownerId ? 'owner' : 'member' });
+      membersData.push({
+        roomId: room.id,
+        userId: id,
+        role: id === room.ownerId ? "owner" : "member",
+      });
     }
   }
 
-  await prisma.chatRoomMember.createMany({ data: membersData, skipDuplicates: true });
+  await prisma.chatRoomMember.createMany({
+    data: membersData,
+    skipDuplicates: true,
+  });
 
   const roomMessages = [];
   for (let i = 0; i < cfg.roomMessages; i++) {
@@ -333,40 +381,64 @@ async function seedRooms(userIds) {
     roomMessages.push({
       roomId: room.id,
       senderId: pick(members),
-      content: makeContent('Room:'),
+      content: makeContent("Room:"),
       createdAt: randomDateLastDays(),
     });
   }
 
-  await prisma.chatRoomMessage.createMany({ data: roomMessages, skipDuplicates: true });
+  await prisma.chatRoomMessage.createMany({
+    data: roomMessages,
+    skipDuplicates: true,
+  });
 }
 
 const ORG_NAMES = [
-  'Alpaca Riders Guild', 'Farm Defense League', 'Llama Lords', 'Woolly Warriors',
-  'Spit Masters', 'Neon Arena', 'Pixel Farmers Co', 'The Alpaca Academy',
-  'Golden Fleece Syndicate', 'Cloud Herders', 'Alpaca Party Official', 'Code Ranchers',
-  'Frontier Explorers', 'Turbo Shearers', 'Data Shepherds', 'Midnight Grazers',
-  'Alpine Collective', 'Digital Pastures', 'Thunder Herd', 'Cosmic Alpacas',
+  "Alpaca Riders Guild",
+  "Farm Defense League",
+  "Llama Lords",
+  "Woolly Warriors",
+  "Spit Masters",
+  "Neon Arena",
+  "Pixel Farmers Co",
+  "The Alpaca Academy",
+  "Golden Fleece Syndicate",
+  "Cloud Herders",
+  "Alpaca Party Official",
+  "Code Ranchers",
+  "Frontier Explorers",
+  "Turbo Shearers",
+  "Data Shepherds",
+  "Midnight Grazers",
+  "Alpine Collective",
+  "Digital Pastures",
+  "Thunder Herd",
+  "Cosmic Alpacas",
 ];
 
 async function seedOrganizations(userIds) {
   const orgsData = Array.from({ length: cfg.organizations }, (_, i) => ({
-    name: i < ORG_NAMES.length ? ORG_NAMES[i] : `${ORG_NAMES[i % ORG_NAMES.length]} ${Math.floor(i / ORG_NAMES.length) + 1}`,
+    name:
+      i < ORG_NAMES.length
+        ? ORG_NAMES[i]
+        : `${ORG_NAMES[i % ORG_NAMES.length]} ${Math.floor(i / ORG_NAMES.length) + 1}`,
     description: pick([
-      'A community of dedicated alpaca enthusiasts.',
-      'Competitive gaming and strategy discussions.',
-      'Casual group for farm management tips.',
-      'Elite players pushing the leaderboard.',
-      'Social club for events and meetups.',
-      'Research and development of alpaca tech.',
+      "A community of dedicated alpaca enthusiasts.",
+      "Competitive gaming and strategy discussions.",
+      "Casual group for farm management tips.",
+      "Elite players pushing the leaderboard.",
+      "Social club for events and meetups.",
+      "Research and development of alpaca tech.",
     ]),
     ownerId: pick(userIds),
     createdAt: randomDateLastDays(),
     updatedAt: randomDateLastDays(),
   }));
 
-  await prisma.organization.createMany({ data: orgsData, skipDuplicates: true });
-  const orgNames = orgsData.map(o => o.name);
+  await prisma.organization.createMany({
+    data: orgsData,
+    skipDuplicates: true,
+  });
+  const orgNames = orgsData.map((o) => o.name);
   const orgs = await prisma.organization.findMany({
     where: { name: { in: orgNames } },
     select: { id: true, ownerId: true },
@@ -378,20 +450,33 @@ async function seedOrganizations(userIds) {
     const count = Math.min(userIds.length, r(8, 30));
     while (selected.size < count) selected.add(pick(userIds));
     for (const id of selected) {
-      members.push({ orgId: org.id, userId: id, role: id === org.ownerId ? 'owner' : 'member' });
+      members.push({
+        orgId: org.id,
+        userId: id,
+        role: id === org.ownerId ? "owner" : "member",
+      });
     }
   }
 
-  await prisma.organizationMember.createMany({ data: members, skipDuplicates: true });
+  await prisma.organizationMember.createMany({
+    data: members,
+    skipDuplicates: true,
+  });
 }
 
 async function seedNotifications(userIds) {
-  const kinds = ['friend_request', 'friend_accept', 'post_like', 'room_invite', 'system'];
+  const kinds = [
+    "friend_request",
+    "friend_accept",
+    "post_like",
+    "room_invite",
+    "system",
+  ];
   const data = Array.from({ length: cfg.notifications }, () => ({
     userId: pick(userIds),
     type: pick(kinds),
-    title: 'Live notification',
-    message: makeContent('Notice:'),
+    title: "Live notification",
+    message: makeContent("Notice:"),
     isRead: Math.random() < 0.75,
     createdAt: randomDateLastDays(),
   }));
@@ -399,15 +484,27 @@ async function seedNotifications(userIds) {
   await prisma.notification.createMany({ data, skipDuplicates: true });
 }
 
+async function seedAchievements(userIds) {
+  const data = [
+    {
+      key: "first_login",
+      name: "First login",
+      description: "You loggend in. Yay",
+    },
+  ];
+
+  await prisma.achievement.createMany({ data, skipDuplicates: true });
+}
+
 async function main() {
   await loadVaultSecrets();
-  ({ default: prisma } = await import('../src/config/prisma.js'));
+  ({ default: prisma } = await import("#lib/prisma.js"));
 
-  console.log('[seed-live] Starting...');
-  console.log('[seed-live] Config:', cfg);
+  console.log("[seed-live] Starting...");
+  console.log("[seed-live] Config:", cfg);
 
   if (shouldReset) {
-    console.log('[seed-live] Reset enabled: clearing non-admin data first');
+    console.log("[seed-live] Reset enabled: clearing non-admin data first");
     await hardReset();
   }
 
@@ -422,9 +519,19 @@ async function main() {
     seedRooms(userIds),
     seedOrganizations(userIds),
     seedNotifications(userIds),
+    seedAchievements(userIds),
   ]);
 
-  const [usersCount, postsCount, dmCount, roomsCount, roomMsgCount, orgCount, notifCount] = await Promise.all([
+  const [
+    usersCount,
+    postsCount,
+    dmCount,
+    roomsCount,
+    roomMsgCount,
+    orgCount,
+    notifCount,
+    achievementCount,
+  ] = await Promise.all([
     prisma.user.count(),
     prisma.post.count(),
     prisma.message.count(),
@@ -432,17 +539,20 @@ async function main() {
     prisma.chatRoomMessage.count(),
     prisma.organization.count(),
     prisma.notification.count(),
+    prisma.achievement.count(),
   ]);
 
-  console.log('[seed-live] Done');
-  console.log(`[seed-live] users=${usersCount}, posts=${postsCount}, dms=${dmCount}, rooms=${roomsCount}, roomMessages=${roomMsgCount}, orgs=${orgCount}, notifications=${notifCount}`);
+  console.log("[seed-live] Done");
+  console.log(
+    `[seed-live] users=${usersCount}, posts=${postsCount}, dms=${dmCount}, rooms=${roomsCount}, roomMessages=${roomMsgCount}, orgs=${orgCount}, notifications=${notifCount}, achievements=${achievementCount}`,
+  );
   console.log(`[seed-live] Shared password for seeded users: ${seedPassword}`);
-  console.log('[seed-live] Demo accounts: live_admin, live_demo, live_mod');
+  console.log("[seed-live] Demo accounts: live_admin, live_demo, live_mod");
 }
 
 main()
   .catch((err) => {
-    console.error('[seed-live] Failed:', err);
+    console.error("[seed-live] Failed:", err);
     process.exitCode = 1;
   })
   .finally(async () => {
