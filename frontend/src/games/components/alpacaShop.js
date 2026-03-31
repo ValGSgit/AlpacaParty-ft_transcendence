@@ -3,7 +3,7 @@ import { CONST } from '../config/constants';
 import { createAlpaca } from '../core/createObjects';
 import { useUIManager } from "../core/useUIManager";
 import { setupPlacement } from './editMode';
-import { checkCoinsPrice } from './shop';
+import { checkCoinsPrice } from './upgradeFarm';
 
 export function alpacaShop() {
   const { closeMenus } = useUIManager()

@@ -1,7 +1,7 @@
 import { createDecoration, createItem } from '../core/createObjects.js';
 import { useUIManager } from '../core/useUIManager.js';
 import { setupPlacement } from './editMode.js';
-import { checkCoinsPrice } from './shop.js';
+import { checkCoinsPrice } from './upgradeFarm.js';
 
 export function itemShop() {
   const { closeMenus } = useUIManager()

@@ -57,16 +57,16 @@
     
     <div class="stats-content">
       <div class="stat-row">
-        <strong>Current Farm Size:</strong> {{ gUser.upgrades }}/5
+        <strong>Current Farm Size:</strong> {{ gUser.upgrades }}/{{ CONST.MAX_UPGRADES }}
       </div>
     </div>
 
     <div class="itemshop-grid">
-    <button class="itemshop-card"@click="increaseFarmSize()">
+    <button class="itemshop-card"@click="increaseFarmSize(gUser.upgrades)">
       <span class="item-name">Increase Farm Size</span>
       <div class="icon-container">
         <span style="position: relative; bottom: 10px;">🚜</span>
-        <span class="item-cost">🪙 {{ CONST.UPGRADE_COST }}</span>
+        <span class="item-cost">🪙 {{ getUpgradeCost(gUser.upgrades)}}</span>
       </div>
     </button>
 
@@ -158,7 +158,6 @@
         
     <div v-if="gUI.editMode" class="edit-mode">
       <div class="shop-title"> Edit Mode
-      <div class="info-text"> Click and Move Item </div>
           <div v-if="gEditState.selected" class="edit-actions">
             <button class="shop-btn" @click="sellItem()">💰Sell Item</button>
             <button class="shop-btn" @click="cancelPlacement()">Cancel ✖️</button>
@@ -215,7 +214,7 @@ import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
 import { useFloatingText } from './components/floatingText.js'
 import { itemShop } from './components/itemShop.js'
-import { useShop } from './components/shop.js'
+import { getUpgradeCost, upgradeFarm } from './components/upgradeFarm.js'
 import { CONST } from './config/constants.js'
 import { addDebugCoins } from './core/debug.js'
 import { updateAlpacas } from './core/entities/Alpaca.js'
@@ -244,7 +243,7 @@ const { setTimeOfDay, updateLighting, toggleLightCycle} = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, openFarmMenu, closeFarmMenu, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { increaseFarmSize } = useShop()
+const { increaseFarmSize } = upgradeFarm()
 const { buyItem } = itemShop()
 const { isAuthenticated } = useAuthStore()
 const { cancelPlacement, sellItem} =  useEditMode()

@@ -20,16 +20,13 @@ export const CONST = {
   COLLIDER_SIZE: 0.8,
 
   MAX_UPGRADES: 5,
+
   HP: 3,
   SECONDS_PER_INGAME_YEAR: 300,
   SECONDS_PER_DAYPHASE: 20,
 
   get ALPACA_COST() {
     return gAlpacas.length
-  },
-
-  get UPGRADE_COST() {
-    return (gUser.value.upgrades + 1) * 10
   },
 
   get FLOOR_RADIUS() {
