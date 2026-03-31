@@ -75,12 +75,12 @@ model UserAuth {
 }
 
 model UserStats {
-  xp    Int? @default(0)
-  level Int? @default(1)
+  userId Int  @id @map("user_id")
+  xp     Int? @default(0)
+  level  Int? @default(1)
 
   // Relations
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int  @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_stats")
 }
