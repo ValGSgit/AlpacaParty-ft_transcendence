@@ -2,7 +2,7 @@ import { CONST } from '../config/constants.js';
 
 export function initUser() {
   //for loading data from backend also ?
-  let coins = 5
+  let coins = 500
   let upgrades = 0
   let gameMode = 0
   let point = 0
