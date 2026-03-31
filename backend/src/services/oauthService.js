@@ -42,7 +42,7 @@ export function initializePassport() {
 
             // Ensure username uniqueness
             const existing = await User.findByUsername(username);
-            if (existing && existing.oauthId !== profile.id) {
+            if (existing && existing.userAuth?.oauthId !== profile.id) {
               username = `${username}_${profile.id.slice(0, 4)}`;
             }
 
@@ -84,7 +84,7 @@ export function initializePassport() {
             let username = (profile.username || `github_${profile.id}`).slice(0, 28);
 
             const existing = await User.findByUsername(username);
-            if (existing && existing.oauthId !== String(profile.id)) {
+            if (existing && existing.userAuth?.oauthId !== String(profile.id)) {
               username = `${username}_${String(profile.id).slice(0, 4)}`;
             }
 

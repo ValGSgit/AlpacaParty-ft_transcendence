@@ -41,14 +41,31 @@ export const listUsers = async (req, res, next) => {
     const [users, total] = await Promise.all([
       prisma.user.findMany({
         where,
-        select: { id: true, username: true, email: true, avatar: true, isOnline: true, isAdmin: true, level: true, xp: true, createdAt: true },
+        select: {
+          id: true, username: true, email: true, avatar: true,
+          isOnline: true, createdAt: true,
+          userSettings: { select: { isAdmin: true } },
+          userStats:    { select: { xp: true, level: true } },
+        },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: Number(limit),
         skip: Number(offset),
       }),
       prisma.user.count({ where }),
     ]);
-    res.json({ users, total });
+    // Flatten nested relations for the response
+    const shaped = users.map((u) => ({
+      id:        u.id,
+      username:  u.username,
+      email:     u.email,
+      avatar:    u.avatar,
+      isOnline:  u.isOnline,
+      createdAt: u.createdAt,
+      isAdmin:   u.userSettings?.isAdmin ?? false,
+      level:     u.userStats?.level      ?? 1,
+      xp:        u.userStats?.xp         ?? 0,
+    }));
+    res.json({ users: shaped, total });
   } catch (err) {
     next(err);
   }
@@ -58,9 +75,7 @@ export const listUsers = async (req, res, next) => {
 export const deleteUser = async (req, res, next) => {
   try {
     if (Number(req.params.id) === req.user.id) {
-      return res
-        .status(400)
-        .json({ error: { message: "Cannot delete yourself" } });
+      return res.status(400).json({ error: { message: "Cannot delete yourself" } });
     }
     const deleted = await User.deleteById(Number(req.params.id));
     if (!deleted)
@@ -76,16 +91,18 @@ export const toggleAdmin = async (req, res, next) => {
   try {
     const existing = await prisma.user.findUnique({
       where: { id: Number(req.params.id) },
-      select: { id: true, isAdmin: true },
+      select: { id: true, username: true, userSettings: { select: { isAdmin: true } } },
     });
     if (!existing)
       return res.status(404).json({ error: { message: "User not found" } });
-    const user = await prisma.user.update({
-      where: { id: existing.id },
-      data: { isAdmin: !existing.isAdmin },
-      select: { id: true, username: true, isAdmin: true },
+
+    const newAdmin = !(existing.userSettings?.isAdmin ?? false);
+    await prisma.userSettings.upsert({
+      where:  { userId: existing.id },
+      create: { userId: existing.id, isAdmin: newAdmin },
+      update: { isAdmin: newAdmin },
     });
-    res.json({ user });
+    res.json({ user: { id: existing.id, username: existing.username, isAdmin: newAdmin } });
   } catch (err) {
     next(err);
   }

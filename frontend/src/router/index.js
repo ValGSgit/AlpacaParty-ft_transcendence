@@ -14,7 +14,6 @@ const UserProfile = () => import('../views/UserProfile.vue')
 const Friends  = () => import('../views/Friends.vue')
 const Messages = () => import('../views/Messages.vue')
 const Game     = () => import('../games/Game.vue')
-const SpitRoyale = () => import('../views/SpitRoyale.vue')
 const Settings = () => import('../views/Settings.vue')
 const Help     = () => import('../views/Help.vue')
 const Feed     = () => import('../views/Feed.vue')
@@ -68,13 +67,7 @@ const routes = [
     path: '/game',
     name: 'Game',
     component: Game,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/spit-royale',
-    name: 'SpitRoyale',
-    component: SpitRoyale,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: false },
   },
   {
     path: '/settings',

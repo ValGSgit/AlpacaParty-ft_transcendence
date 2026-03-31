@@ -77,7 +77,8 @@ export const deleteOrg = async (req, res, next) => {
   try {
     const org = await Organization.findById(Number(req.params.id));
     if (!org) return res.status(404).json({ error: { message: 'Organization not found' } });
-    if (org.ownerId !== req.user.id && !req.user.isAdmin) {
+    const isAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
+    if (org.ownerId !== req.user.id && !isAdmin) {
       return res.status(403).json({ error: { message: 'Only the owner can delete an organization' } });
     }
     await Organization.delete(org.id);

@@ -15,7 +15,9 @@ import config from "#config/index.js";
 import { customValidationResult } from "#validators/validatorUtils.js";
 import prisma from "#lib/prisma.js";
 import CustomError from "#utils/CustomError.js";
-import { getPagination } from "#utils/pagination.js";
+
+
+const IMAGE_GENERATION_COST = 50;
 
 /**
  * GET /api/users/me
@@ -28,7 +30,7 @@ export const getMe = async (req, res) =>
  */
 export const updateMe = async (req, res, next) => {
   const id = Number(req.user.id);
-  const { username, email, bio, status, avatar } = req.body;
+  const { username, email, bio, status, avatar, is_public } = req.body;
 
   try {
     customValidationResult(req).throw();
@@ -53,20 +55,12 @@ export const updateMe = async (req, res, next) => {
       if (existingEmail) throw new CustomError("Email already exists", 400);
     }
 
-    const updatedUser = await prisma.user.update({
-      where: {
-        id: id,
-      },
-      data: {
-        username: username,
-        email: email,
-        bio: bio,
-        status: status,
-        avatar: avatar,
-      },
+    const updatedUser = await User.update(id, {
+      username, email, bio, status, avatar,
+      ...(is_public !== undefined && { isPublic: !!is_public }),
     });
 
-    res.status(200).json({ user: updatedUser });
+    res.status(200).json({ user: shapeUserForClient(updatedUser) });
   } catch (err) {
     next(err);
   }
@@ -109,15 +103,16 @@ export const getUser = async (req, res, next) => {
   const id = Number(req.params.id);
 
   try {
-    const user = await prisma.user.findFirst({ where: { id: id } });
+    const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ error: { message: "User not found" } });
     }
-    // Only the owner or admins can see non-public profiles
-    if (!user.isPublic && user.id !== req.user.id && !req.user.is_admin) {
+    const isPublic = user.userSettings?.isPublic ?? true;
+    const reqIsAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
+    if (!isPublic && user.id !== req.user?.id && !reqIsAdmin) {
       return res.status(404).json({ error: { message: "User not found" } });
     }
-    res.json({ user });
+    res.json({ user: shapeUserForClient(user) });
   } catch (err) {
     next(err);
   }
@@ -128,37 +123,18 @@ export const getUser = async (req, res, next) => {
  */
 export const listUsers = async (req, res, next) => {
   try {
-    const { pageNumber, pageSizeNumber, skip, take } = getPagination(req.query);
+    const limit = Math.min(Number(req.query.limit) || 20, 100);
+    const offset = Number(req.query.offset) || 0;
 
-    let whereRule = {};
-    if (!req.user.is_admin) {
-      whereRule = { userSettings: { isPublic: true } };
-    }
+    const reqIsAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
+    const where = reqIsAdmin ? {} : { userSettings: { isPublic: true } };
 
-    const users = await prisma.user.findMany({
-      skip: skip,
-      take: take,
-      where: whereRule,
-      orderBy: {
-        id: "asc",
-      },
-    });
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({ skip: offset, take: limit, where, orderBy: { id: "asc" } }),
+      prisma.user.count({ where }),
+    ]);
 
-    // Fetch the total count of users (to calculate total pages)
-    const totalUsers = await prisma.user.count();
-
-    console.log(`users: ${totalUsers}`);
-
-    // Calculate total pages
-    const totalPages = Math.ceil(totalUsers / pageSizeNumber);
-
-    res.json({
-      users,
-      totalUsers,
-      totalPages,
-      currentPage: pageNumber,
-      pageSize: pageSizeNumber,
-    });
+    res.json({ users, total, limit, offset });
   } catch (err) {
     next(err);
   }
@@ -240,7 +216,8 @@ export const deleteMe = async (req, res, next) => {
 export const generateAvatar = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-    if (!user || user.coins < IMAGE_GENERATION_COST) {
+    const coins = user?.alpacaFarm?.coins ?? 0;
+    if (!user || coins < IMAGE_GENERATION_COST) {
       return res.status(402).json({
         error: {
           message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.`,
@@ -257,7 +234,7 @@ export const generateAvatar = async (req, res, next) => {
     const avatarUrl = `/uploads/${filename}`;
     const updatedUser = await User.update(req.user.id, {
       avatar: avatarUrl,
-      coins: user.coins - IMAGE_GENERATION_COST,
+      coins: coins - IMAGE_GENERATION_COST,
     });
     res.json({ user: shapeUserForClient(updatedUser), avatarUrl });
   } catch (err) {
@@ -269,7 +246,8 @@ export const generateAvatar = async (req, res, next) => {
 export const generateImage = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-    if (!user || user.coins < IMAGE_GENERATION_COST) {
+    const coins = user?.alpacaFarm?.coins ?? 0;
+    if (!user || coins < IMAGE_GENERATION_COST) {
       return res.status(402).json({
         error: {
           message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.`,
@@ -284,7 +262,7 @@ export const generateImage = async (req, res, next) => {
     fs.mkdirSync(config.uploads.dir, { recursive: true });
     fs.writeFileSync(filepath, buffer);
     await User.update(req.user.id, {
-      coins: user.coins - IMAGE_GENERATION_COST,
+      coins: coins - IMAGE_GENERATION_COST,
     });
     res.json({ imageUrl: `/uploads/${filename}` });
   } catch (err) {

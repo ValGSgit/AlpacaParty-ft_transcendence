@@ -39,6 +39,7 @@ export async function createItem(
 
   const item = new Item(clone, animations, { position, rotation, scale });
   item.path = path;
+  item.type = 'item' // used to distingush between deco for colliders
 
   registerEntity(item, 'item');
   return markRaw(item);
@@ -57,6 +58,7 @@ export async function createDecoration(
 
   const deco = new Item(clone, animations, { position, rotation, scale });
   deco.path = path;
+  deco.type = 'deco' // used to distingush between item for colliders
 
   registerEntity(deco, 'decoration');
   return markRaw(deco);
@@ -73,7 +75,6 @@ export async function createCollectable(
   attachCollider(clone);
 
   const collectable = new Collectable(clone, animations, { position, rotation, scale });
-  attachCollider(collectable.model);
   registerEntity(collectable, 'collectable');
   return markRaw(collectable);
 }

@@ -30,9 +30,9 @@ export const errorHandler = (err, _req, res, _next) => {
     error = err;
   } else if (isValidationError(err)) {
     if (!err.isEmpty()) {
+      const firstError = Object.values(err.mapped())[0];
       return res.status(400).json({
-        message: "Validation failed",
-        errors: err.mapped(),
+        error: { message: firstError || "Validation failed" },
       });
     }
   } else if (err instanceof Prisma.PrismaClientKnownRequestError) {

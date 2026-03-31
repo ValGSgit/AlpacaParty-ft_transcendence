@@ -1,10 +1,8 @@
 import { body } from "express-validator";
 import config from "#config/index.js";
 
-// todo match lengths with database schema
-
 export const userUpdateValidation = () => [
-  userNameChain(body("name").optional()),
+  userNameChain(body("username").optional()),
   userEmailChain(body("email").optional()),
   userBioChain(body("bio")),
   userStatusChain(body("status")),
@@ -22,9 +20,9 @@ export const userNameChain = (chain) =>
     .withMessage("Name is required")
     .isAlphanumeric()
     .withMessage("Name may only contain letters and numbers")
-    .isLength({ min: 3, max: 35 })
-    .escape()
-    .withMessage("Name must be between 3 and 35 characters");
+    .isLength({ min: 3, max: 32 })
+    .withMessage("Name must be between 3 and 32 characters")
+    .escape();
 
 export const userEmailChain = (chain) =>
   chain
@@ -38,24 +36,23 @@ export const userBioChain = (chain) =>
     .optional()
     .trim()
     .isLength({ max: 255 })
-    .escape()
-    .withMessage("Bio must be under 255 characters");
+    .withMessage("Bio must be under 255 characters")
+    .escape();
 
 export const userStatusChain = (chain) =>
   chain
     .optional()
     .trim()
     .isLength({ max: 255 })
-    .escape()
-    .withMessage("Status must be under 255 characters");
+    .withMessage("Status must be under 255 characters")
+    .escape();
 
 export const userAvatarChain = (chain) =>
   chain
     .optional()
     .trim()
-    .isLength({ max: 200 })
-    .escape()
-    .withMessage("Avatar must be under 200 characters");
+    .isLength({ max: 512 })
+    .withMessage("Avatar must be under 512 characters");
 
 export const userPasswordChain = (chain) => {
   const minLen = config.password.minLength;

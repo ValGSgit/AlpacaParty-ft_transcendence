@@ -33,19 +33,9 @@ export const register = async (req, res, next) => {
       }
     }
 
-    // Create user
+    // Create user (User.create also creates userAuth, userStats, userSettings)
     const passwordHash = await AuthService.hashPassword(password);
-    const user = await prisma.user.create({
-      data: {
-        username: username,
-        email: email,
-        userAuth: {
-          create: {
-            passwordHash: passwordHash,
-          },
-        },
-      },
-    });
+    const user = await User.create({ username, email, passwordHash });
 
     await Achievement.unlock(user.id, "first_login");
     const accessToken = AuthService.generateAccessToken(user);
@@ -77,9 +67,6 @@ export const login = async (req, res, next) => {
     });
     if (!user) throw new CustomError("Invalid credentials", 401);
 
-    // console.log(`${user}`);
-    console.log(JSON.stringify(user, null, 2));
-
     const valid = await AuthService.comparePassword(
       password,
       user.userAuth.passwordHash,
@@ -91,8 +78,7 @@ export const login = async (req, res, next) => {
     const accessToken = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
 
-    // Strip sensitive fields before returning
-    const { passwordHash, ...safeUser } = user;
+    const safeUser = shapeUserForClient(await User.findById(user.id));
 
     res.json({
       user: safeUser,

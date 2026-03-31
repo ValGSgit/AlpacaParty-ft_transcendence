@@ -11,12 +11,23 @@
   <div v-if="!gameIsReady" class="modal-overlay">Loading...</div>
   
   <div v-if="gameIsReady">
-    <div v-if="!gUser.gameMode" class="title">Farm</div>
-    <div v-if="gUser.gameMode && gUser.hp" class="title">Battle Royale</div>
-    <div v-if="gUser.gameMode && !gUser.hp" class="title">Game Over!</div>
+    <div v-if="gUser.gameMode === 1 && gUser.hp" class="title">Spit Royale</div>
+    <div v-if="gUser.gameMode === 2 && gUser.hp" class="title">Spit Royale</div>
+    <div v-if="gUser.gameMode && !gUser.isPlaying" class="modal-overlay">
+      <div class="shop-title">
+      <div v-if="!gUser.hp">Game Over!</div>
+      <div v-if="gUser.hp">Congratulation! You Win!</div>
+        <button v-if="gUser.gameMode === 1" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
+        <button v-if="gUser.gameMode === 2" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
+        <button v-if="gUser.gameMode === 3" class="shop-btn">Score: {{ gUser.point }} 🪵</button>
+        <button class="shop-btn" @click="changeGame()" title="Return to Farm">Return to Farm</button>
+      </div>
+    </div>
     <div class="hud-left">
       <div v-if="!gUser.gameMode" class="stat"><span>💰 {{ gUser.coins }}</span></div>
-      <div v-if="gUser.gameMode" class="stat"><span>🦙 {{ gUser.point }} </span></div>
+      <div v-if="gUser.gameMode === 1" class="stat"><span>🦙 {{ gUser.point }} </span></div>
+      <div v-if="gUser.gameMode === 2" class="stat"><span>🦙 {{ gUser.point }} </span></div>
+      <div v-if="gUser.gameMode === 3" class="stat"><span>🪵 {{ gUser.point }} </span></div>
       <template v-if="gUser.gameMode">
         <div v-if="gUser.hp === 3"><span>❤️❤️❤️</span></div>
         <div v-if="gUser.hp === 2"><span>❤️❤️💔</span></div>
@@ -26,7 +37,7 @@
     </div>
 
     <div class="hud-right">
-      <button class="hud-btn" @click="changeGame()" title="Mini Games">🕹️</button>
+      <button class="hud-btn" @click="openGameMenu()" title="Mini Games">🕹️</button>
         <button v-if="!gUser.gameMode" class="hud-btn" @click="openShopMenu()" title="Shop">💰</button>
         <button v-if="!gUser.gameMode" class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
         <button v-if="!gUser.gameMode" class="hud-btn" @click="openLightMenu()" title="Edit Light">🌟</button>
@@ -40,6 +51,15 @@
         <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca">🦙 Buy Alpaca</button>
         <button class="shop-btn" @click="openItemShop()" title="Buy Item">🌳 Buy Item</button>
         <button class="close-btn" @click="closeShopMenu()" title="Close">✖️</button>
+      </div>
+    </div>
+
+    <div v-if="gUI.gameMenu" class="modal-overlay">
+      <div class="shop-title">Select Game
+        <button class="shop-btn" @click="changeGame(1)" title="Spit Royale with AI">Spit Royale with AI</button>
+        <button v-if="isAuthenticated" class="shop-btn" @click="changeGame(2)" title="Spit Royale Online">Spit Royale Online</button>
+        <button class="shop-btn" @click="changeGame(3)" title="Alpaca Road">Alpaca Road</button>
+        <button class="close-btn" @click="closeGameMenu()" title="Close">✖️</button>
       </div>
     </div>
     
@@ -174,7 +194,7 @@ import { useInput } from './core/useInput.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
-import { changeGame } from './mini_games/init.js'
+import { changeGame, spawnObstacles, updateObstacles } from './mini_games/init.js'
 import { initUser } from './user/initUser.js'
 import { initWorld } from './world/initWorld.js'
 
@@ -186,7 +206,7 @@ const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
 const { initInput, cleanupInput} = useInput()
 const { setTimeOfDay} = editLight()
 const { buyAlpaca } = alpacaShop()
-const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
+const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = useShop()
 const { buyItem } = itemShop()
@@ -202,6 +222,7 @@ let stopMyWatcher
 let stats;
 
 onMounted(async () => {
+  const { isAuthenticated } = useAuthStore()
   if (!isAuthenticated)
     showLoginWarning.value = true
   else
@@ -246,14 +267,22 @@ const gameLoop = () => {
   }
 
     if (player && player.model) {
+      //console.log(gCollectables.length)
       for (let i = gCollectables.length - 1; i >= 0; i--) {
         const coin = gCollectables[i];
         if (coin.update) coin.update(delta);
       }
     }
 
-  spawnCoins(delta);
+  if (!gUser.value.gameMode)
+    spawnCoins(delta);
   updateSpits()
+
+  if (gUser.value.gameMode === 3)
+  {
+    spawnObstacles(delta);
+    updateObstacles()
+  }
 
   if (gEngine.value?.controls) {
     gEngine.value.controls.update()

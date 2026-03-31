@@ -8,7 +8,8 @@ import {
   removeFriend, blockUser, unblockUser, listBlocked,
 } from '../controllers/friendController.js';
 import { authenticate } from '../middleware/auth.js';
-import { validate, z } from '../middleware/validate.js';
+import { body } from 'express-validator';
+import { checkValidation } from '#validators/validatorUtils.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -80,7 +81,7 @@ router.get('/blocked', listBlocked);
  *       404: { description: User not found }
  */
 router.get('/requests', listRequests);
-router.post('/requests', validate({ body: z.object({ userId: z.coerce.number().int().positive({ message: 'userId must be a positive integer' }) }) }), sendRequest);
+router.post('/requests', [body('userId').isInt({ min: 1 }).withMessage('userId must be a positive integer')], checkValidation, sendRequest);
 
 /**
  * @openapi
@@ -176,7 +177,7 @@ router.delete('/:id', removeFriend);
  *               properties:
  *                 message: { type: string }
  */
-router.post('/block', validate({ body: z.object({ userId: z.coerce.number().int().positive({ message: 'userId must be a positive integer' }) }) }), blockUser);
+router.post('/block', [body('userId').isInt({ min: 1 }).withMessage('userId must be a positive integer')], checkValidation, blockUser);
 
 /**
  * @openapi

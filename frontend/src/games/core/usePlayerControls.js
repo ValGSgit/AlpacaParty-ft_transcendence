@@ -2,6 +2,7 @@ import { CONST } from '../config/constants.js'
 import { useInput } from './useInput.js'
 import { checkWithinBounds, usePhysics } from './usePhysics.js'
 import { alpacaAI } from '../components/alpacaAI.js';
+import { gUser } from './globals.js';
 
 export function usePlayerControls() {
   const { keys } = useInput()
@@ -44,11 +45,13 @@ export function usePlayerControls() {
     let dir = 0;
     let nextRotY = model.rotation.y;
     let isWalking = false;
-
-    if (keys.w) { dir = 1; isWalking = true; }
-    if (keys.s) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isWalking = true; }
-    if (keys.a) { nextRotY += rotSpeed; isWalking = true; }
-    if (keys.d) { nextRotY -= rotSpeed; isWalking = true; }
+    if (gUser.value.gameMode !== 3) // no walking for alpaca road mini game
+    {
+      if (keys.w) { dir = 1; isWalking = true; }
+      if (keys.s) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isWalking = true; }
+      if (keys.a) { nextRotY += rotSpeed; isWalking = true; }
+      if (keys.d) { nextRotY -= rotSpeed; isWalking = true; }
+    }
 
     return { dir, speed, nextRotY, isWalking };
   }

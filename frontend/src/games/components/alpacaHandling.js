@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { MATERIALS as MATS } from '../config/materials.js';
-import { gAlpacas, gPlayer, gScene } from "../core/globals.js";
+import { gAlpacas, gPlayer, gScene, gUser } from "../core/globals.js";
 import { useUIManager } from '../core/useUIManager.js';
 
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -70,17 +70,37 @@ export function alpacaHandling() {
 
       // 2. Raycast from current position to check for hits in this "frame"
       const raycaster = new THREE.Raycaster(s.currentPos, s.direction, 0, s.speed);
-      const targets = gAlpacas.map(a => a.model);
+      // In multiplayer, we also need to check hits against remote players!
+      // Remote players are added straight to gScene, so let's just raycast the whole scene 
+      // (or you can push remote players to gAlpacas temporarily)
+      const targets = gUser.value.gameMode === 2 ? gScene.value.children : gAlpacas.map(a => a.model);
       const hits = raycaster.intersectObjects(targets, true);
 
       if (hits.length > 0 || s.distanceTraveled > s.maxDistance) {
-        // Logic for hitting an alpaca
+        
         if (hits.length > 0) {
-          const hitAlpaca = findAlpaca(hits[0].object);
-          hitAlpaca.beingHit(s.owner)
+          if (gUser.value.gameMode !== 2) {
+            // --- SINGLE PLAYER LOGIC ---
+            const hitAlpaca = findAlpaca(hits[0].object);
+            if (hitAlpaca) hitAlpaca.beingHit(s.owner);
+          } else {
+            // --- MULTIPLAYER LOGIC ---
+            // Only the person who fired the laser is allowed to tell the server it hit!
+            if (s.owner === gPlayer.value && window.onlineClient) {
+               
+               // Traverse up the 3D object to find the tag we will place on remote players
+               let obj = hits[0].object;
+               while (obj && !obj.userData.networkId) obj = obj.parent;
+               
+               if (obj && obj.userData.networkId && obj.userData.networkId !== window.onlineClient.localPlayerId) {
+                 // We hit a remote player! Tell the server.
+                 window.onlineClient.socket.emit('spit_hit', { targetId: obj.userData.networkId });
+               }
+            }
+          }
         }
 
-        // Cleanup
+        // Cleanup the visual laser
         gScene.value.remove(s.mesh);
         s.mesh.geometry.dispose();
         activeSpits.splice(i, 1);

@@ -60,15 +60,15 @@ const Message = {
           m.created_at,
           m.is_read,
           (
-            SELECT COUNT(*)::int FROM messages u
+            SELECT COUNT(*)::int FROM message u
             WHERE u.sender_id != ${Number(userId)}
               AND u.receiver_id = ${Number(userId)}
               AND u.is_read = false
               AND u.sender_id = CASE WHEN m.sender_id = ${Number(userId)} THEN m.receiver_id ELSE m.sender_id END
           ) AS unread_count
-        FROM messages m
-        JOIN users s ON s.id = m.sender_id
-        JOIN users r ON r.id = m.receiver_id
+        FROM message m
+        JOIN "user" s ON s.id = m.sender_id
+        JOIN "user" r ON r.id = m.receiver_id
         WHERE (m.sender_id = ${Number(userId)} OR m.receiver_id = ${Number(userId)})
           AND m.sender_id != m.receiver_id
       ) sub
