@@ -44,13 +44,45 @@
     
     <div v-if="gUI.shopMenu" class="modal-overlay">
       <div class="shop-title">Mini Shop
-        <button class="shop-btn" @click="increaseFarmSize()" title="Increase Farm Size">🚜 Increase Farm Size</button>
+        <button class="shop-btn" @click="openFarmMenu()" title="Upgrade Farm">🚜 Upgrade Farm</button>
         <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca">🦙 Buy Alpaca</button>
         <button class="shop-btn" @click="openItemShop()" title="Buy Item">🌳 Buy Item</button>
         <button class="close-btn" @click="closeShopMenu()" title="Close">✖️</button>
       </div>
     </div>
+
+<div v-if="gUI.farmMenu" class="modal-overlay">
+  <div class="shop-title">
+    Upgrade Farm
     
+    <div class="stats-content">
+      <div class="stat-row">
+        <strong>Current Farm Size:</strong> {{ gUser.upgrades }}/5
+      </div>
+    </div>
+
+    <div class="itemshop-grid">
+    <button class="itemshop-card"@click="increaseFarmSize()">
+      <span class="item-name">Increase Farm Size</span>
+      <div class="icon-container">
+        <span style="position: relative; bottom: 10px;">🚜</span>
+        <span class="item-cost">🪙 {{ CONST.UPGRADE_COST }}</span>
+      </div>
+    </button>
+
+     <button class="itemshop-card"@click="increaseHerdSize()">
+      <span class="item-name">Increase Herd Size</span>
+      <div class="icon-container">
+        <span style="position: relative; bottom: 10px;">🦙</span>
+        <span class="item-cost">🪙 5</span>
+      </div>
+    </button>
+  </div>
+
+    <button class="close-btn" @click="gUI.farmMenu = false" title="Close">✖️</button>
+  </div>
+</div>
+
     <div v-if="gUI.itemShop" class="modal-overlay">
       <div class="shop-modal">
         <div class="shop-title"> Buy Item </div>
@@ -126,14 +158,28 @@
         
     <div v-if="gUI.editMode" class="edit-mode">
       <div class="shop-title"> Edit Mode
-        <div class="info-text"> Click and Move Item </div>
-        <button class="close-btn" @click="closeEditMode()" title="Close">✖️</button>
+      <div class="info-text"> Click and Move Item </div>
+          <div v-if="gEditState.selected" class="edit-actions">
+            <button class="shop-btn" @click="sellItem()">💰Sell Item</button>
+            <button class="shop-btn" @click="cancelPlacement()">Cancel ✖️</button>
+          </div>
+      <button class="close-btn" @click="closeEditMode()" title="Close">✖️</button>
       </div>
-    </div>
-    
-    <div v-if="gUI.editMode && gEditState.selected" class="edit-actions" style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10;">
-        <button class="shop-btn" @click="sellItem()">💰 Sell Item</button>
-        <button class="shop-btn" @click="cancelPlacement()">✖️ Cancel</button>
+        <div class="controls-hint">
+        <h4>🛠️ Edit Controls</h4>
+        <div class="control-row">
+          <span>🖱️ Click</span>
+          <span>Select / Place</span>
+        </div>
+        <div class="control-row">
+          <span>↕️ Scroll</span>
+          <span>Rotate</span>
+        </div>
+        <div class="control-row">
+          <span>⇧ Shift + Scroll</span>
+          <span>Scale</span>
+        </div>
+      </div>
     </div>
 
     <div v-if="gUI.lightMenu" class="modal-overlay">
@@ -170,9 +216,11 @@ import { useEditMode } from './components/editMode.js'
 import { useFloatingText } from './components/floatingText.js'
 import { itemShop } from './components/itemShop.js'
 import { useShop } from './components/shop.js'
+import { CONST } from './config/constants.js'
 import { addDebugCoins } from './core/debug.js'
 import { updateAlpacas } from './core/entities/Alpaca.js'
 import { updateCollectables } from './core/entities/Collectable.js'
+import { shopItems } from './core/entities/Item.js'
 import { cleanupFPSstats, initFPSstats } from './core/FPSstats.js'
 import { gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
@@ -194,12 +242,12 @@ const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
 const { initInput, cleanupInput} = useInput()
 const { setTimeOfDay, updateLighting, toggleLightCycle} = editLight()
 const { buyAlpaca } = alpacaShop()
-const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
+const { openEditMode, openFarmMenu, closeFarmMenu, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = useShop()
-const { buyItem, shopItems } = itemShop()
+const { buyItem } = itemShop()
 const { isAuthenticated } = useAuthStore()
-const { cancelPlacement, deleteItem, sellItem} =  useEditMode()
+const { cancelPlacement, sellItem} =  useEditMode()
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
 const { updateSpits } = alpacaHandling();

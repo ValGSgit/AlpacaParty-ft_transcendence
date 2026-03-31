@@ -121,11 +121,10 @@
 }
 
 .shop-btn {
-  width: 200px;
+  width: clamp(220px, 30vw, 300px);
   height: 50px;
-  font-size: 24px;
+  font-size: clamp(22px, 1vw, 28px);
   background: rgba(255, 255, 255, 0.3);
-  /* slightly more opaque */
   border-width: 2px;
 }
 
@@ -134,7 +133,7 @@
 /* ========================================= */
 
 .shop-title {
-  font-size: 45px;
+  font-size: clamp(30px, 2vw, 45px);
   font-weight: bold;
   color: #FFF;
   display: flex;
@@ -181,14 +180,14 @@
 .custom-color-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .custom-picker {
   -webkit-appearance: none;
   border: none;
-  width: 44px;
-  height: 44px;
+  width: 50px;
+  height: 50px;
   border-radius: 8px;
   cursor: pointer;
   padding: 0;
@@ -202,12 +201,6 @@
 .custom-picker::-webkit-color-swatch {
   border: 2px solid #ccc;
   border-radius: 8px;
-}
-
-.custom-color-row .shop-btn {
-  flex-grow: 1;
-  height: 44px;
-  margin: 0;
 }
 
 /* ========================================= */
@@ -263,6 +256,7 @@
 }
 
 .icon-container {
+  font-size: 55px;
   width: 100px;
   height: 100px;
   background: rgba(0, 0, 0, 0.3);
@@ -301,7 +295,6 @@
   padding-bottom: 8px;
   text-align: center;
 }
-
 
 /* ========================================= */
 /* STATS MODAL & TOGGLES                     */
@@ -421,7 +414,6 @@ input:checked+.slider:before {
   background-color: #000;
 }
 
-
 /* ========================================= */
 /* FLOATING ANIMATIONS                       */
 /* ========================================= */
@@ -441,7 +433,7 @@ input:checked+.slider:before {
   color: #ffd700;
   font-size: 28px;
   font-weight: 900;
-  text-shadow: 0px 3px 0px #b8860b, 0px 4px 6px rgba(0, 0, 0, 0.5);
+  text-shadow: 1px 3px 0px #b8860b, 0px 4px 6px rgba(0, 0, 0, 0.5);
   animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
@@ -459,4 +451,79 @@ input:checked+.slider:before {
     opacity: 0;
     transform: translate(-100%, -50%) translateY(-80px) scale(1);
   }
+}
+
+/* ========================================= */
+/* EDIT MODE CONTROLS HINT                   */
+/* ========================================= */
+
+.controls-hint {
+  position: absolute;
+  bottom: clamp(135px, 5vw, 20px);
+  left: 25px;
+
+  background: rgba(28, 42, 58, 0.8);
+  border: 2px solid #3a4a5a;
+  border-radius: 8px;
+  padding: clamp(8px, 1.5vw, 15px);
+
+  color: #FFF;
+  z-index: 100;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1vw, 10px);
+  backdrop-filter: blur(4px);
+}
+
+.controls-hint h4 {
+  margin: 0;
+  padding-bottom: clamp(3px, 0.5vw, 5px);
+
+  /* Title font size: Min 14px, Scales at 2vw, Max 20px */
+  font-size: clamp(14px, 2vw, 20px);
+
+  color: #ffd700;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.control-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  /* Horizontal space between icon/text and the action text */
+  gap: clamp(15px, 3vw, 30px);
+
+  /* Row text font size: Min 10px, Scales at 1.5vw, Max 16px */
+  font-size: clamp(10px, 1.5vw, 16px);
+  font-weight: bold;
+}
+
+.control-row span:last-child {
+  color: #4abdff;
+}
+
+.edit-actions {
+  position: absolute;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
+
+.edit-mode .close-btn {
+  position: fixed;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  z-index: 100;
+}
+
+.edit-mode .close-btn:hover {
+  transform: translateX(-50%) scale(1.05);
 }
