@@ -129,7 +129,17 @@ export function useEditMode() {
   }
 
   const scaleItem = (e) => {
+    const direction = e.deltaY > 0 ? -1 : 1;
+    const multiplier = 1 + (0.05 * direction);
 
+    gEditState.selected.scale.multiplyScalar(multiplier);
+
+    // Prevent it from getting too small or too massive
+    gEditState.selected.scale.clampScalar(0.6, 1.4);
+
+    if (gEditState.ghost) {
+      gEditState.ghost.scale.copy(gEditState.selected.scale);
+    }
   }
 
   const rotateItem = (e) => {
@@ -138,7 +148,7 @@ export function useEditMode() {
     const rotationAmount = (Math.PI / steps) * direction
     gEditState.selected.rotation.y += rotationAmount
     if (gEditState.ghost) {
-      gEditState.ghost.rotation.y += rotationAmount
+      gEditState.ghost.rotation.copy(gEditState.selected.rotation)
     }
   }
 
@@ -192,7 +202,7 @@ export function useEditMode() {
     if (gEditState.ghost) {
       gScene.value.remove(gEditState.ghost);
     }
-    addCoins(selected.userData.cost / 2);
+    addCoins(Math.floor(selected.userData.cost / 2));
     resetSelected();
     removeObject(selected);
   }
@@ -217,7 +227,7 @@ export function useEditMode() {
     removeObject(selected);
   }
 
-  return { deleteItem, sellItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement }
+  return { deleteItem, sellItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, scaleItem, rotateItem, cancelPlacement }
 }
 
 function resetSelected() {

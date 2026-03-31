@@ -3,7 +3,7 @@ import { reactive } from 'vue'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { useEditMode } from '../components/editMode.js'
 import { printDebug } from './debug.js'
-import { gEditState, gEngine, gScene, gPlayer, gUI, gUser } from './globals.js'
+import { gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './globals.js'
 import { useUIManager } from './useUIManager.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions
@@ -13,7 +13,7 @@ const keys = reactive({
 
 export function useInput() {
   const { switchAlpaca } = alpacaHandling()
-  const { selectItem, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement } = useEditMode()
+  const { selectItem, highlightItem, moveItem, placeItem, rotateItem, scaleItem, cancelPlacement } = useEditMode()
   const { closeMenus, openAlpacaShop } = useUIManager()
 
   const onKeyDown = (e) => {
@@ -23,6 +23,7 @@ export function useInput() {
       case 'KeyS': keys.s = true; break
       case 'KeyD': keys.d = true; break
       case 'Space': keys.space = true; break
+      case 'ShiftLeft': keys.shift = true; break;
       case 'KeyF': gPlayer.value.spit(); break
       case 'KeyP': printDebug(); break
       case 'Escape': handleEscapeKey(); break
@@ -36,12 +37,18 @@ export function useInput() {
       case 'KeyS': keys.s = false; break
       case 'KeyD': keys.d = false; break
       case 'Space': keys.space = false; break
+      case 'ShiftLeft': keys.shift = false; break;
     }
   }
 
   const onWheel = (e) => {
     if (gUI.editMode && gEditState.selected) {
-      rotateItem(e)
+      if (keys.shift) {
+        scaleItem(e)
+      }
+      else {
+        rotateItem(e)
+      }
     }
   }
 
