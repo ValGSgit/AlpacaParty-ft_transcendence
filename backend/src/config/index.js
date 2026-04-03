@@ -17,7 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = (process.env.NODE_ENV || 'development') === 'development';
 
 // JWT secret — must be set explicitly in production
-const jwtSecret = process.env.JWT_SECRET || "56ed9e9b97c588e79f0cc34141c6bc8d94c7be9d6bba82bbe9c7d5cefd8c9199843809b0098213ca" || (isDev ? crypto.randomBytes(32).toString('hex') : null);
+const jwtSecret = process.env.JWT_SECRET || (isDev ? crypto.randomBytes(32).toString('hex') : null);
 if (!jwtSecret) {
   throw new Error('JWT_SECRET is required in production');
 }
