@@ -14,10 +14,9 @@ RUN npm install --no-audit --no-fund --loglevel=error
 # Copy source (after install so code changes don't bust the npm cache layer).
 COPY . .
 
-# Generate Prisma client, prune devDeps, and clear npm cache — all in one layer
+# prune devDeps, and clear npm cache — all in one layer
 # so no intermediate fat state is committed to the image.
-RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate \
-  && npm prune --omit=dev \
+RUN npm prune --omit=dev \
   && npm cache clean --force
 
 # ── Stage 2: Runtime ──────────────────────────────────────────
@@ -36,14 +35,20 @@ COPY --from=builder /app/prisma       ./prisma
 COPY --from=builder /app/prisma.config.js ./prisma.config.js
 COPY --from=builder /app/package.json ./package.json
 
+COPY --chmod=755 tools/docker-entrypoint-prod.sh /usr/local/bin/docker-entrypoint-prod.sh
+COPY --chmod=755 tools/load-secrets.sh /usr/local/bin/load-secrets.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint-prod.sh \
+  /usr/local/bin/load-secrets.sh
+
 # Create uploads directories with correct ownership
 RUN mkdir -p /app/uploads && \
   chown -R nodejs:nodejs /app/uploads
+
+RUN chown -R nodejs:nodejs /app/node_modules /app
 
 USER nodejs
 
 EXPOSE 3000
 
-# Start the server. Schema is managed by database/init.sql on first init,
-# and by running `docker exec alpacaparty_backend_prod npx prisma db push` for incremental changes.
-CMD ["node", "src/server.js"]
+ENTRYPOINT ["docker-entrypoint-prod.sh"]
+CMD ["node", "src/index.js"]

@@ -1,4 +1,3 @@
-
 services:
   backend_base:
     profiles:
@@ -22,6 +21,9 @@ services:
       GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL}
       CORS_ORIGINS: "${CORS_ORIGINS}"
       VAULT_ADDR: https://vault:8200
+      UPLOAD_DIR: "/app/uploads"
+      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-1h}"
+      JWT_REFRESH_EXPIRES_IN: "${JWT_REFRESH_EXPIRES_IN:-7d}"
     tmpfs:
       - /run/secrets:size=64m,mode=1777
     volumes:
@@ -57,4 +59,3 @@ services:
       vault-init:
         condition: service_completed_successfully
     restart: no
-

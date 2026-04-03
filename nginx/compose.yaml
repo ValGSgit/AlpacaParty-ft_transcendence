@@ -1,4 +1,3 @@
-
 # nginx + ModSecurity WAF
 services:
   nginx_base:
