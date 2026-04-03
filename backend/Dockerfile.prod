@@ -44,6 +44,10 @@ RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint-prod.sh \
 RUN mkdir -p /app/uploads && \
   chown -R nodejs:nodejs /app/uploads
 
+# Runtime secret file is written by entrypoint as non-root user.
+RUN mkdir -p /run/secrets && \
+  chown -R nodejs:nodejs /run/secrets
+
 RUN chown -R nodejs:nodejs /app/node_modules /app
 
 USER nodejs

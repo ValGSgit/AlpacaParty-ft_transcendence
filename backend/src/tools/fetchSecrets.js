@@ -36,9 +36,16 @@ async function getSecrets() {
 function createDatabaseUrl(secrets) {
   const dbUser = secrets.db_user;
   const dbPassword = secrets.db_password;
-  const dbName = process.env.DB_NAME;
+  const dbName = secrets.db_name || process.env.DB_NAME;
   const dbHost = process.env.DB_HOST;
   const dbPort = process.env.DB_PORT;
+
+  if (!dbUser || !dbPassword || !dbName || !dbHost || !dbPort) {
+    throw new Error(
+      "Missing DB connection fields required to build DATABASE_URL",
+    );
+  }
+
   secrets.DATABASE_URL = `postgresql://${dbUser}:${encodeURIComponent(dbPassword)}@${dbHost}:${dbPort}/${dbName}`;
 }
 
