@@ -86,7 +86,7 @@ export class Alpaca {
   }
 
   update(delta) {
-    if (this.isDead === 1) return;
+    //if (this.isDead === 1) return;
     const player = gPlayer.value;
     const isPlayer = (player && this.model.uuid === player.model.uuid);
 
@@ -134,7 +134,9 @@ export class Alpaca {
       if (alpaca === gPlayer.value)
         gUser.value.point++ // for display
       if (this === gPlayer.value)
-        console.log("Gameover")
+        gUser.value.isPlaying = false // gameover
+      if (gUser.value.isPlaying && gCollidables.length === 1)
+        gUser.value.isPlaying = false // win, last standing alpaca
     }
     /*     else if (this.hp < 0)
         {

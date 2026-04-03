@@ -23,8 +23,8 @@ const toPublicUser = (user, anonymize = false) => ({
   avatar: anonymize ? maskAvatar : user.avatar,
   bio: anonymize ? 'Anonymized profile for public API testing' : user.bio,
   status: anonymize ? 'Anonymized' : user.status,
-  level: user.level,
-  xp: user.xp,
+  level: user.userStats?.level ?? user.level ?? 1,
+  xp: user.userStats?.xp ?? user.xp ?? 0,
   is_online: user.isOnline,
   created_at: user.createdAt,
 });
@@ -41,7 +41,7 @@ export const listUsers = async (req, res, next) => {
       users = await User.findAll({ limit: Number(limit), offset: Number(offset) });
     }
     // Strip private profiles and remove sensitive fields.
-    res.json({ users: users.filter((u) => u.isPublic).map((u) => toPublicUser(u, anonymize)) });
+    res.json({ users: users.filter((u) => u.userSettings?.isPublic !== false).map((u) => toPublicUser(u, anonymize)) });
   } catch (err) { next(err); }
 };
 
@@ -50,7 +50,7 @@ export const getUser = async (req, res, next) => {
   try {
     const anonymize = ['1', 'true', 'yes'].includes(String(req.query.anonymized || '').toLowerCase());
     const user = await User.findById(Number(req.params.id));
-    if (!user || !user.isPublic) return res.status(404).json({ error: { message: 'User not found' } });
+    if (!user || user.userSettings?.isPublic === false) return res.status(404).json({ error: { message: 'User not found' } });
     res.json({ user: toPublicUser(user, anonymize) });
   } catch (err) { next(err); }
 };

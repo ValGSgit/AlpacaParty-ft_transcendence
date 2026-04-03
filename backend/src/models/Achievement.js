@@ -18,27 +18,24 @@ const Achievement = {
   },
 
   /**
-   * Unlock an achievement for a user. Returns null if already unlocked.
+   * Unlock an achievement for a user.
+   * Returns { achievement } if newly unlocked, null if already unlocked or key not found.
    */
   async unlock(userId, achievementKey) {
     const achievement = await prisma.achievement.findFirst({
       where: { key: achievementKey },
     });
+    if (!achievement) return null;
 
-    await prisma.userAchievement.upsert({
-      where: {
-        userId_achievementId: {
-          userId: Number(userId),
-          achievementId: Number(achievement.id),
-        },
-      },
-      update: {}, // No changes if it already exists
-      create: {
-        userId: Number(userId),
-        achievementId: achievement.id,
-      },
-    });
-    return { achievement };
+    try {
+      await prisma.userAchievement.create({
+        data: { userId: Number(userId), achievementId: achievement.id },
+      });
+      return { achievement };
+    } catch (e) {
+      if (e.code === 'P2002') return null; // already unlocked
+      throw e;
+    }
   },
 
   async getUserChallengeProgress(userId) {

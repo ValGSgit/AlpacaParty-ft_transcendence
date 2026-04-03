@@ -18,6 +18,8 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { initializeSocket } from "./services/socketService.js";
 import { initializePassport } from "./services/oauthService.js";
 import prisma from "#lib/prisma.js";
+import File from "#models/File.js";
+import { authenticate } from "#middleware/auth.js";
 
 const app = express();
 

@@ -363,8 +363,8 @@ fclean:
 	@docker network prune -f >/dev/null
 	@docker image prune -f >/dev/null
 	@docker builder prune -f >/dev/null
-	@sudo rm -rf backend/node_modules
-	@sudo rm -rf frontend/node_modules
+	@rm -rf backend/node_modules
+	@rm -rf frontend/node_modules
 	@echo "$(GREEN)✓ Full Docker cleanup complete for project $(COMPOSE_PROJECT)$(RESET)"
 
 deep-clean:
@@ -373,6 +373,6 @@ deep-clean:
 	$(DC_PROD) down --rmi all --volumes --remove-orphans || true
 	@docker system prune -af --volumes
 	@docker builder prune -af
-	@sudo rm -rf backend/node_modules
-	@sudo rm -rf frontend/node_modules
+	@rm -rf backend/node_modules
+	@rm -rf frontend/node_modules
 	@echo "$(GREEN)✓ Aggressive Docker cleanup complete$(RESET)"

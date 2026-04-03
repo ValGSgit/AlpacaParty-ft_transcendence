@@ -63,8 +63,9 @@ const GamificationService = {
   async awardXp(userId, amount) {
     const before = await safeFindUser(userId);
     const user = await User.addXp(userId, amount);
-    // Check level achievements
-    if (user?.level >= 10) {
+    // user is SAFE_SELECT shaped — level lives on userStats
+    const level = user?.userStats?.level ?? before?.userStats?.level ?? 1;
+    if (level >= 10) {
       await this.tryUnlock(userId, 'level_10');
     }
     return user || before;
@@ -93,6 +94,10 @@ const GamificationService = {
       }
     }
 
+    const levelBefore  = before?.userStats?.level      ?? 1;
+    const levelAfter   = userAfterXp?.userStats?.level  ?? levelBefore;
+    const xpAfter      = userAfterXp?.userStats?.xp     ?? before?.userStats?.xp ?? 0;
+
     return {
       userId: Number(userId),
       gameType,
@@ -104,9 +109,9 @@ const GamificationService = {
         parts: bonus.parts,
       },
       level: {
-        from: before?.level || 1,
-        to: userAfterXp?.level || before?.level || 1,
-        leveledUp: (userAfterXp?.level || 1) > (before?.level || 1),
+        from: levelBefore,
+        to: levelAfter,
+        leveledUp: levelAfter > levelBefore,
       },
       unlockedAchievements: unlocked.map((a) => ({
         key: a.key,
@@ -114,8 +119,8 @@ const GamificationService = {
         xpReward: a.xpReward || 0,
       })),
       snapshot: {
-        xp: userAfterXp?.xp || before?.xp || 0,
-        level: userAfterXp?.level || before?.level || 1,
+        xp: xpAfter,
+        level: levelAfter,
       },
     };
   },

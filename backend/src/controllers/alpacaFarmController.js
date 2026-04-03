@@ -9,7 +9,7 @@ export const getFarmData = async (req, res, next) => {
   try {
     const farmData = await prisma.alpacaFarm.findFirst({
       where: {
-        id: id,
+        userId: id,
       },
     });
 
@@ -27,15 +27,22 @@ export const updateFarmData = async (req, res, next) => {
   const { items, alpacas, coins, upgrades } = req.body;
 
   try {
-    const updatedFarmData = await prisma.alpacaFarm.update({
+    const updatedFarmData = await prisma.alpacaFarm.upsert({
       where: {
-        id: id,
+        userId: id,
       },
-      data: {
+      update: {
         items: items,
         alpacas: alpacas,
         coins: coins,
         upgrades: upgrades,
+      },
+      create: {
+        userId: id,
+        items: items ?? [],
+        alpacas: alpacas ?? [],
+        coins: coins ?? 10,
+        upgrades: upgrades ?? 0,
       },
     });
 

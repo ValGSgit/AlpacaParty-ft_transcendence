@@ -27,7 +27,7 @@ export const createComment = async (req, res, next) => {
     const comment = await Comment.create({ postId: post.id, authorId: req.user.id, content: content.trim() });
 
     if (post.author_id !== req.user.id) {
-      NotificationService.postCommented?.(post.author_id, req.user.username, post.id).catch(() => {});
+      NotificationService.postCommented(post.author_id, req.user.username, post.id).catch(() => {});
     }
 
     res.status(201).json({ comment });

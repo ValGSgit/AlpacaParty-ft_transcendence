@@ -12,7 +12,7 @@ function shapeFriend(u) {
     avatar: u.avatar,
     is_online: u.isOnline,
     status: u.status,
-    level: u.level,
+    level: u.userStats?.level ?? 1,
   };
 }
 
@@ -106,7 +106,7 @@ const Friend = {
             avatar: true,
             isOnline: true,
             status: true,
-            level: true,
+            userStats: { select: { level: true } },
           },
         },
       },
@@ -130,8 +130,8 @@ const Friend = {
             username: true,
             avatar: true,
             status: true,
-            level: true,
             isOnline: true,
+            userStats: { select: { level: true } },
           },
         },
       },

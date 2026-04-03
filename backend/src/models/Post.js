@@ -79,7 +79,7 @@ const Post = {
     const vid = viewerId ? Number(viewerId) : null;
     const [posts, liked, viewerReposts, recentReposts] = await Promise.all([
       prisma.post.findMany({
-        where: { isPublic: true, author: { isPublic: true } },
+        where: { isPublic: true, author: { userSettings: { isPublic: true } } },
         include: { author: AUTHOR_SELECT },
         orderBy: { createdAt: "desc" },
         take: Number(limit),
