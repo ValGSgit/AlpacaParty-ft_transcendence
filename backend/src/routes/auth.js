@@ -3,13 +3,22 @@
  * @owner ValGSgit
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
-import express from 'express';
-import passport from 'passport';
-import rateLimit from 'express-rate-limit';
-import { register, login, logout, refresh, me, oauthCallback } from '../controllers/authController.js';
-import { authenticate } from '../middleware/auth.js';
-import { validate, z } from '../middleware/validate.js';
-import { usernameSchema } from '../schemas/shared.js';
+import express from "express";
+import passport from "passport";
+import rateLimit from "express-rate-limit";
+import {
+  register,
+  login,
+  logout,
+  refresh,
+  me,
+  oauthCallback,
+} from "../controllers/authController.js";
+import { authenticate } from "../middleware/auth.js";
+import {
+  authLoginValidation,
+  authRegisterValidation,
+} from "#validators/authValidator.js";
 
 const router = express.Router();
 
@@ -18,8 +27,8 @@ const router = express.Router();
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
-  skip: () => process.env.NODE_ENV === 'test',
-  message: 'Too many authentication attempts, please try again later.',
+  skip: () => process.env.NODE_ENV === "test",
+  message: "Too many authentication attempts, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -56,13 +65,7 @@ const authLimiter = rateLimit({
  *       400: { description: Validation error }
  *       409: { description: Username or email already taken }
  */
-router.post('/register', authLimiter, validate({
-  body: z.object({
-    username: usernameSchema,
-    email: z.string().email('Invalid email format'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-  }),
-}), register);
+router.post("/register", authLimiter, authRegisterValidation(), register);
 
 /**
  * @openapi
@@ -94,12 +97,7 @@ router.post('/register', authLimiter, validate({
  *                 user: { $ref: '#/components/schemas/User' }
  *       401: { description: Invalid credentials }
  */
-router.post('/login', authLimiter, validate({
-  body: z.object({
-    username: z.string().min(1, 'username is required'),
-    password: z.string().min(1, 'password is required'),
-  }),
-}), login);
+router.post("/login", authLimiter, authLoginValidation(), login);
 
 /**
  * @openapi
@@ -111,7 +109,7 @@ router.post('/login', authLimiter, validate({
  *       200:
  *         description: Logged out
  */
-router.post('/logout', authenticate, logout);
+router.post("/logout", authenticate, logout);
 
 /**
  * @openapi
@@ -141,9 +139,7 @@ router.post('/logout', authenticate, logout);
  *                 refreshToken: { type: string }
  *       401: { description: Invalid or expired refresh token }
  */
-router.post('/refresh', validate({
-  body: z.object({ refreshToken: z.string().min(1, 'refreshToken is required') }),
-}), refresh);
+router.post("/refresh", refresh);
 
 /**
  * @openapi
@@ -162,22 +158,36 @@ router.post('/refresh', validate({
  *                 user: { $ref: '#/components/schemas/User' }
  *       401: { description: Not authenticated }
  */
-router.get('/me', authenticate, me);
+router.get("/me", authenticate, me);
 
 // ── OAuth ─────────────────────────────────────────────────
-router.get('/google',
-  passport.authenticate('google', { scope: ['profile', 'email'], session: false }),
+router.get(
+  "/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+  }),
 );
-router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login', session: false }),
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: "/login",
+    session: false,
+  }),
   oauthCallback,
 );
 
-router.get('/github',
-  passport.authenticate('github', { scope: ['user:email'], session: false }),
+router.get(
+  "/github",
+  passport.authenticate("github", { scope: ["user:email"], session: false }),
 );
-router.get('/github/callback',
-  passport.authenticate('github', { failureRedirect: '/login', session: false }),
+
+router.get(
+  "/github/callback",
+  passport.authenticate("github", {
+    failureRedirect: "/login",
+    session: false,
+  }),
   oauthCallback,
 );
 

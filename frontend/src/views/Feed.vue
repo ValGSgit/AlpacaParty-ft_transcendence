@@ -247,12 +247,7 @@ async function createPost() {
     if (selectedImage.value) {
       const formData = new FormData()
       formData.append('files', selectedImage.value)
-      const uploadRes = await api.post('/uploads', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress(evt) {
-          if (evt.total) uploadProgress.value = Math.round((evt.loaded / evt.total) * 100)
-        },
-      })
+      const uploadRes = await api.post('/uploads', formData)
       imageUrl = uploadRes.data.files?.[0]?.url
       if (!imageUrl) {
         error.value = 'Image upload failed — try a smaller file or different format'

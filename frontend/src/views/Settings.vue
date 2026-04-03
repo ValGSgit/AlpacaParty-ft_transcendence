@@ -164,9 +164,7 @@ async function uploadAvatar(event) {
   const formData = new FormData()
   formData.append('files', file)
   try {
-    const { data } = await api.post('/uploads', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    const { data } = await api.post('/uploads', formData)
     const url = data.files?.[0]?.url
     if (url) {
       await authStore.updateProfile({ avatar: url })

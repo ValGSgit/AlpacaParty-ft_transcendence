@@ -17,8 +17,8 @@ COPY . .
 # Generate Prisma client, prune devDeps, and clear npm cache — all in one layer
 # so no intermediate fat state is committed to the image.
 RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate \
-    && npm prune --omit=dev \
-    && npm cache clean --force
+  && npm prune --omit=dev \
+  && npm cache clean --force
 
 # ── Stage 2: Runtime ──────────────────────────────────────────
 FROM node:24-alpine3.22
@@ -27,7 +27,7 @@ WORKDIR /app
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+  adduser -S nodejs -u 1001
 
 # Copy only what the server needs to run — no devDeps, no build tooling, no test files.
 COPY --from=builder /app/node_modules ./node_modules
@@ -36,14 +36,21 @@ COPY --from=builder /app/prisma       ./prisma
 COPY --from=builder /app/prisma.config.js ./prisma.config.js
 COPY --from=builder /app/package.json ./package.json
 
-# Create uploads and ssl directories with correct ownership
-RUN mkdir -p /app/uploads /app/ssl && \
-    chown -R nodejs:nodejs /app/uploads /app/ssl
+# Copy the runtime bootstrap scripts so production can load Vault secrets and
+# apply Prisma migrations before the API starts.
+COPY --chmod=755 tools/load-secrets.sh /usr/local/bin/load-secrets.sh
+COPY --chmod=755 tools/prod-entrypoint.sh /usr/local/bin/prod-entrypoint.sh
+
+# Create runtime-writable directories for the non-root user.
+RUN mkdir -p /app/uploads /run/secrets && \
+  chown -R nodejs:nodejs /app/uploads /run/secrets
 
 USER nodejs
 
 EXPOSE 3000
 
-# Start the server. Schema is managed by database/init.sql on first init,
-# and by running `docker exec alpacaparty_backend_prod npx prisma db push` for incremental changes.
+ENTRYPOINT ["prod-entrypoint.sh"]
+
+# Start the server after the entrypoint has loaded secrets and applied
+# migrations.
 CMD ["node", "src/server.js"]

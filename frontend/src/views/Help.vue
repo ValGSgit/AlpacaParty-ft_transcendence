@@ -328,8 +328,8 @@ async function sendMessage() {
   streamedText.value = ''
   await scrollToBottom()
 
-  // Build conversation for API
-  const apiMessages = messages.value.map(({ role, content }) => ({ role, content }))
+  // Build request: current message + prior history
+  const history = messages.value.slice(0, -1).map(({ role, content }) => ({ role, content }))
 
   try {
     // Try streaming first
@@ -340,12 +340,12 @@ async function sendMessage() {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ messages: apiMessages }),
+      body: JSON.stringify({ message: text, history }),
     })
 
     if (!res.ok) {
       // Fall back to non-streaming
-      const fallback = await api.post('/help/chat', { messages: apiMessages })
+      const fallback = await api.post('/help/chat', { message: text, history })
       messages.value.push({ role: 'assistant', content: fallback.data.reply, time: timeNow() })
       await scrollToBottom()
       return

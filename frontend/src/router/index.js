@@ -67,7 +67,7 @@ const routes = [
     path: '/game',
     name: 'Game',
     component: Game,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: false },
   },
   {
     path: '/settings',

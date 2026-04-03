@@ -194,7 +194,7 @@
 
 <script setup>
 import { ref, computed, reactive, watch, nextTick } from 'vue'
-import axios from 'axios'
+import api from '@/services/api'
 
 // ── Environment ──────────────────────────────────────────────
 const isProd = import.meta.env.PROD
@@ -251,7 +251,7 @@ const healthTitle  = computed(() => ({
 
 async function pingHealth() {
   healthStatus.value = 'loading'
-  try { await axios.get(`${BASE}/health`, { timeout: 5000 }); healthStatus.value = 'ok' }
+  try { await api.get('/health', { timeout: 5000 }); healthStatus.value = 'ok' }
   catch { healthStatus.value = 'err' }
 }
 pingHealth()
@@ -350,17 +350,21 @@ function exportLog() {
 }
 
 async function request(method, path, body, extraHeaders = {}, expectStatus = null) {
-  const url = `${BASE}${path}`
   const start = Date.now()
-  const entry = reactive({ method: method.toUpperCase(), url, status: 0, body: '', ok: false, expected: false, time: 0, collapsed: false })
+  const entry = reactive({ method: method.toUpperCase(), url: `${BASE}${path}`, status: 0, body: '', ok: false, expected: false, time: 0, collapsed: false })
   try {
-    const res = await axios({ method, url, data: body, headers: { ...authHeaders(), ...extraHeaders } })
+    const res = await api.request({
+      method,
+      path,
+      data: body,
+      headers: { ...authHeaders(), ...extraHeaders },
+    })
     entry.status = res.status
     entry.body = JSON.stringify(res.data, null, 2)
     entry.ok = true
   } catch (e) {
     entry.status = e.response?.status ?? 0
-    entry.body = JSON.stringify(e.response?.data ?? e.message, null, 2)
+    entry.body = JSON.stringify(e.data ?? e.message, null, 2)
     if (expectStatus && entry.status === expectStatus) {
       entry.expected = true
     }
@@ -385,7 +389,7 @@ async function fire(ep) {
 async function doRegister() {
   loading.auth = true
   try {
-    const res = await axios.post(`${BASE}/auth/register`,
+    const res = await api.post('/auth/register',
       { username: regUsername.value, email: regEmail.value, password: regPassword.value })
     handleAuthResponse(res); addLog('POST', '/auth/register', res)
   } catch (e) { addErrLog('POST', '/auth/register', e) }
@@ -394,7 +398,7 @@ async function doRegister() {
 async function doLogin() {
   loading.auth = true
   try {
-    const res = await axios.post(`${BASE}/auth/login`,
+    const res = await api.post('/auth/login',
       { email: regEmail.value, password: regPassword.value })
     handleAuthResponse(res); addLog('POST', '/auth/login', res)
   } catch (e) { addErrLog('POST', '/auth/login', e) }
@@ -403,7 +407,7 @@ async function doLogin() {
 async function doLogout() {
   loading.auth = true
   try {
-    const res = await axios.post(`${BASE}/auth/logout`, {}, { headers: authHeaders() })
+    const res = await api.post('/auth/logout', {}, { headers: authHeaders() })
     token.value = ''; refreshToken.value = ''
     localStorage.removeItem('accessToken'); localStorage.removeItem('refreshToken')
     userId.value = null; addLog('POST', '/auth/logout', res)

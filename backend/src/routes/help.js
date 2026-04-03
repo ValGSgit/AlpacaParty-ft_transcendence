@@ -6,7 +6,6 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { chat, chatStream } from '../controllers/helpController.js';
 import { authenticate } from '../middleware/auth.js';
-import { validate, z } from '../middleware/validate.js';
 
 const router = express.Router();
 
@@ -63,14 +62,7 @@ router.use(llmRateLimit);
  *                 reply: { type: string, example: "In Spit Royale, the fastest player to slap the center pile wins..." }
  *       429: { description: Rate limit exceeded }
  */
-const messagesSchema = z.object({
-  messages: z.array(z.object({
-    role:    z.enum(['user', 'assistant']),
-    content: z.string().max(2000),
-  })).min(1, 'messages array is required and must not be empty'),
-});
-
-router.post('/chat', validate({ body: messagesSchema }), chat);
+router.post('/chat', chat);
 
 /**
  * @openapi
@@ -109,6 +101,6 @@ router.post('/chat', validate({ body: messagesSchema }), chat);
  *               example: "data: Hello\ndata: world\ndata: [DONE]\n\n"
  *       429: { description: Rate limit exceeded }
  */
-router.post('/chat/stream', validate({ body: messagesSchema }), chatStream);
+router.post('/chat/stream', chatStream);
 
 export default router;

@@ -8,8 +8,8 @@ import {
   removeFriend, blockUser, unblockUser, listBlocked,
 } from '../controllers/friendController.js';
 import { authenticate } from '../middleware/auth.js';
-import { validate, z } from '../middleware/validate.js';
-import { positiveId } from '../schemas/shared.js';
+import { body } from 'express-validator';
+import { checkValidation } from '#validators/validatorUtils.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -81,7 +81,7 @@ router.get('/blocked', listBlocked);
  *       404: { description: User not found }
  */
 router.get('/requests', listRequests);
-router.post('/requests', validate({ body: z.object({ userId: z.coerce.number().int().positive({ message: 'userId must be a positive integer' }) }) }), sendRequest);
+router.post('/requests', [body('userId').isInt({ min: 1 }).withMessage('userId must be a positive integer')], checkValidation, sendRequest);
 
 /**
  * @openapi
@@ -106,7 +106,7 @@ router.post('/requests', validate({ body: z.object({ userId: z.coerce.number().i
  *       403: { description: Not your request to accept }
  *       404: { description: Request not found }
  */
-router.put('/requests/:id/accept', validate({ params: z.object({ id: positiveId }) }), acceptRequest);
+router.put('/requests/:id/accept', acceptRequest);
 
 /**
  * @openapi
@@ -128,7 +128,7 @@ router.put('/requests/:id/accept', validate({ params: z.object({ id: positiveId 
  *               properties:
  *                 request: { $ref: '#/components/schemas/FriendRequest' }
  */
-router.put('/requests/:id/decline', validate({ params: z.object({ id: positiveId }) }), declineRequest);
+router.put('/requests/:id/decline', declineRequest);
 
 /**
  * @openapi
@@ -151,7 +151,7 @@ router.put('/requests/:id/decline', validate({ params: z.object({ id: positiveId
  *               properties:
  *                 message: { type: string }
  */
-router.delete('/:id', validate({ params: z.object({ id: positiveId }) }), removeFriend);
+router.delete('/:id', removeFriend);
 
 /**
  * @openapi
@@ -177,7 +177,7 @@ router.delete('/:id', validate({ params: z.object({ id: positiveId }) }), remove
  *               properties:
  *                 message: { type: string }
  */
-router.post('/block', validate({ body: z.object({ userId: z.coerce.number().int().positive({ message: 'userId must be a positive integer' }) }) }), blockUser);
+router.post('/block', [body('userId').isInt({ min: 1 }).withMessage('userId must be a positive integer')], checkValidation, blockUser);
 
 /**
  * @openapi
@@ -200,6 +200,6 @@ router.post('/block', validate({ body: z.object({ userId: z.coerce.number().int(
  *               properties:
  *                 message: { type: string }
  */
-router.delete('/block/:id', validate({ params: z.object({ id: positiveId }) }), unblockUser);
+router.delete('/block/:id', unblockUser);
 
 export default router;

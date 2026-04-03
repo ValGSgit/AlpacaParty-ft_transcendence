@@ -1,19 +1,19 @@
 
 services:
-  postgres:
+  postgres_base:
+    profiles:
+      - template
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-alpacaparty}
       POSTGRES_USER: ${DB_USER:-alpacaparty}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-alpacaparty}
+      POSTGRES_INITDB_ARGS: --auth-local=scram-sha-256 --auth-host=scram-sha-256
       DB_PORT: ${DB_PORT}
     ports:
-      - "5432:5432"
-    volumes:
-      - pg_data:/var/lib/postgresql/data
+      - "${DB_PORT}:${DB_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -21,3 +21,18 @@ services:
       retries: 5
     networks:
       - alpacaparty_net
+
+  postgres:
+    profiles:
+      - dev
+    extends: postgres_base
+    container_name: postgres
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  postgres_test:
+    profiles:
+      - test
+    extends: postgres_base
+    container_name: postgres_test
+    # no volume for testing

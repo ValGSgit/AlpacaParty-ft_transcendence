@@ -72,7 +72,7 @@ export function initializeSocket(httpServer, corsOrigins) {
   async function markOnline(userId, socketId) {
     if (!onlineSockets.has(userId)) {
       onlineSockets.set(userId, new Set());
-      await User.setOnline(userId, true);
+      await User.setOnline(userId);
       io.emit('presence', { userId, isOnline: true });
     }
     onlineSockets.get(userId).add(socketId);
@@ -84,7 +84,7 @@ export function initializeSocket(httpServer, corsOrigins) {
       sockets.delete(socketId);
       if (sockets.size === 0) {
         onlineSockets.delete(userId);
-        await User.setOnline(userId, false);
+        await User.setOffline(userId);
         io.emit('presence', { userId, isOnline: false });
       }
     }

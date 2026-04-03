@@ -14,8 +14,34 @@ include:
 
 volumes:
   pg_data:
+  vault_data:
+    driver: local
+  vault_keys:
+    driver: local
   backend_node_modules:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backend/node_modules
   frontend_node_modules:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./frontend/node_modules
+  backend_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backend
+  frontend_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./frontend
   ssl:
     driver: local
     driver_opts:
@@ -23,7 +49,7 @@ volumes:
       o: bind
       device: ./ssl
 
+
 networks:
   alpacaparty_net:
     name: alpacaparty_net
-

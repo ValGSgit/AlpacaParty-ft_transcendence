@@ -18,10 +18,6 @@ include:
   - ./database/compose.prod.yaml
   - ./vault/compose.prod.yaml
 
-# Extend the vault service (defined in vault/compose.prod.yaml) with the TLS cert
-# mount. Path here is relative to THIS file (repo root), so ./nginx/ssl is unambiguous
-# regardless of Docker Compose version's include path resolution behaviour.
-
 volumes:
   pg_data:
     driver: local

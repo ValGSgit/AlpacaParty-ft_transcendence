@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { CONST } from '../config/constants.js'
+import { gUser } from './globals.js';
 
 export function handleAnimation(player, animDir, speed) {
   const { mixer, animations } = player
@@ -32,6 +33,9 @@ export function handleAnimation(player, animDir, speed) {
   } else {
     newAction = idleAction
   }
+
+  if (gUser.value.gameMode === 3 && !player.isJumping && !player.isDead)
+    newAction = walkAction // always walking in Alpaca Road mini game
 
   if (player.currentAction !== newAction) {
     player.currentAction.fadeOut(0.4)
