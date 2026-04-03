@@ -16,11 +16,14 @@ import { changeFloorColor } from './utils.js';
 const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
 
-export async function changeGame(mode) {
+export async function changeGame(mode, playerCount) {
   if (!gPlayer.value || !gUser.value) return;
   // clean up all clients
   cleanupClient()
   // Reset state
+  if (playerCount === undefined)
+    playerCount = 1
+  gUI.lockCamera = false
   gUI.gameMenu = false
   gPlayer.value.hp = CONST.HP
   gUser.value.hp = CONST.HP
@@ -37,7 +40,7 @@ export async function changeGame(mode) {
   else if (mode === 2)
     initSpitRoyalOnline()
   else if (mode === 3)
-    initAlpacaRoad()
+    await initAlpacaRoad(playerCount)
   else 
     await returnFarm()
 }

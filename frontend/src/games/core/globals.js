@@ -15,7 +15,8 @@ export const gUI = reactive({
   lightMenu: false,
   gameMenu: false,
   cameraMode: 0,
-  cameraPos: { x: 0, y: 0, z: 0 }
+  cameraPos: { x: 0, y: 0, z: 0 },
+  lockCamera: false
 })
 
 export const gEditState = shallowReactive({

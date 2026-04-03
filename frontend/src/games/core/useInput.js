@@ -26,6 +26,9 @@ export function useInput() {
       case 'KeyF': if (gPlayer.value) gPlayer.value.spit(); break
       case 'KeyP': printDebug(); break
       case 'Escape': handleEscapeKey(); break
+      case 'KeyQ': keys.q = true; break
+      case 'KeyL': keys.l = true; break
+      case 'Enter': keys.enter = true; break
     }
   }
 
@@ -36,6 +39,9 @@ export function useInput() {
       case 'KeyS': keys.s = false; break
       case 'KeyD': keys.d = false; break
       case 'Space': keys.space = false; break
+      case 'KeyQ': keys.q = false; break
+      case 'KeyL': keys.l = false; break
+      case 'Enter': keys.enter = false; break
     }
   }
 

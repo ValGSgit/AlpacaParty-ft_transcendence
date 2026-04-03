@@ -58,7 +58,13 @@
       <div class="shop-title">Select Game
         <button class="shop-btn" @click="changeGame(1)" title="Spit Royale with AI">Spit Royale with AI</button>
         <button v-if="isAuthenticated" class="shop-btn" @click="changeGame(2)" title="Spit Royale Online">Spit Royale Online</button>
-        <button class="shop-btn" @click="changeGame(3)" title="Alpaca Road">Alpaca Road</button>
+      <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
+      <select v-model="playerCount" class="player-selector" title="Number of Players">
+        <option :value="1">1 Player</option>
+        <option :value="2">2 Players</option>
+        <option :value="3">3 Players</option>
+        <option :value="4">4 Players</option>
+      </select>
         <button class="close-btn" @click="closeGameMenu()" title="Close">✖️</button>
       </div>
     </div>
@@ -221,6 +227,7 @@ let animationFrameId
 let cameraUpdate = null;
 let stopMyWatcher
 let stats;
+let playerCount = 1
 
 onMounted(async () => {
   const { isAuthenticated } = useAuthStore()
@@ -257,7 +264,7 @@ const gameLoop = () => {
   const player = gPlayer.value
 
   if (player) {
-    if (cameraUpdate && !gUI.editMode) {
+    if (cameraUpdate && !gUI.editMode && !gUI.lockCamera) {
       cameraUpdate(player)
     }
   }

@@ -46,6 +46,7 @@ export class Alpaca {
 
     this.isMoving = false;
     this.isAutoMoving = false;
+    this.isBeingHit = false;
     this.target = new THREE.Vector3();
     this.point = 0;
     this.ai = {
@@ -97,7 +98,7 @@ export class Alpaca {
     if (gUI.editMode) {
       this.isMoving = false;
       this.animDir = 0;
-    } else if (!isPlayer) {
+    } else if (!isPlayer && gUser.value.gameMode !== 3) {
       updateAI(this, delta);
       this.animDir = this.isMoving ? 1 : 0;
     } else {

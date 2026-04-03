@@ -2,7 +2,7 @@ import { CONST } from '../config/constants.js'
 import { useInput } from './useInput.js'
 import { checkWithinBounds, usePhysics } from './usePhysics.js'
 import { alpacaAI } from '../components/alpacaAI.js';
-import { gUser } from './globals.js';
+import { gUser, gPlayer, gAlpacas } from './globals.js';
 
 export function usePlayerControls() {
   const { keys } = useInput()
@@ -11,15 +11,24 @@ export function usePlayerControls() {
   const handleJumping = (player) => {
     const { model } = player;
     let isVerticalMoving = false;
+    let keydown = false;
 
+    if (player === gPlayer.value)
+      keydown = keys.space
+    if (gUser.value.gameMode === 3 && player === gAlpacas[1])
+      keydown = keys.l
+    if (gUser.value.gameMode === 3 && player === gAlpacas[2])
+      keydown = keys.enter
+    if (gUser.value.gameMode === 3 && player === gAlpacas[3])
+      keydown = keys.q
     // Jump up
-    if (keys.space && model.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) {
+    if (keydown && model.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) {
       model.position.y += CONST.JUMPING_SPEED;
       player.isJumping = true;
       isVerticalMoving = true;
     }
     // Fall down
-    if (model.position.y > 0 && (!keys.space || player.isFalling)) {
+    if (model.position.y > 0 && (!keydown || player.isFalling)) {
       model.position.y -= CONST.JUMPING_SPEED;
       player.isJumping = true;
     }
@@ -27,7 +36,7 @@ export function usePlayerControls() {
     if (model.position.y <= 0) {
       model.position.y = 0;
       player.isJumping = false;
-      if (!keys.space) player.isFalling = false;
+      if (!keydown) player.isFalling = false;
     }
     // Hit the ceiling/max height of jump
     if (model.position.y >= CONST.JUMPING_MAX_HEIGHT) {
