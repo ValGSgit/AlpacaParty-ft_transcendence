@@ -74,7 +74,7 @@ const handlePrismaError = (err) => {
     }
     default: {
       const message = `${prefix} Unknown prisma error ${err.message}`;
-      return new CustomError(message, 500);
+      return new CustomError(message, 404);
     }
   }
 };

@@ -36,12 +36,9 @@ async function getSecrets() {
 function createDatabaseUrl(secrets) {
   const dbUser = secrets.db_user;
   const dbPassword = secrets.db_password;
-  const dbName = secrets.db_name || process.env.DB_NAME || "alpacaparty";
+  const dbName = process.env.DB_NAME;
   const dbHost = process.env.DB_HOST;
   const dbPort = process.env.DB_PORT;
-  secrets.DB_USER = dbUser;
-  secrets.DB_PASSWORD = dbPassword;
-  secrets.DB_NAME = dbName;
   secrets.DATABASE_URL = `postgresql://${dbUser}:${encodeURIComponent(dbPassword)}@${dbHost}:${dbPort}/${dbName}`;
 }
 

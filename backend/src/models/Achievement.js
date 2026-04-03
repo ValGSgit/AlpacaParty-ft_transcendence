@@ -27,20 +27,15 @@ const Achievement = {
     });
     if (!achievement) return null;
 
-    await prisma.userAchievement.upsert({
-      where: {
-        userId_achievementId: {
-          userId: Number(userId),
-          achievementId: Number(achievement.id),
-        },
-      },
-      update: {},
-      create: {
-        userId: Number(userId),
-        achievementId: achievement.id,
-      },
-    });
-    return { achievement };
+    try {
+      await prisma.userAchievement.create({
+        data: { userId: Number(userId), achievementId: achievement.id },
+      });
+      return { achievement };
+    } catch (e) {
+      if (e.code === 'P2002') return null; // already unlocked
+      throw e;
+    }
   },
 
   async getUserChallengeProgress(userId) {

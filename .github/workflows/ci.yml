@@ -9,9 +9,9 @@ name: CI
 
 on:
   push:
-    branches: [main, dev, backend, refactor-part2, paca]
+    branches: [main, dev, backend, refactor-part2]
   pull_request:
-    branches: [main, dev, backend, refactor-part2, paca]
+    branches: [main, dev, backend, refactor-part2]
 
 # Cancel in-progress runs for the same branch/PR on new push
 concurrency:
@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "20"
 
 # ==================================================================
 # JOB 1 — Backend unit & integration tests
@@ -35,44 +35,30 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Generate Prisma client
         run: npx prisma generate
 
+      - name: Run Prisma migrations
+        run: npx prisma migrate dev --name ci --skip-seed
+
       - name: Run tests with coverage
         run: npm test
         env:
-          # These duplicate tests/setup.js for belt-and-suspenders clarity in CI logs.
-          # The setup.js file sets all required vars before any module imports run.
           NODE_ENV: test
-          PORT: "3000"
           JWT_SECRET: ci-test-secret-do-not-use-in-prod
-          JWT_EXPIRES_IN: "1h"
-          JWT_REFRESH_EXPIRES_IN: "7d"
-          DB_HOST: localhost
-          DB_PORT: "5432"
-          DB_NAME: alpacaparty_test
-          DB_USER: alpacaparty
-          DB_PASSWORD: alpacaparty_test
-          SSL_CERT_PATH: /tmp/test-cert.pem
-          SSL_KEY_PATH: /tmp/test-key.pem
-          UPLOAD_DIR: /tmp/alpacaparty-test-uploads
-          CORS_ORIGINS: "http://localhost:5173,https://localhost:8443"
-          FRONTEND_URL: "https://localhost:8443"
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: backend-coverage
@@ -92,23 +78,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run tests with coverage
         run: npm test
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: frontend-coverage
@@ -127,16 +111,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install E2E dependencies
         working-directory: e2e
-        run: npm ci
+        run: npm install
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -182,12 +166,9 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-e2e-secret-change-in-prod' }}
-          JWT_EXPIRES_IN: "1h"
-          JWT_REFRESH_EXPIRES_IN: "7d"
           DB_NAME: alpacaparty
           DB_USER: alpacaparty
           DB_PASSWORD: alpacaparty
-          UPLOAD_DIR: /app/uploads
 
       - name: Wait for backend to be healthy
         run: |
@@ -237,7 +218,7 @@ jobs:
 
       # -- Artifacts ------------------------------------------------
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: playwright-report
@@ -245,7 +226,7 @@ jobs:
           retention-days: 7
 
       - name: Upload traces and screenshots on failure
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: playwright-traces

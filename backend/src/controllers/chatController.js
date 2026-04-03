@@ -77,7 +77,7 @@ export const addMember = async (req, res, next) => {
     if (!userId) return res.status(400).json({ error: { message: 'userId is required' } });
     const room = await ChatRoom.findById(Number(req.params.id));
     if (!room) return res.status(404).json({ error: { message: 'Room not found' } });
-    const isAdmin = req.user?.userSettings?.isAdmin;
+    const isAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
     if (room.ownerId !== req.user.id && !isAdmin) {
       return res.status(403).json({ error: { message: 'Only the room owner can add members' } });
     }
@@ -94,7 +94,7 @@ export const removeMember = async (req, res, next) => {
     const room = await ChatRoom.findById(roomId);
     if (!room) return res.status(404).json({ error: { message: 'Room not found' } });
     const isSelf = targetUserId === req.user.id;
-    const isAdmin = req.user?.userSettings?.isAdmin;
+    const isAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
     if (!isSelf && room.ownerId !== req.user.id && !isAdmin) {
       return res.status(403).json({ error: { message: 'Only the room owner can remove other members' } });
     }
@@ -108,7 +108,7 @@ export const deleteRoom = async (req, res, next) => {
   try {
     const room = await ChatRoom.findById(Number(req.params.id));
     if (!room) return res.status(404).json({ error: { message: 'Room not found' } });
-    const isAdmin = req.user?.userSettings?.isAdmin;
+    const isAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
     if (room.ownerId !== req.user.id && !isAdmin) {
       return res.status(403).json({ error: { message: 'Not the room owner' } });
     }

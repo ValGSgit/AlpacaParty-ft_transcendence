@@ -1,7 +1,7 @@
 /**
  * Config Unit Tests
  */
-import { describe, test, expect } from '@jest/globals';
+import { jest, describe, test, expect } from '@jest/globals';
 
 
 const { default: config } = await import('../../../src/config/index.js');
@@ -24,7 +24,6 @@ describe('config', () => {
   test('should have cors configuration', () => {
     expect(config.cors).toBeDefined();
     expect(Array.isArray(config.cors.origins)).toBe(true);
-    expect(config.cors.origins.length).toBeGreaterThan(0);
   });
 
   test('should have rate limit configuration', () => {

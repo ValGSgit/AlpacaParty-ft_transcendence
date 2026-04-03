@@ -12,7 +12,6 @@ services:
       POSTGRES_DB: ${DB_NAME:-alpacaparty}
       POSTGRES_USER: ${DB_USER:-alpacaparty}
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-      POSTGRES_INITDB_ARGS: --auth-local=scram-sha-256 --auth-host=scram-sha-256
     secrets:
       - db_password
     volumes:

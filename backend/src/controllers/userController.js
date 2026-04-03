@@ -100,7 +100,7 @@ export const getUser = async (req, res, next) => {
       return res.status(404).json({ error: { message: "User not found" } });
     }
     const isPublic = user.userSettings?.isPublic ?? true;
-    const reqIsAdmin = req.user?.userSettings?.isAdmin;
+    const reqIsAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
     if (!isPublic && user.id !== req.user?.id && !reqIsAdmin) {
       return res.status(404).json({ error: { message: "User not found" } });
     }
@@ -118,7 +118,7 @@ export const listUsers = async (req, res, next) => {
     const limit = Math.min(Number(req.query.limit) || 20, 100);
     const offset = Number(req.query.offset) || 0;
 
-    const reqIsAdmin = req.user?.userSettings?.isAdmin;
+    const reqIsAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
     const where = reqIsAdmin ? {} : { userSettings: { isPublic: true } };
 
     const [users, total] = await Promise.all([
@@ -203,3 +203,4 @@ export const deleteMe = async (req, res, next) => {
     return next(err);
   }
 };
+

@@ -18,8 +18,8 @@ export const userNameChain = (chain) =>
     .trim()
     .notEmpty()
     .withMessage("Name is required")
-    .matches(/^[a-zA-Z0-9_-]+$/)
-    .withMessage("Name may only contain letters, numbers, underscores, and hyphens")
+    .isAlphanumeric()
+    .withMessage("Name may only contain letters and numbers")
     .isLength({ min: 3, max: 32 })
     .withMessage("Name must be between 3 and 32 characters")
     .escape();
@@ -35,8 +35,8 @@ export const userBioChain = (chain) =>
   chain
     .optional()
     .trim()
-    .isLength({ max: 500 })
-    .withMessage("Bio must be under 500 characters")
+    .isLength({ max: 255 })
+    .withMessage("Bio must be under 255 characters")
     .escape();
 
 export const userStatusChain = (chain) =>

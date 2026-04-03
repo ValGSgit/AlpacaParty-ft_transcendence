@@ -17,7 +17,6 @@ import { initializeSocket } from "#services/socketService.js";
 import { initializePassport } from "#services/oauthService.js";
 import { createHttpsServer } from "#lib/httpsServer.js";
 import { getHelmetConfig } from "#config/helmet.js";
-import { swaggerUiOptions } from "#config/swaggerUiConfig.js";
 import { uploadSecurityCheck } from "#utils/uploadSecurity.js";
 
 const app = express();
@@ -85,7 +84,7 @@ if (config.envIsDev) {
 }
 
 // API docs (Swagger UI)
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // API routes
 app.use("/api", routes);

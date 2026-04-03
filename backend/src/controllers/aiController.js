@@ -9,20 +9,9 @@ import { InferenceClient } from "@huggingface/inference";
 import User, { shapeUserForClient } from "#models/User.js";
 import config from "#config/index.js";
 
-const IMAGE_GENERATION_COST = 50;
-
 /** POST /api/users/me/generate-avatar */
 export const generateAvatar = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
-    const coins = user?.alpacaFarm?.coins ?? 0;
-    if (!user || coins < IMAGE_GENERATION_COST) {
-      return res.status(402).json({
-        error: {
-          message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.`,
-        },
-      });
-    }
     const result = await _callHuggingFace(req, res, "avatar");
     if (!result) return;
     const { buffer, ext } = result;
@@ -31,10 +20,7 @@ export const generateAvatar = async (req, res, next) => {
     fs.mkdirSync(config.uploads.dir, { recursive: true });
     fs.writeFileSync(filepath, buffer);
     const avatarUrl = `/uploads/${filename}`;
-    const updatedUser = await User.update(req.user.id, {
-      avatar: avatarUrl,
-      coins: coins - IMAGE_GENERATION_COST,
-    });
+    const updatedUser = await User.update(req.user.id, { avatar: avatarUrl });
     res.json({ user: shapeUserForClient(updatedUser), avatarUrl });
   } catch (err) {
     next(err);
@@ -44,15 +30,6 @@ export const generateAvatar = async (req, res, next) => {
 /** POST /api/users/me/generate-image */
 export const generateImage = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
-    const coins = user?.alpacaFarm?.coins ?? 0;
-    if (!user || coins < IMAGE_GENERATION_COST) {
-      return res.status(402).json({
-        error: {
-          message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.`,
-        },
-      });
-    }
     const result = await _callHuggingFace(req, res, "image");
     if (!result) return;
     const { buffer, ext } = result;
@@ -60,9 +37,6 @@ export const generateImage = async (req, res, next) => {
     const filepath = path.join(config.uploads.dir, filename);
     fs.mkdirSync(config.uploads.dir, { recursive: true });
     fs.writeFileSync(filepath, buffer);
-    await User.update(req.user.id, {
-      coins: coins - IMAGE_GENERATION_COST,
-    });
     res.json({ imageUrl: `/uploads/${filename}` });
   } catch (err) {
     next(err);

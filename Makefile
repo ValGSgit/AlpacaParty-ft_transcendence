@@ -236,8 +236,15 @@ shell-frontend:
 shell-db:
 	$(DC) exec postgres psql -U $${DB_USER:-alpacaparty} -d $${DB_NAME:-alpacaparty}
 
+shell-nginx:
+	$(DC) exec nginx sh
+
 prisma_studio:
 	$(DC) exec -d backend /usr/local/bin/start-prisma-studio.sh
+
+cmd ?=
+backend-cmd:
+	$(DC) run --rm backend $(cmd)
 
 # ── DATABASE SEEDS ──────────────────────────────────────────
 # Requires the postgres container to be running (make up / make prod-up).

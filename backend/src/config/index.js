@@ -12,13 +12,13 @@ import { validateConfig } from "./validateConfig.js";
 dotenv.config({ path: "/run/secrets/.env" });
 
 const config = {
-  port: parseInt(process.env.PORT, 10) || parseInt(process.env.API_PORT, 10),
+  port: parseInt(process.env.API_PORT, 10),
   nodeEnv: process.env.NODE_ENV,
   envIsProd: process.env.NODE_ENV === "production",
   envIsDev: process.env.NODE_ENV === "development",
 
   jwt: {
-    secret: process.env.JWT_SECRET,
+    secret: process.env.jwt_secret,
     expiresIn: process.env.JWT_EXPIRES_IN,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
   },
@@ -27,14 +27,14 @@ const config = {
   db: {
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT, 10),
-    name: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
+    name: process.env.db_name,
+    user: process.env.db_user,
+    password: process.env.db_password,
   },
 
   cors: {
     origins:
-      process.env.CORS_ORIGINS != null
+      process.env.CORS_ORIGINS !== null
         ? process.env.CORS_ORIGINS.split(",")
         : null,
   },
@@ -137,4 +137,4 @@ const config = {
 
 export default config;
 
-//validateConfig();
+validateConfig();

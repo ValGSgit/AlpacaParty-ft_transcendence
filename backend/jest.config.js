@@ -12,14 +12,10 @@ export default {
     "!src/server.js",
     "!src/config/database.js",
     "!src/config/prisma.js",
-    "!src/config/swaggerUiConfig.js",
     "!src/services/oauthService.js",
     "!src/services/socketService.js",
     "!src/services/spitRoyaleNamespace.js",
     "!src/tools/fetchSecrets.js",
-    // Require real FS/TLS or complex middleware chains — covered by E2E
-    "!src/lib/httpsServer.js",
-    "!src/utils/uploadSecurity.js",
   ],
   coverageThreshold: {
     global: {

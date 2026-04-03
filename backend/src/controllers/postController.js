@@ -73,7 +73,7 @@ export const updatePost = async (req, res, next) => {
 export const deletePost = async (req, res, next) => {
   try {
     const deleted = await Post.delete(Number(req.params.id), req.user.id);
-    const isAdmin = req.user?.userSettings?.isAdmin;
+    const isAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
     if (!deleted && !isAdmin) return res.status(404).json({ error: { message: 'Post not found or not yours' } });
     res.json({ message: 'Post deleted' });
   } catch (err) { next(err); }

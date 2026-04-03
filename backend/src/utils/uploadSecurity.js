@@ -1,6 +1,5 @@
 import path from "path";
 import fs from "fs";
-import config from "#config/index.js";
 import File from "#models/File.js";
 import { authenticate } from "#middleware/auth.js";
 
@@ -51,6 +50,7 @@ export const uploadSecurityCheck = async (req, res, next) => {
     } else {
       res.setHeader("Content-Disposition", "attachment");
     }
+    res.setHeader("X-Content-Type-Options", "nosniff");
 
     next();
   } catch {
