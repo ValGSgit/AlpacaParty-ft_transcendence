@@ -244,6 +244,25 @@ jobs:
           docker compose logs
           exit 1
 
+      - name: Sync database schema
+        run: |
+          set -e
+          for attempt in 1 2 3; do
+            echo "Prisma db push attempt ${attempt}/3"
+            if docker compose exec -T backend npx prisma db push; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "db push failed, retrying in 4 seconds..."
+              sleep 4
+            fi
+          done
+          echo "Prisma db push failed after 3 attempts"
+          exit 1
+
+      - name: Generate Prisma client
+        run: docker compose exec -T backend npx prisma generate
+
       # -- Seed data for E2E tests ----------------------------------
       - name: Seed live data for E2E tests
         run: docker compose exec -T backend npm run seed:live
