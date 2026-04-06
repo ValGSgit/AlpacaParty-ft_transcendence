@@ -71,7 +71,22 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          for attempt in 1 2 3; do
+            echo "Backend npm ci attempt ${attempt}/3"
+            if npm ci; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "npm ci failed, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+          echo "Backend npm ci failed after 3 attempts"
+          exit 1
 
       - name: Sync test database schema
         run: |
@@ -125,7 +140,22 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          for attempt in 1 2 3; do
+            echo "Frontend npm install attempt ${attempt}/3"
+            if npm install; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "npm install failed, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+          echo "Frontend npm install failed after 3 attempts"
+          exit 1
 
       - name: Run tests with coverage
         run: npm test
@@ -185,7 +215,22 @@ jobs:
 
       - name: Install E2E dependencies
         working-directory: e2e
-        run: npm install
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          for attempt in 1 2 3; do
+            echo "E2E npm ci attempt ${attempt}/3"
+            if npm ci; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "npm ci failed, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+          echo "E2E npm ci failed after 3 attempts"
+          exit 1
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -220,8 +265,33 @@ jobs:
       # -- Install deps so bind-mount volumes exist ----------------
       - name: Install backend and frontend dependencies
         run: |
-          cd backend && npm install --ignore-scripts && cd ..
-          cd frontend && npm install --include=optional && cd ..
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+
+          for attempt in 1 2 3; do
+            echo "Backend npm ci --ignore-scripts attempt ${attempt}/3"
+            if (cd backend && npm ci --ignore-scripts); then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Backend dependency install failed after 3 attempts"
+              exit 1
+            fi
+            sleep 5
+          done
+
+          for attempt in 1 2 3; do
+            echo "Frontend npm install --include=optional attempt ${attempt}/3"
+            if (cd frontend && npm install --include=optional); then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Frontend dependency install failed after 3 attempts"
+              exit 1
+            fi
+            sleep 5
+          done
 
       # -- Start the full stack -------------------------------------
       - name: Start application stack
