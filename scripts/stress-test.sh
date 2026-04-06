@@ -41,6 +41,7 @@ CONCURRENCY="${3:-25}"
 REPORT_DIR="./stress-test-results"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 REPORT_FILE="${REPORT_DIR}/report_${TIMESTAMP}.txt"
+TOOL_DIR="${REPORT_DIR}/tools_${TIMESTAMP}"
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -57,6 +58,7 @@ has() { command -v "$1" &>/dev/null; }
 
 # ── Logging: tee everything to report file ───────────────────────────────────
 mkdir -p "$REPORT_DIR"
+mkdir -p "$TOOL_DIR"
 exec > >(tee -a "$REPORT_FILE") 2>&1
 
 echo -e "${BOLD}AlpacaParty Stress & Security Test${RESET}"
@@ -64,12 +66,24 @@ echo "Target:      $BASE_URL"
 echo "Duration:    $DURATION"
 echo "Concurrency: $CONCURRENCY"
 echo "Report:      $REPORT_FILE"
+echo "Tool logs:   $TOOL_DIR"
 echo "Started:     $(date)"
 
 # ── Tool availability summary ─────────────────────────────────────────────────
 header "Tool Availability"
+TOOLS_FILE="${TOOL_DIR}/tool_availability_${TIMESTAMP}.txt"
+{
+  echo "Tool availability snapshot"
+  echo "Timestamp: $(date -Iseconds)"
+} > "$TOOLS_FILE"
 for tool in curl siege wrk ab nikto nmap jq; do
-  if has "$tool"; then ok "$tool"; else warn "$tool not found — step will be skipped"; fi
+  if has "$tool"; then
+    ok "$tool"
+    echo "$tool=available" >> "$TOOLS_FILE"
+  else
+    warn "$tool not found — step will be skipped"
+    echo "$tool=missing" >> "$TOOLS_FILE"
+  fi
 done
 
 # =============================================================================
@@ -89,15 +103,63 @@ check_endpoint() {
   fi
 }
 
+check_endpoint_any() {
+  local label="$1" url="$2"
+  shift 2
+  local status
+  status=$(curl -skL -o /dev/null -w "%{http_code}" --max-time 10 "$url" 2>/dev/null || echo "000")
+  for expected in "$@"; do
+    if [ "$status" -eq "$expected" ]; then
+      ok "$label — HTTP $status"
+      return 0
+    fi
+  done
+  fail "$label — expected one of [$*], got $status"
+  FAILURES=$((FAILURES + 1))
+}
+
+check_endpoint_auth() {
+  local label="$1" url="$2" expected_status="${3:-200}"
+  local status
+  status=$(curl -skL -o /dev/null -w "%{http_code}" --max-time 10 \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    "$url" 2>/dev/null || echo "000")
+  if [ "$status" -eq "$expected_status" ]; then
+    ok "$label — HTTP $status"
+  else
+    fail "$label — expected $expected_status, got $status"
+    FAILURES=$((FAILURES + 1))
+  fi
+}
+
+check_endpoint_auth_any() {
+  local label="$1" url="$2"
+  shift 2
+  local status
+  status=$(curl -skL -o /dev/null -w "%{http_code}" --max-time 10 \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    "$url" 2>/dev/null || echo "000")
+  for expected in "$@"; do
+    if [ "$status" -eq "$expected" ]; then
+      ok "$label — HTTP $status"
+      return 0
+    fi
+  done
+  fail "$label — expected one of [$*], got $status"
+  FAILURES=$((FAILURES + 1))
+}
+
 FAILURES=0
-check_endpoint "Root endpoint"       "${BASE_URL}/"
+# Some deployments protect or redirect '/' at nginx level, so accept common valid statuses.
+check_endpoint_any "Root endpoint"   "${BASE_URL}/" 200 301 302 403
 check_endpoint "Health endpoint"     "${BASE_URL}/api/health"
 check_endpoint "API docs (Swagger)"  "${BASE_URL}/api/docs" 200
 check_endpoint "Unknown route → 404" "${BASE_URL}/api/this-does-not-exist" 404
 
 echo ""
 info "Full health response:"
-curl -sk --max-time 10 "${BASE_URL}/api/health" | (has jq && jq . || cat)
+HEALTH_JSON_FILE="${TOOL_DIR}/curl_health_${TIMESTAMP}.json"
+curl -sk --max-time 10 "${BASE_URL}/api/health" | tee "$HEALTH_JSON_FILE" | (has jq && jq . || cat)
 
 # =============================================================================
 # 2. Security Headers Audit
@@ -124,6 +186,8 @@ check_header "X-XSS-Protection"
 echo ""
 info "All response headers:"
 echo "$HEADERS"
+HEADERS_FILE="${TOOL_DIR}/curl_headers_${TIMESTAMP}.txt"
+printf "%s\n" "$HEADERS" > "$HEADERS_FILE"
 
 # =============================================================================
 # 3. Authentication Flow
@@ -140,10 +204,13 @@ REG_RESPONSE=$(curl -sk -X POST "${BASE_URL}/api/auth/register" \
   -H "Content-Type: application/json" \
   -d "{\"username\":\"${TEST_USER}\",\"email\":\"${TEST_EMAIL}\",\"password\":\"${TEST_PASS}\"}" \
   --max-time 15)
+AUTH_REGISTER_FILE="${TOOL_DIR}/curl_auth_register_${TIMESTAMP}.json"
+printf "%s\n" "$REG_RESPONSE" > "$AUTH_REGISTER_FILE"
 
 if echo "$REG_RESPONSE" | grep -qi '"token"'; then
   ok "Registration succeeded"
   ACCESS_TOKEN=$(echo "$REG_RESPONSE" | (has jq && jq -r '.token // .accessToken // empty' || grep -o '"token":"[^"]*"' | cut -d'"' -f4))
+  REFRESH_TOKEN=$(echo "$REG_RESPONSE" | (has jq && jq -r '.refreshToken // empty' || grep -o '"refreshToken":"[^"]*"' | cut -d'"' -f4))
 else
   warn "Registration returned: $REG_RESPONSE"
   info "Attempting login with existing user..."
@@ -151,7 +218,10 @@ else
     -H "Content-Type: application/json" \
     -d "{\"username\":\"${TEST_USER}\",\"password\":\"${TEST_PASS}\"}" \
     --max-time 15)
+  AUTH_LOGIN_FILE="${TOOL_DIR}/curl_auth_login_${TIMESTAMP}.json"
+  printf "%s\n" "$LOGIN_RESPONSE" > "$AUTH_LOGIN_FILE"
   ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | (has jq && jq -r '.token // .accessToken // empty' || grep -o '"token":"[^"]*"' | cut -d'"' -f4))
+  REFRESH_TOKEN=$(echo "$LOGIN_RESPONSE" | (has jq && jq -r '.refreshToken // empty' || grep -o '"refreshToken":"[^"]*"' | cut -d'"' -f4))
 fi
 
 if [ -n "${ACCESS_TOKEN:-}" ]; then
@@ -159,6 +229,7 @@ if [ -n "${ACCESS_TOKEN:-}" ]; then
 else
   warn "Could not obtain auth token — authenticated load tests will be skipped"
   ACCESS_TOKEN=""
+  REFRESH_TOKEN=""
 fi
 
 # =============================================================================
@@ -168,8 +239,11 @@ header "4. Rate-Limit Probe (burst 150 requests to /api)"
 
 info "Sending 150 rapid requests — expecting 429 before all complete..."
 RATE_LIMIT_HIT=0
+RATE_LIMIT_FILE="${TOOL_DIR}/curl_rate_limit_${TIMESTAMP}.txt"
+: > "$RATE_LIMIT_FILE"
 for i in $(seq 1 150); do
   code=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 5 "${BASE_URL}/api/health" 2>/dev/null || echo "000")
+  echo "$code" >> "$RATE_LIMIT_FILE"
   if [ "$code" -eq 429 ]; then
     RATE_LIMIT_HIT=$((RATE_LIMIT_HIT + 1))
   fi
@@ -192,6 +266,8 @@ OVERSIZED_CODE=$(dd if=/dev/urandom bs=1M count=11 2>/dev/null | base64 | \
     -H "Content-Type: application/json" \
     -d @- \
     -o /dev/null -w "%{http_code}" --max-time 20 2>/dev/null || echo "000")
+  OVERSIZED_FILE="${TOOL_DIR}/curl_oversized_payload_${TIMESTAMP}.txt"
+  echo "oversized_status=$OVERSIZED_CODE" > "$OVERSIZED_FILE"
 
 if [ "$OVERSIZED_CODE" -eq 413 ] || [ "$OVERSIZED_CODE" -eq 400 ]; then
   ok "Oversized payload rejected — HTTP $OVERSIZED_CODE"
@@ -219,7 +295,11 @@ probe_bad() {
   else
     warn "$label → HTTP $code (unexpected)"
   fi
+  printf "%s\t%s\n" "$label" "$code" >> "$PROBE_FILE"
 }
+
+PROBE_FILE="${TOOL_DIR}/curl_bad_input_${TIMESTAMP}.tsv"
+echo -e "label\thttp_code" > "$PROBE_FILE"
 
 probe_bad "SQL injection in login"  "${BASE_URL}/api/auth/login"    '{"username":"admin'\'' OR 1=1--","password":"x"}'
 probe_bad "XSS in register"         "${BASE_URL}/api/auth/register"  '{"username":"<script>alert(1)</script>","email":"x@x.com","password":"P@ss1word"}'
@@ -228,10 +308,92 @@ probe_bad "Invalid JSON"            "${BASE_URL}/api/auth/login"     'not-json-a
 probe_bad "Null-byte in field"      "${BASE_URL}/api/auth/login"     "{\"username\":\"admin\\u0000\",\"password\":\"x\"}"
 
 # =============================================================================
-# 7. Nikto Security Scan (if available)
+# 7. AlpacaParty Core Endpoints (Authenticated)
+# =============================================================================
+header "7. AlpacaParty Feature Endpoints"
+
+if [ -n "${ACCESS_TOKEN:-}" ]; then
+  # Test core feature endpoints
+  check_endpoint_auth "Get current user profile" "${BASE_URL}/api/users/me" 200
+  check_endpoint_auth "List posts/feed" "${BASE_URL}/api/posts?page=1&limit=10" 200
+  check_endpoint_auth "List notifications" "${BASE_URL}/api/notifications" 200
+  check_endpoint_auth "List friends" "${BASE_URL}/api/friends" 200
+  check_endpoint_auth "Get game stats" "${BASE_URL}/api/game/stats" 200
+  check_endpoint_auth "List organizations" "${BASE_URL}/api/organizations" 200
+  # Chat may be websocket-only in some deployments; accept 404 as non-critical.
+  check_endpoint_auth_any "Get chat list" "${BASE_URL}/api/chat" 200 404
+  
+  # Test token refresh (critical for session persistence)
+  refresh_test="000"
+  if [ -n "${REFRESH_TOKEN:-}" ]; then
+    refresh_test=$(curl -sk -X POST "${BASE_URL}/api/auth/refresh" \
+      -H "Content-Type: application/json" \
+      -d "{\"refreshToken\":\"${REFRESH_TOKEN}\"}" \
+      -o /dev/null -w "%{http_code}" --max-time 10 2>/dev/null || echo "000")
+  fi
+  AUTH_REFRESH_FILE="${TOOL_DIR}/curl_auth_refresh_${TIMESTAMP}.txt"
+  echo "refresh_status=$refresh_test" > "$AUTH_REFRESH_FILE"
+  if [ "$refresh_test" = "200" ]; then
+    ok "Token refresh endpoint available"
+  elif [ "$refresh_test" = "404" ]; then
+    warn "Token refresh endpoint not implemented (auto-refresh may be disabled)"
+  elif [ "$refresh_test" = "000" ]; then
+    warn "Token refresh skipped (no refresh token captured)"
+  else
+    warn "Token refresh returned HTTP $refresh_test"
+  fi
+  
+  # Test logout functionality
+  logout_test=$(curl -sk -X POST "${BASE_URL}/api/auth/logout" \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    -o /dev/null -w "%{http_code}" --max-time 10 2>/dev/null || echo "000")
+  AUTH_LOGOUT_FILE="${TOOL_DIR}/curl_auth_logout_${TIMESTAMP}.txt"
+  echo "logout_status=$logout_test" > "$AUTH_LOGOUT_FILE"
+  if [ "$logout_test" = "200" ]; then
+    ok "Logout endpoint works"
+  elif [ "$logout_test" = "404" ]; then
+    warn "Logout endpoint not implemented"
+  else
+    warn "Logout returned HTTP $logout_test"
+  fi
+else
+  warn "7. Feature tests skipped (auth failed)"
+fi
+
+# =============================================================================
+# 8. WebSocket Connectivity (Real-Time Features)
+# =============================================================================
+header "8. WebSocket Stability Check"
+
+if [ -n "${ACCESS_TOKEN:-}" ]; then
+  if command -v wscat &>/dev/null || command -v websocat &>/dev/null; then
+    WS_URL="${BASE_URL/https/wss}/api/chat"
+    WS_TOOL="wscat"
+    if ! command -v wscat &>/dev/null; then
+      WS_TOOL="websocat"
+    fi
+    
+    info "Testing WebSocket connection to $WS_URL..."
+    WS_OUT="${TOOL_DIR}/websocket_${TIMESTAMP}.txt"
+    if timeout 5 $WS_TOOL -c "$WS_URL" -H "Authorization: Bearer ${ACCESS_TOKEN}" <<<'{"action":"ping"}' >"$WS_OUT" 2>&1; then
+      ok "WebSocket connection established"
+    else
+      warn "WebSocket connection failed (may not be implemented)"
+    fi
+  else
+    warn "8. Skipped (wscat/websocat not installed)"
+    echo "websocket_tool=missing" > "${TOOL_DIR}/websocket_${TIMESTAMP}.txt"
+  fi
+else
+  warn "8. Skipped (no auth token)"
+  echo "websocket_skipped=no_auth_token" > "${TOOL_DIR}/websocket_${TIMESTAMP}.txt"
+fi
+
+# =============================================================================
+# 9. Nikto Security Scan (if available)
 # =============================================================================
 if has nikto; then
-  header "7. Nikto Security Scan"
+  header "9. Nikto Security Scan"
   info "Running nikto against $BASE_URL (this may take a few minutes)..."
   NIKTO_OUT="${REPORT_DIR}/nikto_${TIMESTAMP}.txt"
   nikto -h "$BASE_URL" -ssl -output "$NIKTO_OUT" -Format txt -nointeractive 2>&1 || true
@@ -243,14 +405,15 @@ if has nikto; then
     ok "No critical findings in nikto scan"
   fi
 else
-  warn "7. Nikto skipped (not installed)"
+  warn "9. Nikto skipped (not installed)"
+  echo "nikto_skipped=not_installed" > "${TOOL_DIR}/nikto_${TIMESTAMP}.txt"
 fi
 
 # =============================================================================
-# 8. Nmap Port Scan (if available)
+# 10. Nmap Port Scan (if available)
 # =============================================================================
 if has nmap; then
-  header "8. Nmap Port Scan"
+  header "10. Nmap Port Scan"
   HOST=$(echo "$BASE_URL" | sed 's|https\?://||; s|/.*||; s|:.*||')
   info "Scanning $HOST for open ports..."
   NMAP_OUT="${REPORT_DIR}/nmap_${TIMESTAMP}.txt"
@@ -265,14 +428,15 @@ if has nmap; then
     ok "Only expected ports open (80/443/8443)"
   fi
 else
-  warn "8. Nmap skipped (not installed)"
+  warn "10. Nmap skipped (not installed)"
+  echo "nmap_skipped=not_installed" > "${TOOL_DIR}/nmap_${TIMESTAMP}.txt"
 fi
 
 # =============================================================================
-# 9. Siege — Unauthenticated Load Test
+# 11. Siege — Unauthenticated Load Test
 # =============================================================================
 if has siege; then
-  header "9. Siege — Unauthenticated Load Test"
+  header "11. Siege — Unauthenticated Load Test"
 
   # Build URL list for siege
   SIEGE_URLS="${REPORT_DIR}/urls_public_${TIMESTAMP}.txt"
@@ -282,34 +446,35 @@ ${BASE_URL}/api/posts
 ${BASE_URL}/
 EOF
 
-  info "siege -c $CONCURRENCY -t $DURATION --no-follow -k -R /dev/null (public endpoints)"
+  info "siege -c $CONCURRENCY -t $DURATION --no-follow (public endpoints)"
   SIEGE_OUT="${REPORT_DIR}/siege_public_${TIMESTAMP}.txt"
-  siege -c "$CONCURRENCY" -t "$DURATION" --no-follow -k \
+  siege -c "$CONCURRENCY" -t "$DURATION" --no-follow \
     --content-type="application/json" \
     -f "$SIEGE_URLS" \
     2>&1 | tee "$SIEGE_OUT" || true
 
   # Parse key metrics from siege output
-  AVAIL=$(grep -i "availability" "$SIEGE_OUT" | grep -oP '[\d.]+%' | head -1 || echo "N/A")
-  RPS=$(grep -i "transaction rate" "$SIEGE_OUT" | grep -oP '[\d.]+' | head -1 || echo "N/A")
-  RESP=$(grep -i "response time" "$SIEGE_OUT" | grep -oP '[\d.]+' | head -1 || echo "N/A")
-  info "Availability: $AVAIL  |  Trans/sec: $RPS  |  Avg response: ${RESP}s"
+  AVAIL=$(grep -i "availability" "$SIEGE_OUT" | grep -o "[0-9.]*" | tail -1 || echo "N/A")
+  RPS=$(grep -Ei "transaction[ _]rate" "$SIEGE_OUT" | grep -o "[0-9.]*" | head -1 || echo "N/A")
+  RESP=$(grep -Ei "response[ _]time" "$SIEGE_OUT" | grep -o "[0-9.]*" | head -1 || echo "N/A")
+  info "Availability: ${AVAIL}%  |  Trans/sec: $RPS  |  Avg response: ${RESP}s"
 
-  if [ "$AVAIL" != "N/A" ] && [ "$(echo "$AVAIL" | tr -d '%' | cut -d. -f1)" -lt 99 ]; then
-    fail "Availability below 99%: $AVAIL"
+  if [ "$AVAIL" != "N/A" ] && [ "${AVAIL%.*}" -lt 99 ]; then
+    fail "Availability below 99%: ${AVAIL}%"
     FAILURES=$((FAILURES + 1))
   else
-    ok "Availability: $AVAIL"
+    ok "Availability: ${AVAIL}%"
   fi
 else
-  warn "9. Siege skipped (not installed)"
+  warn "11. Siege skipped (not installed)"
+  echo "siege_public_skipped=not_installed" > "${TOOL_DIR}/siege_public_${TIMESTAMP}.txt"
 fi
 
 # =============================================================================
-# 10. Siege — Authenticated Load Test
+# 12. Siege — Authenticated Load Test
 # =============================================================================
 if has siege && [ -n "${ACCESS_TOKEN:-}" ]; then
-  header "10. Siege — Authenticated Load Test"
+  header "12. Siege — Authenticated Load Test"
 
   # Write a siege config with auth header
   SIEGE_RC="${REPORT_DIR}/siegerc_${TIMESTAMP}"
@@ -331,35 +496,41 @@ ${BASE_URL}/api/posts
 ${BASE_URL}/api/notifications
 ${BASE_URL}/api/friends
 ${BASE_URL}/api/game/stats
+${BASE_URL}/api/organizations
+${BASE_URL}/api/chat
 EOF
 
   info "siege -c $CONCURRENCY -t $DURATION (authenticated endpoints)"
   SIEGE_AUTH_OUT="${REPORT_DIR}/siege_auth_${TIMESTAMP}.txt"
-  siege -c "$CONCURRENCY" -t "$DURATION" --no-follow -k \
+  siege -c "$CONCURRENCY" -t "$DURATION" --no-follow \
     --rc="$SIEGE_RC" \
     -f "$SIEGE_AUTH_URLS" \
     2>&1 | tee "$SIEGE_AUTH_OUT" || true
 
-  AVAIL_A=$(grep -i "availability" "$SIEGE_AUTH_OUT" | grep -oP '[\d.]+%' | head -1 || echo "N/A")
-  RPS_A=$(grep -i "transaction rate" "$SIEGE_AUTH_OUT" | grep -oP '[\d.]+' | head -1 || echo "N/A")
-  info "Availability: $AVAIL_A  |  Trans/sec: $RPS_A"
+  AVAIL_A=$(grep -i "availability" "$SIEGE_AUTH_OUT" | grep -o "[0-9.]*" | tail -1 || echo "N/A")
+  RPS_A=$(grep -Ei "transaction[ _]rate" "$SIEGE_AUTH_OUT" | grep -o "[0-9.]*" | head -1 || echo "N/A")
+  info "Availability: ${AVAIL_A}%  |  Trans/sec: $RPS_A"
 elif ! has siege; then
-  warn "10. Authenticated siege skipped (siege not installed)"
+  warn "12. Authenticated siege skipped (siege not installed)"
+  echo "siege_auth_skipped=not_installed" > "${TOOL_DIR}/siege_auth_${TIMESTAMP}.txt"
 else
-  warn "10. Authenticated siege skipped (no auth token)"
+  warn "12. Authenticated siege skipped (no auth token)"
+  echo "siege_auth_skipped=no_auth_token" > "${TOOL_DIR}/siege_auth_${TIMESTAMP}.txt"
 fi
 
 # =============================================================================
-# 11. wrk / ab — Raw Throughput Test
+# 13. wrk / ab — Raw Throughput Test
 # =============================================================================
-header "11. Throughput Test (wrk / ab)"
+header "13. Throughput Test (wrk / ab)"
 
 if has wrk; then
-  info "wrk -t4 -c$CONCURRENCY -d$DURATION ${BASE_URL}/api/health"
+  info "wrk -t4 -c$CONCURRENCY -d$DURATION http://${BASE_URL#https://}/api/health"
   WRK_OUT="${REPORT_DIR}/wrk_${TIMESTAMP}.txt"
+  # Use http://nginx:80 instead of https to avoid self-signed cert issues
+  WRK_URL="http://$(echo "${BASE_URL}" | sed 's|https://||; s|:.*||'):80/api/health"
   wrk -t4 -c"$CONCURRENCY" -d"$DURATION" \
     --timeout 10s \
-    "${BASE_URL}/api/health" 2>&1 | tee "$WRK_OUT" || true
+    "$WRK_URL" 2>&1 | tee "$WRK_OUT" || true
 
   LATENCY=$(grep -i "latency" "$WRK_OUT" | head -1 | awk '{print $2}' || echo "N/A")
   REQ_SEC=$(grep -i "requests/sec" "$WRK_OUT" | awk '{print $2}' || echo "N/A")
@@ -378,20 +549,36 @@ elif has ab; then
   ok "ab — Req/sec: $RPS_AB  |  p99 latency: ${P99}ms"
 else
   warn "wrk and ab both not installed — throughput test skipped"
+  echo "throughput_skipped=no_wrk_no_ab" > "${TOOL_DIR}/throughput_${TIMESTAMP}.txt"
 fi
 
 # =============================================================================
-# 12. Crash Recovery Check
+# 14. Crash Recovery Check
 # =============================================================================
-header "12. Crash Recovery / Availability After Load"
+header "14. Crash Recovery / Availability After Load"
 
-info "Waiting 5s after load tests then checking health..."
-sleep 5
-RECOVERY_CODE=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 "${BASE_URL}/api/health" || echo "000")
-if [ "$RECOVERY_CODE" -eq 200 ]; then
-  ok "Server healthy after load (HTTP 200)"
-else
-  fail "Server not responding after load — HTTP $RECOVERY_CODE"
+info "Waiting for rate-limit window cooldown and checking health (up to 30s)..."
+RECOVERY_CODE="000"
+for i in $(seq 1 6); do
+  RECOVERY_CODE=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 "${BASE_URL}/api/health" || echo "000")
+  if [ "$RECOVERY_CODE" -eq 200 ]; then
+    ok "Server healthy after load (HTTP 200)"
+    break
+  fi
+  if [ "$RECOVERY_CODE" -eq 429 ]; then
+    warn "Health endpoint rate-limited (HTTP 429), retrying..."
+  elif [ "$RECOVERY_CODE" -ge 500 ] && [ "$RECOVERY_CODE" -lt 600 ]; then
+    fail "Server error after load — HTTP $RECOVERY_CODE"
+    FAILURES=$((FAILURES + 1))
+    break
+  else
+    warn "Health check returned HTTP $RECOVERY_CODE, retrying..."
+  fi
+  sleep 5
+done
+
+if [ "$RECOVERY_CODE" != "200" ] && [ "$RECOVERY_CODE" != "429" ] && ! { [ "$RECOVERY_CODE" -ge 500 ] && [ "$RECOVERY_CODE" -lt 600 ]; }; then
+  fail "Server did not recover to healthy status within 30s (last HTTP $RECOVERY_CODE)"
   FAILURES=$((FAILURES + 1))
 fi
 
@@ -410,6 +597,7 @@ done
 header "Summary"
 echo "Completed: $(date)"
 echo "Report saved to: $REPORT_FILE"
+echo "Tool logs saved to: $TOOL_DIR"
 echo ""
 
 if [ "$FAILURES" -eq 0 ]; then

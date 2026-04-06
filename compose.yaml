@@ -10,6 +10,7 @@ include:
   - ./nginx/compose.yaml
   - ./database/compose.yaml
   - ./vault/compose.yaml
+  - ./scripts/compose.yaml
 
 
 volumes:
@@ -17,6 +18,8 @@ volumes:
   vault_data:
     driver: local
   vault_keys:
+    driver: local
+  stress_test_results:
     driver: local
   backend_node_modules:
     driver: local

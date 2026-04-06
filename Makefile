@@ -25,6 +25,7 @@ DC_PROD := docker compose -f compose.prod.yaml
         dev dev-backend dev-frontend \
         shell-backend shell-frontend shell-db \
 	test backend-test e2e prod-e2e test-local \
+	stress-test stress-test-build stress-test-live \
 	seed-admins prod-seed-admins make-admin prod-make-admin \
 	seed-example seed-example-reset prod-seed-example prod-seed-example-reset \
 	seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
@@ -69,6 +70,9 @@ help:
 	@echo "  $(GREEN)make test-local$(RESET)     Run backend tests locally (no Docker)"
 	@echo "  $(GREEN)make e2e$(RESET)            Run E2E tests against dev stack"
 	@echo "  $(GREEN)make prod-e2e$(RESET)       Seed data + run E2E tests against prod stack"
+	@echo "  $(GREEN)make stress-test$(RESET)    Run full containerized stress & security tests"
+	@echo "  $(GREEN)make stress-test-build$(RESET) Build stress-test image only (skip auto-run)"
+	@echo "  $(GREEN)make stress-test-live$(RESET) Watch stress-test results as they complete"
 	@echo ""
 	@echo "$(YELLOW)Database$(RESET)"
 	@echo "  $(GREEN)make seed-admins$(RESET)          Promote developer accounts to admin (dev)"
@@ -249,6 +253,25 @@ test-local:
 
 dev-frontend:
 	cd frontend && npm run dev
+
+# ── STRESS & SECURITY TESTS (CONTAINERIZED) ──────────────────────────────
+# Runs comprehensive load, performance, and security tests against the application.
+# All tools (siege, wrk, nikto, nmap, ab, jq) run inside Docker — no local install needed.
+
+# Full stress-test run: builds image, starts stack, runs tests, displays results
+stress-test: ssl-certs create-dirs
+	@bash scripts/run-stress-test.sh
+
+# Build the stress-test image without running tests
+stress-test-build: ssl-certs create-dirs
+	@bash scripts/run-stress-test.sh "https://nginx:443" "10s" "1" true
+
+# Run stress tests with smaller dataset and live report viewing
+stress-test-live: ssl-certs create-dirs
+	@bash scripts/run-stress-test.sh "https://nginx:443" "5m" "50" false && \
+	  echo "" && \
+	  echo "$(GREEN)Opening latest stress-test report...$(RESET)" && \
+	  tail -f $$(ls -t stress-test-results/report_*.txt 2>/dev/null | head -1) 2>/dev/null || true
 
 # ── SHELLS ──────────────────────────────────────────────────
 shell-backend:
