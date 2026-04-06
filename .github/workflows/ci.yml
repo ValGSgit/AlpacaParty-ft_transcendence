@@ -364,11 +364,24 @@ jobs:
           echo "Verified live_admin@alpacaparty.test has admin access"
 
       # -- Run tests ------------------------------------------------
+      - name: Sanity check public API key before Playwright
+        run: |
+          code=$(curl -ks -o /tmp/public_api.json -w "%{http_code}" \
+            -H "X-API-Key: ci-e2e-api-key" \
+            "https://localhost:8443/api/public/users?limit=1")
+          echo "Public API status: $code"
+          cat /tmp/public_api.json || true
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "Public API key sanity check failed"
+            exit 1
+          fi
+
       - name: Run Playwright tests
         working-directory: e2e
         run: npm test
         env:
           E2E_BASE_URL: https://localhost:8443
+          E2E_API_KEY: ci-e2e-api-key
 
       # -- Artifacts ------------------------------------------------
       - name: Upload Playwright report
