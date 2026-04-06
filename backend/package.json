@@ -21,6 +21,7 @@
     "seed": "npx prisma db seed",
     "seed:exampleData": "node prisma/seedExampleData.js",
     "seed:exampleData:reset": "SEED_RESET=true node prisma/seedExampleData.js --reset",
+    "seed:live": "node prisma/seedExampleData.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
   },
