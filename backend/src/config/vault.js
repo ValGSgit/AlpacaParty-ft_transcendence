@@ -80,7 +80,8 @@ export async function loadVaultSecrets() {
   // VAULT_TOKEN: prefer env var, then fall back to the keys file written by vault-init.
   // This allows fully-automated token management with no manual .env editing.
   const vaultToken =
-    process.env.VAULT_TOKEN || readKeyFromFile(VAULT_KEYS_FILE, "VAULT_TOKEN");
+    process.env.VAULT_TOKEN ||
+    (isProd ? readKeyFromFile(VAULT_KEYS_FILE, "VAULT_TOKEN") : undefined);
 
   if (!vaultAddr || !vaultToken) {
     if (isProd) {

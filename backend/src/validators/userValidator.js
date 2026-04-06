@@ -18,8 +18,8 @@ export const userNameChain = (chain) =>
     .trim()
     .notEmpty()
     .withMessage("Name is required")
-    .isAlphanumeric()
-    .withMessage("Name may only contain letters and numbers")
+    .matches(/^[a-zA-Z0-9_]+$/)
+    .withMessage("Name may only contain letters, numbers, and underscores")
     .isLength({ min: 3, max: 32 })
     .withMessage("Name must be between 3 and 32 characters")
     .escape();

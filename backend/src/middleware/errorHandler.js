@@ -21,7 +21,7 @@ export const notFoundHandler = (_req, _res, next) => {
 */
 // eslint-disable-next-line no-unused-vars
 export const errorHandler = (err, _req, res, _next) => {
-  var status = err.status || 400;
+  var status = err.status || 500;
   var message = err.message || "Internal Server Error";
   var prismaCode = -1; // -1 = no prisma error
   var error = new CustomError(message, status);
@@ -30,9 +30,14 @@ export const errorHandler = (err, _req, res, _next) => {
     error = err;
   } else if (isValidationError(err)) {
     if (!err.isEmpty()) {
-      const firstError = Object.values(err.mapped())[0];
+      const mapped = err.mapped();
+      const firstError = Object.values(mapped)[0];
       return res.status(400).json({
-        error: { message: firstError || "Validation failed" },
+        error: {
+          message: firstError || "Validation failed",
+          fields: mapped,
+        },
+        errors: mapped,
       });
     }
   } else if (err instanceof Prisma.PrismaClientKnownRequestError) {

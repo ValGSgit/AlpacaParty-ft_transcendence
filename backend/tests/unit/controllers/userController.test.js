@@ -280,7 +280,10 @@ describe('changePassword', () => {
     await changePassword(req, res, next);
 
     expect(res._status).toBe(400);
-    expect(res._json).toEqual({ error: { message: 'Too short. Needs number' } });
+    expect(res._json).toEqual({
+      error: { message: 'Too short. Needs number' },
+      errors: { newPassword: 'Too short. Needs number' },
+    });
   });
 
   test('should update password successfully', async () => {

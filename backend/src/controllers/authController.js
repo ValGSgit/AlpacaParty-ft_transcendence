@@ -9,7 +9,6 @@ import AuthService from "../services/authService.js";
 import { oauthTokensForUser } from "../services/oauthService.js";
 import config from "../config/index.js";
 import { customValidationResult } from "#validators/validatorUtils.js";
-import prisma from "#lib/prisma.js";
 import CustomError from "#utils/CustomError.js";
 
 /**
@@ -22,22 +21,24 @@ export const register = async (req, res, next) => {
     const { username, email, password } = req.body;
 
     // Unique username and email ?
-    const existing = await prisma.user.findFirst({
-      where: { OR: [{ username: username }, { email: email }] },
-    });
-    if (existing) {
-      if (existing.username == username) {
-        throw new CustomError("User already taken", 400);
-      } else {
-        throw new CustomError("Email already exists", 400);
-      }
+    const existingUsername = await User.findByUsername(username);
+    if (existingUsername) {
+      throw new CustomError("User already taken", 409);
+    }
+    const existingEmail = await User.findByEmail(email);
+    if (existingEmail) {
+      throw new CustomError("Email already exists", 409);
     }
 
     // Create user (User.create also creates userAuth, userStats, userSettings)
     const passwordHash = await AuthService.hashPassword(password);
     const user = await User.create({ username, email, passwordHash });
 
-    await Achievement.unlock(user.id, "first_login");
+    try {
+      await Achievement.unlock(user.id, "first_login");
+    } catch {
+      // Avoid failing registration if achievement bookkeeping is unavailable.
+    }
     const accessToken = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
 
@@ -61,15 +62,17 @@ export const login = async (req, res, next) => {
     const { username, password } = req.body;
 
     // Allow login with username or email
-    const user = await prisma.user.findFirst({
-      where: { OR: [{ username: username }, { email: username }] },
-      include: { userAuth: true },
-    });
-    if (!user) throw new CustomError("Invalid credentials", 401);
+    let user = await User.findByUsername(username);
+    if (!user) {
+      user = await User.findByEmail(username);
+    }
+    const passwordHash = user?.userAuth?.passwordHash || user?.passwordHash;
+    if (!user || !passwordHash)
+      throw new CustomError("Invalid credentials", 401);
 
     const valid = await AuthService.comparePassword(
       password,
-      user.userAuth.passwordHash,
+      passwordHash,
     );
     if (!valid) throw new CustomError("Invalid credentials", 401);
 
@@ -117,7 +120,7 @@ export const refresh = async (req, res, next) => {
     if (!decoded || decoded.type !== "refresh")
       throw new CustomError("Invalid refresh token", 401);
 
-    const user = await prisma.user.findFirst({ where: { id: decoded.id } });
+    const user = await User.findById(decoded.id);
     if (!user) throw new CustomError("User not found", 401);
 
     const accessToken = AuthService.generateAccessToken(user);

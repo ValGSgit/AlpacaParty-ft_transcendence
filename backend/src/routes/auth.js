@@ -22,11 +22,12 @@ import {
 
 const router = express.Router();
 
-// Strict limiter for credential endpoints — 50 attempts per 15 min per IP.
+// Keep strict limits in production, but allow larger volume in dev/e2e runs.
 // The global /api limiter (1000/15 min) is too loose to prevent brute-force.
+const authLimiterMax = process.env.NODE_ENV === "production" ? 50 : 1000;
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50,
+  max: authLimiterMax,
   skip: () => process.env.NODE_ENV === "test",
   message: "Too many authentication attempts, please try again later.",
   standardHeaders: true,

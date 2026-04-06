@@ -3,12 +3,12 @@
  * @owner ValGSgit
  */
 import User, { shapeUserForClient } from "#models/User.js";
+import Friend from "#models/Friend.js";
 import AuthService from "#services/authService.js";
 import DataExportService from "#services/dataExportService.js";
 import DataRequest from "#models/DataRequest.js";
 import NotificationService from "#services/notificationService.js";
 import { customValidationResult } from "#validators/validatorUtils.js";
-import prisma from "#lib/prisma.js";
 import CustomError from "#utils/CustomError.js";
 
 /**
@@ -27,24 +27,63 @@ export const updateMe = async (req, res, next) => {
   try {
     customValidationResult(req).throw();
 
+    if (bio && bio.length > 500) {
+      return res
+        .status(400)
+        .json({ error: { message: "Bio must be 500 characters or fewer" } });
+    }
+
+    if (status && status.length > 200) {
+      return res
+        .status(400)
+        .json({ error: { message: "Status must be 200 characters or fewer" } });
+    }
+
     if (username) {
-      const existingUser = await prisma.user.findFirst({
-        where: {
-          username: username,
-          id: { not: id },
-        },
-      });
-      if (existingUser) throw new CustomError("User already exists", 400);
+      if (username.length < 3 || username.length > 32) {
+        return res
+          .status(400)
+          .json({ error: { message: "Username must be 3-32 characters" } });
+      }
+
+      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        return res.status(400).json({
+          error: {
+            message:
+              "Username may only contain letters, numbers, hyphens and underscores",
+          },
+        });
+      }
+    }
+
+    if (email && email.length > 254) {
+      return res
+        .status(400)
+        .json({ error: { message: "Email must be 254 characters or fewer" } });
+    }
+
+    if (username) {
+      const current = req.user?.username;
+      if (username !== current) {
+        const existingUser = await User.findByUsername(username);
+        if (existingUser && Number(existingUser.id) !== id) {
+          return res
+            .status(409)
+            .json({ error: { message: "Username already taken" } });
+        }
+      }
     }
 
     if (email) {
-      const existingEmail = await prisma.user.findFirst({
-        where: {
-          email: email,
-          id: { not: id },
-        },
-      });
-      if (existingEmail) throw new CustomError("Email already exists", 400);
+      const current = req.user?.email;
+      if (email !== current) {
+        const existingEmail = await User.findByEmail(email);
+        if (existingEmail && Number(existingEmail.id) !== id) {
+          return res
+            .status(409)
+            .json({ error: { message: "Email already registered" } });
+        }
+      }
     }
 
     const updatedUser = await User.update(id, {
@@ -73,12 +112,23 @@ export const changePassword = async (req, res, next) => {
       });
     }
     const id = Number(req.user.id);
-    const currUser = await prisma.userAuth.findFirst({ where: { userId: id } });
+    const currUser = await User.findByIdWithPassword(id);
     const valid = await AuthService.comparePassword(
       currentPassword,
-      currUser.passwordHash,
+      currUser?.passwordHash || currUser?.userAuth?.passwordHash,
     );
-    if (!valid) throw new CustomError("Current password is incorrect", 401);
+    if (!valid)
+      return res
+        .status(401)
+        .json({ error: { message: "Current password is incorrect" } });
+
+    const { valid: newValid, errors } = AuthService.validatePassword(newPassword);
+    if (!newValid) {
+      return res.status(400).json({
+        error: { message: errors.join(". ") },
+        errors: { newPassword: errors.join(". ") },
+      });
+    }
 
     const hash = await AuthService.hashPassword(newPassword);
     await User.updatePassword(id, hash);
@@ -100,9 +150,15 @@ export const getUser = async (req, res, next) => {
       return res.status(404).json({ error: { message: "User not found" } });
     }
     const isPublic = user.userSettings?.isPublic ?? true;
+    const isPublicLegacy = user.isPublic ?? isPublic;
     const reqIsAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
-    if (!isPublic && user.id !== req.user?.id && !reqIsAdmin) {
-      return res.status(404).json({ error: { message: "User not found" } });
+    if (!isPublicLegacy && user.id !== req.user?.id && !reqIsAdmin) {
+      const areFriends = await Friend.areFriends(req.user?.id, user.id);
+      if (!areFriends) {
+        return res
+          .status(403)
+          .json({ error: { message: "This profile is private" } });
+      }
     }
     res.json({ user: shapeUserForClient(user) });
   } catch (err) {
@@ -115,18 +171,32 @@ export const getUser = async (req, res, next) => {
  */
 export const listUsers = async (req, res, next) => {
   try {
-    const limit = Math.min(Number(req.query.limit) || 20, 100);
-    const offset = Number(req.query.offset) || 0;
+    const pageSize = Number(req.query.pageSize) || Number(req.query.limit) || 20;
+    const page = Number(req.query.page) || 1;
+    const limit = Math.min(pageSize, 100);
+    const offset = Number(req.query.offset) || Math.max((page - 1) * limit, 0);
+    const search = req.query.search ? String(req.query.search).trim() : "";
 
     const reqIsAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
-    const where = reqIsAdmin ? {} : { userSettings: { isPublic: true } };
+    const users = search
+      ? await User.search(search, { limit })
+      : await User.findAll({ limit, offset });
+    const visibleUsers = reqIsAdmin
+      ? users
+      : users.filter((u) => {
+          const isPublic = u.userSettings?.isPublic ?? u.isPublic ?? true;
+          return isPublic || Number(u.id) === Number(req.user.id);
+        });
+    const total = await User.count();
 
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({ skip: offset, take: limit, where, orderBy: { id: "asc" } }),
-      prisma.user.count({ where }),
-    ]);
-
-    res.json({ users, total, limit, offset });
+    res.json({
+      users: visibleUsers,
+      total,
+      limit,
+      offset,
+      pageSize: limit,
+      currentPage: page,
+    });
   } catch (err) {
     next(err);
   }

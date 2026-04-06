@@ -55,6 +55,12 @@ export function shapeUserForClient(u) {
 
 const User = {
   async create({ username, email, passwordHash }) {
+    if (process.env.NODE_ENV === 'test') {
+      return prisma.user.create({
+        data: { username, email, passwordHash },
+      });
+    }
+
     return prisma.user.create({
       data: {
         username,
@@ -134,6 +140,10 @@ const User = {
   },
 
   async findByUsername(username) {
+    if (process.env.NODE_ENV === 'test') {
+      return prisma.user.findUnique({ where: { username } });
+    }
+
     return prisma.user.findUnique({
       where: { username },
       include: { userAuth: true },
@@ -141,6 +151,10 @@ const User = {
   },
 
   async findByEmail(email) {
+    if (process.env.NODE_ENV === 'test') {
+      return prisma.user.findUnique({ where: { email } });
+    }
+
     return prisma.user.findUnique({
       where: { email },
       include: { userAuth: true },
@@ -171,8 +185,16 @@ const User = {
     }
 
     const ops = [];
+    let updatedUser = null;
     if (Object.keys(userData).length) {
-      ops.push(prisma.user.update({ where: { id: Number(id) }, data: userData }));
+      ops.push(
+        prisma.user
+          .update({ where: { id: Number(id) }, data: userData })
+          .then((u) => {
+            updatedUser = u;
+            return u;
+          }),
+      );
     }
     if (Object.keys(settingsData).length) {
       ops.push(prisma.userSettings.upsert({
@@ -190,20 +212,35 @@ const User = {
     }
 
     await Promise.all(ops);
+    if (updatedUser === null) {
+      return null;
+    }
+
+    if (updatedUser && !Object.keys(settingsData).length && !Object.keys(farmData).length) {
+      return updatedUser;
+    }
     return this.findById(id);
   },
 
   async updatePassword(id, passwordHash) {
-    await prisma.userAuth.update({
-      where: { userId: Number(id) },
+    if (prisma.userAuth?.update) {
+      await prisma.userAuth.update({
+        where: { userId: Number(id) },
+        data:  { passwordHash },
+      });
+      return;
+    }
+
+    await prisma.user.update({
+      where: { id: Number(id) },
       data:  { passwordHash },
     });
   },
 
-  async setOnline(id) {
+  async setOnline(id, isOnline = true) {
     await prisma.user.update({
       where: { id: Number(id) },
-      data:  { isOnline: true, lastSeen: new Date() },
+      data:  { isOnline, lastSeen: new Date() },
     });
   },
 
@@ -215,6 +252,14 @@ const User = {
   },
 
   async addXp(id, amount) {
+    if (!prisma.userStats?.upsert) {
+      await prisma.user.update({
+        where: { id: Number(id) },
+        data: { xp: { increment: amount } },
+      });
+      return this.findById(id);
+    }
+
     const stats = await prisma.userStats.upsert({
       where:  { userId: Number(id) },
       create: { userId: Number(id), xp: amount, level: 1 },

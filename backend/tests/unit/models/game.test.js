@@ -22,7 +22,7 @@ const mockPrisma = {
   },
 };
 
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
 
 const { default: Game } = await import('../../../src/models/Game.js');
 

@@ -6,7 +6,7 @@ import supertest from 'supertest';
 
 
 // Health tests should not depend on generated Prisma runtime artifacts.
-jest.unstable_mockModule('../../src/config/prisma.js', () => ({
+jest.unstable_mockModule('#config/prisma.js', () => ({
   default: {
     $disconnect: jest.fn(),
   },

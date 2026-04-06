@@ -15,7 +15,7 @@ const mockPrisma = {
   $transaction: jest.fn(),
   $queryRaw: jest.fn(),
 };
-jest.unstable_mockModule('../../src/config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
 
 const { createTestApp } = await import('../helpers/createApp.js');
 const { default: AuthService } = await import('../../src/services/authService.js');

@@ -14,7 +14,7 @@ const mockPrisma = {
   },
 };
 
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
 
 const { default: Notification } = await import('../../../src/models/Notification.js');
 

@@ -64,7 +64,8 @@ const GamificationService = {
     const before = await safeFindUser(userId);
     const user = await User.addXp(userId, amount);
     // user is SAFE_SELECT shaped — level lives on userStats
-    const level = user?.userStats?.level ?? before?.userStats?.level ?? 1;
+    const level =
+      user?.userStats?.level ?? user?.level ?? before?.userStats?.level ?? before?.level ?? 1;
     if (level >= 10) {
       await this.tryUnlock(userId, 'level_10');
     }

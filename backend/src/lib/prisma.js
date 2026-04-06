@@ -1,13 +1,3 @@
-/*
-  Prisma client instance
-*/
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@prisma/client";
-import dotenv from "dotenv";
-
-dotenv.config({ path: "/run/secrets/.env" });
-const connectionString = `${process.env.DATABASE_URL}`;
-const adapter = new PrismaPg({ connectionString });
-const prisma = new PrismaClient({ adapter });
+import prisma from "#config/prisma.js";
 
 export default prisma;

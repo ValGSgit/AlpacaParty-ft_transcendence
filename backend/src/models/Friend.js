@@ -12,7 +12,7 @@ function shapeFriend(u) {
     avatar: u.avatar,
     is_online: u.isOnline,
     status: u.status,
-    level: u.userStats?.level ?? 1,
+    level: u.userStats?.level ?? u.level ?? 1,
   };
 }
 

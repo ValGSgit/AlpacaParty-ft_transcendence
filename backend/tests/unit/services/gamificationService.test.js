@@ -10,7 +10,7 @@ const mockPrisma = {
   userAchievement: { create: jest.fn() },
   friend: { count: jest.fn() },
 };
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
 
 // Mock User model
 const mockUser = { addXp: jest.fn() };

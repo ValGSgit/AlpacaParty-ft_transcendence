@@ -14,6 +14,11 @@ export const authRegisterValidation = () => [
 ];
 
 export const authLoginValidation = () => [
-  userNameChain(body("username")),
+  body("username")
+    .trim()
+    .notEmpty()
+    .withMessage("Name is required")
+    .isLength({ min: 3, max: 255 })
+    .withMessage("Name must be between 3 and 255 characters"),
   userPasswordChain(body("password")),
 ];

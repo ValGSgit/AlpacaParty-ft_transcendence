@@ -36,7 +36,7 @@ const mockPrisma = {
   $transaction: jest.fn((fn) => fn(mockPrisma)),
 };
 
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({
+jest.unstable_mockModule('#config/prisma.js', () => ({
   default: mockPrisma,
 }));
 

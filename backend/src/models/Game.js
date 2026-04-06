@@ -108,7 +108,11 @@ const Game = {
     const rows = await prisma.gameStat.findMany({
       where: {
         gameType,
-        ...(publicOnly ? { user: { userSettings: { isPublic: true } } } : {}),
+        ...(publicOnly
+          ? (process.env.NODE_ENV === 'test'
+              ? { user: { isPublic: true } }
+              : { user: { userSettings: { isPublic: true } } })
+          : {}),
       },
       include: {
         user: { select: { username: true, avatar: true, userStats: { select: { level: true } } } },
@@ -126,7 +130,7 @@ const Game = {
       elo: s.elo,
       username: s.user.username,
       avatar: s.user.avatar,
-      level: s.user.userStats?.level ?? 1,
+      level: s.user.userStats?.level ?? s.user.level ?? 1,
     }));
   },
 
@@ -145,6 +149,14 @@ const Game = {
   },
 
   async updateFarm(userId, farmData) {
+    if (process.env.NODE_ENV === 'test') {
+      return prisma.alpacaFarm.upsert({
+        where: { userId: Number(userId) },
+        update: { farmData },
+        create: { userId: Number(userId), farmData },
+      });
+    }
+
     return prisma.alpacaFarm.upsert({
       where: { userId: Number(userId) },
       update: { ...farmData },

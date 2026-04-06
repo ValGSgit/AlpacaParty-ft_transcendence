@@ -13,7 +13,7 @@ RESET  := \033[0m
 # ── Docker ──────────────────────────────────────────────────
 COMPOSE_PROJECT := alpacaparty-ft_transcendence
 DC := docker compose --profile dev
-DC_TEST := docker compose --env-file .env.test --profile test
+DC_E2E := docker compose --profile dev --profile e2e
 DC_PROD := docker compose -f compose.prod.yaml
 
 .DEFAULT_GOAL := help
@@ -24,8 +24,9 @@ DC_PROD := docker compose -f compose.prod.yaml
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
         shell-backend shell-frontend shell-db \
-	test e2e prod-e2e test-local \
+	test backend-test e2e prod-e2e test-local \
 	seed-admins prod-seed-admins make-admin prod-make-admin \
+	seed-example seed-example-reset prod-seed-example prod-seed-example-reset \
 	seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
         vault-status vault-secrets vault-shell \
         prod-vault-status prod-vault-unseal prod-vault-rotate-token \
@@ -188,6 +189,12 @@ install:
 	cd backend  && npm install
 	cd frontend && npm install
 
+install-backend:
+	cd backend && npm install
+
+install-frontend:
+	cd frontend && npm install
+
 dev:
 	@echo "Starting backend & frontend…"
 	cd backend  && npm run dev & \
@@ -198,11 +205,28 @@ dev-backend:
 
 # TESTING ─────────────────────────────────────────────────
 backend-test: create-dirs
-	$(DC_TEST) run --rm backend_test npm test -- users.routes.test.js || true
-	$(DC_TEST) down -v --remove-orphans
+	$(DC) up -d postgres vault vault-init backend
+	$(DC) exec backend npm install --no-audit --no-fund --loglevel=error
+	$(DC) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
+	$(DC) exec backend npm test
 
-e2e: create-dirs
-	$(DC) exec e2e npm test
+test: backend-test
+
+e2e: create-dirs seed-live
+	$(DC) up -d
+	@echo "Waiting for API health..."; \
+	for i in $$(seq 1 60); do \
+	  if curl -k -sSf https://localhost:8443/api/health >/dev/null; then \
+	    break; \
+	  fi; \
+	  if [ $$i -eq 60 ]; then \
+	    echo "API did not become ready in time"; \
+	    exit 1; \
+	  fi; \
+	  sleep 1; \
+	done
+	@E2E_API_KEY="$${E2E_API_KEY:-$$(grep '^API_KEYS=' .env | cut -d= -f2- | cut -d, -f1)}"; \
+	$(DC_E2E) run --build --rm -e E2E_API_KEY="$$E2E_API_KEY" e2e npm test
 
 # Production E2E: seeds data and runs Playwright against the production build.
 # Builds the e2e Docker image and runs it on the shared prod network so that
@@ -294,16 +318,37 @@ prod-make-admin:
 	@echo "$(GREEN)✓ $(USER) added to mod_users in prod Vault$(RESET)"
 
 seed-example:
+	$(DC) up -d backend
+	$(DC) exec backend npm install --no-audit --no-fund --loglevel=error
+	$(DC) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
 	$(DC) exec backend npm run seed:exampleData
 
 seed-example-reset:
+	$(DC) up -d backend
+	$(DC) exec backend npm install --no-audit --no-fund --loglevel=error
+	$(DC) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
 	$(DC) exec backend npm run seed:exampleData:reset
 
 prod-seed-example:
+	$(DC_PROD) up -d backend
+	$(DC_PROD) exec backend npm install --no-audit --no-fund --loglevel=error
+	$(DC_PROD) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
 	$(DC_PROD) exec backend npm run seed:exampleData
 
 prod-seed-example-reset:
+	$(DC_PROD) up -d backend
+	$(DC_PROD) exec backend npm install --no-audit --no-fund --loglevel=error
+	$(DC_PROD) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
 	$(DC_PROD) exec backend npm run seed:exampleData:reset
+
+# Backward-compatible aliases used by help text and existing scripts.
+seed-live: seed-example
+
+seed-live-reset: seed-example-reset
+
+prod-seed-live: prod-seed-example
+
+prod-seed-live-reset: prod-seed-example-reset
 
 # ── SECURITY ────────────────────────────────────────────────────────────────
 vault-status:

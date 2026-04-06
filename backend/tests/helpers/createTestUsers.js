@@ -6,11 +6,12 @@ import prisma from "#lib/prisma.js";
  */
 export const createTestUsers = async (num) => {
   const hash = await AuthService.hashPassword("TestPassword1234");
+  const runTag = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
   for (let i = 0; i < num; i++) {
     await prisma.user.create({
       data: {
-        username: `user${i}`,
-        email: `user${i}@example.com`,
+        username: `user${i}_${runTag}`,
+        email: `user${i}_${runTag}@example.com`,
         avatar: "/avatars/default.svg",
         status: "online",
         bio: "something",
