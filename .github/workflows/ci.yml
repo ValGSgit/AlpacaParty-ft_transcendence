@@ -47,8 +47,8 @@ jobs:
       JWT_SECRET: ci-test-secret-do-not-use-in-prod
       JWT_EXPIRES_IN: 1h
       JWT_REFRESH_EXPIRES_IN: 7d
-      DATABASE_URL: postgresql://alpacaparty:alpacaparty@localhost:5432/alpacaparty
-      DB_HOST: localhost
+      DATABASE_URL: postgresql://alpacaparty:alpacaparty@127.0.0.1:5432/alpacaparty?schema=public
+      DB_HOST: 127.0.0.1
       DB_PORT: "5432"
       DB_NAME: alpacaparty
       DB_USER: alpacaparty
@@ -74,7 +74,21 @@ jobs:
         run: npm install
 
       - name: Sync test database schema
-        run: npx prisma db push --skip-generate
+        run: |
+          set -e
+          for attempt in 1 2 3; do
+            echo "Prisma db push attempt ${attempt}/3"
+            if npx prisma db push --skip-generate; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "db push failed, retrying in 4 seconds..."
+              sleep 4
+            fi
+          done
+          echo "Prisma db push failed after 3 attempts"
+          npx prisma validate || true
+          exit 1
         
       - name: Generate Prisma client
         run: npx prisma generate
