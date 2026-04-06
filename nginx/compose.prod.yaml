@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    container_name: alpacaparty_nginx_prod
+    container_name: nginx_prod
     ports:
       - "8443:443"
       - "8080:80"

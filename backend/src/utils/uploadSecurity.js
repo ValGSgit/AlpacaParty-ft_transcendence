@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs";
 import File from "#models/File.js";
+import config from "#config/index.js";
 import { authenticate } from "#middleware/auth.js";
 
 export const uploadSecurityCheck = async (req, res, next) => {

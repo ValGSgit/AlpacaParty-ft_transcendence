@@ -51,7 +51,8 @@
     "socket.io": "^4.8.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "prisma": "^7.4.2"
+    "prisma": "^7.4.2",
+    "env-cmd": "^10.1.0"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",
