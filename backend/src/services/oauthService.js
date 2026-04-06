@@ -79,7 +79,7 @@ export function initializePassport() {
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
-            const email = profile.emails?.[0]?.value || `github_${profile.id}@placeholder.com`;
+            const email = profile.emails?.[0]?.value || null;
             const avatar = profile.photos?.[0]?.value;
             let username = (profile.username || `github_${profile.id}`).slice(0, 28);
 

@@ -21,4 +21,5 @@ $run_with_secrets npx prisma generate
 echo "Seed database"
 $run_with_secrets npm run seed
 
-exec "$@"
+# Run the main app with secrets available in the environment.
+exec npx env-cmd -f /run/secrets/.env "$@"

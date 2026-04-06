@@ -75,20 +75,39 @@ const User = {
     });
     if (existing) return { user: existing, created: false };
 
-    // Upsert: if email already exists (local account), link OAuth credentials.
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: {
-        userAuth: {
-          upsert: {
-            create: { oauthProvider: provider, oauthId },
-            update: { oauthProvider: provider, oauthId },
+    // If we have an email, try to link to an existing local account.
+    if (email) {
+      const user = await prisma.user.upsert({
+        where: { email },
+        update: {
+          userAuth: {
+            upsert: {
+              create: { oauthProvider: provider, oauthId },
+              update: { oauthProvider: provider, oauthId },
+            },
           },
         },
-      },
-      create: {
+        create: {
+          username,
+          email,
+          avatar: avatar || '/avatars/default.svg',
+          userAuth:     { create: { oauthProvider: provider, oauthId } },
+          userStats:    { create: {} },
+          userSettings: { create: {} },
+          alpacaFarm:   { create: {} },
+        },
+        select: SAFE_SELECT,
+      });
+      return { user, created: true };
+    }
+
+    // No email available (e.g. GitHub user with private email).
+    // Generate a unique internal email so the NOT NULL constraint is satisfied.
+    const internalEmail = `${provider}_${oauthId}@oauth.internal`;
+    const user = await prisma.user.create({
+      data: {
         username,
-        email,
+        email: internalEmail,
         avatar: avatar || '/avatars/default.svg',
         userAuth:     { create: { oauthProvider: provider, oauthId } },
         userStats:    { create: {} },

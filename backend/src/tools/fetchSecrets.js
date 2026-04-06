@@ -1,12 +1,35 @@
 import fs from "fs";
 
+// Vault key → environment variable name.
+// Must stay in sync with vault/init/seed.sh and config/index.js.
+const KEY_MAP = {
+  db_password: "DB_PASSWORD",
+  db_user: "DB_USER",
+  db_name: "DB_NAME",
+  jwt_secret: "JWT_SECRET",
+  api_keys: "API_KEYS",
+  groq_api_key: "GROQ_API_KEY",
+  huggingface_api_key: "HUGGINGFACE_API_KEY",
+  google_client_id: "GOOGLE_CLIENT_ID",
+  google_client_secret: "GOOGLE_CLIENT_SECRET",
+  github_client_id: "GITHUB_CLIENT_ID",
+  github_client_secret: "GITHUB_CLIENT_SECRET",
+  mod_users: "MOD_USERS",
+};
+
 async function getSecrets() {
   const { VAULT_ADDR, VAULT_TOKEN } = process.env;
   const targetFile = "/run/secrets/.env";
 
   try {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; //! only here because of a self signed https cert
     const VAULT_PATH = "secret/data/alpacaparty";
+
+    // Accept the self-signed Vault cert for this script only.
+    // NODE_EXTRA_CA_CERTS is already set in compose.prod.yaml, but the
+    // entrypoint runs before that takes effect for some Node builds.
+    // Scoped to this short-lived helper process — the main app does NOT
+    // disable TLS verification.
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
     const res = await fetch(`${VAULT_ADDR}/v1/${VAULT_PATH}`, {
       headers: { "X-Vault-Token": VAULT_TOKEN },
     });
@@ -14,12 +37,19 @@ async function getSecrets() {
     if (!res.ok) throw new Error(`Vault responded with ${res.status}`);
 
     const json = await res.json();
-    const secrets = json.data.data || json.data;
+    const rawSecrets = json.data.data || json.data;
 
-    createDatabaseUrl(secrets);
+    // Map Vault keys to their canonical uppercase env var names.
+    const mapped = {};
+    for (const [vaultKey, value] of Object.entries(rawSecrets)) {
+      const envKey = KEY_MAP[vaultKey] || vaultKey;
+      mapped[envKey] = value;
+    }
 
-    // Convert JSON to KEY="VALUE" format for .env
-    const envContent = Object.entries(secrets)
+    buildDatabaseUrl(mapped);
+
+    // Convert to KEY="VALUE" format for .env
+    const envContent = Object.entries(mapped)
       .map(([k, v]) => `${k}="${v}"`)
       .join("\n");
 
@@ -34,10 +64,10 @@ async function getSecrets() {
   }
 }
 
-function createDatabaseUrl(secrets) {
-  const dbUser = secrets.db_user;
-  const dbPassword = secrets.db_password;
-  const dbName = secrets.db_name || process.env.DB_NAME;
+function buildDatabaseUrl(secrets) {
+  const dbUser = secrets.DB_USER;
+  const dbPassword = secrets.DB_PASSWORD;
+  const dbName = secrets.DB_NAME || process.env.DB_NAME;
   const dbHost = process.env.DB_HOST;
   const dbPort = process.env.DB_PORT;
 
