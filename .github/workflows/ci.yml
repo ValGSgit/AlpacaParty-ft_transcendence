@@ -78,7 +78,7 @@ jobs:
           set -e
           for attempt in 1 2 3; do
             echo "Prisma db push attempt ${attempt}/3"
-            if npx prisma db push --skip-generate; then
+            if npx prisma db push; then
               exit 0
             fi
             if [ "$attempt" -lt 3 ]; then
