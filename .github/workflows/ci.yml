@@ -148,6 +148,7 @@ jobs:
     needs: [backend-unit, frontend-unit]
     if: github.event_name == 'push'
     env:
+      COMPOSE_PROFILES: dev,e2e
       NODE_ENV: test
       API_PORT: "3000"
       PRISMA_STUDIO_PORT: "5555"
