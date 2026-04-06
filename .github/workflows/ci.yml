@@ -278,9 +278,15 @@ jobs:
       - name: Ensure seeded admin account has admin role
         run: |
           docker compose exec -T postgres psql -U alpacaparty -d alpacaparty \
-            -c "UPDATE users SET is_admin = TRUE WHERE email = 'live_admin@alpacaparty.test';"
+            -c "INSERT INTO user_settings (user_id, is_admin) \
+                SELECT id, TRUE FROM \"user\" WHERE email = 'live_admin@alpacaparty.test' \
+                ON CONFLICT (user_id) DO UPDATE SET is_admin = EXCLUDED.is_admin;"
           is_admin=$(docker compose exec -T postgres psql -U alpacaparty -d alpacaparty -tA \
-            -c "SELECT COALESCE(is_admin::text, 'false') FROM users WHERE email = 'live_admin@alpacaparty.test' LIMIT 1;")
+            -c "SELECT COALESCE(us.is_admin::text, 'false') \
+                FROM user_settings us \
+                JOIN \"user\" u ON u.id = us.user_id \
+                WHERE u.email = 'live_admin@alpacaparty.test' \
+                LIMIT 1;")
           if [ "$is_admin" != "true" ]; then
             echo "live_admin@alpacaparty.test is not admin after seeding"
             exit 1
