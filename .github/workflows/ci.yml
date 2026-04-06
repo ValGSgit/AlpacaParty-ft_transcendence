@@ -28,6 +28,10 @@ jobs:
   backend-unit:
     name: "Backend — Unit Tests"
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-test-secret-do-not-use-in-prod
+      DATABASE_URL: postgresql://alpacaparty:alpacaparty@localhost:5432/alpacaparty
 
     defaults:
       run:
@@ -48,20 +52,8 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Run Prisma migrations
-        run: npx prisma migrate dev --name ci --skip-seed
-
-      - name: Generate Prisma client
-        run: npx prisma generate
-
-      - name: Run Prisma migrations
-        run: npx prisma migrate dev --name ci --skip-seed
-
       - name: Run tests with coverage
         run: npm test
-        env:
-          NODE_ENV: test
-          JWT_SECRET: ci-test-secret-do-not-use-in-prod
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v5
@@ -171,7 +163,7 @@ jobs:
           docker compose up -d --build postgres backend frontend nginx
         env:
           NODE_ENV: test
-          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-e2e-secret-change-in-prod' }}
+          JWT_SECRET: ci-e2e-secret-change-in-prod
           DB_NAME: alpacaparty
           DB_USER: alpacaparty
           DB_PASSWORD: alpacaparty
