@@ -221,12 +221,12 @@ jobs:
       - name: Install backend and frontend dependencies
         run: |
           cd backend && npm install --ignore-scripts && cd ..
-          cd frontend && npm install && cd ..
+          cd frontend && npm install --include=optional && cd ..
 
       # -- Start the full stack -------------------------------------
       - name: Start application stack
         run: |
-          docker compose build --no-cache nginx
+          docker compose build --no-cache frontend nginx
           docker compose up -d --build postgres backend frontend nginx
 
       - name: Wait for backend to be healthy
