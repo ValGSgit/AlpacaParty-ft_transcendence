@@ -31,7 +31,17 @@ jobs:
     env:
       NODE_ENV: test
       JWT_SECRET: ci-test-secret-do-not-use-in-prod
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
       DATABASE_URL: postgresql://alpacaparty:alpacaparty@localhost:5432/alpacaparty
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_NAME: alpacaparty
+      DB_USER: alpacaparty
+      DB_PASSWORD: alpacaparty
+      SSL_CERT_PATH: ./ssl/cert.pem
+      SSL_KEY_PATH: ./ssl/key.pem
+      UPLOAD_DIR: ./uploads
 
     defaults:
       run:
