@@ -11,8 +11,8 @@ if find prisma/migrations -mindepth 1 -maxdepth 1 -type d | grep -q .; then
 	echo "Deploy database migrations..."
 	$run_with_secrets npx prisma migrate deploy
 else
-	echo "No migration folders found, syncing schema with prisma db push..."
-	$run_with_secrets npx prisma db push
+	echo "No migration folders found, creating initial migration..."
+	$run_with_secrets npx prisma migrate dev --name init
 fi
 
 echo "Create prisma client"
