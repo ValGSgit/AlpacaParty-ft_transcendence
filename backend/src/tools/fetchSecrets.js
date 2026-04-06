@@ -5,6 +5,7 @@ async function getSecrets() {
   const targetFile = "/run/secrets/.env";
 
   try {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; //! only here because of a self signed https cert
     const VAULT_PATH = "secret/data/alpacaparty";
     const res = await fetch(`${VAULT_ADDR}/v1/${VAULT_PATH}`, {
       headers: { "X-Vault-Token": VAULT_TOKEN },
