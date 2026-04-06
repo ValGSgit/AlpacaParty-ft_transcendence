@@ -16,7 +16,6 @@ services:
       # ── Infrastructure (non-secret) ───────────────────────────
       DB_HOST: postgres
       DB_PORT: ${DB_PORT:-5432}
-      UPLOAD_DIR: "/app/uploads"
 
       # ── App config (non-secret) ───────────────────────────────
       JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-1h}"
