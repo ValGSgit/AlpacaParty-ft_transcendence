@@ -38,7 +38,7 @@ export async function saveGame() {
   });
 
   try {
-    await api.put('/users/me/farmData', {
+    await api.put('/users/me/farmdata', {
       items: saveItems,
       alpacas: saveAlpacas,
       coins: gUser.value.coins,
