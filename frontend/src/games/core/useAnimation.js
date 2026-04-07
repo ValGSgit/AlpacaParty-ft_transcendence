@@ -6,9 +6,11 @@ export function handleAnimation(player, animDir, speed) {
   const { mixer, animations } = player
 
   const idleAction = mixer.clipAction(animations[1])
-  const walkAction = mixer.clipAction(animations[5])
   const jumpAction = mixer.clipAction(animations[2])
   const deadAction = mixer.clipAction(animations[0])
+
+  const walkAction = speed > 0.2 ? mixer.clipAction(animations[3]) : mixer.clipAction(animations[5])
+  const calibration = speed > 0.2 ? 10 : CONST.CALIBRATION;
 
   let newAction = idleAction;
 
@@ -29,7 +31,7 @@ export function handleAnimation(player, animDir, speed) {
       newAction = jumpAction
     else
       newAction = walkAction
-    walkAction.timeScale = (speed * CONST.CALIBRATION) * animDir
+    walkAction.timeScale = (speed * calibration) * animDir
   } else {
     newAction = idleAction
   }

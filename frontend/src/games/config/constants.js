@@ -17,18 +17,16 @@ export const CONST = {
   MAX_ZOOM: 200.0,
 
   DEBUG: 0,
-  COLLIDER_SIZE: 0.9,
+  COLLIDER_SIZE: 0.8,
 
   MAX_UPGRADES: 5,
+
   HP: 3,
   SECONDS_PER_INGAME_YEAR: 300,
+  SECONDS_PER_DAYPHASE: 20,
 
   get ALPACA_COST() {
     return gAlpacas.length
-  },
-
-  get UPGRADE_COST() {
-    return gUser.value.upgrades + 1.0
   },
 
   get FLOOR_RADIUS() {
@@ -37,6 +35,10 @@ export const CONST = {
 
   get MAX_MOVE_RADIUS() {
     return this.FLOOR_RADIUS - 2
+  },
+
+  get MAX_COINS() {
+    return 3 + gUser.value.upgrades;
   },
 
   get PLAYER_BACKWARD_SPEED() {
