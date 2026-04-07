@@ -1,72 +1,65 @@
-import { gScene, gPlayer, gAlpacas, gUI, gUser, gCollidables, gItems, gEngine} from '../core/globals.js';
-import { setupEnvironment } from '../world/sceneBuilder.js'
-import { registerEntity } from '../core/registerEntity.js';
-import { SpitRoyaleClient } from './client.js'
-import { changeFloorColor } from './utils.js';
-import { spawnObjectRandomly } from '../utils/spawnRandomly.js';
-import { createAlpaca } from '../core/createObjects.js'
 import { alpacaHandling } from '../components/alpacaHandling.js';
-import { getValidRandomPos } from "../utils/spawnRandomly.js";
+import { createAlpaca } from '../core/createObjects.js';
+import { gPlayer, gScene, gUI, gUser } from '../core/globals.js';
+import { registerEntity } from '../core/registerEntity.js';
+import { getValidRandomPos, spawnObjectRandomly } from '../utils/spawnRandomly.js';
+import { setupEnvironment } from '../world/sceneBuilder.js';
+import { SpitRoyaleClient } from './client.js';
+import { changeFloorColor } from './utils.js';
 
 let onlineClient = null;
 const remotePlayers = {};
 let originalSpitFn = null; // Store the original spit function to restore later
 
 
-export async function initSpitRoyalAI(playerCount, tempAlpacas){
-
+export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   gUser.value.gameMode = 1
   setupEnvironment(gScene.value)
   changeFloorColor('#ff0000', '#550000')
   registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
   gScene.value.add(gPlayer.value.model)
   gUI.cameraMode = 1
-  for (let i = 0; i < playerCount - 1; i++)
-  {
+  for (let i = 0; i < playerCount - 1; i++) {
     let alpaca
-    if (tempAlpacas[i])
-    {
-        alpaca = tempAlpacas[i]
-        registerEntity(alpaca, 'alpaca')
-        const data = await getValidRandomPos('/models/alpaca.glb', 1);
-        alpaca.model.position.set(data[0].position[0], data[0].position[1], data[0].position[2])
-        gScene.value.add(alpaca.model)
+    if (tempAlpacas[i]) {
+      alpaca = tempAlpacas[i]
+      registerEntity(alpaca, 'alpaca')
+      const data = await getValidRandomPos('/models/alpaca.glb', 1);
+      alpaca.model.position.set(data[0].position[0], data[0].position[1], data[0].position[2])
+      gScene.value.add(alpaca.model)
     }
-    else
-    {
-        alpaca = await spawnObjectRandomly('/models/alpaca.glb', 1, "alpaca")
-        gScene.value.add(alpaca)
+    else {
+      alpaca = await spawnObjectRandomly('/models/alpaca.glb', 1, "alpaca")
+      gScene.value.add(alpaca)
     }
   }
 }
 
 export async function initSpitRoyalOnline() {
   gUser.value.gameMode = 2;
-  
   setupEnvironment(gScene.value);
   changeFloorColor('#ff0000', '#550000');
-  registerEntity(gPlayer.value, 'alpaca'); 
+  registerEntity(gPlayer.value, 'alpaca');
   gScene.value.add(gPlayer.value.model);
   gUI.cameraMode = 1;
 
   onlineClient = new SpitRoyaleClient();
   window.onlineClient = onlineClient; // Expose it globally so alpacaHandling can reach it easily
-  const playerName = gUser.value?.name || 'Vue_Llama'; 
+  const playerName = gUser.value?.name || 'Vue_Alpaca';
   onlineClient.connect(playerName);
 
   // --- HOOK LOCAL SPIT ---
   originalSpitFn = gPlayer.value.spit;
   gPlayer.value.spit = () => {
-    originalSpitFn.call(gPlayer.value); 
+    originalSpitFn.call(gPlayer.value);
     if (onlineClient) onlineClient.socket.emit('spit'); // Tell server we shot!
   };
 
   listenServerEvents(onlineClient)
 }
 
-export function cleanupClient()
-{
-    // --- MULTIPLAYER CLEANUP ---
+export function cleanupClient() {
+  // --- MULTIPLAYER CLEANUP ---
   if (onlineClient) {
     onlineClient.destroy();
     onlineClient = null;
@@ -84,32 +77,31 @@ export function cleanupClient()
   }
 }
 
-function listenServerEvents(onlineClient){
+function listenServerEvents(onlineClient) {
   onlineClient.socket.on('spit:message', (msg) => {
-    
+
     // 1. A remote player shot a laser!
     if (msg.type === 'player_spit') {
       const remoteModel = remotePlayers[msg.playerId];
       if (remoteModel) {
         const { makeSpit } = alpacaHandling();
         // Pass a mock object that makeSpit can read (it only needs the model)
-        makeSpit({ model: remoteModel, isDead: false }); 
+        makeSpit({ model: remoteModel, isDead: false });
       }
     }
-    
+
     // 2. Someone took damage
     if (msg.type === 'player_hit') {
-       if (msg.targetId === onlineClient.localPlayerId) {
-         gUser.value.hp = msg.health; // Update my UI
-         gPlayer.value.hp = msg.health;
-         // You can trigger your beingHit animation here!
-         gPlayer.value.isDead = -1
-         if (gUser.value.hp === 0)
-         {
+      if (msg.targetId === onlineClient.localPlayerId) {
+        gUser.value.hp = msg.health; // Update my UI
+        gPlayer.value.hp = msg.health;
+        // You can trigger your beingHit animation here!
+        gPlayer.value.isDead = -1
+        if (gUser.value.hp === 0) {
           gPlayer.value.isDead = 1
           gUser.value.isPlaying = false
-         }
-       }
+        }
+      }
     }
   });
 
@@ -118,19 +110,19 @@ function listenServerEvents(onlineClient){
 
     for (const p of state.players) {
       if (p.id === onlineClient.localPlayerId) continue; // Skip ourselves
-      
+
       // --- REMOTE PLAYERS ---
       if (!remotePlayers[p.id]) {
-        remotePlayers[p.id] = "loading"; 
-        
+        remotePlayers[p.id] = "loading";
+
         createAlpaca().then((newAlpaca) => {
           const model = newAlpaca.model;
-          
+
           // TAG IT FOR THE RAYCASTER
-          model.userData.networkId = p.id; 
-          
+          model.userData.networkId = p.id;
+
           gScene.value.add(model);
-          remotePlayers[p.id] = model; 
+          remotePlayers[p.id] = model;
         });
 
       } else if (remotePlayers[p.id] !== "loading") {
@@ -143,51 +135,51 @@ function listenServerEvents(onlineClient){
 
   onlineClient.onJoined = (playerId, spawn) => {
     console.log("Joined multiplayer as:", playerId);
-    
+
     // --- SNAP TO RANDOM SPAWN ---
     if (spawn) {
       gPlayer.value.model.position.set(spawn.x, 0, spawn.z);
       gPlayer.value.model.rotation.y = spawn.angle;
     }
-    
+
     // --- START SENDING INPUTS ---
     onlineClient.getInput = () => {
-      return { 
+      return {
         x: gPlayer.value?.model.position.x || 0,
         y: gPlayer.value?.model.position.y || 0,
         z: gPlayer.value?.model.position.z || 0,
         angle: gPlayer.value?.model.rotation.y || 0
-      }; 
+      };
     };
   };
 }
 
 
-function cleanUpDisconnectedPlayers(serverPlayerIds){
-    for (const id in remotePlayers) {
-      if (!serverPlayerIds.has(id)) {
-        
-        const modelToRemove = remotePlayers[id];
-        
-        if (modelToRemove !== "loading" && modelToRemove) {
-          // 1. Remove from scene visually
-          gScene.value.remove(modelToRemove);
-          
-          // 2. Destroy from memory completely
-          modelToRemove.traverse((child) => {
-            if (child.isMesh) {
-              child.geometry.dispose();
-              if (Array.isArray(child.material)) {
-                child.material.forEach(m => m.dispose());
-              } else if (child.material) {
-                child.material.dispose();
-              }
+function cleanUpDisconnectedPlayers(serverPlayerIds) {
+  for (const id in remotePlayers) {
+    if (!serverPlayerIds.has(id)) {
+
+      const modelToRemove = remotePlayers[id];
+
+      if (modelToRemove !== "loading" && modelToRemove) {
+        // 1. Remove from scene visually
+        gScene.value.remove(modelToRemove);
+
+        // 2. Destroy from memory completely
+        modelToRemove.traverse((child) => {
+          if (child.isMesh) {
+            child.geometry.dispose();
+            if (Array.isArray(child.material)) {
+              child.material.forEach(m => m.dispose());
+            } else if (child.material) {
+              child.material.dispose();
             }
-          });
-        }
-        
-        // 3. Remove from our tracking dictionary
-        delete remotePlayers[id];
+          }
+        });
       }
+
+      // 3. Remove from our tracking dictionary
+      delete remotePlayers[id];
     }
+  }
 }
