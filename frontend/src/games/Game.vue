@@ -26,7 +26,7 @@
         <button class="shop-btn" @click="changeGame()" title="Return to Farm">Return to Farm</button>
       </div>
     </div>
-    <div class="hud-left">
+    <div class="hud-container hud-left">
       <div class="stat"><span>💰 {{ gUser.coins }}</span></div>
       <div v-if="gUser.gameMode === 1" class="stat"><span>🦙 {{ gUser.point }} </span></div>
       <div v-if="gUser.gameMode === 2" class="stat"><span>🦙 {{ gUser.point }} </span></div>
@@ -129,21 +129,23 @@
   </div>
 </div>
 
-    <div v-if="gUI.itemShop" class="modal-overlay">
-      <div class="shop-modal">
-        <div class="shop-title"> Buy Item </div>
-        <div class="itemshop-grid">
-          <button v-for="item in shopItems" :key="item.name" class="itemshop-card" @click="buyItem(item)">
-            <span class="item-name">{{ item.name }}</span>
-            <div class="icon-container">
-              <img :src="item.icon" :alt="item.name" class="item-icon" />
-              <span class="item-cost">{{ item.cost }}🪙</span>
-            </div>
-          </button>
-        </div>
-        <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
+  <div v-if="gUI.itemShop" class="modal-overlay">
+    <div class="shop-title"> 
+      Buy Item 
+      
+      <div class="itemshop-grid">
+        <button v-for="item in shopItems" :key="item.name" class="itemshop-card" @click="buyItem(item)">
+          <span class="item-name">{{ item.name }}</span>
+          <div class="icon-container">
+            <img :src="item.icon" :alt="item.name" class="item-icon" />
+            <span class="item-cost">{{ item.cost }}🪙</span>
+          </div>
+        </button>
       </div>
+      
+      <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
     </div>
+  </div>
     
     <div v-if="gUI.alpacaShop" class="modal-overlay">
       <div class="shop-title">Buy Alpaca
@@ -289,7 +291,7 @@ const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
 const { initInput, cleanupInput} = useInput()
 const { setTimeOfDay, updateLighting, toggleLightCycle} = editLight()
 const { buyAlpaca } = alpacaShop()
-const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu } = useUIManager()
+const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openFarmMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = upgradeFarm()
 const { buyItem } = itemShop()

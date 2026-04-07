@@ -202,7 +202,8 @@ export function useEditMode() {
     if (gEditState.ghost) {
       gScene.value.remove(gEditState.ghost);
     }
-    addCoins(Math.floor(selected.userData.cost / 2));
+    if (!selected.userData.isNew)
+      addCoins(Math.floor(selected.userData.cost / 2));
     resetSelected();
     removeObject(selected);
   }

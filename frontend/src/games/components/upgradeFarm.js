@@ -1,12 +1,5 @@
-import * as THREE from 'three';
 import { CONST } from '../config/constants.js';
-import { createDecoration } from '../core/createObjects.js';
-import { shopItems } from '../core/entities/Item.js';
-import { gCollidables, gScene, gUser } from '../core/globals.js';
-import { getModel } from '../core/modelCache.js';
-import { attachCollider } from '../core/useCollider.js';
-import { usePhysics } from '../core/usePhysics.js';
-import { getRandomRot, getRandomScale } from '../utils/randomValues.js';
+import { gScene, gUser } from '../core/globals.js';
 
 export const UPGRADE_COST = [25, 50, 100, 250, 500];
 
@@ -17,6 +10,7 @@ export function upgradeFarm() {
 
     if (cost === "Max" || level >= UPGRADE_COST.length) {
       alert("You reached max upgrades!");
+      return;
     }
     if (!checkCoinsPrice(cost)) return;
 
