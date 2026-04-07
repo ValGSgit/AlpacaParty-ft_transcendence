@@ -23,7 +23,7 @@ export const CONST = {
 
   HP: 3,
   SECONDS_PER_INGAME_YEAR: 300,
-  SECONDS_PER_DAYPHASE: 20,
+  SECONDS_PER_DAYPHASE: 60,
 
   get ALPACA_COST() {
     return gAlpacas.length

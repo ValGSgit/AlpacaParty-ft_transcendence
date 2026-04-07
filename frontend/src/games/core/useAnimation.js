@@ -1,5 +1,5 @@
-import * as THREE from 'three'
-import { CONST } from '../config/constants.js'
+import * as THREE from 'three';
+import { CONST } from '../config/constants.js';
 import { gUser } from './globals.js';
 
 export function handleAnimation(player, animDir, speed) {
@@ -10,7 +10,7 @@ export function handleAnimation(player, animDir, speed) {
   const deadAction = mixer.clipAction(animations[0])
 
   const walkAction = speed > 0.2 ? mixer.clipAction(animations[3]) : mixer.clipAction(animations[5])
-  const calibration = speed > 0.2 ? 10 : CONST.CALIBRATION;
+  const calibration = speed > 0.2 ? 5 : CONST.CALIBRATION;
 
   let newAction = idleAction;
 
