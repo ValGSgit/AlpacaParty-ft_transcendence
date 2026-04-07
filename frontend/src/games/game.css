@@ -16,6 +16,16 @@
   pointer-events: none;
 }
 
+.hud-hp {
+  position: absolute;
+  top: 82px;
+  left: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
 .stat {
   width: 100px;
   height: 50px;

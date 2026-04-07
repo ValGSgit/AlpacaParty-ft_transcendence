@@ -42,10 +42,12 @@ export async function initAlpacas(scene, user) {
       newAlpaca.rotationOffset = savedData.rotationOffset;
       newAlpaca.age = savedData.age;
       newAlpaca.aliveTime = savedData.aliveTime;
+      newAlpaca.selected = savedData.selected;
     } else {
       newAlpaca = await createAlpaca();
     }
     if (!gPlayer.value) gPlayer.value = newAlpaca;
+    if (newAlpaca.selected) gPlayer.value = newAlpaca;
     alpacaGroup.add(newAlpaca.model)
   }
   scene.add(alpacaGroup);

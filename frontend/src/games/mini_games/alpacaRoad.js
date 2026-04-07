@@ -18,7 +18,7 @@ let levelUpFactor
 let alivePlayers
 const roadSpeed = 0.5
 
-export async function initAlpacaRoad(playerCount) {
+export async function initAlpacaRoad(playerCount, tempAlpacas) {
   gUser.value.gameMode = 3
   alivePlayers = playerCount
   setupEnvironment(gScene.value)
@@ -29,15 +29,31 @@ export async function initAlpacaRoad(playerCount) {
   changeFloorColor('#454545', '#454545')
   registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
   gScene.value.add(gPlayer.value.model)
-  for (let i = 1; i < playerCount; i++)
+  for (let i = 0; i < playerCount - 1; i++)
   {
-    const alpaca = await createAlpaca()
-    if (i === 1)
+    let alpaca
+    if (tempAlpacas[i])
+    {
+      alpaca = tempAlpacas[i]
+      registerEntity(alpaca, 'alpaca')
+    }
+    else
+      alpaca = await createAlpaca()
+    if (i === 0)
+    {
       alpaca.model.position.x -= 5
-    if (i === 2)
+      gUser.value.name2p = alpaca.name
+    }
+    if (i === 1)
+    {
       alpaca.model.position.x -= 10
-    if (i === 3)
+      gUser.value.name3p = alpaca.name
+    }
+    if (i === 2)
+    {
       alpaca.model.position.x += 5
+      gUser.value.name4p = alpaca.name
+    }
     gScene.value.add(alpaca.model)
   }
   gUI.cameraMode = 1
@@ -59,6 +75,7 @@ export function spawnObstacles(delta) {
     item.rotation.z = Math.PI / 2
     item.position.y = 0.5
     item.position.x = -2.5
+    item.pointGiven = false
     item.speed = getRandomSpeed()
     gScene.value.add(item)
     registerEntity(item, 'item')
@@ -69,6 +86,17 @@ export function updateObstacles() {
   //const { checkCollisionWith } = usePhysics()
   let i = 0
   for (let i = 0; i < gAlpacas.length; ++i) {
+    // sync UI hp and points
+    if (i === 0) {
+      gUser.value.hp = gAlpacas[0].hp; gUser.value.point = gAlpacas[0].point
+    } else if (i === 1) {
+      gUser.value.hp2p = gAlpacas[1].hp; gUser.value.point2p = gAlpacas[1].point
+    } else if (i === 2) {
+      gUser.value.hp3p = gAlpacas[2].hp; gUser.value.point3p = gAlpacas[2].point
+    } else if (i === 3) {
+      gUser.value.hp4p = gAlpacas[3].hp; gUser.value.point4p = gAlpacas[3].point
+    }
+    // check if someone got hit
     checkAlpaca(gAlpacas[i])
     if (gAlpacas[i].isBeingHit)
       spinAlpacaUp(gAlpacas[i])
@@ -83,16 +111,22 @@ export function updateObstacles() {
     let item = gItems[i]
     if (gUser.value.isPlaying)
       item.position.z -= item.speed
-    if (item.position.z < CONST.BASE_RADIUS * -1)//-5) // get score
+    if (item.position.z < 0) // get score
     {
-      if (!gPlayer.value.isDead && item.userData.isCollider === true) // get points only with collider
+      if (item.userData.isCollider === true && !item.pointGiven) // get points only with wood and only once
       {
-        gUser.value.point++
-        gPlayer.value.point++
+        for (let i = 0; i < gAlpacas.length; ++i) {
+        if (!gAlpacas[i].isDead && !gAlpacas[i].isBeingHit)
+          gAlpacas[i].point++
+        //gUser.value.point++
+        }
+
+        item.pointGiven = true
         if (levelUpFactor > 3 && gPlayer.value.point % 5 === 0) // timer will get smaller even 5 points time
           levelUpFactor -= 1
       }
-      removeObject(item)
+      if (item.position.z < CONST.BASE_RADIUS * -1)
+        removeObject(item)
     }
     i++
   }
@@ -120,7 +154,6 @@ function checkAlpaca(alpaca){
     {
       alpaca.isBeingHit = true
       alpaca.hp--
-      //gUser.value.hp--
       if (alpaca.hp === 0)
       {
         alpaca.isDead = 1

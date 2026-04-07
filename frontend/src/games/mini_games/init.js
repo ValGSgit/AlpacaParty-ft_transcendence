@@ -15,9 +15,12 @@ import { changeFloorColor } from './utils.js';
 
 const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
+const tempAlpacas = []
 
 export async function changeGame(mode, playerCount) {
   if (!gPlayer.value || !gUser.value) return;
+  if (gUser.value.gameMode === 0)
+    saveGame()
   // clean up all clients
   cleanupClient()
   // Reset state
@@ -30,17 +33,36 @@ export async function changeGame(mode, playerCount) {
   gUser.value.isPlaying = true
   gPlayer.value.point = 0
   gUser.value.point = 0
+  gUser.value.name = gPlayer.value.name
   gPlayer.value.model.position.set(0, 0, 0)
   gPlayer.value.model.rotation.y = 0
+  gUser.value.point2p = -1
+  gUser.value.point3p = -1
+  gUser.value.point4p = -1
+  gUser.value.hp2p = -1
+  gUser.value.hp3p = -1
+  gUser.value.hp4p = -1
+  tempAlpacas.length = 0
+  if (playerCount)
+  {
+    for (let i = 0; i < gAlpacas.length && playerCount; ++i) {
+      if (gAlpacas[i] !== gPlayer.value)
+      {
+        tempAlpacas.push(gAlpacas[i])
+        gAlpacas[i].model.position.set(0, 0, 0)
+        gAlpacas[i].model.rotation.y = 0
+      }
+    }
+  }
   clearScene(gScene.value)
   clearCoins()
   resetGArrays()
   if (mode === 1)
-    initSpitRoyalAI()
+    initSpitRoyalAI(playerCount, tempAlpacas)
   else if (mode === 2)
     initSpitRoyalOnline()
   else if (mode === 3)
-    await initAlpacaRoad(playerCount)
+    await initAlpacaRoad(playerCount, tempAlpacas)
   else 
     await returnFarm()
 }

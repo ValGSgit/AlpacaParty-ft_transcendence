@@ -192,6 +192,7 @@ export function useEditMode() {
     }
     resetSelected();
     removeObject(selected);
+    saveGame()
   }
 
   return { deleteItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement }

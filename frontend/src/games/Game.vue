@@ -19,21 +19,40 @@
       <div v-if="gUser.hp">Congratulation! You Win!</div>
         <button v-if="gUser.gameMode === 1" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
         <button v-if="gUser.gameMode === 2" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
-        <button v-if="gUser.gameMode === 3" class="shop-btn">Score: {{ gUser.point }} 🪵</button>
+        <button v-if="gUser.gameMode === 3" class="shop-btn">{{ gUser.name }} Score: {{ gUser.point }} 🪵</button>
+        <button v-if="gUser.gameMode === 3 && gUser.point2p >= 0" class="shop-btn">{{ gUser.name2p }} Score: {{ gUser.point2p }} 🪵</button>
+        <button v-if="gUser.gameMode === 3 && gUser.point3p >= 0" class="shop-btn">{{ gUser.name3p }} Score: {{ gUser.point3p }} 🪵</button>
+        <button v-if="gUser.gameMode === 3 && gUser.point4p >= 0" class="shop-btn">{{ gUser.name4p }} Score: {{ gUser.point4p }} 🪵</button>
         <button class="shop-btn" @click="changeGame()" title="Return to Farm">Return to Farm</button>
       </div>
     </div>
     <div class="hud-left">
-      <div v-if="!gUser.gameMode" class="stat"><span>💰 {{ gUser.coins }}</span></div>
+      <div class="stat"><span>💰 {{ gUser.coins }}</span></div>
       <div v-if="gUser.gameMode === 1" class="stat"><span>🦙 {{ gUser.point }} </span></div>
       <div v-if="gUser.gameMode === 2" class="stat"><span>🦙 {{ gUser.point }} </span></div>
       <div v-if="gUser.gameMode === 3" class="stat"><span>🪵 {{ gUser.point }} </span></div>
-      <template v-if="gUser.gameMode">
-        <div v-if="gUser.hp === 3"><span>❤️❤️❤️</span></div>
-        <div v-if="gUser.hp === 2"><span>❤️❤️💔</span></div>
-        <div v-if="gUser.hp === 1"><span>❤️💔💔</span></div>
-        <div v-if="gUser.hp === 0"><span>💔💔💔</span></div>
-      </template>
+      <div v-if="gUser.gameMode === 3 && gUser.point2p >= 0" class="stat"><span>🪵 {{ gUser.point2p }} </span></div>
+      <div v-if="gUser.gameMode === 3 && gUser.point3p >= 0" class="stat"><span>🪵 {{ gUser.point3p }} </span></div>
+      <div v-if="gUser.gameMode === 3 && gUser.point4p >= 0" class="stat"><span>🪵 {{ gUser.point4p }} </span></div>
+    </div>
+
+    <div v-if="gUser.gameMode" class="hud-hp">
+        <div v-if="gUser.hp === 3" class="stat"><span>❤️❤️❤️</span></div>
+        <div v-if="gUser.hp === 2" class="stat"><span>❤️❤️💔</span></div>
+        <div v-if="gUser.hp === 1" class="stat"><span>❤️💔💔</span></div>
+        <div v-if="gUser.hp === 0" class="stat"><span>💔💔💔</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp2p >= 0 && gUser.hp2p === 3" class="stat"><span>❤️❤️❤️</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp2p >= 0 && gUser.hp2p === 2" class="stat"><span>❤️❤️💔</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp2p >= 0 && gUser.hp2p === 1" class="stat"><span>❤️💔💔</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp2p >= 0 && gUser.hp2p === 0" class="stat"><span>💔💔💔</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp3p >= 0 && gUser.hp3p === 3" class="stat"><span>❤️❤️❤️</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp3p >= 0 && gUser.hp3p === 2" class="stat"><span>❤️❤️💔</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp3p >= 0 && gUser.hp3p === 1" class="stat"><span>❤️💔💔</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp3p >= 0 && gUser.hp3p === 0" class="stat"><span>💔💔💔</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp4p >= 0 && gUser.hp4p === 3" class="stat"><span>❤️❤️❤️</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp4p >= 0 && gUser.hp4p === 2" class="stat"><span>❤️❤️💔</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp4p >= 0 && gUser.hp4p === 1" class="stat"><span>❤️💔💔</span></div>
+        <div v-if="gUser.gameMode === 3 && gUser.hp4p >= 0 && gUser.hp4p === 0" class="stat"><span>💔💔💔</span></div>
     </div>
 
     <div class="hud-right">
@@ -56,7 +75,7 @@
 
     <div v-if="gUI.gameMenu" class="modal-overlay">
       <div class="shop-title">Select Game
-        <button class="shop-btn" @click="changeGame(1)" title="Spit Royale with AI">Spit Royale with AI</button>
+        <button class="shop-btn" @click="changeGame(1, 10)" title="Spit Royale with AI">Spit Royale with AI</button>
         <button v-if="isAuthenticated" class="shop-btn" @click="changeGame(2)" title="Spit Royale Online">Spit Royale Online</button>
       <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
       <select v-model="playerCount" class="player-selector" title="Number of Players">

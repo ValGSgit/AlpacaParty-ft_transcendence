@@ -37,7 +37,7 @@ export async function spawnObjectRandomly(path, amount, type) {
   return itemsGroup;
 }
 
-async function getValidRandomPos(path, amount) {
+export async function getValidRandomPos(path, amount) {
   const itemsData = [];
   const { checkCollisionWith } = usePhysics();
   const { model } = await getModel(path);
