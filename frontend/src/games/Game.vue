@@ -36,24 +36,22 @@
       <div v-if="gUser.gameMode === 3 && gUser.point4p >= 0" class="stat"><span>🪵 {{ gUser.point4p }} </span></div>
     </div>
 
-    <div v-if="gUser.gameMode" class="hud-hp">
-        <div v-if="gUser.hp === 3" class="stat"><span>❤️❤️❤️</span></div>
-        <div v-if="gUser.hp === 2" class="stat"><span>❤️❤️💔</span></div>
-        <div v-if="gUser.hp === 1" class="stat"><span>❤️💔💔</span></div>
-        <div v-if="gUser.hp === 0" class="stat"><span>💔💔💔</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp2p >= 0 && gUser.hp2p === 3" class="stat"><span>❤️❤️❤️</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp2p >= 0 && gUser.hp2p === 2" class="stat"><span>❤️❤️💔</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp2p >= 0 && gUser.hp2p === 1" class="stat"><span>❤️💔💔</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp2p >= 0 && gUser.hp2p === 0" class="stat"><span>💔💔💔</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp3p >= 0 && gUser.hp3p === 3" class="stat"><span>❤️❤️❤️</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp3p >= 0 && gUser.hp3p === 2" class="stat"><span>❤️❤️💔</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp3p >= 0 && gUser.hp3p === 1" class="stat"><span>❤️💔💔</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp3p >= 0 && gUser.hp3p === 0" class="stat"><span>💔💔💔</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp4p >= 0 && gUser.hp4p === 3" class="stat"><span>❤️❤️❤️</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp4p >= 0 && gUser.hp4p === 2" class="stat"><span>❤️❤️💔</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp4p >= 0 && gUser.hp4p === 1" class="stat"><span>❤️💔💔</span></div>
-        <div v-if="gUser.gameMode === 3 && gUser.hp4p >= 0 && gUser.hp4p === 0" class="stat"><span>💔💔💔</span></div>
+<div v-if="gUser.gameMode" class="hud-hp">
+  <div v-if="gUser.hp >= 0" class="stat">
+    <span>{{ getHearts(gUser.hp) }}</span>
+  </div>
+  <div v-if="gUser.gameMode === 3">
+    <div v-if="gUser.hp2p >= 0" class="stat">
+      <span>{{ getHearts(gUser.hp2p) }}</span>
     </div>
+    <div v-if="gUser.hp3p >= 0" class="stat">
+      <span>{{ getHearts(gUser.hp3p) }}</span>
+    </div>
+    <div v-if="gUser.hp4p >= 0" class="stat">
+      <span>{{ getHearts(gUser.hp4p) }}</span>
+    </div>
+  </div>
+</div>
 
     <div class="floating-text-container">
       <div 
@@ -110,7 +108,7 @@
     </div>
 
     <div class="itemshop-grid">
-    <button class="itemshop-card"@click="increaseFarmSize(gUser.upgrades)">
+    <button class="itemshop-card" @click="increaseFarmSize(gUser.upgrades)">
       <span class="item-name">Increase Farm Size</span>
       <div class="icon-container">
         <span style="position: relative; bottom: 10px;">🚜</span>
@@ -280,6 +278,7 @@ import './game.css'
 import { spawnObstacles, updateObstacles } from './mini_games/alpacaRoad.js'
 import { changeGame } from './mini_games/init.js'
 import { initUser } from './user/initUser.js'
+import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
 
 const gameContainer = ref(null)
@@ -349,8 +348,6 @@ const gameLoop = () => {
     }
   }
 
-  // if (!gUser.value.gameMode)
-  //   spawnCoins(delta);
   updateAlpacas(delta);
   updateCollectables(player, delta);
   updateCoins(delta);

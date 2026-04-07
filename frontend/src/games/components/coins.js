@@ -24,6 +24,8 @@ async function spawnCoin() {
 }
 
 export async function updateCoins(delta) {
+  if (!gUser.value.gameMode) return;
+
   const spinSpeed = 1.5;
   coinsGroup.children.forEach((coin) => {
     coin.rotation.y += spinSpeed * delta;
