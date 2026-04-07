@@ -1,4 +1,6 @@
 import fs from "fs";
+import https from "node:https";
+import { URL } from "node:url";
 
 // Vault key → environment variable name.
 // Must stay in sync with vault/init/seed.sh and config/index.js.
@@ -17,26 +19,60 @@ const KEY_MAP = {
   mod_users: "MOD_USERS",
 };
 
+/**
+ * Performs a GET request to the Vault HTTPS endpoint using a custom CA cert
+ * instead of disabling TLS verification globally.
+ *
+ * NODE_EXTRA_CA_CERTS is set in compose.prod.yaml but may not be resolved by
+ * Node's TLS layer before this short-lived helper process starts (timing
+ * issue with some Alpine Node builds). Using https.request with an explicit
+ * `ca` option is reliable regardless of env-var timing.
+ */
+function vaultGet(url, token, caPath) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const options = {
+      hostname: parsed.hostname,
+      port: parseInt(parsed.port, 10) || 443,
+      path: parsed.pathname + parsed.search,
+      method: "GET",
+      headers: { "X-Vault-Token": token },
+    };
+
+    if (caPath && fs.existsSync(caPath)) {
+      options.ca = fs.readFileSync(caPath);
+    }
+
+    const req = https.request(options, (res) => {
+      let body = "";
+      res.on("data", (chunk) => { body += chunk; });
+      res.on("end", () => {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error(`Vault responded with ${res.statusCode}`));
+          return;
+        }
+        try {
+          resolve(JSON.parse(body));
+        } catch (e) {
+          reject(new Error(`Failed to parse Vault response: ${e.message}`));
+        }
+      });
+    });
+
+    req.on("error", reject);
+    req.end();
+  });
+}
+
 async function getSecrets() {
   const { VAULT_ADDR, VAULT_TOKEN } = process.env;
   const targetFile = "/run/secrets/.env";
+  const caPath = process.env.NODE_EXTRA_CA_CERTS || "/app/ssl/cert.pem";
 
   try {
     const VAULT_PATH = "secret/data/alpacaparty";
 
-    // Accept the self-signed Vault cert for this script only.
-    // NODE_EXTRA_CA_CERTS is already set in compose.prod.yaml, but the
-    // entrypoint runs before that takes effect for some Node builds.
-    // Scoped to this short-lived helper process — the main app does NOT
-    // disable TLS verification.
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-    const res = await fetch(`${VAULT_ADDR}/v1/${VAULT_PATH}`, {
-      headers: { "X-Vault-Token": VAULT_TOKEN },
-    });
-
-    if (!res.ok) throw new Error(`Vault responded with ${res.status}`);
-
-    const json = await res.json();
+    const json = await vaultGet(`${VAULT_ADDR}/v1/${VAULT_PATH}`, VAULT_TOKEN, caPath);
     const rawSecrets = json.data.data || json.data;
 
     // Map Vault keys to their canonical uppercase env var names.

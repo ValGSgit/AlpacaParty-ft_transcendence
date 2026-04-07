@@ -23,6 +23,12 @@ ENV MODSEC_RULE_ENGINE=On \
     PORT=8443 \
     SSL_PORT=8443
 
+# Extend the CRS allowed-methods list via the image's built-in template
+# mechanism (substituted into crs-setup.conf at startup). This is the
+# correct way to configure this in the owasp/modsecurity-crs image and
+# avoids a duplicate rule-ID conflict with CRS rule 900200.
+ENV ALLOWED_METHODS="GET HEAD POST OPTIONS PUT DELETE PATCH"
+
 # Copy nginx config
 COPY conf/nginx.prod.conf /etc/nginx/templates/conf.d/default.conf.template
 

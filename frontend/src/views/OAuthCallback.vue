@@ -39,11 +39,6 @@ function extractTokens() {
       if (data.accessToken) return data
     } catch { /* not valid JSON, fall through */ }
   }
-
-  // Fallback: query params (legacy)
-  const { accessToken, refreshToken } = route.query
-  if (accessToken) return { accessToken, refreshToken }
-
   return null
 }
 
