@@ -28,7 +28,6 @@ services:
       - /run/secrets:size=64m,mode=1777
     volumes:
       - backend_data:/app
-      - backend_node_modules:/app/node_modules
       - vault_keys:/run/vault-keys:ro
       - ssl:/app/ssl
     networks:

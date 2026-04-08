@@ -1,3 +1,4 @@
+
 # Frontend (Vue 3 + Vite) — Production
 services:
   frontend:
@@ -13,6 +14,8 @@ services:
     depends_on:
       backend:
         condition: service_started
+    volumes:
+      - ssl:/etc/nginx/conf/ssl
     restart: unless-stopped
     networks:
       - alpacaparty_net
