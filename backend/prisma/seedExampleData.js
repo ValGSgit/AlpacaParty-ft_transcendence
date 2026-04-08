@@ -5,14 +5,14 @@ import { loadVaultSecrets } from "../src/config/vault.js";
 let prisma;
 
 const cfg = {
-  users: Number(process.env.SEED_USERS || 240),
+  users: Number(process.env.SEED_USERS || 2400),
   posts: Number(process.env.SEED_POSTS || 1400),
   dmMessages: Number(process.env.SEED_DM_MESSAGES || 6000),
   rooms: Number(process.env.SEED_ROOMS || 40),
   roomMessages: Number(process.env.SEED_ROOM_MESSAGES || 7000),
-  organizations: Number(process.env.SEED_ORGS || 18),
-  notifications: Number(process.env.SEED_NOTIFICATIONS || 2500),
-  avgFriends: Number(process.env.SEED_AVG_FRIENDS || 16),
+  organizations: Number(process.env.SEED_ORGS || 30),
+  notifications: Number(process.env.SEED_NOTIFICATIONS || 250),
+  avgFriends: Number(process.env.SEED_AVG_FRIENDS || 27),
 };
 
 const seedPassword = process.env.SEED_PASSWORD || "LiveSeed123!";
@@ -525,7 +525,6 @@ async function seedAchievements(userIds) {
 }
 
 async function main() {
-  await loadVaultSecrets();
   ({ default: prisma } = await import("#lib/prisma.js"));
 
   console.log("[seed-live] Starting...");

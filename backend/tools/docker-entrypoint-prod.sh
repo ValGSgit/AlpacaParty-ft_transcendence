@@ -22,4 +22,4 @@ echo "Seed database"
 $run_with_secrets npm run seed
 
 # Run the main app with secrets available in the environment.
-exec npx env-cmd -f /run/secrets/.env "$@"
+$run_with_secrets "$@"

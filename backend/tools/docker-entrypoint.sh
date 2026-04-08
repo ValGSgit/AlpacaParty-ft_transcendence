@@ -19,13 +19,8 @@ npm install -g env-cmd
 # Helper variable
 run_with_secrets="env-cmd -f /run/secrets/.env"
 
-if find prisma/migrations -mindepth 1 -maxdepth 1 -type d | grep -q .; then
-  echo "Deploy database migrations..."
-  $run_with_secrets npx prisma migrate deploy
-else
-  echo "No migration folders found, creating initial migration..."
-  $run_with_secrets npx prisma migrate dev --name init
-fi
+echo "Applying database migrations..."
+$run_with_secrets npx prisma migrate dev --name init
 
 echo "Create prisma client"
 $run_with_secrets npx prisma generate

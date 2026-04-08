@@ -7,6 +7,7 @@
   "imports": {
     "#config/*.js": "./src/config/*.js",
     "#controllers/*.js": "./src/controllers/*.js",
+    "#lib/prisma.js": "./src/config/prisma.js",
     "#lib/*.js": "./src/lib/*.js",
     "#middleware/*.js": "./src/middleware/*.js",
     "#routes/*.js": "./src/routes/*.js",
