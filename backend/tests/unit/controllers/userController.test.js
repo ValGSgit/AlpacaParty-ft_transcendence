@@ -333,7 +333,7 @@ describe('changePassword', () => {
 // ── getUser ──────────────────────────────────────────────────────────────────
 describe('getUser', () => {
   test('should return user', async () => {
-    const user = { id: 5, username: 'bob', isPublic: true };
+    const user = { id: 5, username: 'bob', userSettings: { isPublic: true } };
     mockUser.findById.mockResolvedValue(user);
 
     const { req, res, next } = createReqRes({ params: { id: '5' } });

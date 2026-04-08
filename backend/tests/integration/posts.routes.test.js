@@ -207,7 +207,8 @@ describe('POST /api/posts/:id/like', () => {
 // ── DELETE /api/posts/:id/like ────────────────────────────────
 describe('DELETE /api/posts/:id/like', () => {
   test('200 — unlikes post', async () => {
-    // Post.unlike → $transaction(async tx => { postLike.deleteMany, postLike.count, post.update })
+    // Post.unlike → $transaction(async tx => { postLike.deleteMany, post.update })
+    mockPrisma.postLike.deleteMany.mockResolvedValueOnce({ count: 0 });
     const res = await auth(request.delete('/api/posts/10/like'));
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/unliked/i);
