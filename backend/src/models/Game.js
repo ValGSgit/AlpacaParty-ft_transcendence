@@ -2,7 +2,7 @@
  * Game Model — Prisma data access layer (games, game_stats, alpaca_farms)
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 const Game = {
   async create({ player1Id, gameType = 'spit_royale' }) {

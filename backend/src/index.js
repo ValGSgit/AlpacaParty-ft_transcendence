@@ -11,7 +11,7 @@ import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "#config/swagger.js";
 import config from "#config/index.js";
 import routes from "#routes/index.js";
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 import { errorHandler, notFoundHandler } from "#middleware/errorHandler.js";
 import { initializeSocket } from "#services/socketService.js";
 import { initializePassport } from "#services/oauthService.js";

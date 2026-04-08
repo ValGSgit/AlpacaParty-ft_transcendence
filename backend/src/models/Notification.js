@@ -2,7 +2,7 @@
  * Notification Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 function shapeNotification(n) {
   if (!n) return n;

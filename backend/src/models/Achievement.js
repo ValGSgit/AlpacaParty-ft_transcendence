@@ -2,7 +2,7 @@
  * Achievement Model — Prisma data access layer (achievements + daily challenges)
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 const Achievement = {
   async getAll() {

@@ -2,7 +2,7 @@
  * Friend Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 /** Map a friend user object from Prisma camelCase to frontend snake_case */
 function shapeFriend(u) {

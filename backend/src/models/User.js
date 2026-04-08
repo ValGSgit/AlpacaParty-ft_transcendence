@@ -2,7 +2,7 @@
  * User Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 // Nested selects for all user sub-relations used across the app.
 const SAFE_SELECT = {

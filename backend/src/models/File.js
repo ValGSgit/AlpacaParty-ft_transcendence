@@ -2,7 +2,7 @@
  * File Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 /** Convert BigInt fields to Number so JSON.stringify works. */
 function safeFile(f) {

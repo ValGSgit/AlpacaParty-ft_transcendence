@@ -1,7 +1,7 @@
 /**
  * Comment Model — Prisma data access layer
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 const AUTHOR_SELECT = { select: { username: true, avatar: true } };
 
