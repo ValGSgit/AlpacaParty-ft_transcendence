@@ -223,15 +223,7 @@ const User = {
   },
 
   async updatePassword(id, passwordHash) {
-    if (prisma.userAuth?.update) {
-      await prisma.userAuth.update({
-        where: { userId: Number(id) },
-        data:  { passwordHash },
-      });
-      return;
-    }
-
-    await prisma.user.update({
+    await prisma.userAuth.update({
       where: { id: Number(id) },
       data:  { passwordHash },
     });
