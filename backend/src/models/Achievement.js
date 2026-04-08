@@ -22,22 +22,10 @@ const Achievement = {
    * Returns { achievement } if newly unlocked, null if already unlocked or key not found.
    */
   async unlock(userId, achievementKey) {
-    const achievement =
-      typeof prisma.achievement.findFirst === 'function'
-        ? await prisma.achievement.findFirst({ where: { key: achievementKey } })
-        : await prisma.achievement.findUnique({ where: { key: achievementKey } });
+    const achievement = await prisma.achievement.findFirst({ where: { key: achievementKey } });
     if (!achievement) return null;
 
-    if (typeof prisma.userAchievement.createMany === 'function') {
-      const created = await prisma.userAchievement.createMany({
-        data: [{ userId: Number(userId), achievementId: achievement.id }],
-        skipDuplicates: true,
-      });
-      return created.count > 0 ? { achievement } : null;
-    }
-
-    if (typeof prisma.userAchievement.upsert === 'function') {
-      await prisma.userAchievement.upsert({
+    await prisma.userAchievement.upsert({
         where: {
           userId_achievementId: {
             userId: Number(userId),
@@ -46,12 +34,6 @@ const Achievement = {
         },
         update: {},
         create: { userId: Number(userId), achievementId: achievement.id },
-      });
-      return { achievement };
-    }
-
-    await prisma.userAchievement.create({
-      data: { userId: Number(userId), achievementId: achievement.id },
     });
     return { achievement };
   },

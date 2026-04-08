@@ -27,41 +27,6 @@ export const updateMe = async (req, res, next) => {
   try {
     customValidationResult(req).throw();
 
-    if (bio && bio.length > 500) {
-      return res
-        .status(400)
-        .json({ error: { message: "Bio must be 500 characters or fewer" } });
-    }
-
-    if (status && status.length > 200) {
-      return res
-        .status(400)
-        .json({ error: { message: "Status must be 200 characters or fewer" } });
-    }
-
-    if (username) {
-      if (username.length < 3 || username.length > 32) {
-        return res
-          .status(400)
-          .json({ error: { message: "Username must be 3-32 characters" } });
-      }
-
-      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-        return res.status(400).json({
-          error: {
-            message:
-              "Username may only contain letters, numbers, hyphens and underscores",
-          },
-        });
-      }
-    }
-
-    if (email && email.length > 254) {
-      return res
-        .status(400)
-        .json({ error: { message: "Email must be 254 characters or fewer" } });
-    }
-
     if (username) {
       const current = req.user?.username;
       if (username !== current) {
