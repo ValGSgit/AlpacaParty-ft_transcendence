@@ -1,7 +1,6 @@
 import bcrypt from "bcrypt";
-import { loadVaultSecrets } from "../src/config/vault.js";
 
-// Assigned after Vault secrets are loaded so DATABASE_URL is built with real credentials.
+// Secrets are injected via env-cmd from /run/secrets/.env (written by fetchSecrets.js at entrypoint time).
 let prisma;
 
 const cfg = {
