@@ -56,12 +56,12 @@ export function shapeUserForClient(u) {
 const User = {
   async create({ username, email, passwordHash }) {
     if (process.env.NODE_ENV === 'test') {
-      return prisma.user.create({
+      return await prisma.user.create({
         data: { username, email, passwordHash },
       });
     }
 
-    return prisma.user.create({
+    return await prisma.user.create({
       data: {
         username,
         email,

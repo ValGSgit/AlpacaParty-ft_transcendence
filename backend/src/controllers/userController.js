@@ -117,10 +117,9 @@ export const getUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ error: { message: "User not found" } });
     }
-    const isPublic = user.userSettings?.isPublic ?? true;
-    const isPublicLegacy = user.isPublic ?? isPublic;
+    const isPublic = user.userSettings?.isPublic;
     const reqIsAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
-    if (!isPublicLegacy && user.id !== req.user?.id && !reqIsAdmin) {
+    if (!isPublic && user.id !== req.user?.id && !reqIsAdmin) {
       const areFriends = await Friend.areFriends(req.user?.id, user.id);
       if (!areFriends) {
         return res
@@ -139,7 +138,7 @@ export const getUser = async (req, res, next) => {
  */
 export const listUsers = async (req, res, next) => {
   try {
-    const pageSize = Number(req.query.pageSize) || Number(req.query.limit) || 20;
+    const pageSize = Number(req.query.pageSize) || Number(req.query.limit);
     const page = Number(req.query.page) || 1;
     const limit = Math.min(pageSize, 100);
     const offset = Number(req.query.offset) || Math.max((page - 1) * limit, 0);
