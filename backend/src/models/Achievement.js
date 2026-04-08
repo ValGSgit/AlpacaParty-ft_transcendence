@@ -22,7 +22,7 @@ const Achievement = {
    * Returns { achievement } if newly unlocked, null if already unlocked or key not found.
    */
   async unlock(userId, achievementKey) {
-    const achievement = await prisma.achievement.findFirst({ where: { key: achievementKey } });
+    const achievement = await prisma.achievement.findUnique({ where: { key: achievementKey } });
     if (!achievement) return null;
 
     await prisma.userAchievement.upsert({

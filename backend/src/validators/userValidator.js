@@ -18,15 +18,17 @@ export const userNameChain = (chain) =>
     .trim()
     .notEmpty()
     .withMessage("Name is required")
-    .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage("Name may only contain letters, numbers, and underscores")
+    .matches(/^[a-zA-Z0-9_-]+$/)
+    .withMessage("Username may only contain letters, numbers, hyphens and underscores")
     .isLength({ min: 3, max: 32 })
-    .withMessage("Name must be between 3 and 32 characters")
+    .withMessage("Username must be 3-32 characters")
     .escape();
 
 export const userEmailChain = (chain) =>
   chain
     .trim()
+    .isLength({ max: 254 })
+    .withMessage("Email must be 254 characters or fewer")
     .isEmail()
     .withMessage("Please provide a valid email")
     .normalizeEmail();
@@ -35,16 +37,16 @@ export const userBioChain = (chain) =>
   chain
     .optional()
     .trim()
-    .isLength({ max: 255 })
-    .withMessage("Bio must be under 255 characters")
+    .isLength({ max: 500 })
+    .withMessage("Bio must be 500 characters or fewer")
     .escape();
 
 export const userStatusChain = (chain) =>
   chain
     .optional()
     .trim()
-    .isLength({ max: 255 })
-    .withMessage("Status must be under 255 characters")
+    .isLength({ max: 200 })
+    .withMessage("Status must be 200 characters or fewer")
     .escape();
 
 export const userAvatarChain = (chain) =>

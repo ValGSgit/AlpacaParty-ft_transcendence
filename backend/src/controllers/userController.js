@@ -25,7 +25,10 @@ export const updateMe = async (req, res, next) => {
   const { username, email, bio, status, avatar, is_public } = req.body;
 
   try {
-    customValidationResult(req).throw();
+    const errors = customValidationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: { message: errors.array()[0] } });
+    }
 
     if (username) {
       const current = req.user?.username;

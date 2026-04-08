@@ -80,6 +80,15 @@ const {
   exportMyData, requestDeletion, listDataRequests, deleteMe,
 } = await import('../../../src/controllers/userController.js');
 
+const { userUpdateValidation } = await import('../../../src/validators/userValidator.js');
+
+/** Run the updateMe express-validator chain against a req, populating its error bag. */
+async function runUpdateValidation(req) {
+  for (const chain of userUpdateValidation()) {
+    await chain.run(req);
+  }
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function createReqRes(overrides = {}) {
   const req = {
@@ -120,6 +129,7 @@ describe('getMe', () => {
 describe('updateMe', () => {
   test('should reject bio longer than 500 characters', async () => {
     const { req, res, next } = createReqRes({ body: { bio: 'a'.repeat(501) } });
+    await runUpdateValidation(req);
     await updateMe(req, res, next);
 
     expect(res._status).toBe(400);
@@ -128,6 +138,7 @@ describe('updateMe', () => {
 
   test('should reject status longer than 200 characters', async () => {
     const { req, res, next } = createReqRes({ body: { status: 'a'.repeat(201) } });
+    await runUpdateValidation(req);
     await updateMe(req, res, next);
 
     expect(res._status).toBe(400);
@@ -136,6 +147,7 @@ describe('updateMe', () => {
 
   test('should reject username shorter than 3 characters', async () => {
     const { req, res, next } = createReqRes({ body: { username: 'ab' } });
+    await runUpdateValidation(req);
     await updateMe(req, res, next);
 
     expect(res._status).toBe(400);
@@ -144,6 +156,7 @@ describe('updateMe', () => {
 
   test('should reject username longer than 32 characters', async () => {
     const { req, res, next } = createReqRes({ body: { username: 'a'.repeat(33) } });
+    await runUpdateValidation(req);
     await updateMe(req, res, next);
 
     expect(res._status).toBe(400);
@@ -152,6 +165,7 @@ describe('updateMe', () => {
 
   test('should reject username with invalid characters', async () => {
     const { req, res, next } = createReqRes({ body: { username: 'bad user!' } });
+    await runUpdateValidation(req);
     await updateMe(req, res, next);
 
     expect(res._status).toBe(400);
@@ -192,6 +206,7 @@ describe('updateMe', () => {
 
   test('should reject email longer than 254 characters', async () => {
     const { req, res, next } = createReqRes({ body: { email: 'a'.repeat(250) + '@b.com' } });
+    await runUpdateValidation(req);
     await updateMe(req, res, next);
 
     expect(res._status).toBe(400);
