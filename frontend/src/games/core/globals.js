@@ -5,7 +5,7 @@ export const gScene = shallowRef(null)
 export const gPlayer = shallowRef(null)
 export const gUser = ref(null)
 
-export const gMultiplayer = ref({
+export const gMinigame = ref({
   isActive: false,
   mode: 0,
   players: [],

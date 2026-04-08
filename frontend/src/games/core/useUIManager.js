@@ -1,6 +1,6 @@
 import { useEditMode } from "../components/editMode";
+import { changeGame } from '../mini_games/init.js';
 import { gEngine, gUI, gUser } from "./globals";
-import { changeGame } from '../mini_games/init.js'
 
 export function useUIManager() {
 

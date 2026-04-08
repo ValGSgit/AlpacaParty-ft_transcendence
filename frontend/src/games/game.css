@@ -605,3 +605,43 @@ input:checked+.slider:before {
 .edit-mode .close-btn:hover {
   transform: translateX(-50%) scale(1.05);
 }
+
+
+/* ========================================= */
+/* Multiplayer                               */
+/* ========================================= */
+
+
+.multiplayer-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px;
+  justify-content: flex-start;
+  min-width: 300px;
+}
+
+.p-name {
+  width: 100px;
+  flex-shrink: 0;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  gap: 20px;
+}
+
+.p-hp {
+  width: 75px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: center;
+  gap: 20px;
+}
+
+.p-point {
+  width: 60px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: right;
+}

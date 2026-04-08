@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CONST } from '../config/constants.js';
-import { gEngine, gUI } from './globals.js';
+import { gEditState, gEngine, gUI } from './globals.js';
 
 const offset = new THREE.Vector3();
 const lookAt = new THREE.Vector3();
@@ -13,15 +13,29 @@ export function useCamera(camera, controls) {
   const updateCamera = (player) => {
     if (!controls || !player) return
     const playerMesh = player.model ? player.model : player
-    const mode = gUI.cameraMode
+    const mode = gUI.cameraMode;
 
     switch (mode) {
       case 0:
         handleOrbit(playerMesh)
-        break
+        break;
       case 1:
         handleThirdPerson(playerMesh)
-        break
+        break;
+      case 2:
+        handleAlpacaRoad()
+        break;
+    }
+  }
+
+  const handleAlpacaRoad = () => {
+    const camera = gEngine.value.camera;
+    camera.position.set(0, 15, -30);
+    //camera.lookAt(0, 0, 20);
+
+    if (gEngine.value.controls) {
+      gEngine.value.controls.target.set(0, 0, 20);
+      gEngine.value.controls.update();
     }
   }
 
@@ -86,4 +100,8 @@ export function changeCamera() {
     gUI.cameraMode = 0;
     isTransitioningToOrbit = true;
   }
+}
+
+export function checkControlsEnabled() {
+  return !gUI.lockCamera && !gEditState.selected;
 }

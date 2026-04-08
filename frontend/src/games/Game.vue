@@ -13,45 +13,46 @@
 
     <div v-if="gUser.gameMode === 1 && gUser.hp" class="title">Spit Royale</div>
     <div v-if="gUser.gameMode === 2 && gUser.hp" class="title">Spit Royale</div>
-    <div v-if="gUser.gameMode && !gUser.isPlaying" class="modal-overlay">
-      <div class="shop-title">
-      <div v-if="!gUser.hp">Game Over!</div>
-      <div v-if="gUser.hp">Congratulation! You Win!</div>
-        <button v-if="gUser.gameMode === 1" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
-        <button v-if="gUser.gameMode === 2" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
-        <button v-if="gUser.gameMode === 3" class="shop-btn">{{ gUser.name }} Score: {{ gUser.point }} 🪵</button>
-        <button v-if="gUser.gameMode === 3 && gUser.point2p >= 0" class="shop-btn">{{ gUser.name2p }} Score: {{ gUser.point2p }} 🪵</button>
-        <button v-if="gUser.gameMode === 3 && gUser.point3p >= 0" class="shop-btn">{{ gUser.name3p }} Score: {{ gUser.point3p }} 🪵</button>
-        <button v-if="gUser.gameMode === 3 && gUser.point4p >= 0" class="shop-btn">{{ gUser.name4p }} Score: {{ gUser.point4p }} 🪵</button>
-        <button class="shop-btn" @click="changeGame()" title="Return to Farm">Return to Farm</button>
-      </div>
-    </div>
-    <div class="hud-container hud-left">
-      <div v-if="gUser.gameMode === 0" class="stat"><span>💰 {{ gUser.coins }}</span></div>
-      <div v-if="gUser.gameMode === 1" class="stat"><span>🦙 {{ gUser.point }} </span></div>
-      <div v-if="gUser.gameMode === 2" class="stat"><span>🦙 {{ gUser.point }} </span></div>
-      <div v-if="gUser.gameMode === 3" class="stat"><span>🪵 {{ gUser.point }} </span></div>
-      <div v-if="gUser.gameMode === 3 && gUser.point2p >= 0" class="stat"><span>🪵 {{ gUser.point2p }} </span></div>
-      <div v-if="gUser.gameMode === 3 && gUser.point3p >= 0" class="stat"><span>🪵 {{ gUser.point3p }} </span></div>
-      <div v-if="gUser.gameMode === 3 && gUser.point4p >= 0" class="stat"><span>🪵 {{ gUser.point4p }} </span></div>
-    </div>
+<div v-if="gUser.gameMode && !gUser.isPlaying" class="modal-overlay">
+  <div class="shop-title">
+    <div v-if="!gUser.hp">Game Over!</div>
+    <div v-if="gUser.hp">Congratulation! You Win!</div>
+    
+    <button v-if="gUser.gameMode === 1" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
+    <button v-if="gUser.gameMode === 2" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
+    
+    <template v-if="gUser.gameMode === 3">
+      <button v-for="player in gMinigame.players" :key="'end-' + player.id" class="shop-btn">
+        {{ player.name || `P${player.id}` }} Score: {{ player.point }} 🪵
+      </button>
+    </template>
 
-<div v-if="gUser.gameMode" class="stat">
-  <div v-if="gUser.hp >= 0" class="stat">
-    <span>{{ getHearts(gUser.hp) }}</span>
-  </div>
-  <div v-if="gUser.gameMode === 3">
-    <div v-if="gUser.hp2p >= 0" class="stat">
-      <span>{{ getHearts(gUser.hp2p) }}</span>
-    </div>
-    <div v-if="gUser.hp3p >= 0" class="stat">
-      <span>{{ getHearts(gUser.hp3p) }}</span>
-    </div>
-    <div v-if="gUser.hp4p >= 0" class="stat">
-      <span>{{ getHearts(gUser.hp4p) }}</span>
+    <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
+      <button class="shop-btn"@click="changeGame(gUser.gameMode, playerCount)">Play Again 🔄</button>
+      <button class="shop-btn" @click="changeGame()" title="Return to Farm">Return to Farm 🚜</button>
     </div>
   </div>
 </div>
+
+  <div class="hud-container hud-left">
+      <div v-if="gUser.gameMode === 0" class="stat"><span>💰 {{ gUser.coins }}</span></div>
+      <div v-if="gUser.gameMode === 1 || gUser.gameMode === 2" class="stat">
+        <span>🦙 {{ gUser.point }} </span>
+      </div>
+      <template v-if="gUser.gameMode === 3">
+        <div v-for="player in gMinigame.players" :key="'ui-' + player.id" class="stat multiplayer-row">
+          <span class="p-name">{{ player.name || `P${player.id}`}}:</span>
+          <span class="p-hp">{{ getHearts(player.hp) }}</span>
+          <span class="p-point">🪵 {{ player.point }}</span>
+        </div>
+      </template>
+    </div>
+
+    <div v-if="gUser.gameMode === 1 || gUser.gameMode === 2" class="hud-hp">
+      <div class="stat">
+        <span>{{ getHearts(gUser.hp) }}</span>
+      </div>
+    </div>
 
     <div class="floating-text-container">
       <div 
@@ -269,15 +270,15 @@ import { updateAlpacas } from './core/entities/Alpaca.js'
 import { updateCollectables } from './core/entities/Collectable.js'
 import { shopItems } from './core/entities/Item.js'
 import { cleanupFPSstats } from './core/FPSstats.js'
-import { gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './core/globals.js'
+import { gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
-import { changeCamera, useCamera } from './core/useCamera.js'
+import { changeCamera, checkControlsEnabled, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
 import { useInput } from './core/useInput.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
-import { spawnObstacles, updateObstacles } from './mini_games/alpacaRoad.js'
+import { updateAlpacaRoad } from './mini_games/alpacaRoad.js'
 import { changeGame } from './mini_games/init.js'
 import { initUser } from './user/initUser.js'
 import { getHearts } from './utils/uiHelpers.js'
@@ -344,8 +345,9 @@ const gameLoop = () => {
   const delta = clock.getDelta()
   const player = gPlayer.value
 
+
   if (player) {
-    if (cameraUpdate && !gUI.editMode && !gUI.lockCamera) {
+    if (cameraUpdate) {
       cameraUpdate(player)
     }
   }
@@ -356,14 +358,16 @@ const gameLoop = () => {
   updateSpits()
   updateLighting(delta);
 
-  if (gUser.value.gameMode === 3)
+  if (gMinigame.value.isActive && gUser.value.gameMode === 3)
   {
-    spawnObstacles(delta);
-    updateObstacles(delta)
+    updateAlpacaRoad(delta)
   }
 
   if (gEngine.value?.controls) {
-    gEngine.value.controls.update()
+    gEngine.value.controls.enabled = checkControlsEnabled();
+    if (gEngine.value.controls.enabled) {
+      gEngine.value.controls.update()
+    }
   }
 
   gEngine.value.renderer.render(

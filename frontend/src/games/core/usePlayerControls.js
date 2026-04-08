@@ -42,7 +42,6 @@ export function usePlayerControls() {
     if (model.position.y >= CONST.JUMPING_MAX_HEIGHT) {
       player.isFalling = true;
     }
-
     return isVerticalMoving;
   }
 

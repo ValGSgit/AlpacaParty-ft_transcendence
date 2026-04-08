@@ -45,3 +45,7 @@ export function getRandomSpeed() {
     return 0.8 // middle
   return 0.6 //slow
 }
+
+export function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}

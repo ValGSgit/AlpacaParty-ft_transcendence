@@ -2,38 +2,57 @@ import * as THREE from 'three';
 import * as PRIMITIVES from '../assets/primitives.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca } from '../core/createObjects.js';
-import { gAlpacas, gItems, gMultiplayer, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
+import { gItems, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
 import { removeObject } from '../core/removeObjects.js';
 import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
-import { getRandomSpeed, getRandomTimer } from '../utils/randomValues.js';
+import { getRandomTimer } from '../utils/randomValues.js';
 import { setupLighting } from '../world/sceneBuilder.js';
 
-let timer = 2;
-let levelUpFactor;
-let alivePlayers;
 const roadLength = 150;
 const roadOffset = 25;
+const roadSpeed = 15;
 
-const roadSpeed = 0.75;
+let obstacleTimer = 2;
 const poleMat = new THREE.MeshStandardMaterial({ color: '#990000' });
-const pole = PRIMITIVES.Cylinder(0.5, 20, 64, [poleMat]);
+const pole = PRIMITIVES.Cylinder(0.5, 20, 64, poleMat);
+const singlePole = PRIMITIVES.Cylinder(0.5, 5, 64, poleMat);
+
 const roadStripes = [];
 const stripeLength = 10;
+
+let level = 0;
+let alivePlayers;
+let activePlayers = [];
 const playerPositions = [-2.5, 2.5, -7.5, 7.5];
 
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
-  gUser.value.gameMode = 3;
-  levelUpFactor = 10;
+  gUser.value.gameMode = 3; // TODO: remove this
+  gMinigame.value.isActive = true;
+  gMinigame.value.mode = 3;
+  gUI.cameraMode = 2;
+  gUI.lockCamera = true;
 
+  level = 0;
   setupRoadScene(gScene.value);
+  //setupCamera()
   initRoadStripes();
   await initPlayers(playerCount, tempAlpacas);
   alivePlayers = playerCount;
-
-  gUI.cameraMode = 1;
 }
+
+// function setupCamera() {
+//   gUI.lockCamera = true;
+//   const camera = gEngine.value.camera;
+//   camera.position.set(0, 15, -30);
+//   //camera.lookAt(0, 0, 20);
+
+//   if (gEngine.value.controls) {
+//     gEngine.value.controls.target.set(0, 0, 20);
+//     gEngine.value.controls.update();
+//   }
+// }
 
 function setupRoadScene(scene) {
   setupLighting(scene);
@@ -45,7 +64,9 @@ function setupRoadScene(scene) {
 }
 
 async function initPlayers(playerCount, tempAlpacas) {
-  const activePlayers = [gPlayer.value];
+  activePlayers.length = 0;
+  activePlayers.push(gPlayer.value);
+  gMinigame.value.players = [];
   for (let i = 0; i < playerCount - 1; i++) {
     if (tempAlpacas[i]) {
       activePlayers.push(tempAlpacas[i]);
@@ -60,7 +81,7 @@ async function initPlayers(playerCount, tempAlpacas) {
     gScene.value.add(alpaca.model);
     alpaca.model.position.x += playerPositions[i];
 
-    gMultiplayer.value.players.push({
+    gMinigame.value.players.push({
       id: i + 1,
       name: alpaca.name,
       hp: CONST.HP,
@@ -69,10 +90,8 @@ async function initPlayers(playerCount, tempAlpacas) {
   }
 }
 
-export function initRoadStripes() {
-  gUI.lockCamera = true;
-  const numRows = 1;
-
+function initRoadStripes() {
+  const numRows = 4;
   const spacingZ = roadLength / numRows;
   const startZ = (roadLength / 2 + roadOffset) - stripeLength / 2;
 
@@ -92,85 +111,123 @@ export function initRoadStripes() {
   }
 }
 
-export function spawnObstacles(delta) {
-  updateRoadTreadmill(delta);
-  timer -= delta;
-  return;
+//---------------------------- LOOP ----------------------------------
 
-  if (timer <= 0) {
-    gUI.lockCamera = true;
-    timer = (getRandomTimer() * levelUpFactor) / 10;
+export function updateAlpacaRoad(delta) {
+  spawnObstacles(delta)
+  updateObstacles(delta)
+  updatePlayers(delta)
+  updateRoad(delta)
+  //updateDifficulty()
+}
 
-    const obstacle = pole.clone();
-    obstacle.position.z = CONST.BASE_RADIUS * 2;
+function spawnObstacles(delta) {
+  if (!gUser.value.isPlaying) return; // Don't spawn if the game is over
+
+  obstacleTimer -= delta;
+  let obstacle;
+
+  if (obstacleTimer <= 0) {
+    obstacleTimer = getRandomTimer() / 2; // 1 - 4 sec
+    const validLanes = getValidLanes();
+    const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
+
+    if (pos < 4) {
+      obstacle = singlePole.clone();
+      obstacle.position.x = playerPositions[pos];
+      obstacle.userData.isFullWidth = false;
+    } else {
+      obstacle = pole.clone();
+      obstacle.userData.isFullWidth = true;
+    }
+
+    obstacle.position.z = roadLength / 2 + roadOffset;
     attachCollider(obstacle);
     obstacle.rotation.z = Math.PI / 2;
-    obstacle.position.x = -2.5;
     obstacle.position.y = 0.5;
     obstacle.pointGiven = false;
-    obstacle.speed = getRandomSpeed();
-
-    gScene.value.add(obstacle);
     registerEntity(obstacle, 'item');
+    gScene.value.add(obstacle);
   }
 }
 
-export function updateRoadTreadmill(delta) {
+function getValidLanes() {
+  const validLanes = [4];
+  for (let i = 0; i < activePlayers.length; i++) {
+    if (!activePlayers[i].isDead) {
+      validLanes.push(i);
+    }
+  }
+  return validLanes;
+}
+
+function updatePlayers(delta) {
+  for (let i = 0; i < activePlayers.length; i++) {
+    const alpaca = activePlayers[i];
+    if (gMinigame.value.players[i]) {
+      gMinigame.value.players[i].hp = alpaca.hp;
+      gMinigame.value.players[i].point = alpaca.point;
+    }
+    checkAlpaca(alpaca);
+    if (alpaca.isBeingHit) {
+      spinAlpacaUp(alpaca, delta);
+    }
+    if (alpaca.isDead && !alpaca.isBeingHit && gUser.value.isPlaying) {
+      if (alpaca.model.position.z > -roadLength / 2 + roadOffset) {
+        alpaca.model.position.z -= (roadSpeed * delta);
+      }
+    }
+  }
+}
+
+function updateObstacles(delta) {
+  if (!gUser.value.isPlaying) return;
+
+  for (let j = gItems.length - 1; j >= 0; j--) {
+    let item = gItems[j];
+
+    // Beautiful use of Units Per Second here!
+    item.position.z -= roadSpeed * delta;
+
+    if (item.position.z < 0) {
+      if (item.userData.isCollider === true && !item.pointGiven) {
+
+        // Check who gets a point!
+        for (let i = 0; i < activePlayers.length; i++) {
+          if (!activePlayers[i].isDead && !activePlayers[i].isBeingHit) {
+
+            // If it's a massive pole, everyone alive gets a point
+            if (item.userData.isFullWidth) {
+              activePlayers[i].point++;
+            }
+            // If it's a small pole, only the player in that lane gets a point
+            else {
+              const distance = Math.abs(activePlayers[i].model.position.x - item.position.x);
+              if (distance < 0.1) {
+                activePlayers[i].point++;
+              }
+            }
+
+          }
+        }
+        item.pointGiven = true;
+      }
+
+      if (item.position.z < -roadLength / 2 + roadOffset) {
+        removeObject(item);
+      }
+    }
+  }
+}
+
+function updateRoad(delta) {
   const endZ = (-roadLength / 2 + roadOffset) + stripeLength / 2;
 
   for (let i = 0; i < roadStripes.length; i++) {
     const stripe = roadStripes[i];
-    stripe.position.z -= (roadSpeed * delta * 60);
+    stripe.position.z -= (roadSpeed * delta);
     if (stripe.position.z < endZ) {
       stripe.position.z += roadLength - stripeLength;
-    }
-  }
-}
-
-export function updateObstacles(delta) {
-  for (let i = 0; i < gAlpacas.length; ++i) {
-    // Sync UI hp and points
-    if (i === 0) { gUser.value.hp = gAlpacas[0].hp; gUser.value.point = gAlpacas[0].point; }
-    else if (i === 1) { gUser.value.hp2p = gAlpacas[1].hp; gUser.value.point2p = gAlpacas[1].point; }
-    else if (i === 2) { gUser.value.hp3p = gAlpacas[2].hp; gUser.value.point3p = gAlpacas[2].point; }
-    else if (i === 3) { gUser.value.hp4p = gAlpacas[3].hp; gUser.value.point4p = gAlpacas[3].point; }
-
-    checkAlpaca(gAlpacas[i]);
-
-    if (gAlpacas[i].isBeingHit) {
-      spinAlpacaUp(gAlpacas[i], delta);
-    }
-
-    if (gAlpacas[i].isDead && !gAlpacas[i].isBeingHit && gUser.value.isPlaying) {
-      if (gAlpacas[i].model.position.z > -CONST.BASE_RADIUS) {
-        gAlpacas[i].model.position.z -= (roadSpeed * delta);
-      }
-    }
-  }
-
-  // Iterate backwards so removing items doesn't skip array indexes
-  for (let j = gItems.length - 1; j >= 0; j--) {
-    let item = gItems[j];
-
-    if (gUser.value.isPlaying) {
-      item.position.z -= (item.speed * delta);
-    }
-
-    if (item.position.z < 0) {
-      if (item.userData.isCollider === true && !item.pointGiven) {
-        for (let a = 0; a < gAlpacas.length; ++a) {
-          if (!gAlpacas[a].isDead && !gAlpacas[a].isBeingHit) {
-            gAlpacas[a].point++;
-          }
-        }
-        item.pointGiven = true;
-        if (levelUpFactor > 3 && gPlayer.value.point % 5 === 0) {
-          levelUpFactor -= 1;
-        }
-      }
-      if (item.position.z < -CONST.BASE_RADIUS) {
-        removeObject(item);
-      }
     }
   }
 }
@@ -204,10 +261,11 @@ function checkAlpaca(alpaca) {
     alpaca.isBeingHit = true;
     alpaca.hp--;
     if (alpaca.hp === 0) {
-      alpaca.isDead = 1;
+      alpaca.isDead = true;
       alivePlayers--;
       if (alivePlayers === 0) {
-        gUser.value.isPlaying = false;
+        gMinigame.value.isActive = false;
+        gUser.value.isPlaying = false; // TODO
       }
     }
   }

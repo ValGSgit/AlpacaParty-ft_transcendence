@@ -1,17 +1,13 @@
-import { ref } from 'vue'
-import * as GRADIENT from "../utils/createGradient.js"
-import { saveGame } from '../core/saveLoadGame.js'
-import { useGameEngine } from '../core/useGameEngine.js'
-import { gScene, gPlayer, gAlpacas, gUI, gUser, gCollidables, gItems, gEngine} from '../core/globals.js';
-import { initWorld } from '../world/initWorld.js'
-import { useAuthStore } from '../../stores/auth.js'
-import { setupEnvironment } from '../world/sceneBuilder.js'
+import { ref } from 'vue';
+import { useAuthStore } from '../../stores/auth.js';
+import { clearCoins } from '../components/coins.js';
 import { CONST } from '../config/constants.js';
-import { registerEntity } from '../core/registerEntity.js';
-import { clearCoins } from '../components/coins.js'
-import { initSpitRoyalAI, initSpitRoyalOnline, cleanupClient } from './spitRoyale.js';
+import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
+import { saveGame } from '../core/saveLoadGame.js';
+import { useGameEngine } from '../core/useGameEngine.js';
+import { initWorld } from '../world/initWorld.js';
 import { initAlpacaRoad } from './alpacaRoad.js';
-import { changeFloorColor } from './utils.js';
+import { cleanupClient, initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyale.js';
 
 const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
@@ -36,16 +32,11 @@ export async function changeGame(mode, playerCount) {
   gUser.value.name = gPlayer.value.name
   gPlayer.value.model.position.set(0, 0, 0)
   gPlayer.value.model.rotation.y = 0
-  gUser.value.point2p = -1
-  gUser.value.point3p = -1
-  gUser.value.point4p = -1
-  gUser.value.hp2p = -1
-  gUser.value.hp3p = -1
-  gUser.value.hp4p = -1
+
+  gMinigame.value.players = [];
   tempAlpacas.length = 0
   for (let i = 0; i < gAlpacas.length && i < playerCount - 1; ++i) {
-    if (gAlpacas[i] !== gPlayer.value)
-    {
+    if (gAlpacas[i] !== gPlayer.value) {
       tempAlpacas.push(gAlpacas[i])
       gAlpacas[i].model.position.set(0, 0, 0)
       gAlpacas[i].model.rotation.y = 0
@@ -60,12 +51,14 @@ export async function changeGame(mode, playerCount) {
     initSpitRoyalOnline()
   else if (mode === 3)
     await initAlpacaRoad(playerCount, tempAlpacas)
-  else 
+  else
     await returnFarm()
 }
 
-async function returnFarm(){
+async function returnFarm() {
   const { isAuthenticated } = useAuthStore()
+  gMinigame.value.isActive = false;
+  gMinigame.value.mode = 0;
   gUser.value.isPlaying = false
   gUser.value.gameMode = 0
   gPlayer.value = null
