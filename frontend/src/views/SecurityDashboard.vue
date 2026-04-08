@@ -64,26 +64,34 @@
         <div class="info-card">
           <h3>Configuration files</h3>
           <table class="file-table">
-            <tr><th>File</th><th>Purpose</th></tr>
-            <tr>
-              <td><code>nginx/Dockerfile</code></td>
-              <td>Builds nginx with OWASP CRS v4 bundled</td>
-            </tr>
-            <tr>
-              <td><code>nginx/modsecurity/modsecurity.conf</code></td>
-              <td>Rule engine mode, thresholds, false-positive exclusions</td>
-            </tr>
+            <thead>
+              <tr><th>File</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>nginx/Dockerfile</code></td>
+                <td>Builds nginx with OWASP CRS v4 bundled</td>
+              </tr>
+              <tr>
+                <td><code>nginx/modsecurity/modsecurity.conf</code></td>
+                <td>Rule engine mode, thresholds, false-positive exclusions</td>
+              </tr>
+            </tbody>
           </table>
         </div>
 
         <div class="info-card">
           <h3>Anomaly scoring (CRS default)</h3>
           <table class="file-table">
-            <tr><th>Threat level</th><th>Score added</th></tr>
-            <tr><td>Critical (SQLi, RCE)</td><td>+5</td></tr>
-            <tr><td>Error (XSS)</td><td>+4</td></tr>
-            <tr><td>Warning (protocol violation)</td><td>+3</td></tr>
-            <tr><td>Notice (unusual header)</td><td>+2</td></tr>
+            <thead>
+              <tr><th>Threat level</th><th>Score added</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Critical (SQLi, RCE)</td><td>+5</td></tr>
+              <tr><td>Error (XSS)</td><td>+4</td></tr>
+              <tr><td>Warning (protocol violation)</td><td>+3</td></tr>
+              <tr><td>Notice (unusual header)</td><td>+2</td></tr>
+            </tbody>
           </table>
           <p class="note">Inbound threshold set to <strong>10</strong>. Requests above it are blocked with HTTP 403.</p>
         </div>
@@ -131,14 +139,18 @@ docker exec alpacaparty_nginx nginx -T | grep modsecurity
         <div class="info-card">
           <h3>Secret path layout</h3>
           <table class="file-table">
-            <tr><th>Vault key</th><th>Env var</th></tr>
-            <tr><td><code>db_password</code></td><td><code>DB_PASSWORD</code></td></tr>
-            <tr><td><code>jwt_secret</code></td><td><code>JWT_SECRET</code></td></tr>
-            <tr><td><code>api_keys</code></td><td><code>API_KEYS</code></td></tr>
-            <tr><td><code>groq_api_key</code></td><td><code>GROQ_API_KEY</code></td></tr>
-            <tr><td><code>huggingface_api_key</code></td><td><code>HUGGINGFACE_API_KEY</code></td></tr>
-            <tr><td><code>google_client_id/secret</code></td><td><code>GOOGLE_CLIENT_*</code></td></tr>
-            <tr><td><code>github_client_id/secret</code></td><td><code>GITHUB_CLIENT_*</code></td></tr>
+            <thead>
+              <tr><th>Vault key</th><th>Env var</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>db_password</code></td><td><code>DB_PASSWORD</code></td></tr>
+              <tr><td><code>jwt_secret</code></td><td><code>JWT_SECRET</code></td></tr>
+              <tr><td><code>api_keys</code></td><td><code>API_KEYS</code></td></tr>
+              <tr><td><code>groq_api_key</code></td><td><code>GROQ_API_KEY</code></td></tr>
+              <tr><td><code>huggingface_api_key</code></td><td><code>HUGGINGFACE_API_KEY</code></td></tr>
+              <tr><td><code>google_client_id/secret</code></td><td><code>GOOGLE_CLIENT_*</code></td></tr>
+              <tr><td><code>github_client_id/secret</code></td><td><code>GITHUB_CLIENT_*</code></td></tr>
+            </tbody>
           </table>
           <p class="note">KV path: <code>secret/alpacaparty</code> (KV v2 engine)</p>
         </div>
@@ -146,19 +158,23 @@ docker exec alpacaparty_nginx nginx -T | grep modsecurity
         <div class="info-card">
           <h3>Code files</h3>
           <table class="file-table">
-            <tr><th>File</th><th>Purpose</th></tr>
-            <tr>
-              <td><code>backend/src/config/vault.js</code></td>
-              <td>Vault HTTP client — fetches &amp; injects into process.env</td>
-            </tr>
-            <tr>
-              <td><code>backend/src/server.js</code></td>
-              <td>Bootstrap entry point — awaits vault load before app starts</td>
-            </tr>
-            <tr>
-              <td><code>vault/init/seed.sh</code></td>
-              <td>Idempotent secret seeder (runs inside vault container)</td>
-            </tr>
+            <thead>
+              <tr><th>File</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>backend/src/config/vault.js</code></td>
+                <td>Vault HTTP client — fetches &amp; injects into process.env</td>
+              </tr>
+              <tr>
+                <td><code>backend/src/server.js</code></td>
+                <td>Bootstrap entry point — awaits vault load before app starts</td>
+              </tr>
+              <tr>
+                <td><code>vault/init/seed.sh</code></td>
+                <td>Idempotent secret seeder (runs inside vault container)</td>
+              </tr>
+            </tbody>
           </table>
         </div>
 

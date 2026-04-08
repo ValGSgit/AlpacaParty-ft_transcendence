@@ -46,6 +46,7 @@ describe('config', () => {
 
   test('should parse port as integer', () => {
     expect(typeof config.port).toBe('number');
+    expect(Number.isNaN(config.port)).toBe(false);
   });
 
   test('should have oauth configuration with google and github', () => {
@@ -77,61 +78,55 @@ describe('config', () => {
     expect(config.jwt.refreshExpiresIn.length).toBeGreaterThan(0);
   });
 
-  // ── New tests: environment-specific behavior ──────────────────────────────
+  // ── Environment flags ─────────────────────────────────────────────────────
 
   test('nodeEnv should be "test" when NODE_ENV is set to test', () => {
-    // NODE_ENV is 'test' during test runs
     expect(config.nodeEnv).toBe('test');
     expect(config.nodeEnv).not.toBe('production');
   });
 
-  test('should not throw when environment is not production (jwt secret auto-generated)', () => {
-    // In test/development, a random secret is generated if JWT_SECRET is unset
+  test('envIsProd should be false in test environment', () => {
+    expect(config.envIsProd).toBe(false);
+  });
+
+  test('envIsDev should be false in test environment', () => {
+    expect(config.envIsDev).toBe(false);
+  });
+
+  test('jwt secret should be set from environment variable', () => {
     expect(config.jwt.secret).toBeTruthy();
     expect(typeof config.jwt.secret).toBe('string');
     expect(config.jwt.secret.length).toBeGreaterThan(0);
+    expect(config.jwt.secret).toBe(process.env.JWT_SECRET);
   });
 
-  // ── New tests: default values when env vars are missing ───────────────────
+  // ── Database config ───────────────────────────────────────────────────────
 
-  test('db.host should default to localhost when DB_HOST is unset', () => {
-    // default is 'localhost'
+  test('db.host should be a string', () => {
     expect(typeof config.db.host).toBe('string');
+    expect(config.db.host.length).toBeGreaterThan(0);
   });
 
-  test('db.port should default to 5432 when DB_PORT is unset', () => {
+  test('db.port should be a number', () => {
     expect(typeof config.db.port).toBe('number');
-    // default fallback is 5432
-    if (!process.env.DB_PORT) {
-      expect(config.db.port).toBe(5432);
-    }
+    expect(config.db.port).toBe(parseInt(process.env.DB_PORT, 10));
   });
 
-  test('db.name should default to alpacaparty when DB_NAME is unset', () => {
-    if (!process.env.DB_NAME) {
-      expect(config.db.name).toBe('alpacaparty');
-    } else {
-      expect(typeof config.db.name).toBe('string');
-    }
+  test('db.name should be a string', () => {
+    expect(typeof config.db.name).toBe('string');
+    expect(config.db.name.length).toBeGreaterThan(0);
   });
 
-  test('port should default to 3000 when PORT is unset', () => {
-    if (!process.env.PORT) {
-      expect(config.port).toBe(3000);
-    } else {
-      expect(config.port).toBe(parseInt(process.env.PORT, 10));
-    }
+  test('port should match PORT env var when set', () => {
+    expect(config.port).toBe(parseInt(process.env.PORT, 10));
   });
 
-  test('cors origins should have default values when CORS_ORIGINS is unset', () => {
-    expect(config.cors.origins.length).toBeGreaterThan(0);
-    if (!process.env.CORS_ORIGINS) {
-      expect(config.cors.origins).toContain('http://localhost:5173');
-      expect(config.cors.origins).toContain('https://localhost:8443');
-    }
+  test('cors origins should reflect CORS_ORIGINS env var', () => {
+    const expected = process.env.CORS_ORIGINS.split(',');
+    expect(config.cors.origins).toEqual(expected);
   });
 
-  // ── New tests: password policy values ─────────────────────────────────────
+  // ── Password policy ───────────────────────────────────────────────────────
 
   test('password minLength should be exactly 8', () => {
     expect(config.password.minLength).toBe(8);
@@ -151,7 +146,7 @@ describe('config', () => {
     expect(keys).toContain('requireNumber');
   });
 
-  // ── New tests: OAuth config structure ─────────────────────────────────────
+  // ── OAuth config ──────────────────────────────────────────────────────────
 
   test('oauth.google should have clientId, clientSecret, callbackUrl', () => {
     expect(config.oauth.google).toHaveProperty('clientId');
@@ -183,20 +178,37 @@ describe('config', () => {
     expect(providers).toHaveLength(2);
   });
 
-  // ── New tests: additional config sections ─────────────────────────────────
+  // ── SSL / Uploads / XP ────────────────────────────────────────────────────
 
   test('should have ssl configuration', () => {
     expect(config.ssl).toBeDefined();
     expect(config.ssl.certPath).toBeDefined();
     expect(config.ssl.keyPath).toBeDefined();
+    expect(config.ssl.certPath).toBe(process.env.SSL_CERT_PATH);
+    expect(config.ssl.keyPath).toBe(process.env.SSL_KEY_PATH);
   });
 
   test('should have uploads configuration', () => {
     expect(config.uploads).toBeDefined();
     expect(config.uploads.dir).toBeDefined();
+    expect(config.uploads.dir).toBe(process.env.UPLOAD_DIR);
     expect(config.uploads.maxSizeBytes).toBeGreaterThan(0);
     expect(Array.isArray(config.uploads.allowedMimeTypes)).toBe(true);
     expect(config.uploads.allowedMimeTypes.length).toBeGreaterThan(0);
+  });
+
+  test('should have imageMimeTypes as a subset of allowedMimeTypes', () => {
+    expect(Array.isArray(config.uploads.imageMimeTypes)).toBe(true);
+    expect(config.uploads.imageMimeTypes.length).toBeGreaterThan(0);
+    for (const mime of config.uploads.imageMimeTypes) {
+      expect(config.uploads.allowedMimeTypes).toContain(mime);
+    }
+  });
+
+  test('imageMimeTypes should only contain image/* types', () => {
+    for (const mime of config.uploads.imageMimeTypes) {
+      expect(mime.startsWith('image/')).toBe(true);
+    }
   });
 
   test('should have xp/gamification configuration', () => {
@@ -206,8 +218,17 @@ describe('config', () => {
     expect(config.xp.levelThreshold).toBe(100);
   });
 
+  // ── JWT expiry relationship ───────────────────────────────────────────────
+
   test('jwt expiresIn and refreshExpiresIn should be different', () => {
-    // Access tokens are shorter lived than refresh tokens
     expect(config.jwt.expiresIn).not.toBe(config.jwt.refreshExpiresIn);
+  });
+
+  test('jwt expiresIn should be set to 1h from test env', () => {
+    expect(config.jwt.expiresIn).toBe('1h');
+  });
+
+  test('jwt refreshExpiresIn should be set to 7d from test env', () => {
+    expect(config.jwt.refreshExpiresIn).toBe('7d');
   });
 });

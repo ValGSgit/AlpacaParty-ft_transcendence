@@ -7,6 +7,7 @@
   "imports": {
     "#config/*.js": "./src/config/*.js",
     "#controllers/*.js": "./src/controllers/*.js",
+    "#lib/prisma.js": "./src/config/prisma.js",
     "#lib/*.js": "./src/lib/*.js",
     "#middleware/*.js": "./src/middleware/*.js",
     "#routes/*.js": "./src/routes/*.js",
@@ -21,6 +22,7 @@
     "seed": "npx prisma db seed",
     "seed:exampleData": "node prisma/seedExampleData.js",
     "seed:exampleData:reset": "SEED_RESET=true node prisma/seedExampleData.js --reset",
+    "seed:live": "node prisma/seedExampleData.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
   },
@@ -51,8 +53,8 @@
     "socket.io": "^4.8.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "zod": "^3.23.8",
-    "prisma": "^7.4.2"
+    "prisma": "^7.4.2",
+    "env-cmd": "^10.1.0"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",

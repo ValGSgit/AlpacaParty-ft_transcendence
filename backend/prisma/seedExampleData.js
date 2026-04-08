@@ -1,18 +1,17 @@
 import bcrypt from "bcrypt";
-import { loadVaultSecrets } from "../src/config/vault.js";
 
-// Assigned after Vault secrets are loaded so DATABASE_URL is built with real credentials.
+// Secrets are injected via env-cmd from /run/secrets/.env (written by fetchSecrets.js at entrypoint time).
 let prisma;
 
 const cfg = {
-  users: Number(process.env.SEED_USERS || 240),
+  users: Number(process.env.SEED_USERS || 2400),
   posts: Number(process.env.SEED_POSTS || 1400),
   dmMessages: Number(process.env.SEED_DM_MESSAGES || 6000),
   rooms: Number(process.env.SEED_ROOMS || 40),
   roomMessages: Number(process.env.SEED_ROOM_MESSAGES || 7000),
-  organizations: Number(process.env.SEED_ORGS || 18),
-  notifications: Number(process.env.SEED_NOTIFICATIONS || 2500),
-  avgFriends: Number(process.env.SEED_AVG_FRIENDS || 16),
+  organizations: Number(process.env.SEED_ORGS || 30),
+  notifications: Number(process.env.SEED_NOTIFICATIONS || 250),
+  avgFriends: Number(process.env.SEED_AVG_FRIENDS || 27),
 };
 
 const seedPassword = process.env.SEED_PASSWORD || "LiveSeed123!";
@@ -47,29 +46,49 @@ function makeContent(prefix) {
 }
 
 async function hardReset() {
-  await prisma.$transaction([
-    prisma.chatRoomMessage.deleteMany(),
-    prisma.chatRoomMember.deleteMany(),
-    prisma.chatRoom.deleteMany(),
-    prisma.message.deleteMany(),
-    prisma.notification.deleteMany(),
-    prisma.postLike.deleteMany(),
-    prisma.post.deleteMany(),
-    prisma.organizationMember.deleteMany(),
-    prisma.organization.deleteMany(),
-    prisma.friend.deleteMany(),
-    prisma.friendRequest.deleteMany(),
-    prisma.blockedUser.deleteMany(),
-    prisma.game.deleteMany(),
-    prisma.gameStat.deleteMany(),
-    prisma.userAchievement.deleteMany(),
-    prisma.userDailyChallenge.deleteMany(),
-    prisma.alpacaFarm.deleteMany(),
-    prisma.file.deleteMany(),
-    prisma.passwordResetToken.deleteMany(),
-    prisma.dataRequest.deleteMany(),
-    prisma.user.deleteMany({ where: { isAdmin: false } }),
-  ]);
+  const resetSteps = [
+    ["chatRoomMessage", () => prisma.chatRoomMessage.deleteMany({})],
+    ["chatRoomMember", () => prisma.chatRoomMember.deleteMany({})],
+    ["chatRoom", () => prisma.chatRoom.deleteMany({})],
+    ["message", () => prisma.message.deleteMany({})],
+    ["notification", () => prisma.notification.deleteMany({})],
+    ["postLike", () => prisma.postLike.deleteMany({})],
+    ["post", () => prisma.post.deleteMany({})],
+    ["organizationMember", () => prisma.organizationMember.deleteMany({})],
+    ["organization", () => prisma.organization.deleteMany({})],
+    ["friend", () => prisma.friend.deleteMany({})],
+    ["friendRequest", () => prisma.friendRequest.deleteMany({})],
+    ["blockedUser", () => prisma.blockedUser.deleteMany({})],
+    ["game", () => prisma.game.deleteMany({})],
+    ["gameStat", () => prisma.gameStat.deleteMany({})],
+    ["userAchievement", () => prisma.userAchievement.deleteMany({})],
+    ["userDailyChallenge", () => prisma.userDailyChallenge.deleteMany({})],
+    ["alpacaFarm", () => prisma.alpacaFarm.deleteMany({})],
+    ["file", () => prisma.file.deleteMany({})],
+    ["passwordResetToken", () => prisma.passwordResetToken.deleteMany({})],
+    ["dataRequest", () => prisma.dataRequest.deleteMany({})],
+    [
+      "user",
+      () =>
+        prisma.user.deleteMany({
+          where: {
+            OR: [
+              { userSettings: { is: null } },
+              { userSettings: { is: { isAdmin: false } } },
+            ],
+          },
+        }),
+    ],
+  ];
+
+  for (const [name, op] of resetSteps) {
+    try {
+      await op();
+    } catch (error) {
+      console.error(`[seed-live] hardReset failed on ${name}`);
+      throw error;
+    }
+  }
 }
 
 async function seedUsers(passwordHash) {
@@ -127,28 +146,36 @@ async function seedUsers(passwordHash) {
   });
 
   const allUsers = [...fixedUsers, ...dynamicUsers];
-  const sanitizedUsers = allUsers.map(
-    ({ passwordHash, level, xp, isPublic, ...sanUsers }) => sanUsers,
-  );
-  await prisma.user.createMany({ data: sanitizedUsers, skipDuplicates: true });
+  const users = [];
+  for (const entry of allUsers) {
+    const { passwordHash, level, xp, isPublic, ...userData } = entry;
 
-  const users = await prisma.user.findMany({
-    where: { email: { endsWith: "@alpacaparty.test" } },
-    select: { id: true, username: true },
-    orderBy: { id: "asc" },
-  });
+    const user = await prisma.user.upsert({
+      where: { email: userData.email },
+      update: userData,
+      create: userData,
+      select: { id: true, username: true },
+    });
+    users.push(user);
 
-  await prisma.userSettings.createMany({
-    data: [
-      ...users.map((u) => ({
-        userId: u.id,
-      })),
-      ...users.map((u) => ({
-        userId: u.id,
-      })),
-    ],
-    skipDuplicates: true,
-  });
+    await prisma.userAuth.upsert({
+      where: { userId: user.id },
+      update: { passwordHash },
+      create: { userId: user.id, passwordHash },
+    });
+
+    await prisma.userStats.upsert({
+      where: { userId: user.id },
+      update: { level, xp },
+      create: { userId: user.id, level, xp },
+    });
+
+    await prisma.userSettings.upsert({
+      where: { userId: user.id },
+      update: { isPublic },
+      create: { userId: user.id, isPublic },
+    });
+  }
 
   const admins = await prisma.user.findMany({
     where: { email: "live_admin@alpacaparty.test" },
@@ -497,7 +524,6 @@ async function seedAchievements(userIds) {
 }
 
 async function main() {
-  await loadVaultSecrets();
   ({ default: prisma } = await import("#lib/prisma.js"));
 
   console.log("[seed-live] Starting...");

@@ -1,25 +1,91 @@
 import fs from "fs";
+import https from "node:https";
+import { URL } from "node:url";
+
+// Vault key → environment variable name.
+// Must stay in sync with vault/init/seed.sh and config/index.js.
+const KEY_MAP = {
+  db_password: "DB_PASSWORD",
+  db_user: "DB_USER",
+  db_name: "DB_NAME",
+  jwt_secret: "JWT_SECRET",
+  api_keys: "API_KEYS",
+  groq_api_key: "GROQ_API_KEY",
+  huggingface_api_key: "HUGGINGFACE_API_KEY",
+  google_client_id: "GOOGLE_CLIENT_ID",
+  google_client_secret: "GOOGLE_CLIENT_SECRET",
+  github_client_id: "GITHUB_CLIENT_ID",
+  github_client_secret: "GITHUB_CLIENT_SECRET",
+  mod_users: "MOD_USERS",
+};
+
+/**
+ * Performs a GET request to the Vault HTTPS endpoint using a custom CA cert
+ * instead of disabling TLS verification globally.
+ *
+ * NODE_EXTRA_CA_CERTS is set in compose.prod.yaml but may not be resolved by
+ * Node's TLS layer before this short-lived helper process starts (timing
+ * issue with some Alpine Node builds). Using https.request with an explicit
+ * `ca` option is reliable regardless of env-var timing.
+ */
+function vaultGet(url, token, caPath) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const options = {
+      hostname: parsed.hostname,
+      port: parseInt(parsed.port, 10) || 443,
+      path: parsed.pathname + parsed.search,
+      method: "GET",
+      headers: { "X-Vault-Token": token },
+    };
+
+    if (caPath && fs.existsSync(caPath)) {
+      options.ca = fs.readFileSync(caPath);
+    }
+
+    const req = https.request(options, (res) => {
+      let body = "";
+      res.on("data", (chunk) => { body += chunk; });
+      res.on("end", () => {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error(`Vault responded with ${res.statusCode}`));
+          return;
+        }
+        try {
+          resolve(JSON.parse(body));
+        } catch (e) {
+          reject(new Error(`Failed to parse Vault response: ${e.message}`));
+        }
+      });
+    });
+
+    req.on("error", reject);
+    req.end();
+  });
+}
 
 async function getSecrets() {
   const { VAULT_ADDR, VAULT_TOKEN } = process.env;
   const targetFile = "/run/secrets/.env";
+  const caPath = process.env.NODE_EXTRA_CA_CERTS || "/app/ssl/cert.pem";
 
   try {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; //! only here because of a self signed https cert
     const VAULT_PATH = "secret/data/alpacaparty";
-    const res = await fetch(`${VAULT_ADDR}/v1/${VAULT_PATH}`, {
-      headers: { "X-Vault-Token": VAULT_TOKEN },
-    });
 
-    if (!res.ok) throw new Error(`Vault responded with ${res.status}`);
+    const json = await vaultGet(`${VAULT_ADDR}/v1/${VAULT_PATH}`, VAULT_TOKEN, caPath);
+    const rawSecrets = json.data.data || json.data;
 
-    const json = await res.json();
-    const secrets = json.data.data || json.data;
+    // Map Vault keys to their canonical uppercase env var names.
+    const mapped = {};
+    for (const [vaultKey, value] of Object.entries(rawSecrets)) {
+      const envKey = KEY_MAP[vaultKey] || vaultKey;
+      mapped[envKey] = value;
+    }
 
-    createDatabaseUrl(secrets);
+    buildDatabaseUrl(mapped);
 
-    // Convert JSON to KEY="VALUE" format for .env
-    const envContent = Object.entries(secrets)
+    // Convert to KEY="VALUE" format for .env
+    const envContent = Object.entries(mapped)
       .map(([k, v]) => `${k}="${v}"`)
       .join("\n");
 
@@ -34,12 +100,19 @@ async function getSecrets() {
   }
 }
 
-function createDatabaseUrl(secrets) {
-  const dbUser = secrets.db_user;
-  const dbPassword = secrets.db_password;
-  const dbName = process.env.DB_NAME;
+function buildDatabaseUrl(secrets) {
+  const dbUser = secrets.DB_USER;
+  const dbPassword = secrets.DB_PASSWORD;
+  const dbName = secrets.DB_NAME || process.env.DB_NAME;
   const dbHost = process.env.DB_HOST;
   const dbPort = process.env.DB_PORT;
+
+  if (!dbUser || !dbPassword || !dbName || !dbHost || !dbPort) {
+    throw new Error(
+      "Missing DB connection fields required to build DATABASE_URL",
+    );
+  }
+
   secrets.DATABASE_URL = `postgresql://${dbUser}:${encodeURIComponent(dbPassword)}@${dbHost}:${dbPort}/${dbName}`;
 }
 

@@ -2,7 +2,7 @@
  * ChatRoom Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 const ChatRoom = {
   async create({ name, ownerId, isPrivate = false }) {

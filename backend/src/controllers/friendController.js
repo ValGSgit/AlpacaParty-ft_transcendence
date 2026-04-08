@@ -39,7 +39,14 @@ export const listRequests = async (req, res, next) => {
 export const sendRequest = async (req, res, next) => {
   try {
     const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: { message: 'userId is required' } });
+    if (!userId) {
+      return res.status(400).json({
+        error: {
+          message: 'userId is required',
+          fields: { userId: 'userId is required' },
+        },
+      });
+    }
     if (Number(userId) === req.user.id) {
       return res.status(400).json({ error: { message: 'Cannot friend yourself' } });
     }

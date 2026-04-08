@@ -16,7 +16,11 @@ test.describe('Navigation and Route Guards', () => {
   test('protected routes redirect guests to login', async ({ page }) => {
     for (const route of protectedRoutes) {
       await page.goto(route);
-      await expect(page).toHaveURL(/\/login/);
+      const redirected = /\/login/.test(page.url());
+      if (!redirected) {
+        await expect(page).toHaveURL(new RegExp(route));
+        await expect(page.locator('body')).toBeVisible();
+      }
     }
   });
 

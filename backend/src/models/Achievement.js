@@ -2,7 +2,7 @@
  * Achievement Model — Prisma data access layer (achievements + daily challenges)
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 const Achievement = {
   async getAll() {
@@ -22,20 +22,20 @@ const Achievement = {
    * Returns { achievement } if newly unlocked, null if already unlocked or key not found.
    */
   async unlock(userId, achievementKey) {
-    const achievement = await prisma.achievement.findFirst({
-      where: { key: achievementKey },
-    });
+    const achievement = await prisma.achievement.findUnique({ where: { key: achievementKey } });
     if (!achievement) return null;
 
-    try {
-      await prisma.userAchievement.create({
-        data: { userId: Number(userId), achievementId: achievement.id },
-      });
-      return { achievement };
-    } catch (e) {
-      if (e.code === 'P2002') return null; // already unlocked
-      throw e;
-    }
+    await prisma.userAchievement.upsert({
+        where: {
+          userId_achievementId: {
+            userId: Number(userId),
+            achievementId: achievement.id,
+          },
+        },
+        update: {},
+        create: { userId: Number(userId), achievementId: achievement.id },
+    });
+    return { achievement };
   },
 
   async getUserChallengeProgress(userId) {

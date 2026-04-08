@@ -29,6 +29,4 @@ export const validateConfig = () => {
 
   // File uploads
   requireConfig(config.uploads.dir, "UPLOAD_DIR");
-
-  console.log(`jwt: ${config.jwt.secret}`);
 };

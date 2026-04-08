@@ -156,6 +156,8 @@ model Message {
 
   @@index([senderId])
   @@index([receiverId])
+  // Compound index for conversation queries (fetch msgs between two users)
+  @@index([senderId, receiverId])
   @@map("message")
 }
 
@@ -313,6 +315,8 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  // Compound index for unread count queries (WHERE userId = ? AND isRead = false)
+  @@index([userId, isRead])
   @@map("notification")
 }
 
@@ -367,6 +371,8 @@ model Repost {
 
   @@unique([postId, authorId])
   @@index([postId])
+  // Index for querying which posts a user has reposted (used in getFeed viewer checks)
+  @@index([authorId])
   @@map("repost")
 }
 
@@ -380,6 +386,8 @@ model PostLike {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
+  // Index for querying which posts a user has liked (used in getFeed viewer checks)
+  @@index([userId])
   @@map("post_like")
 }
 

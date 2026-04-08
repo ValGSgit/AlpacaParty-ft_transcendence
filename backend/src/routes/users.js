@@ -15,9 +15,8 @@ import {
   requestDeletion,
   listDataRequests,
   deleteMe,
-  generateAvatar,
-  generateImage,
 } from "#controllers/userController.js";
+import { generateAvatar, generateImage } from "#controllers/aiController.js";
 import {
   userPasswordValidation,
   userUpdateValidation,

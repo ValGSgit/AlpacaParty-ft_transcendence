@@ -2,7 +2,7 @@
  * Friend Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 /** Map a friend user object from Prisma camelCase to frontend snake_case */
 function shapeFriend(u) {
@@ -12,7 +12,7 @@ function shapeFriend(u) {
     avatar: u.avatar,
     is_online: u.isOnline,
     status: u.status,
-    level: u.userStats?.level ?? 1,
+    level: u.userStats?.level ?? u.level ?? 1,
   };
 }
 

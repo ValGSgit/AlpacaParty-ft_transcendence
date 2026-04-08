@@ -4,7 +4,7 @@
 <template>
   <div class="legal-page">
     <h1>Terms of Service</h1>
-    <p class="updated">Last updated: March 9, 2026</p>
+    <p class="updated">Last updated: April 7, 2026</p>
 
     <section>
       <h2>1. Acceptance of Terms</h2>
@@ -30,7 +30,7 @@
       <ul>
         <li>You must provide accurate information when creating an account.</li>
         <li>You are responsible for maintaining the confidentiality of your credentials.</li>
-        <li>You must be at least 13 years old to create an account.</li>
+        <li>You must be at least 16 years old to create an account (GDPR Art. 8).</li>
         <li>One person may register only one account. Multiple accounts per person are not allowed.</li>
         <li>You are responsible for all activity that occurs under your account.</li>
       </ul>
@@ -120,8 +120,12 @@
     <section>
       <h2>12. Governing Law</h2>
       <p>
-        These Terms are governed by the laws of the jurisdiction in which the Service is
-        operated. Any disputes will be resolved in the competent courts of that jurisdiction.
+        These Terms are governed by the laws of the <strong>European Union</strong> and,
+        where applicable, the laws of <strong>Spain</strong> (the jurisdiction in which
+        this project is hosted and operated). Any disputes arising from or in connection
+        with these Terms shall be submitted to the exclusive jurisdiction of the competent
+        courts of Spain, without prejudice to your right as an EU consumer to bring
+        proceedings before the courts of your country of domicile.
       </p>
     </section>
 

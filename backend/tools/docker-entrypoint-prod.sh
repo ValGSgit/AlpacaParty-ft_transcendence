@@ -7,8 +7,13 @@ set -e
 # Helper variable
 run_with_secrets="npx env-cmd -f /run/secrets/.env"
 
-echo "Deploy database migrations..."
-$run_with_secrets npx prisma migrate deploy
+if find prisma/migrations -mindepth 1 -maxdepth 1 -type d | grep -q .; then
+	echo "Deploy database migrations..."
+	$run_with_secrets npx prisma migrate deploy
+else
+	echo "No migration folders found, creating initial migration..."
+	$run_with_secrets npx prisma migrate dev --name init
+fi
 
 echo "Create prisma client"
 $run_with_secrets npx prisma generate
@@ -16,4 +21,5 @@ $run_with_secrets npx prisma generate
 echo "Seed database"
 $run_with_secrets npm run seed
 
-exec "$@"
+# Run the main app with secrets available in the environment.
+$run_with_secrets "$@"

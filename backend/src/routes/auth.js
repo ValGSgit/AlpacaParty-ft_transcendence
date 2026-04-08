@@ -22,11 +22,12 @@ import {
 
 const router = express.Router();
 
-// Strict limiter for credential endpoints — 50 attempts per 15 min per IP.
+// Keep strict limits in production, but allow larger volume in dev/e2e runs.
 // The global /api limiter (1000/15 min) is too loose to prevent brute-force.
+const authLimiterMax = process.env.NODE_ENV === "production" ? 50 : 1000;
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50,
+  max: authLimiterMax,
   skip: () => process.env.NODE_ENV === "test",
   message: "Too many authentication attempts, please try again later.",
   standardHeaders: true,
@@ -161,8 +162,25 @@ router.post("/refresh", refresh);
 router.get("/me", authenticate, me);
 
 // ── OAuth ─────────────────────────────────────────────────
+
+/**
+ * Guard that checks whether a Passport strategy is registered before
+ * attempting authentication.  Returns 501 if the provider is not configured
+ * (e.g. missing OAuth credentials) instead of crashing with
+ * "Unknown authentication strategy".
+ */
+const requireStrategy = (name) => (req, res, next) => {
+  if (!passport._strategy(name)) {
+    return res.status(501).json({
+      error: { message: `${name} login is not configured on this server` },
+    });
+  }
+  next();
+};
+
 router.get(
   "/google",
+  requireStrategy("google"),
   passport.authenticate("google", {
     scope: ["profile", "email"],
     session: false,
@@ -170,6 +188,7 @@ router.get(
 );
 router.get(
   "/google/callback",
+  requireStrategy("google"),
   passport.authenticate("google", {
     failureRedirect: "/login",
     session: false,
@@ -179,11 +198,13 @@ router.get(
 
 router.get(
   "/github",
+  requireStrategy("github"),
   passport.authenticate("github", { scope: ["user:email"], session: false }),
 );
 
 router.get(
   "/github/callback",
+  requireStrategy("github"),
   passport.authenticate("github", {
     failureRedirect: "/login",
     session: false,

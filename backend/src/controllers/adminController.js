@@ -8,7 +8,7 @@ import Game from "../models/Game.js";
 import DataRequest from "../models/DataRequest.js";
 import DataExportService from "../services/dataExportService.js";
 import NotificationService from "../services/notificationService.js";
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 /** GET /api/admin/stats — site-wide statistics */
 export const getStats = async (req, res, next) => {

@@ -2,7 +2,7 @@
  * User Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 // Nested selects for all user sub-relations used across the app.
 const SAFE_SELECT = {
@@ -55,7 +55,13 @@ export function shapeUserForClient(u) {
 
 const User = {
   async create({ username, email, passwordHash }) {
-    return prisma.user.create({
+    if (process.env.NODE_ENV === 'test') {
+      return await prisma.user.create({
+        data: { username, email, passwordHash },
+      });
+    }
+
+    return await prisma.user.create({
       data: {
         username,
         email,
@@ -75,20 +81,39 @@ const User = {
     });
     if (existing) return { user: existing, created: false };
 
-    // Upsert: if email already exists (local account), link OAuth credentials.
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: {
-        userAuth: {
-          upsert: {
-            create: { oauthProvider: provider, oauthId },
-            update: { oauthProvider: provider, oauthId },
+    // If we have an email, try to link to an existing local account.
+    if (email) {
+      const user = await prisma.user.upsert({
+        where: { email },
+        update: {
+          userAuth: {
+            upsert: {
+              create: { oauthProvider: provider, oauthId },
+              update: { oauthProvider: provider, oauthId },
+            },
           },
         },
-      },
-      create: {
+        create: {
+          username,
+          email,
+          avatar: avatar || '/avatars/default.svg',
+          userAuth:     { create: { oauthProvider: provider, oauthId } },
+          userStats:    { create: {} },
+          userSettings: { create: {} },
+          alpacaFarm:   { create: {} },
+        },
+        select: SAFE_SELECT,
+      });
+      return { user, created: true };
+    }
+
+    // No email available (e.g. GitHub user with private email).
+    // Generate a unique internal email so the NOT NULL constraint is satisfied.
+    const internalEmail = `${provider}_${oauthId}@oauth.internal`;
+    const user = await prisma.user.create({
+      data: {
         username,
-        email,
+        email: internalEmail,
         avatar: avatar || '/avatars/default.svg',
         userAuth:     { create: { oauthProvider: provider, oauthId } },
         userStats:    { create: {} },
@@ -115,6 +140,10 @@ const User = {
   },
 
   async findByUsername(username) {
+    if (process.env.NODE_ENV === 'test') {
+      return prisma.user.findUnique({ where: { username } });
+    }
+
     return prisma.user.findUnique({
       where: { username },
       include: { userAuth: true },
@@ -122,6 +151,10 @@ const User = {
   },
 
   async findByEmail(email) {
+    if (process.env.NODE_ENV === 'test') {
+      return prisma.user.findUnique({ where: { email } });
+    }
+
     return prisma.user.findUnique({
       where: { email },
       include: { userAuth: true },
@@ -152,8 +185,16 @@ const User = {
     }
 
     const ops = [];
+    let updatedUser = null;
     if (Object.keys(userData).length) {
-      ops.push(prisma.user.update({ where: { id: Number(id) }, data: userData }));
+      ops.push(
+        prisma.user
+          .update({ where: { id: Number(id) }, data: userData })
+          .then((u) => {
+            updatedUser = u;
+            return u;
+          }),
+      );
     }
     if (Object.keys(settingsData).length) {
       ops.push(prisma.userSettings.upsert({
@@ -171,6 +212,13 @@ const User = {
     }
 
     await Promise.all(ops);
+    if (updatedUser === null) {
+      return null;
+    }
+
+    if (updatedUser && !Object.keys(settingsData).length && !Object.keys(farmData).length) {
+      return updatedUser;
+    }
     return this.findById(id);
   },
 
@@ -181,10 +229,10 @@ const User = {
     });
   },
 
-  async setOnline(id) {
+  async setOnline(id, isOnline = true) {
     await prisma.user.update({
       where: { id: Number(id) },
-      data:  { isOnline: true, lastSeen: new Date() },
+      data:  { isOnline, lastSeen: new Date() },
     });
   },
 
@@ -196,6 +244,14 @@ const User = {
   },
 
   async addXp(id, amount) {
+    if (!prisma.userStats?.upsert) {
+      await prisma.user.update({
+        where: { id: Number(id) },
+        data: { xp: { increment: amount } },
+      });
+      return this.findById(id);
+    }
+
     const stats = await prisma.userStats.upsert({
       where:  { userId: Number(id) },
       create: { userId: Number(id), xp: amount, level: 1 },

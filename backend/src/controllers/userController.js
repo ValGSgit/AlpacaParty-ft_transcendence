@@ -2,22 +2,14 @@
  * User Controller — profile viewing, editing, GDPR
  * @owner ValGSgit
  */
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
-import { InferenceClient } from "@huggingface/inference";
 import User, { shapeUserForClient } from "#models/User.js";
+import Friend from "#models/Friend.js";
 import AuthService from "#services/authService.js";
 import DataExportService from "#services/dataExportService.js";
 import DataRequest from "#models/DataRequest.js";
 import NotificationService from "#services/notificationService.js";
-import config from "#config/index.js";
 import { customValidationResult } from "#validators/validatorUtils.js";
-import prisma from "#lib/prisma.js";
 import CustomError from "#utils/CustomError.js";
-
-
-const IMAGE_GENERATION_COST = 50;
 
 /**
  * GET /api/users/me
@@ -33,26 +25,33 @@ export const updateMe = async (req, res, next) => {
   const { username, email, bio, status, avatar, is_public } = req.body;
 
   try {
-    customValidationResult(req).throw();
+    const errors = customValidationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: { message: errors.array()[0] } });
+    }
 
     if (username) {
-      const existingUser = await prisma.user.findFirst({
-        where: {
-          username: username,
-          id: { not: id },
-        },
-      });
-      if (existingUser) throw new CustomError("User already exists", 400);
+      const current = req.user?.username;
+      if (username !== current) {
+        const existingUser = await User.findByUsername(username);
+        if (existingUser && Number(existingUser.id) !== id) {
+          return res
+            .status(409)
+            .json({ error: { message: "Username already taken" } });
+        }
+      }
     }
 
     if (email) {
-      const existingEmail = await prisma.user.findFirst({
-        where: {
-          email: email,
-          id: { not: id },
-        },
-      });
-      if (existingEmail) throw new CustomError("Email already exists", 400);
+      const current = req.user?.email;
+      if (email !== current) {
+        const existingEmail = await User.findByEmail(email);
+        if (existingEmail && Number(existingEmail.id) !== id) {
+          return res
+            .status(409)
+            .json({ error: { message: "Email already registered" } });
+        }
+      }
     }
 
     const updatedUser = await User.update(id, {
@@ -81,12 +80,23 @@ export const changePassword = async (req, res, next) => {
       });
     }
     const id = Number(req.user.id);
-    const currUser = await prisma.userAuth.findFirst({ where: { userId: id } });
+    const currUser = await User.findByIdWithPassword(id);
     const valid = await AuthService.comparePassword(
       currentPassword,
-      currUser.passwordHash,
+      currUser?.passwordHash || currUser?.userAuth?.passwordHash,
     );
-    if (!valid) throw new CustomError("Current password is incorrect", 401);
+    if (!valid)
+      return res
+        .status(401)
+        .json({ error: { message: "Current password is incorrect" } });
+
+    const { valid: newValid, errors } = AuthService.validatePassword(newPassword);
+    if (!newValid) {
+      return res.status(400).json({
+        error: { message: errors.join(". ") },
+        errors: { newPassword: errors.join(". ") },
+      });
+    }
 
     const hash = await AuthService.hashPassword(newPassword);
     await User.updatePassword(id, hash);
@@ -107,10 +117,15 @@ export const getUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ error: { message: "User not found" } });
     }
-    const isPublic = user.userSettings?.isPublic ?? true;
+    const isPublic = user.userSettings?.isPublic;
     const reqIsAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
     if (!isPublic && user.id !== req.user?.id && !reqIsAdmin) {
-      return res.status(404).json({ error: { message: "User not found" } });
+      const areFriends = await Friend.areFriends(req.user?.id, user.id);
+      if (!areFriends) {
+        return res
+          .status(403)
+          .json({ error: { message: "This profile is private" } });
+      }
     }
     res.json({ user: shapeUserForClient(user) });
   } catch (err) {
@@ -123,18 +138,32 @@ export const getUser = async (req, res, next) => {
  */
 export const listUsers = async (req, res, next) => {
   try {
-    const limit = Math.min(Number(req.query.limit) || 20, 100);
-    const offset = Number(req.query.offset) || 0;
+    const pageSize = Number(req.query.pageSize) || Number(req.query.limit);
+    const page = Number(req.query.page) || 1;
+    const limit = Math.min(pageSize, 100);
+    const offset = Number(req.query.offset) || Math.max((page - 1) * limit, 0);
+    const search = req.query.search ? String(req.query.search).trim() : "";
 
     const reqIsAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
-    const where = reqIsAdmin ? {} : { userSettings: { isPublic: true } };
+    const users = search
+      ? await User.search(search, { limit })
+      : await User.findAll({ limit, offset });
+    const visibleUsers = reqIsAdmin
+      ? users
+      : users.filter((u) => {
+          const isPublic = u.userSettings?.isPublic ?? u.isPublic ?? true;
+          return isPublic || Number(u.id) === Number(req.user.id);
+        });
+    const total = await User.count();
 
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({ skip: offset, take: limit, where, orderBy: { id: "asc" } }),
-      prisma.user.count({ where }),
-    ]);
-
-    res.json({ users, total, limit, offset });
+    res.json({
+      users: visibleUsers,
+      total,
+      limit,
+      offset,
+      pageSize: limit,
+      currentPage: page,
+    });
   } catch (err) {
     next(err);
   }
@@ -211,104 +240,3 @@ export const deleteMe = async (req, res, next) => {
     return next(err);
   }
 };
-
-/** POST /api/users/me/generate-avatar */
-export const generateAvatar = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id);
-    const coins = user?.alpacaFarm?.coins ?? 0;
-    if (!user || coins < IMAGE_GENERATION_COST) {
-      return res.status(402).json({
-        error: {
-          message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.`,
-        },
-      });
-    }
-    const result = await _callHuggingFace(req, res, "avatar");
-    if (!result) return;
-    const { buffer, ext } = result;
-    const filename = `avatar-${req.user.id}-${crypto.randomBytes(8).toString("hex")}${ext}`;
-    const filepath = path.join(config.uploads.dir, filename);
-    fs.mkdirSync(config.uploads.dir, { recursive: true });
-    fs.writeFileSync(filepath, buffer);
-    const avatarUrl = `/uploads/${filename}`;
-    const updatedUser = await User.update(req.user.id, {
-      avatar: avatarUrl,
-      coins: coins - IMAGE_GENERATION_COST,
-    });
-    res.json({ user: shapeUserForClient(updatedUser), avatarUrl });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/** POST /api/users/me/generate-image */
-export const generateImage = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id);
-    const coins = user?.alpacaFarm?.coins ?? 0;
-    if (!user || coins < IMAGE_GENERATION_COST) {
-      return res.status(402).json({
-        error: {
-          message: `Insufficient coins. Image generation costs ${IMAGE_GENERATION_COST} coins.`,
-        },
-      });
-    }
-    const result = await _callHuggingFace(req, res, "image");
-    if (!result) return;
-    const { buffer, ext } = result;
-    const filename = `generated-${req.user.id}-${crypto.randomBytes(8).toString("hex")}${ext}`;
-    const filepath = path.join(config.uploads.dir, filename);
-    fs.mkdirSync(config.uploads.dir, { recursive: true });
-    fs.writeFileSync(filepath, buffer);
-    await User.update(req.user.id, {
-      coins: coins - IMAGE_GENERATION_COST,
-    });
-    res.json({ imageUrl: `/uploads/${filename}` });
-  } catch (err) {
-    next(err);
-  }
-};
-
-async function _callHuggingFace(req, res, mode) {
-  const apiKey = config.huggingfaceApiKey;
-  if (!apiKey) {
-    res.status(503).json({
-      error: { message: "Image generation service is not configured" },
-    });
-    return null;
-  }
-  const { prompt } = req.body;
-  const safePrompt = typeof prompt === "string" ? prompt.slice(0, 200) : "";
-  const fullPrompt =
-    mode === "avatar"
-      ? `cute cartoon alpaca avatar, profile picture, circular frame, colorful, ${safePrompt}, digital art, simple background`.slice(
-          0,
-          500,
-        )
-      : safePrompt || "a beautiful landscape with alpacas";
-
-  try {
-    const client = new InferenceClient(apiKey);
-    const blob = await client.textToImage({
-      provider: "nscale",
-      model: "black-forest-labs/FLUX.1-schnell",
-      inputs: fullPrompt,
-      parameters: { num_inference_steps: 5 },
-    });
-    const arrayBuffer = await blob.arrayBuffer();
-    const ext =
-      blob.type === "image/png"
-        ? ".png"
-        : blob.type === "image/jpeg"
-          ? ".jpg"
-          : ".webp";
-    return { buffer: Buffer.from(arrayBuffer), ext };
-  } catch (err) {
-    console.error("HuggingFace API error:", err.message);
-    res.status(502).json({
-      error: { message: "Image generation service temporarily unavailable" },
-    });
-    return null;
-  }
-}

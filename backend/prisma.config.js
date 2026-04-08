@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -8,6 +8,7 @@ export default defineConfig({
     seed: "node prisma/seed.js",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    // Fallback keeps CI/unit workflows from crashing when DATABASE_URL is not injected.
+    url: process.env.DATABASE_URL || "postgresql://alpacaparty:alpacaparty@localhost:5432/alpacaparty",
   },
 });

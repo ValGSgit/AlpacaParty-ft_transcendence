@@ -2,7 +2,7 @@
  * Post Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 const AUTHOR_SELECT = { select: { username: true, avatar: true } };
 
@@ -77,13 +77,16 @@ const Post = {
 
   async getFeed({ limit = 20, offset = 0, viewerId = null } = {}) {
     const vid = viewerId ? Number(viewerId) : null;
+    const lim = Number(limit);
+    const off = Number(offset);
+
     const [posts, liked, viewerReposts, recentReposts] = await Promise.all([
       prisma.post.findMany({
         where: { isPublic: true, author: { userSettings: { isPublic: true } } },
         include: { author: AUTHOR_SELECT },
         orderBy: { createdAt: "desc" },
-        take: Number(limit),
-        skip: Number(offset),
+        take: lim,
+        skip: off,
       }),
       vid
         ? prisma.postLike.findMany({ where: { userId: vid }, select: { postId: true } })
@@ -91,27 +94,32 @@ const Post = {
       vid
         ? prisma.repost.findMany({ where: { authorId: vid }, select: { postId: true } })
         : Promise.resolve([]),
-      // Fetch recent reposts to interleave into the feed
+      // Fetch recent reposts of public posts by public authors only
       prisma.repost.findMany({
+        where: {
+          post: {
+            isPublic: true,
+            author: { userSettings: { isPublic: true } },
+          },
+        },
         include: { post: { include: { author: AUTHOR_SELECT } }, author: AUTHOR_SELECT },
         orderBy: { createdAt: 'desc' },
-        take: Number(limit),
-        skip: Number(offset),
+        take: lim,
       }),
     ]);
-    const likedIds = new Set(liked.map((l) => l.postId));
+
+    const likedIds    = new Set(liked.map((l) => l.postId));
     const repostedIds = new Set(viewerReposts.map((r) => r.postId));
 
     // Shape original posts
     const shaped = posts.map((p) => shapePost(p, likedIds, repostedIds));
 
-    // Shape reposts (carry _repostBy metadata)
-    const seenIds = new Set(shaped.map((p) => `${p.id}`));
+    // Interleave reposts, deduplicating by (postId, reposter) key
+    const seenKeys = new Set(shaped.map((p) => `${p.id}`));
     for (const r of recentReposts) {
-      if (!r.post || !r.post.isPublic) continue;
       const key = `${r.post.id}-repost-${r.authorId}`;
-      if (seenIds.has(key)) continue;
-      seenIds.add(key);
+      if (seenKeys.has(key)) continue;
+      seenKeys.add(key);
       shaped.push(shapePost(r.post, likedIds, repostedIds, {
         username: r.author?.username,
         authorId: r.authorId,
@@ -119,9 +127,9 @@ const Post = {
       }));
     }
 
-    // Sort combined feed by created_at desc
+    // Sort combined feed by created_at desc and return one page
     shaped.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    return shaped.slice(0, Number(limit));
+    return shaped.slice(0, lim);
   },
 
   async getByUser(userId, { limit = 20, offset = 0 } = {}) {
@@ -142,31 +150,27 @@ const Post = {
           data: { postId: Number(postId), userId: Number(userId) },
         });
       } catch (e) {
-        if (e.code === "P2002") return; // already liked
+        if (e.code === "P2002") return; // already liked — no-op
         throw e;
       }
-      const count = await tx.postLike.count({
-        where: { postId: Number(postId) },
-      });
       await tx.post.update({
         where: { id: Number(postId) },
-        data: { likesCount: count },
+        data: { likesCount: { increment: 1 } },
       });
     });
   },
 
   async unlike(postId, userId) {
     await prisma.$transaction(async (tx) => {
-      await tx.postLike.deleteMany({
+      const { count } = await tx.postLike.deleteMany({
         where: { postId: Number(postId), userId: Number(userId) },
       });
-      const count = await tx.postLike.count({
-        where: { postId: Number(postId) },
-      });
-      await tx.post.update({
-        where: { id: Number(postId) },
-        data: { likesCount: count },
-      });
+      if (count > 0) {
+        await tx.post.update({
+          where: { id: Number(postId) },
+          data: { likesCount: { decrement: 1 } },
+        });
+      }
     });
   },
 
@@ -178,8 +182,10 @@ const Post = {
           data: { postId: Number(postId), authorId: Number(authorId), comment: comment ?? null },
           include: { author: AUTHOR_SELECT },
         });
-        const count = await tx.repost.count({ where: { postId: Number(postId) } });
-        await tx.post.update({ where: { id: Number(postId) }, data: { repostsCount: count } });
+        await tx.post.update({
+          where: { id: Number(postId) },
+          data: { repostsCount: { increment: 1 } },
+        });
         return r;
       });
     } catch (e) {
@@ -200,9 +206,15 @@ const Post = {
 
   async unrepost(postId, authorId) {
     await prisma.$transaction(async (tx) => {
-      await tx.repost.deleteMany({ where: { postId: Number(postId), authorId: Number(authorId) } });
-      const count = await tx.repost.count({ where: { postId: Number(postId) } });
-      await tx.post.update({ where: { id: Number(postId) }, data: { repostsCount: count } });
+      const { count } = await tx.repost.deleteMany({
+        where: { postId: Number(postId), authorId: Number(authorId) },
+      });
+      if (count > 0) {
+        await tx.post.update({
+          where: { id: Number(postId) },
+          data: { repostsCount: { decrement: 1 } },
+        });
+      }
     });
   },
 

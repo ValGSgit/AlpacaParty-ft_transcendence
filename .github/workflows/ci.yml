@@ -9,9 +9,9 @@ name: CI
 
 on:
   push:
-    branches: [main, dev, backend, refactor-part2]
+    branches: [main, dev, backend, refactor/v]
   pull_request:
-    branches: [main, dev, backend, refactor-part2]
+    branches: [main, dev, backend, refactor/v]
 
 # Cancel in-progress runs for the same branch/PR on new push
 concurrency:
@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 # ==================================================================
 # JOB 1 — Backend unit & integration tests
@@ -28,6 +28,35 @@ jobs:
   backend-unit:
     name: "Backend — Unit Tests"
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: alpacaparty
+          POSTGRES_USER: alpacaparty
+          POSTGRES_PASSWORD: alpacaparty
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U alpacaparty -d alpacaparty"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      API_PORT: 3000
+      NODE_ENV: test
+      JWT_SECRET: ci-test-secret-do-not-use-in-prod
+      JWT_EXPIRES_IN: 1h
+      JWT_REFRESH_EXPIRES_IN: 7d
+      DATABASE_URL: postgresql://alpacaparty:alpacaparty@127.0.0.1:5432/alpacaparty?schema=public
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_NAME: alpacaparty
+      DB_USER: alpacaparty
+      DB_PASSWORD: alpacaparty
+      SSL_CERT_PATH: ./ssl/cert.pem
+      SSL_KEY_PATH: ./ssl/key.pem
+      UPLOAD_DIR: ./uploads
 
     defaults:
       run:
@@ -43,19 +72,45 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          for attempt in 1 2 3; do
+            echo "Backend npm ci attempt ${attempt}/3"
+            if npm ci; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "npm ci failed, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+          echo "Backend npm ci failed after 3 attempts"
+          exit 1
+
+      - name: Sync test database schema
+        run: |
+          set -e
+          for attempt in 1 2 3; do
+            echo "Prisma db push attempt ${attempt}/3"
+            if npx prisma db push; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "db push failed, retrying in 4 seconds..."
+              sleep 4
+            fi
+          done
+          echo "Prisma db push failed after 3 attempts"
+          npx prisma validate || true
+          exit 1
         
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Run Prisma migrations
-        run: npx prisma migrate dev --name ci --skip-seed
-
       - name: Run tests with coverage
         run: npm test
-        env:
-          NODE_ENV: test
-          JWT_SECRET: ci-test-secret-do-not-use-in-prod
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v5
@@ -86,7 +141,22 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          for attempt in 1 2 3; do
+            echo "Frontend npm install attempt ${attempt}/3"
+            if npm install; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "npm install failed, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+          echo "Frontend npm install failed after 3 attempts"
+          exit 1
 
       - name: Run tests with coverage
         run: npm test
@@ -108,6 +178,32 @@ jobs:
     runs-on: ubuntu-latest
     needs: [backend-unit, frontend-unit]
     if: github.event_name == 'push'
+    env:
+      COMPOSE_PROFILES: dev,e2e
+      NODE_ENV: test
+      API_PORT: "3000"
+      PRISMA_STUDIO_PORT: "5555"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: alpacaparty
+      DB_USER: alpacaparty
+      DB_PASSWORD: alpacaparty
+      FRONTEND_URL: https://localhost:8443
+      CORS_ORIGINS: https://localhost:8443,http://localhost:5173
+      GOOGLE_CALLBACK_URL: https://localhost:8443/api/auth/google/callback
+      GITHUB_CALLBACK_URL: https://localhost:8443/api/auth/github/callback
+      JWT_SECRET: ci-e2e-secret-change-in-prod
+      JWT_EXPIRES_IN: 1h
+      JWT_REFRESH_EXPIRES_IN: 7d
+      VAULT_DEV_TOKEN: root
+      API_KEYS: ci-e2e-api-key
+      GROQ_API_KEY: ""
+      HUGGINGFACE_API_KEY: ""
+      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_SECRET: ""
+      GITHUB_CLIENT_ID: ""
+      GITHUB_CLIENT_SECRET: ""
+      MOD_USERS: live_admin
 
     steps:
       - name: Checkout
@@ -120,7 +216,22 @@ jobs:
 
       - name: Install E2E dependencies
         working-directory: e2e
-        run: npm install
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          for attempt in 1 2 3; do
+            echo "E2E npm ci attempt ${attempt}/3"
+            if npm ci; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "npm ci failed, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+          echo "E2E npm ci failed after 3 attempts"
+          exit 1
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -155,20 +266,39 @@ jobs:
       # -- Install deps so bind-mount volumes exist ----------------
       - name: Install backend and frontend dependencies
         run: |
-          cd backend && npm install --ignore-scripts && cd ..
-          cd frontend && npm install && cd ..
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+
+          for attempt in 1 2 3; do
+            echo "Backend npm ci --ignore-scripts attempt ${attempt}/3"
+            if (cd backend && npm ci --ignore-scripts); then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Backend dependency install failed after 3 attempts"
+              exit 1
+            fi
+            sleep 5
+          done
+
+          for attempt in 1 2 3; do
+            echo "Frontend npm install --include=optional attempt ${attempt}/3"
+            if (cd frontend && npm install --include=optional); then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Frontend dependency install failed after 3 attempts"
+              exit 1
+            fi
+            sleep 5
+          done
 
       # -- Start the full stack -------------------------------------
       - name: Start application stack
         run: |
-          docker compose build --no-cache nginx
+          docker compose build --no-cache frontend nginx
           docker compose up -d --build postgres backend frontend nginx
-        env:
-          NODE_ENV: test
-          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-e2e-secret-change-in-prod' }}
-          DB_NAME: alpacaparty
-          DB_USER: alpacaparty
-          DB_PASSWORD: alpacaparty
 
       - name: Wait for backend to be healthy
         run: |
@@ -185,6 +315,25 @@ jobs:
           docker compose logs
           exit 1
 
+      - name: Sync database schema
+        run: |
+          set -e
+          for attempt in 1 2 3; do
+            echo "Prisma db push attempt ${attempt}/3"
+            if docker compose exec -T -e DATABASE_URL="postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty?schema=public" backend npx prisma db push; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "db push failed, retrying in 4 seconds..."
+              sleep 4
+            fi
+          done
+          echo "Prisma db push failed after 3 attempts"
+          exit 1
+
+      - name: Generate Prisma client
+        run: docker compose exec -T -e DATABASE_URL="postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty?schema=public" backend npx prisma generate
+
       # -- Seed data for E2E tests ----------------------------------
       - name: Seed live data for E2E tests
         run: docker compose exec -T backend npm run seed:live
@@ -200,9 +349,15 @@ jobs:
       - name: Ensure seeded admin account has admin role
         run: |
           docker compose exec -T postgres psql -U alpacaparty -d alpacaparty \
-            -c "UPDATE users SET is_admin = TRUE WHERE email = 'live_admin@alpacaparty.test';"
+            -c "INSERT INTO user_settings (\"userId\", is_admin) \
+                SELECT id, TRUE FROM \"user\" WHERE email = 'live_admin@alpacaparty.test' \
+                ON CONFLICT (\"userId\") DO UPDATE SET is_admin = EXCLUDED.is_admin;"
           is_admin=$(docker compose exec -T postgres psql -U alpacaparty -d alpacaparty -tA \
-            -c "SELECT COALESCE(is_admin::text, 'false') FROM users WHERE email = 'live_admin@alpacaparty.test' LIMIT 1;")
+            -c "SELECT COALESCE(us.is_admin::text, 'false') \
+                FROM user_settings us \
+                JOIN \"user\" u ON u.id = us.\"userId\" \
+                WHERE u.email = 'live_admin@alpacaparty.test' \
+                LIMIT 1;")
           if [ "$is_admin" != "true" ]; then
             echo "live_admin@alpacaparty.test is not admin after seeding"
             exit 1
@@ -210,11 +365,24 @@ jobs:
           echo "Verified live_admin@alpacaparty.test has admin access"
 
       # -- Run tests ------------------------------------------------
+      - name: Sanity check public API key before Playwright
+        run: |
+          code=$(curl -ks -o /tmp/public_api.json -w "%{http_code}" \
+            -H "X-API-Key: ci-e2e-api-key" \
+            "https://localhost:8443/api/public/users?limit=1")
+          echo "Public API status: $code"
+          cat /tmp/public_api.json || true
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "Public API key sanity check failed"
+            exit 1
+          fi
+
       - name: Run Playwright tests
         working-directory: e2e
         run: npm test
         env:
           E2E_BASE_URL: https://localhost:8443
+          E2E_API_KEY: ci-e2e-api-key
 
       # -- Artifacts ------------------------------------------------
       - name: Upload Playwright report

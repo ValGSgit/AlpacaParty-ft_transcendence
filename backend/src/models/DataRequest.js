@@ -2,7 +2,7 @@
  * DataRequest Model — Prisma data access layer (GDPR)
  * @owner ValGSgit
  */
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 
 const DataRequest = {
   async create({ userId, type }) {
