@@ -12,7 +12,7 @@ import { validateConfig } from "./validateConfig.js";
 dotenv.config({ path: "/run/secrets/.env" });
 
 const config = {
-  port: parseInt(process.env.PORT || process.env.API_PORT || "3000", 10), // needed fallback for testing
+  port: parseInt(process.env.API_PORT, 10), // needed fallback for testing
   nodeEnv: process.env.NODE_ENV,
   envIsProd: process.env.NODE_ENV === "production",
   envIsDev: process.env.NODE_ENV === "development",
