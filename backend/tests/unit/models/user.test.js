@@ -12,6 +12,9 @@ const mockPrisma = {
     delete: jest.fn(),
     count: jest.fn(),
   },
+  userAuth: {
+    update: jest.fn(),
+  },
 };
 
 jest.unstable_mockModule('#config/prisma.js', () => ({
@@ -131,10 +134,10 @@ describe('User.update', () => {
 
 describe('User.updatePassword', () => {
   test('should call update with new hash and id', async () => {
-    mockPrisma.user.update.mockResolvedValue({});
+    mockPrisma.userAuth.update.mockResolvedValue({});
     await User.updatePassword(1, 'newhash');
-    expect(mockPrisma.user.update).toHaveBeenCalledWith({
-      where: { id: 1 },
+    expect(mockPrisma.userAuth.update).toHaveBeenCalledWith({
+      where: { userId: 1 },
       data: { passwordHash: 'newhash' },
     });
   });
