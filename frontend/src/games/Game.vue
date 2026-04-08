@@ -27,7 +27,7 @@
       </div>
     </div>
     <div class="hud-container hud-left">
-      <div class="stat"><span>💰 {{ gUser.coins }}</span></div>
+      <div v-if="gUser.gameMode === 0" class="stat"><span>💰 {{ gUser.coins }}</span></div>
       <div v-if="gUser.gameMode === 1" class="stat"><span>🦙 {{ gUser.point }} </span></div>
       <div v-if="gUser.gameMode === 2" class="stat"><span>🦙 {{ gUser.point }} </span></div>
       <div v-if="gUser.gameMode === 3" class="stat"><span>🪵 {{ gUser.point }} </span></div>
@@ -36,7 +36,7 @@
       <div v-if="gUser.gameMode === 3 && gUser.point4p >= 0" class="stat"><span>🪵 {{ gUser.point4p }} </span></div>
     </div>
 
-<div v-if="gUser.gameMode" class="hud-hp">
+<div v-if="gUser.gameMode" class="stat">
   <div v-if="gUser.hp >= 0" class="stat">
     <span>{{ getHearts(gUser.hp) }}</span>
   </div>
@@ -359,7 +359,7 @@ const gameLoop = () => {
   if (gUser.value.gameMode === 3)
   {
     spawnObstacles(delta);
-    updateObstacles()
+    updateObstacles(delta)
   }
 
   if (gEngine.value?.controls) {

@@ -35,3 +35,13 @@ export function getRandomScale() {
 export function getRandomTimer() {
   return 2 + Math.random() * 5;
 }
+
+export function getRandomSpeed() {
+  let randomTime = getRandomTimer()
+  randomTime = Math.floor(randomTime / 2)
+  if (randomTime % 3 === 0)
+    return 1 // fast
+  else if (randomTime % 2 === 0)
+    return 0.8 // middle
+  return 0.6 //slow
+}

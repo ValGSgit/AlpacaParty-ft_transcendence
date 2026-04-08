@@ -43,15 +43,12 @@ export async function changeGame(mode, playerCount) {
   gUser.value.hp3p = -1
   gUser.value.hp4p = -1
   tempAlpacas.length = 0
-  if (playerCount)
-  {
-    for (let i = 0; i < gAlpacas.length && playerCount; ++i) {
-      if (gAlpacas[i] !== gPlayer.value)
-      {
-        tempAlpacas.push(gAlpacas[i])
-        gAlpacas[i].model.position.set(0, 0, 0)
-        gAlpacas[i].model.rotation.y = 0
-      }
+  for (let i = 0; i < gAlpacas.length && i < playerCount - 1; ++i) {
+    if (gAlpacas[i] !== gPlayer.value)
+    {
+      tempAlpacas.push(gAlpacas[i])
+      gAlpacas[i].model.position.set(0, 0, 0)
+      gAlpacas[i].model.rotation.y = 0
     }
   }
   clearScene(gScene.value)

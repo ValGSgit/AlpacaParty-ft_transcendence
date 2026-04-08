@@ -5,6 +5,13 @@ export const gScene = shallowRef(null)
 export const gPlayer = shallowRef(null)
 export const gUser = ref(null)
 
+export const gMultiplayer = ref({
+  isActive: false,
+  mode: 0,
+  players: [],
+  aliveCount: 0
+})
+
 export const gUI = reactive({
   editMode: false,
   shopMenu: false,
