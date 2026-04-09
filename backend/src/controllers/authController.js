@@ -70,10 +70,7 @@ export const login = async (req, res, next) => {
     if (!user || !passwordHash)
       throw new CustomError("Invalid credentials", 401);
 
-    const valid = await AuthService.comparePassword(
-      password,
-      passwordHash,
-    );
+    const valid = await AuthService.comparePassword(password, passwordHash);
     if (!valid) throw new CustomError("Invalid credentials", 401);
 
     await User.setOnline(user.id);
