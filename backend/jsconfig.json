@@ -2,7 +2,6 @@
   "compilerOptions": {
     "target": "ES6",
     "lib": ["ESNext", "DOM"],
-    "baseUrl": ".",
     "paths": {
       "#config/*": ["./src/config/*"],
       "#controllers/*": ["./src/controllers/*"],

@@ -10,14 +10,11 @@ else
   npm clean-install --ignore-scripts
 fi
 
-# install env-cmd globaly
-npm install -g env-cmd
-
 # Builds the /run/secrets/.env file
 /usr/local/bin/load-secrets.sh
 
 # Helper variable
-run_with_secrets="env-cmd -f /run/secrets/.env"
+run_with_secrets="npx env-cmd -f /run/secrets/.env"
 
 echo "Applying database migrations..."
 $run_with_secrets npx prisma migrate dev --name init
