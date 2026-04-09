@@ -7,8 +7,6 @@ FROM node:24-alpine3.22
 RUN apk add --no-cache python3 make g++ dotenv
 
 WORKDIR /app
-RUN chown -R node:node /app
-
 
 # Copy scripts and strip Windows CRLF line endings so the shebang works on Linux
 COPY --chmod=755 tools/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
@@ -19,8 +17,6 @@ RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
   /usr/local/bin/load-secrets.sh \
   /usr/local/bin/start-prisma-studio.sh \
   /usr/local/bin/seed-database.sh
-
-USER node
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["npm", "run", "dev"]
