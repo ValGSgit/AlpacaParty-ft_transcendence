@@ -372,6 +372,9 @@ CREATE INDEX "message_sender_id_idx" ON "message"("sender_id");
 CREATE INDEX "message_receiver_id_idx" ON "message"("receiver_id");
 
 -- CreateIndex
+CREATE INDEX "message_sender_id_receiver_id_idx" ON "message"("sender_id", "receiver_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "chat_room_member_room_id_user_id_key" ON "chat_room_member"("room_id", "user_id");
 
 -- CreateIndex
@@ -402,6 +405,9 @@ CREATE UNIQUE INDEX "user_daily_challenge_user_id_challenge_id_key" ON "user_dai
 CREATE INDEX "notification_user_id_idx" ON "notification"("user_id");
 
 -- CreateIndex
+CREATE INDEX "notification_user_id_is_read_idx" ON "notification"("user_id", "is_read");
+
+-- CreateIndex
 CREATE INDEX "post_author_id_idx" ON "post"("author_id");
 
 -- CreateIndex
@@ -411,7 +417,13 @@ CREATE INDEX "comment_post_id_idx" ON "comment"("post_id");
 CREATE INDEX "repost_post_id_idx" ON "repost"("post_id");
 
 -- CreateIndex
+CREATE INDEX "repost_author_id_idx" ON "repost"("author_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "repost_post_id_author_id_key" ON "repost"("post_id", "author_id");
+
+-- CreateIndex
+CREATE INDEX "post_like_user_id_idx" ON "post_like"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "post_like_post_id_user_id_key" ON "post_like"("post_id", "user_id");
