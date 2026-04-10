@@ -8,7 +8,7 @@ export function usePlayerControls() {
   const { keys } = useInput()
   const { checkCollision } = usePhysics()
 
-  const handleJumping = (player) => {
+  const handleJumping = (player, delta) => {
     const { model } = player;
     let isVerticalMoving = false;
     let keydown = false;
@@ -23,13 +23,13 @@ export function usePlayerControls() {
       keydown = keys.q
     // Jump up
     if (keydown && model.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) {
-      model.position.y += CONST.JUMPING_SPEED;
+      model.position.y += CONST.JUMPING_SPEED * delta;
       player.isJumping = true;
       isVerticalMoving = true;
     }
     // Fall down
     if (model.position.y > 0 && (!keydown || player.isFalling)) {
-      model.position.y -= CONST.JUMPING_SPEED;
+      model.position.y -= CONST.JUMPING_SPEED * delta;
       player.isJumping = true;
     }
     // Hit the ground
@@ -80,7 +80,7 @@ export function usePlayerControls() {
     if (!player || !player.model || player.isDead) return;
 
     const { model } = player;
-    const isJumping = handleJumping(player);
+    const isJumping = handleJumping(player, delta);
     const { dir, speed, nextRotY, isWalking } = handleWalking(player);
     const { handleMoving } = alpacaAI(); // for double click moving
 

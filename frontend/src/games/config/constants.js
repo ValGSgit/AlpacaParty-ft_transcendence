@@ -6,8 +6,8 @@ export const CONST = {
   PLAYER_FORWARD_SPEED: 0.2,
   PLAYER_ROTATION: 0.05,
 
-  JUMPING_SPEED: 0.1,
-  JUMPING_MAX_HEIGHT: 2,
+  JUMPING_SPEED: 9,
+  JUMPING_MAX_HEIGHT: 3,
 
   CALIBRATION: 25, // Change this for animation speed
 
