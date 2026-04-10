@@ -62,9 +62,11 @@ describe("User.findByUsername", () => {
     mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
     const result = await User.findByUsername("tester");
     expect(result).toEqual(fakeUser);
-    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
-      where: { username: "tester" },
-    });
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { username: "tester" },
+      }),
+    );
   });
 
   test("should return null when username not found", async () => {
@@ -79,9 +81,11 @@ describe("User.findByEmail", () => {
     mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
     const result = await User.findByEmail("tester@example.com");
     expect(result).toEqual(fakeUser);
-    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
-      where: { email: "tester@example.com" },
-    });
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { email: "tester@example.com" },
+      }),
+    );
   });
 
   test("should return null when email not found", async () => {
@@ -102,11 +106,11 @@ describe("User.create", () => {
     expect(result).toEqual(fakeUser);
     expect(mockPrisma.user.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           username: "tester",
           email: "tester@example.com",
-          passwordHash: "hashedpw",
-        },
+          userAuth: { create: { passwordHash: "hashedpw" } },
+        }),
       }),
     );
   });
