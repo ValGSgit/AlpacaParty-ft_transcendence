@@ -24,6 +24,7 @@ let authPasswordHash;
 
 beforeAll(async () => {
   authPasswordHash = await AuthService.hashPassword("TestPassword1234");
+  await prisma.user.deleteMany({});
 });
 
 beforeEach(async () => {

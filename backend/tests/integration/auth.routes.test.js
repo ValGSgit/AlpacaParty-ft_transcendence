@@ -23,6 +23,7 @@ let authPasswordHash;
 
 beforeAll(async () => {
   authPasswordHash = await AuthService.hashPassword("TestPassword1234");
+  await prisma.user.deleteMany({});
 });
 
 beforeEach(async () => {
@@ -92,7 +93,6 @@ describe("POST /api/auth/register", () => {
     });
 
     expect(res.status).toBe(409);
-    console.log(res.body);
     expect(res.body.error.message).toMatch(/user/i); // i == case insesitive
     expect(res.body.error.message).toMatch(/taken/i);
   });
@@ -186,7 +186,6 @@ describe("POST /api/auth/refresh", () => {
 describe("GET /api/auth/me", () => {
   test("401 without token", async () => {
     const res = await request.get("/api/auth/me");
-    console.log(res.body);
     expect(res.status).toBe(401);
     expect(res.body.error.message).toMatch(/authentication/i);
     expect(res.body.error.message).toMatch(/required/i);
