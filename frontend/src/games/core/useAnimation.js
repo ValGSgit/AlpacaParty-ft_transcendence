@@ -9,9 +9,8 @@ export function handleAnimation(player, animDir, speed) {
   const jumpAction = mixer.clipAction(animations[2])
   const deadAction = mixer.clipAction(animations[0])
 
-  const walkAction = speed > 0.2 ? mixer.clipAction(animations[3]) : mixer.clipAction(animations[5])
-  const calibration = speed > 0.2 ? 5 : CONST.CALIBRATION;
-
+  const walkAction = speed > 14.0 ? mixer.clipAction(animations[3]) : mixer.clipAction(animations[5])
+  const calibration = speed > 14.0 ? 0.125 : CONST.CALIBRATION
   let newAction = idleAction;
 
   if (!player.currentAction) {
@@ -36,8 +35,8 @@ export function handleAnimation(player, animDir, speed) {
     newAction = idleAction
   }
 
-/*   if (gUser.value.gameMode === 3 && !player.isJumping && !player.isDead)
-    newAction = walkAction // always walking in Alpaca Road mini game */
+  if (gMinigame.value.mode === 3 && !player.isJumping && !player.isDead)
+    newAction = walkAction // always walking in Alpaca Road mini game
 
   if (player.currentAction !== newAction) {
     player.currentAction.fadeOut(0.4)

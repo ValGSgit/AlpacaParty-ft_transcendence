@@ -180,7 +180,17 @@ function updateObstacles(delta) {
     item.position.z -= roadSpeed * delta;
     if (item.position.z < 0) {
       if (item.userData.isCollider === true && !item.pointGiven) {
-        awardPoints(item);
+          for (let i = 0; i < activePlayers.length; i++) {
+    if (!activePlayers[i].isDead && !activePlayers[i].isBeingHit) {
+      if (item.userData.isFullWidth) {
+        activePlayers[i].point++;
+      } else {
+        const distance = Math.abs(activePlayers[i].model.position.x - item.position.x);
+        if (distance < 0.1)
+          activePlayers[i].point++;
+      }
+    }
+  }
         item.pointGiven = true;
       }
 

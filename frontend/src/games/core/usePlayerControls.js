@@ -21,6 +21,7 @@ export function usePlayerControls() {
       keydown = keys.enter
     if (gMinigame.value.mode === 3 && player === gAlpacas[3])
       keydown = keys.q
+
     // Jump up
     if (keydown && model.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) {
       model.position.y += CONST.JUMPING_SPEED * delta;
@@ -45,18 +46,18 @@ export function usePlayerControls() {
     return isVerticalMoving;
   }
 
-  const handleWalking = (player) => {
+  const handleWalking = (player, delta) => {
     const { model } = player;
 
-    const rotSpeed = player.rotationSpeed;
-    let speed = player.speed;
+    const rotSpeed = player.rotationSpeed * delta;
+    let speed = player.speed * delta;
     let dir = 0;
     let nextRotY = model.rotation.y;
     let isWalking = false;
     if (gUser.value.gameMode !== 3) // no walking for alpaca road mini game
     {
       if (keys.w) { dir = 1; isWalking = true; }
-      if (keys.s) { dir = -1; speed = CONST.PLAYER_BACKWARD_SPEED; isWalking = true; }
+      if (keys.s) { dir = -1; speed = speed * 0.5; isWalking = true; }
       if (keys.a) { nextRotY += rotSpeed; isWalking = true; }
       if (keys.d) { nextRotY -= rotSpeed; isWalking = true; }
     }
@@ -81,7 +82,7 @@ export function usePlayerControls() {
 
     const { model } = player;
     const isJumping = handleJumping(player, delta);
-    const { dir, speed, nextRotY, isWalking } = handleWalking(player);
+    const { dir, speed, nextRotY, isWalking } = handleWalking(player, delta);
     const { handleMoving } = alpacaAI(); // for double click moving
 
     if (isWalking) {

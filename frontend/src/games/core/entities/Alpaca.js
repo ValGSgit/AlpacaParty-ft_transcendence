@@ -77,17 +77,23 @@ export class Alpaca {
     return CONST.PLAYER_ROTATION + this.rotationOffset;
   }
 
-  // CONST.PLAYER_FORWARD_SPEED = 0.2
+  // CONST.PLAYER_FORWARD_SPEED = 14.0
   changeSpeed(amount) {
-    if (this.speedOffset + amount < -0.1) {
-      this.speedOffset = -0.1
-    } else if (this.speedOffset + amount > 0.1) {
-      this.speedOffset = 0.1
-    } else {
-      this.speedOffset += amount;
+    const isIncrease = amount > 0 ? true : false;
+    const speedAdjustment = 4.0;
+
+    console.log("isIncrease:", isIncrease);
+    if (isIncrease)
+    {
+      if (this.speedOffset <= 0)
+        this.speedOffset += speedAdjustment;
+    }
+    else {
+      if (this.speedOffset >= 0)
+        this.speedOffset -= speedAdjustment;
     }
   }
-
+ 
   update(delta) {
     const player = gPlayer.value;
     const isPlayer = (player && this.model.uuid === player.model.uuid);
