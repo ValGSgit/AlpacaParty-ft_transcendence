@@ -1,11 +1,16 @@
 import { gAlpacas, gCollectables, gCollidables, gEditables, gItems, gUser } from "./globals";
 
 export function printDebug() {
-  console.log("gAlpacas.length = ", gAlpacas.length)
-  console.log("gItems.length = ", gItems.length)
-  console.log("gCollectables.length = ", gCollectables.length)
-  console.log("gCollidables.length = ", gCollidable.length)
-  console.log("gEditables.length = ", gEditables.length)
+  if (gAlpacas)
+    console.log("gAlpacas.length = ", gAlpacas.length)
+  if (gItems)
+    console.log("gItems.length = ", gItems.length)
+  if (gCollectables)
+    console.log("gCollectables.length = ", gCollectables.length)
+  if (gCollidables)
+    console.log("gCollidables.length = ", gCollidable.length)
+  if(gEditables)
+    console.log("gEditables.length = ", gEditables.length)
   //resetValues()
 }
 

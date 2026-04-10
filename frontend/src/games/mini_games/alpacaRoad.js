@@ -2,17 +2,18 @@ import * as THREE from 'three';
 import * as PRIMITIVES from '../assets/primitives.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca, createItem } from '../core/createObjects.js';
-import { gItems, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
+import { gItems, gMinigame, gPlayer, gScene, gUI} from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
 import { removeObject } from '../core/removeObjects.js';
 import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
 import { getRandomTimer } from '../utils/randomValues.js';
 import { setupLighting } from '../world/sceneBuilder.js';
+import { useFloatingText } from '../components/floatingText';
 
 const roadLength = 150;
 const roadOffset = 25;
-const roadSpeed = 15;
+const roadSpeed = 50;
 
 let obstacleTimer = 2;
 const poleMat = new THREE.MeshStandardMaterial({ color: '#990000' });
@@ -26,11 +27,11 @@ let level = 0;
 let alivePlayers;
 let activePlayers = [];
 const playerPositions = [-2.5, 2.5, -7.5, 7.5];
+const { spawnFloatingText } = useFloatingText();
 
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
   level = 0;
   gUI.cameraMode = 2;
-  gMinigame.value.mode = 3;
 
   gItems.length = 0;
 
@@ -38,8 +39,8 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
   await initPlayers(playerCount, tempAlpacas);
   alivePlayers = playerCount;
 
+  gMinigame.value.mode = 3;
   gMinigame.value.isActive = true;
-  gUser.value.gameMode = 3;
   gUI.lockCamera = true;
 }
 
@@ -114,7 +115,7 @@ export function updateAlpacaRoad(delta) {
 }
 
 function spawnObstacles(delta) {
-  if (!gUser.value.isPlaying || !pole) return; // Don't spawn if the game is over
+  if (!gMinigame.value.isActive || !pole) return; // Don't spawn if the game is over
 
   obstacleTimer -= delta;
 
@@ -164,7 +165,7 @@ function updatePlayers(delta) {
     if (alpaca.isBeingHit) {
       spinAlpacaUp(alpaca, delta);
     }
-    if (alpaca.isDead && !alpaca.isBeingHit && gUser.value.isPlaying) {
+    if (alpaca.isDead && !alpaca.isBeingHit) {
       if (alpaca.model.position.z > -roadLength / 2 + roadOffset) {
         alpaca.model.position.z -= (roadSpeed * delta);
       }
@@ -173,46 +174,39 @@ function updatePlayers(delta) {
 }
 
 function updateObstacles(delta) {
-  if (!gUser.value.isPlaying || !pole) return;
+  //if (!gMinigame.value.isActive || !pole) return;
 
   for (let j = gItems.length - 1; j >= 0; j--) {
     let item = gItems[j];
     item.position.z -= roadSpeed * delta;
     if (item.position.z < 0) {
       if (item.userData.isCollider === true && !item.pointGiven) {
-          for (let i = 0; i < activePlayers.length; i++) {
-    if (!activePlayers[i].isDead && !activePlayers[i].isBeingHit) {
-      if (item.userData.isFullWidth) {
-        activePlayers[i].point++;
-      } else {
-        const distance = Math.abs(activePlayers[i].model.position.x - item.position.x);
-        if (distance < 0.1)
-          activePlayers[i].point++;
+        awardPoints(item);
       }
-    }
-  }
-        item.pointGiven = true;
-      }
-
       if (item.position.z < -roadLength / 2 + roadOffset) {
         removeObject(item);
       }
     }
   }
-}-
+}
 
 function  awardPoints(item) {
   for (let i = 0; i < activePlayers.length; i++) {
-    if (!activePlayers[i].isDead && !activePlayers[i].isBeingHit) {
+    const alpaca = activePlayers[i];
+    if (!alpaca.isDead && !alpaca.isBeingHit) {
       if (item.userData.isFullWidth) {
-        activePlayers[i].point++;
+        alpaca.point++;
+        spawnFloatingText(alpaca.model, '+1');
       } else {
-        const distance = Math.abs(activePlayers[i].model.position.x - item.position.x);
-        if (distance < 0.1)
+        const distance = Math.abs(alpaca.model.position.x - item.position.x);
+        if (distance < 0.25) {
           activePlayers[i].point++;
+          spawnFloatingText(alpaca.model, '+1');
+        }
       }
     }
   }
+  item.pointGiven = true;
 }
 
 function updateRoad(delta) {
@@ -255,12 +249,12 @@ function checkAlpaca(alpaca) {
   if (isColliding) {
     alpaca.isBeingHit = true;
     alpaca.hp--;
+    spawnFloatingText(alpaca.model, '-💔', 'hearts');
     if (alpaca.hp === 0) {
       alpaca.isDead = true;
       alivePlayers--;
       if (alivePlayers === 0) {
-        gMinigame.value.isActive = false;
-        gUser.value.isPlaying = false; // TODO
+        gMinigame.value.isActive = false
       }
     }
   }

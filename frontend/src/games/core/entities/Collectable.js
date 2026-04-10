@@ -44,7 +44,7 @@ export class Collectable {
     const distance = this.model.position.distanceTo(gPlayer.value.model.position);
     if (distance < 2.5) {
       gUser.value.coins += 1;
-      spawnFloatingText(this.model, '+1');
+      spawnFloatingText(this.model, '+1', 'coins');
       this.destroy();
     }
   }

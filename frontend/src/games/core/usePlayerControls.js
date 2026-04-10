@@ -54,7 +54,7 @@ export function usePlayerControls() {
     let dir = 0;
     let nextRotY = model.rotation.y;
     let isWalking = false;
-    if (gUser.value.gameMode !== 3) // no walking for alpaca road mini game
+    if (gMinigame.mode !== 3) // no walking for alpaca road mini game
     {
       if (keys.w) { dir = 1; isWalking = true; }
       if (keys.s) { dir = -1; speed = speed * 0.5; isWalking = true; }

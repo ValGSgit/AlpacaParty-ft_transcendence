@@ -10,7 +10,7 @@ export async function saveGame() {
     return
   }
 
-  if (gUser.value.gameMode)
+  if (gMinigame.mode)
     return
 
   const saveAlpacas = gAlpacas.map(alpaca => {

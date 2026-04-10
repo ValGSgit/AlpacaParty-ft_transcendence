@@ -11,35 +11,35 @@
   
   <div v-if="gameIsReady">
 
-    <div v-if="gUser.gameMode === 1 && gUser.hp" class="title">Spit Royale</div>
-    <div v-if="gUser.gameMode === 2 && gUser.hp" class="title">Spit Royale</div>
-<div v-if="gUser.gameMode && !gUser.isPlaying" class="modal-overlay">
+    <div v-if="gMinigame.mode === 1 && gUser.hp" class="title">Spit Royale</div>
+    <div v-if="gMinigame.mode === 2 && gUser.hp" class="title">Spit Royale</div>
+<div v-if="gMinigame.mode && !gMinigame.isActive" class="modal-overlay">
   <div class="shop-title">
     <div v-if="!gUser.hp">Game Over!</div>
     <div v-if="gUser.hp">Congratulation! You Win!</div>
     
-    <button v-if="gUser.gameMode === 1" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
-    <button v-if="gUser.gameMode === 2" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
+    <button v-if="gMinigame.mode === 1" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
+    <button v-if="gMinigame.mode === 2" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
     
-    <template v-if="gUser.gameMode === 3">
+    <template v-if="gMinigame.mode === 3">
       <button v-for="player in gMinigame.players" :key="'end-' + player.id" class="shop-btn">
         {{ player.name || `P${player.id}` }} Score: {{ player.point }} 🪵
       </button>
     </template>
 
     <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
-      <button class="shop-btn"@click="changeGame(gUser.gameMode, playerCount)">Play Again 🔄</button>
+      <button class="shop-btn"@click="changeGame(gMinigame.mode, playerCount)">Play Again 🔄</button>
       <button class="shop-btn" @click="changeGame()" title="Return to Farm">Return to Farm 🚜</button>
     </div>
   </div>
 </div>
 
   <div class="hud-container hud-left">
-      <div v-if="gUser.gameMode === 0" class="stat"><span>💰 {{ gUser.coins }}</span></div>
-      <div v-if="gUser.gameMode === 1 || gUser.gameMode === 2" class="stat">
+      <div v-if="gMinigame.mode === 0" class="stat"><span>💰 {{ gUser.coins }}</span></div>
+      <div v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="stat">
         <span>🦙 {{ gUser.point }} </span>
       </div>
-      <template v-if="gUser.gameMode === 3">
+      <template v-if="gMinigame.mode === 3">
         <div v-for="player in gMinigame.players" :key="'ui-' + player.id" class="stat multiplayer-row">
           <span class="p-name">{{ player.name || `P${player.id}`}}:</span>
           <span class="p-hp">{{ getHearts(player.hp) }}</span>
@@ -48,7 +48,7 @@
       </template>
     </div>
 
-    <div v-if="gUser.gameMode === 1 || gUser.gameMode === 2" class="hud-hp">
+    <div v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="hud-hp">
       <div class="stat">
         <span>{{ getHearts(gUser.hp) }}</span>
       </div>
@@ -58,7 +58,7 @@
       <div 
         v-for="popup in floatingTexts" 
         :key="popup.id" 
-        class="floating-text"
+        :class="['floating-text', `floating-text-${popup.type}`]"
         :style="{ left: popup.x + 'px', top: popup.y + 'px' }"
       >
         {{ popup.text }}
@@ -67,11 +67,11 @@
 
     <div class="hud-container hud-right">
       <button class="hud-btn" @click="openGameMenu()" title="Mini Games">🕹️</button>
-      <button v-if="!gUser.gameMode" class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🪙</button>
-      <button v-if="!gUser.gameMode" class="hud-btn" @click="openShopMenu()" title="Shop">🛍️</button>
-      <button v-if="!gUser.gameMode" class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
-      <button v-if="!gUser.gameMode" class="hud-btn" @click="openLightMenu()" title="Edit Light">☀️</button>
-      <button v-if="!gUser.gameMode" class="hud-btn" @click="changeCamera()" title="Change Camera">🎥</button>    
+      <button v-if="!gMinigame.mode" class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;">🪙</button>
+      <button v-if="!gMinigame.mode" class="hud-btn" @click="openShopMenu()" title="Shop">🛍️</button>
+      <button v-if="!gMinigame.mode" class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
+      <button v-if="!gMinigame.mode" class="hud-btn" @click="openLightMenu()" title="Edit Light">☀️</button>
+      <button v-if="!gMinigame.mode" class="hud-btn" @click="changeCamera()" title="Change Camera">🎥</button>    
 
 </div>
     
@@ -270,7 +270,7 @@ import { updateAlpacas } from './core/entities/Alpaca.js'
 import { updateCollectables } from './core/entities/Collectable.js'
 import { shopItems } from './core/entities/Item.js'
 import { cleanupFPSstats } from './core/FPSstats.js'
-import { gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser } from './core/globals.js'
+import { gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser} from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
 import { changeCamera, checkControlsEnabled, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'

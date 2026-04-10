@@ -1,6 +1,9 @@
 import { CONST } from '../config/constants.js';
+import { gMinigame } from '../core/globals.js';
 
 export function initUser() {
+  //TODO: for testing
+  gMinigame.value.mode = 3;
   //for loading data from backend also ?
   let coins = 999
   let upgrades = 0

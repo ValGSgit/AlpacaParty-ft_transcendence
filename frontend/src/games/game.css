@@ -506,13 +506,31 @@ input:checked+.slider:before {
   z-index: 500;
 }
 
-.floating-text {
+/* SHARED FLOATING TEXT */
+.floating-text, .floating-text-coins, .floating-text-hearts {
   position: absolute;
-  color: #ffd700;
   font-size: 28px;
   font-weight: 900;
-  text-shadow: 1px 3px 0px #b8860b, 0px 4px 6px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
   animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.floating-text {
+  color: #00f0ff;
+  margin-top: -100px;
+  text-shadow: 1px 3px 0px #007780, 0px 4px 6px rgba(0, 0, 0, 0.5);
+}
+
+.floating-text-coins {
+  color: #ffd700;
+  margin-top: -40px;
+  margin-left: 20px;
+  text-shadow: 1px 3px 0px #b8860b, 0px 4px 6px rgba(0, 0, 0, 0.5);
+}
+
+.floating-text-hearts {
+  color: #ff0000;
+  text-shadow: 1px 3px 0px #491010, 0px 4px 6px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes floatUp {

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { alpacaAI } from '../../components/alpacaAI.js';
 import { alpacaHandling } from '../../components/alpacaHandling.js';
 import { CONST } from '../../config/constants.js';
-import { gAlpacas, gCollidables, gPlayer, gUI, gUser } from '../globals.js';
+import { gAlpacas, gCollidables, gPlayer, gUI, gUser, gMinigame } from '../globals.js';
 import { removeFromArray } from '../removeObjects.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
@@ -105,7 +105,7 @@ export class Alpaca {
     if (gUI.editMode) {
       this.isMoving = false;
       this.animDir = 0;
-    } else if (!isPlayer && gUser.value.gameMode !== 3) {
+    } else if (!isPlayer && gMinigame.mode !== 3) {
       updateAI(this, delta);
       this.animDir = this.isMoving ? 1 : 0;
     } else {
@@ -127,7 +127,7 @@ export class Alpaca {
   beingHit(alpaca) {
     if (this.isDead)
       return
-    if (this.hp > 0 && gUser.value.gameMode) // only reduce hp in mini games
+    if (this.hp > 0 && gMinigame.mode) // only reduce hp in mini games
     {
       this.hp--
       if (this === gPlayer.value)

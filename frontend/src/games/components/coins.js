@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CONST } from '../config/constants.js';
 import { collectables } from '../core/entities/Collectable.js';
-import { gScene, gUser } from '../core/globals.js';
+import { gMinigame, gScene, gUser } from '../core/globals.js';
 import { getRandomTimer } from '../utils/randomValues.js';
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js';
 
@@ -24,7 +24,7 @@ async function spawnCoin() {
 }
 
 export async function updateCoins(delta) {
-  if (gUser.value.gameMode) return;
+  if (gMinigame.mode !== 0) return;
 
   const spinSpeed = 1.5;
   coinsGroup.children.forEach((coin) => {

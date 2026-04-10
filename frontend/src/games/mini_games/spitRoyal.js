@@ -1,6 +1,6 @@
 import { alpacaHandling } from '../components/alpacaHandling.js';
 import { createAlpaca } from '../core/createObjects.js';
-import { gPlayer, gScene, gUI, gUser } from '../core/globals.js';
+import { gPlayer, gScene, gUI, gUser, gMinigame } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
 import { getValidRandomPos, spawnObjectRandomly } from '../utils/spawnRandomly.js';
 import { setupEnvironment } from '../world/sceneBuilder.js';
@@ -13,7 +13,7 @@ let originalSpitFn = null; // Store the original spit function to restore later
 
 
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
-  gUser.value.gameMode = 1
+  gMinigame.mode = 1
   setupEnvironment(gScene.value)
   changeFloorColor('#ff0000', '#550000')
   registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
@@ -36,7 +36,7 @@ export async function initSpitRoyalAI(playerCount, tempAlpacas) {
 }
 
 export async function initSpitRoyalOnline() {
-  gUser.value.gameMode = 2;
+  gMinigame.mode = 2;
   setupEnvironment(gScene.value);
   changeFloorColor('#ff0000', '#550000');
   registerEntity(gPlayer.value, 'alpaca');
