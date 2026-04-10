@@ -3,7 +3,7 @@ import { alpacaAI } from '../../components/alpacaAI.js';
 import { alpacaHandling } from '../../components/alpacaHandling.js';
 import { CONST } from '../../config/constants.js';
 import { gAlpacas, gCollidables, gPlayer, gUI, gUser } from '../globals.js';
-import { removeFromRegistry } from '../removeObjects.js';
+import { removeFromArray } from '../removeObjects.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
 
@@ -137,7 +137,7 @@ export class Alpaca {
     if (this.hp === 0) {
       this.isDead = 1 // dead
       //remove itself from gCollidables
-      removeFromRegistry(this.model, gCollidables)
+      removeFromArray(this.model, gCollidables)
       alpaca.point++ // credit for the spit owner
       if (alpaca === gPlayer.value)
         gUser.value.point++ // for display

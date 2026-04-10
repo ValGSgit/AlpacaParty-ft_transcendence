@@ -355,7 +355,7 @@ const gameLoop = () => {
   updateAlpacas(delta);
   updateCollectables(player, delta);
   updateCoins(delta);
-  updateSpits()
+  updateSpits(delta)
   updateLighting(delta);
 
   if (gMinigame.value.isActive && gMinigame.value.mode === 3)

@@ -3,12 +3,12 @@ import { gAlpacas, gCollectables, gCollidables, gEditables, gItems } from "./glo
 export function removeObject(entity) {
   const model = entity.model ? entity.model : entity;
 
-  removeFromRegistry(entity, gAlpacas);
-  removeFromRegistry(entity, gItems);
-  removeFromRegistry(entity, gCollectables);
+  removeFromArray(entity, gAlpacas);
+  removeFromArray(entity, gItems);
+  removeFromArray(entity, gCollectables);
 
-  removeFromRegistry(model, gCollidables);
-  removeFromRegistry(model, gEditables);
+  removeFromArray(model, gCollidables);
+  removeFromArray(model, gEditables);
 
   if (model && model.parent) {
     model.removeFromParent()
@@ -16,7 +16,7 @@ export function removeObject(entity) {
   }
 }
 
-export function removeFromRegistry(item, array) {
+export function removeFromArray(item, array) {
   const index = array.indexOf(item);
   if (index > -1) {
     array.splice(index, 1);

@@ -53,23 +53,22 @@ export function alpacaHandling() {
       currentPos: origin,
       distanceTraveled: 0,
       maxDistance: 15,
-      speed: 0.5 // Adjust this to make it slower or faster
+      speed: 30 // Adjust this to make it slower or faster
     });
   };
 
-  const updateSpits = () => {
+  const updateSpits = (delta) => {
 
     for (let i = activeSpits.length - 1; i >= 0; i--) {
       const s = activeSpits[i];
 
-      // 1. Move the projectile forward
-      const step = s.direction.clone().multiplyScalar(s.speed);
+      const step = s.direction.clone().multiplyScalar(s.speed * delta);
       s.currentPos.add(step);
       s.mesh.position.copy(s.currentPos);
-      s.distanceTraveled += s.speed;
+      s.distanceTraveled += s.speed * delta;
 
       // 2. Raycast from current position to check for hits in this "frame"
-      const raycaster = new THREE.Raycaster(s.currentPos, s.direction, 0, s.speed);
+      const raycaster = new THREE.Raycaster(s.currentPos, s.direction, 0, s.speed * delta);
       // In multiplayer, we also need to check hits against remote players!
       // Remote players are added straight to gScene, so let's just raycast the whole scene 
       // (or you can push remote players to gAlpacas temporarily)
