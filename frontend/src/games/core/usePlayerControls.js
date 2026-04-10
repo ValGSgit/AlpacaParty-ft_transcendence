@@ -2,7 +2,7 @@ import { CONST } from '../config/constants.js'
 import { useInput } from './useInput.js'
 import { checkWithinBounds, usePhysics } from './usePhysics.js'
 import { alpacaAI } from '../components/alpacaAI.js';
-import { gUser, gPlayer, gAlpacas } from './globals.js';
+import { gUser, gPlayer, gAlpacas, gMinigame } from './globals.js';
 
 export function usePlayerControls() {
   const { keys } = useInput()
@@ -15,11 +15,11 @@ export function usePlayerControls() {
 
     if (player === gPlayer.value)
       keydown = keys.space
-    if (gUser.value.gameMode === 3 && player === gAlpacas[1])
+    if (gMinigame.value.mode === 3 && player === gAlpacas[1])
       keydown = keys.l
-    if (gUser.value.gameMode === 3 && player === gAlpacas[2])
+    if (gMinigame.value.mode === 3 && player === gAlpacas[2])
       keydown = keys.enter
-    if (gUser.value.gameMode === 3 && player === gAlpacas[3])
+    if (gMinigame.value.mode === 3 && player === gAlpacas[3])
       keydown = keys.q
     // Jump up
     if (keydown && model.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) {

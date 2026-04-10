@@ -358,7 +358,7 @@ const gameLoop = () => {
   updateSpits()
   updateLighting(delta);
 
-  if (gMinigame.value.isActive && gUser.value.gameMode === 3)
+  if (gMinigame.value.isActive && gMinigame.value.mode === 3)
   {
     updateAlpacaRoad(delta)
   }

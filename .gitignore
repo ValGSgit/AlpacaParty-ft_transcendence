@@ -42,3 +42,6 @@ coverage/
 **/coverage/
 playwright-report/
 test-results/
+
+# ── Prisma ───────────────────────────────────────────────────
+backend/prisma/migrations

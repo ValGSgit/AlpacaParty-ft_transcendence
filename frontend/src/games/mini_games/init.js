@@ -59,8 +59,6 @@ async function returnFarm() {
   const { isAuthenticated } = useAuthStore()
   gMinigame.value.isActive = false;
   gMinigame.value.mode = 0;
-  gUser.value.isPlaying = false
-  gUser.value.gameMode = 0
   gPlayer.value = null
   gUI.cameraMode = 0
   await initWorld(gScene.value, isAuthenticated)

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as PRIMITIVES from '../assets/primitives.js';
 import { CONST } from '../config/constants.js';
-import { createAlpaca } from '../core/createObjects.js';
+import { createAlpaca, createItem } from '../core/createObjects.js';
 import { gItems, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
 import { removeObject } from '../core/removeObjects.js';
@@ -16,7 +16,7 @@ const roadSpeed = 15;
 
 let obstacleTimer = 2;
 const poleMat = new THREE.MeshStandardMaterial({ color: '#990000' });
-const pole = PRIMITIVES.Cylinder(0.5, 20, 64, poleMat);
+const pole = PRIMITIVES.Cylinder(0.5, 20, 64, poleMat);;
 const singlePole = PRIMITIVES.Cylinder(0.5, 5, 64, poleMat);
 
 const roadStripes = [];
@@ -28,39 +28,31 @@ let activePlayers = [];
 const playerPositions = [-2.5, 2.5, -7.5, 7.5];
 
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
-  gUser.value.gameMode = 3; // TODO: remove this
-  gMinigame.value.isActive = true;
-  gMinigame.value.mode = 3;
-  gUI.cameraMode = 2;
-  gUI.lockCamera = true;
-
   level = 0;
-  setupRoadScene(gScene.value);
-  //setupCamera()
-  initRoadStripes();
+  gUI.cameraMode = 2;
+  gMinigame.value.mode = 3;
+
+  gItems.length = 0;
+
+  await setupRoadScene(gScene.value);
   await initPlayers(playerCount, tempAlpacas);
   alivePlayers = playerCount;
+
+  gMinigame.value.isActive = true;
+  gUser.value.gameMode = 3;
+  gUI.lockCamera = true;
 }
 
-// function setupCamera() {
-//   gUI.lockCamera = true;
-//   const camera = gEngine.value.camera;
-//   camera.position.set(0, 15, -30);
-//   //camera.lookAt(0, 0, 20);
-
-//   if (gEngine.value.controls) {
-//     gEngine.value.controls.target.set(0, 0, 20);
-//     gEngine.value.controls.update();
-//   }
-// }
-
-function setupRoadScene(scene) {
+async function setupRoadScene(scene) {
   setupLighting(scene);
   const road = PRIMITIVES.Box(30, 1, roadLength, '#666666')
   road.position.y = -road.geometry.parameters.height / 2;
   road.position.z += roadOffset;
-
   scene.add(road)
+
+  //const itemData = await createItem('/models/lamp.glb');
+
+  initRoadStripes();
 }
 
 async function initPlayers(playerCount, tempAlpacas) {
@@ -122,16 +114,16 @@ export function updateAlpacaRoad(delta) {
 }
 
 function spawnObstacles(delta) {
-  if (!gUser.value.isPlaying) return; // Don't spawn if the game is over
+  if (!gUser.value.isPlaying || !pole) return; // Don't spawn if the game is over
 
   obstacleTimer -= delta;
-  let obstacle;
 
   if (obstacleTimer <= 0) {
     obstacleTimer = getRandomTimer() / 2; // 1 - 4 sec
     const validLanes = getValidLanes();
     const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
 
+    let obstacle;
     if (pos < 4) {
       obstacle = singlePole.clone();
       obstacle.position.x = playerPositions[pos];
@@ -181,40 +173,33 @@ function updatePlayers(delta) {
 }
 
 function updateObstacles(delta) {
-  if (!gUser.value.isPlaying) return;
+  if (!gUser.value.isPlaying || !pole) return;
 
   for (let j = gItems.length - 1; j >= 0; j--) {
     let item = gItems[j];
-
-    // Beautiful use of Units Per Second here!
     item.position.z -= roadSpeed * delta;
-
     if (item.position.z < 0) {
       if (item.userData.isCollider === true && !item.pointGiven) {
-
-        // Check who gets a point!
-        for (let i = 0; i < activePlayers.length; i++) {
-          if (!activePlayers[i].isDead && !activePlayers[i].isBeingHit) {
-
-            // If it's a massive pole, everyone alive gets a point
-            if (item.userData.isFullWidth) {
-              activePlayers[i].point++;
-            }
-            // If it's a small pole, only the player in that lane gets a point
-            else {
-              const distance = Math.abs(activePlayers[i].model.position.x - item.position.x);
-              if (distance < 0.1) {
-                activePlayers[i].point++;
-              }
-            }
-
-          }
-        }
+        awardPoints(item);
         item.pointGiven = true;
       }
 
       if (item.position.z < -roadLength / 2 + roadOffset) {
         removeObject(item);
+      }
+    }
+  }
+}-
+
+function  awardPoints(item) {
+  for (let i = 0; i < activePlayers.length; i++) {
+    if (!activePlayers[i].isDead && !activePlayers[i].isBeingHit) {
+      if (item.userData.isFullWidth) {
+        activePlayers[i].point++;
+      } else {
+        const distance = Math.abs(activePlayers[i].model.position.x - item.position.x);
+        if (distance < 0.1)
+          activePlayers[i].point++;
       }
     }
   }
