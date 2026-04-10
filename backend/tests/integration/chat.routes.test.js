@@ -19,7 +19,6 @@ import ChatRoom from "#models/ChatRoom.js";
 
 let app;
 let request;
-let validToken;
 let users;
 let validUser;
 let chatRoom1;
@@ -42,7 +41,7 @@ async function setupUsers() {
     username: users[1].username,
   };
 
-  validToken = AuthService.generateAccessToken({
+  const validToken = AuthService.generateAccessToken({
     id: user.id,
     username: user.username,
     is_admin: false,
@@ -122,7 +121,7 @@ describe("GET /api/chat/conversations", () => {
   test("200 — returns conversations", async () => {
     const res = await request
       .get("/api/chat/conversations")
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Authorization", `Bearer ${validUser.token}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("conversations");
     expect(res.body.conversations.length).toBe(2);
