@@ -3,6 +3,24 @@
     <div class="shop-title">Welcome to Alpaca Party!
       <button class="shop-btn" @click="warningOff" title="Close">Try</button>
       <router-link to="/login" class="shop-btn">Login</router-link>
+      <div class="features">
+      <div class="feature-card">
+        <h3>🦙 Raise Alpacas</h3>
+        <p>Buy, name and customise alpacas with unique colours and speeds.</p>
+      </div>
+      <div class="feature-card">
+        <h3>🌳 Build Your Farm</h3>
+        <p>Plant trees, expand land and decorate your world.</p>
+      </div>
+      <div class="feature-card">
+        <h3>💰 Earn Coins</h3>
+        <p>Collect coins to unlock upgrades and grow your herd.</p>
+      </div>
+        <div class="feature-card">
+        <h3>🕹️ Mini Games</h3>
+        <p>Play Mini games with your friends, online and offline.</p>
+      </div>
+    </div>
     </div>
   </div>
   
@@ -310,6 +328,7 @@ let stats;
 let playerCount = 1
 
 onMounted(async () => {
+  document.body.classList.add('lock-screen');
   const { isAuthenticated } = useAuthStore()
   if (!isAuthenticated)
     showLoginWarning.value = true
@@ -378,6 +397,7 @@ const gameLoop = () => {
 }
 
 onUnmounted(() => {
+  document.body.classList.remove('lock-screen');
   saveGame()
   if (stopMyWatcher) stopMyWatcher()
   cancelAnimationFrame(animationFrameId)

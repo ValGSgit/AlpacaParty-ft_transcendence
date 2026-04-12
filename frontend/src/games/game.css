@@ -6,7 +6,10 @@ body,
 html {
   margin: 0;
   padding: 0;
-  overflow: hidden;
+}
+
+.lock-screen {
+  overflow: hidden !important;
 }
 
 .scene-container {
@@ -644,4 +647,35 @@ input:checked+.slider:before {
   flex-shrink: 0;
   white-space: nowrap;
   text-align: right;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem 0 3rem;
+}
+
+.feature-card {
+  background: var(--bg-secondary, #12121a);
+  border: 1px solid var(--border-color, #2a2a3a);
+  border-radius: 12px;
+  padding: 1.75rem 1.25rem;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.feature-card:hover {
+  border-color: var(--primary, #00f0ff);
+  transform: translateY(-3px);
+}
+
+.feature-card h3 {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 1.1rem;
+  color: #eee;
+}
+
+.feature-card p {
+  font-size: 0.9rem;
+  color: #888;
+  line-height: 1.5;
 }
