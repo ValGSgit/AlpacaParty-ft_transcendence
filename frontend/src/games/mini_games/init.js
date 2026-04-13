@@ -15,7 +15,7 @@ const tempAlpacas = []
 
 export async function changeGame(mode, playerCount) {
   if (!gPlayer.value || !gUser.value) return;
-  if (gMinigame.mode === 0)
+  if (gMinigame.value.mode === 0)
     saveGame()
   // clean up all clients
   cleanupClient()

@@ -60,7 +60,7 @@ export function useInput() {
 
   const onDoubleClick = (e) => {
     // disable double click in mini games
-    if (gMinigame.mode)
+    if (gMinigame.value.mode)
       return
     console.log("double Click!");
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()

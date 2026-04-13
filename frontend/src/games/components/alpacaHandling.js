@@ -72,13 +72,13 @@ export function alpacaHandling() {
       // In multiplayer, we also need to check hits against remote players!
       // Remote players are added straight to gScene, so let's just raycast the whole scene 
       // (or you can push remote players to gAlpacas temporarily)
-      const targets = gMinigame.mode === 2 ? gScene.value.children : gAlpacas.map(a => a.model);
+      const targets = gMinigame.value.mode === 2 ? gScene.value.children : gAlpacas.map(a => a.model);
       const hits = raycaster.intersectObjects(targets, true);
 
       if (hits.length > 0 || s.distanceTraveled > s.maxDistance) {
         
         if (hits.length > 0) {
-          if (gMinigame.mode !== 2) {
+          if (gMinigame.value.mode !== 2) {
             // --- SINGLE PLAYER LOGIC ---
             const hitAlpaca = findAlpaca(hits[0].object);
             if (hitAlpaca) hitAlpaca.beingHit(s.owner);

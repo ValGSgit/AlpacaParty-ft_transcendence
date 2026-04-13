@@ -24,7 +24,7 @@ async function spawnCoin() {
 }
 
 export async function updateCoins(delta) {
-  if (gMinigame.mode !== 0) return;
+  if (gMinigame.value.mode !== 0) return;
 
   const spinSpeed = 1.5;
   coinsGroup.children.forEach((coin) => {

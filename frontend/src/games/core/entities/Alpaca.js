@@ -105,7 +105,7 @@ export class Alpaca {
     if (gUI.editMode) {
       this.isMoving = false;
       this.animDir = 0;
-    } else if (!isPlayer && gMinigame.mode !== 3) {
+    } else if (!isPlayer && gMinigame.value.mode !== 3) {
       updateAI(this, delta);
       this.animDir = this.isMoving ? 1 : 0;
     } else {
@@ -127,7 +127,7 @@ export class Alpaca {
   beingHit(alpaca) {
     if (this.isDead)
       return
-    if (this.hp > 0 && gMinigame.mode) // only reduce hp in mini games
+    if (this.hp > 0 && gMinigame.value.mode) // only reduce hp in mini games
     {
       this.hp--
       if (this === gPlayer.value)

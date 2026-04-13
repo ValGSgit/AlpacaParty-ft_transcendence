@@ -13,7 +13,7 @@ let originalSpitFn = null; // Store the original spit function to restore later
 
 
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
-  gMinigame.mode = 1
+  gMinigame.value.mode = 1
   setupEnvironment(gScene.value)
   changeFloorColor('#ff0000', '#550000')
   registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
@@ -36,7 +36,7 @@ export async function initSpitRoyalAI(playerCount, tempAlpacas) {
 }
 
 export async function initSpitRoyalOnline() {
-  gMinigame.mode = 2;
+  gMinigame.value.mode = 2;
   setupEnvironment(gScene.value);
   changeFloorColor('#ff0000', '#550000');
   registerEntity(gPlayer.value, 'alpaca');
