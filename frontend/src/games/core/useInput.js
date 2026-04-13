@@ -3,7 +3,7 @@ import { reactive } from 'vue'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { useEditMode } from '../components/editMode.js'
 import { printDebug } from './debug.js'
-import { gEditState, gEngine, gPlayer, gScene, gUI, gUser } from './globals.js'
+import { gEditState, gEngine, gPlayer, gScene, gUI, gMinigame } from './globals.js'
 import { useUIManager } from './useUIManager.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions

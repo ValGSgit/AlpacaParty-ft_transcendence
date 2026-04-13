@@ -1,47 +1,54 @@
 import * as THREE from 'three';
 import * as PRIMITIVES from '../assets/primitives.js';
 import { CONST } from '../config/constants.js';
-import { createAlpaca, createItem } from '../core/createObjects.js';
-import { gItems, gMinigame, gPlayer, gScene, gUI} from '../core/globals.js';
+import { createAlpaca, createDecoration, createItem } from '../core/createObjects.js';
+import { gDecorations, gItems, gMinigame, gPlayer, gScene, gUI} from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
-import { removeObject } from '../core/removeObjects.js';
 import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
 import { getRandomTimer } from '../utils/randomValues.js';
 import { setupLighting } from '../world/sceneBuilder.js';
-import { useFloatingText } from '../components/floatingText';
+import { useFloatingText } from '../components/floatingText.js';
+import { removeObject } from '../core/removeObjects.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
-const roadLength = 150;
-const roadOffset = 25;
-const roadSpeed = 50;
-
-let obstacleTimer = 2;
-const poleMat = new THREE.MeshStandardMaterial({ color: '#990000' });
-const pole = PRIMITIVES.Cylinder(0.5, 20, 64, poleMat);;
-const singlePole = PRIMITIVES.Cylinder(0.5, 5, 64, poleMat);
-
-const roadStripes = [];
 const stripeLength = 10;
+const roadLength = 250;
+const roadOffset = 100;
+const roadSpeed = 100;
 
 let level = 0;
 let alivePlayers;
 let activePlayers = [];
 const playerPositions = [-2.5, 2.5, -7.5, 7.5];
+
+let obstacleTimer = 2;
+
+const fullPaths = ['models/lamp.glb']
+const singlePaths = ['models/trafficCones.glb']
+
+const fullObstacle = [];
+const singleObstacle = [];
+const activeObstacles = [];
+const roadScene = [];
+let assetsLoaded = false;
+
 const { spawnFloatingText } = useFloatingText();
 
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
   level = 0;
+  cleanupAlpacaRoad()
   gUI.cameraMode = 2;
 
-  gItems.length = 0;
-
   await setupRoadScene(gScene.value);
+  await loadObstacles(gScene.value);
   await initPlayers(playerCount, tempAlpacas);
   alivePlayers = playerCount;
 
   gMinigame.value.mode = 3;
   gMinigame.value.isActive = true;
   gUI.lockCamera = true;
+  assetsLoaded = true;
 }
 
 async function setupRoadScene(scene) {
@@ -51,9 +58,26 @@ async function setupRoadScene(scene) {
   road.position.z += roadOffset;
   scene.add(road)
 
-  //const itemData = await createItem('/models/lamp.glb');
-
+  const sidewalk = await createDecoration('/models/sidewalk.glb');
+  roadScene.push(sidewalk.model)
+  scene.add(sidewalk.model);
   initRoadStripes();
+}
+
+async function loadObstacles() {
+  if (fullObstacle.length === 0) {
+    const loadedFull = await Promise.all(fullPaths.map(path => createItem(path)));
+    loadedFull.forEach(item => {
+      fullObstacle.push(item.model);
+    });
+  }
+
+  if (singleObstacle.length === 0) {
+    const loadedSingle = await Promise.all(singlePaths.map(path => createItem(path)));
+    loadedSingle.forEach(item => {
+      singleObstacle.push(item.model);
+    });
+  }
 }
 
 async function initPlayers(playerCount, tempAlpacas) {
@@ -97,7 +121,7 @@ function initRoadStripes() {
       const roadStripe = stripe.clone();
       roadStripe.position.z = startZ - (row * spacingZ);
       roadStripe.position.x = offsetX;
-      roadStripes.push(roadStripe);
+      roadScene.push(roadStripe);
       gScene.value.add(roadStripe);
       offsetX += 5;
     }
@@ -106,16 +130,19 @@ function initRoadStripes() {
 
 //---------------------------- LOOP ----------------------------------
 
+
 export function updateAlpacaRoad(delta) {
-  spawnObstacles(delta)
-  updateObstacles(delta)
-  updatePlayers(delta)
-  updateRoad(delta)
-  //updateDifficulty()
+	if (!assetsLoaded) return;
+
+	spawnObstacles(delta)
+	updateObstacles(delta)
+	updatePlayers(delta)
+	updateRoadScene(delta)
+	//updateDifficulty()
 }
 
-function spawnObstacles(delta) {
-  if (!gMinigame.value.isActive || !pole) return; // Don't spawn if the game is over
+/* function spawnObstacles(delta) {
+  if (!gMinigame.value.isActive) return;
 
   obstacleTimer -= delta;
 
@@ -126,23 +153,68 @@ function spawnObstacles(delta) {
 
     let obstacle;
     if (pos < 4) {
-      obstacle = singlePole.clone();
+      obstacle = singleObstacle[0].clone();
+      attachCollider(obstacle);
       obstacle.position.x = playerPositions[pos];
       obstacle.userData.isFullWidth = false;
     } else {
-      obstacle = pole.clone();
+      obstacle = fullObstacle[0].clone();
+      attachCollider(obstacle);
+      obstacle.userData.isFullWidth = true;
+    }
+    obstacle.position.z = roadLength / 2 + roadOffset;
+
+    //attachCollider(obstacle);
+
+    obstacle.pointGiven = false;
+    obstacle.frustumCulled = false;
+    obstacle.traverse(child => { if(child.isMesh) child.frustumCulled = false; });
+
+
+    activeObstacles.push(obstacle);
+    gScene.value.add(obstacle);
+  }
+} */
+
+function spawnObstacles(delta) {
+  if (!gMinigame.value.isActive || fullObstacle.length === 0) return;
+
+  obstacleTimer -= delta;
+
+  if (obstacleTimer <= 0) {
+    obstacleTimer = getRandomTimer() / 2;
+    const validLanes = getValidLanes();
+    const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
+
+    let obstacle;
+    if (pos < 4) {
+      obstacle = singleObstacle[0].clone(); // .clone() is fine for non-skinned meshes
+      obstacle.position.x = playerPositions[pos];
+      obstacle.userData.isFullWidth = false;
+    } else {
+      // Use SkeletonUtils for the complex lamp model
+      //obstacle = SkeletonUtils.clone(fullObstacle[0]);
+      obstacle = fullObstacle[0].clone();
       obstacle.userData.isFullWidth = true;
     }
 
-    obstacle.position.z = roadLength / 2 + roadOffset;
+    
+    // 🚨 NO MORE attachCollider(obstacle) here! 
     attachCollider(obstacle);
-    obstacle.rotation.z = Math.PI / 2;
-    obstacle.position.y = 0.5;
+    // It was already done in loadObstacles, so the clones already have it.
+
+    obstacle.position.z = roadLength / 2 + roadOffset;
+
+
     obstacle.pointGiven = false;
-    registerEntity(obstacle, 'item');
+    obstacle.frustumCulled = false;
+    obstacle.traverse(child => { if(child.isMesh) child.frustumCulled = false; });
+
+    activeObstacles.push(obstacle);
     gScene.value.add(obstacle);
   }
 }
+  
 
 function getValidLanes() {
   const validLanes = [4];
@@ -174,49 +246,55 @@ function updatePlayers(delta) {
 }
 
 function updateObstacles(delta) {
-  //if (!gMinigame.value.isActive || !pole) return;
-
-  for (let j = gItems.length - 1; j >= 0; j--) {
-    let item = gItems[j];
-    item.position.z -= roadSpeed * delta;
-    if (item.position.z < 0) {
-      if (item.userData.isCollider === true && !item.pointGiven) {
-        awardPoints(item);
+  for (let j = activeObstacles.length - 1; j >= 0; j--) {
+    let obstacle = activeObstacles[j];
+    obstacle.updateMatrixWorld(true);
+    if (!obstacle) continue;
+    obstacle.position.z -= roadSpeed * delta;
+    if (obstacle.position.z < 0) {
+      if (obstacle.userData.isCollider === true && !obstacle.pointGiven) {
+        awardPoints(obstacle);
       }
-      if (item.position.z < -roadLength / 2 + roadOffset) {
-        removeObject(item);
+      if (obstacle.position.z < -roadLength / 2 + roadOffset) {
+        removeObstacle(obstacle, j);
       }
     }
   }
 }
 
-function  awardPoints(item) {
+function  awardPoints(obstacle) {
   for (let i = 0; i < activePlayers.length; i++) {
     const alpaca = activePlayers[i];
     if (!alpaca.isDead && !alpaca.isBeingHit) {
-      if (item.userData.isFullWidth) {
+      if (obstacle.userData.isFullWidth) {
         alpaca.point++;
         spawnFloatingText(alpaca.model, '+1');
       } else {
-        const distance = Math.abs(alpaca.model.position.x - item.position.x);
-        if (distance < 0.25) {
+        const distance = Math.abs(alpaca.model.position.x - obstacle.position.x);
+        if (distance < 1) {
           activePlayers[i].point++;
           spawnFloatingText(alpaca.model, '+1');
         }
       }
     }
   }
-  item.pointGiven = true;
+  obstacle.pointGiven = true;
 }
 
-function updateRoad(delta) {
+function removeObstacle(obstacle, index){
+  gScene.value.remove(obstacle);
+  activeObstacles.splice(index, 1);
+  removeObject(obstacle);
+}
+
+function updateRoadScene(delta) {
   const endZ = (-roadLength / 2 + roadOffset) + stripeLength / 2;
 
-  for (let i = 0; i < roadStripes.length; i++) {
-    const stripe = roadStripes[i];
-    stripe.position.z -= (roadSpeed * delta);
-    if (stripe.position.z < endZ) {
-      stripe.position.z += roadLength - stripeLength;
+  for (let i = 1; i < roadScene.length; i++) {
+    const item = roadScene[i];
+    item.position.z -= (roadSpeed * delta);
+    if (item.position.z < endZ) {
+      item.position.z += roadLength - stripeLength;
     }
   }
 }
@@ -245,17 +323,60 @@ function checkAlpaca(alpaca) {
 
   const { checkCollisionWith } = usePhysics();
 
-  const isColliding = checkCollisionWith(alpaca.model, gItems);
+  const isColliding = checkCollisionWith(alpaca.model, activeObstacles);
   if (isColliding) {
     alpaca.isBeingHit = true;
-    alpaca.hp--;
+    //alpaca.hp--;
     spawnFloatingText(alpaca.model, '-💔', 'hearts');
     if (alpaca.hp === 0) {
       alpaca.isDead = true;
       alivePlayers--;
       if (alivePlayers === 0) {
-        gMinigame.value.isActive = false
+        endMinigame();
       }
     }
   }
+}
+
+function endMinigame() {
+  let hitAlpacas;
+  for (let i = 0; i < activePlayers.length; i++) {
+    const alpaca = activePlayers[i];
+    if (alpaca.isBeingHit) hitAlpacas++;
+  }
+  if (hitAlpacas == alivePlayers)
+    gMinigame.value.isActive = false
+}
+
+export function cleanupAlpacaRoad() {
+  assetsLoaded = false;
+  gMinigame.value.isActive = false;
+
+  activeObstacles.forEach(obj => {
+    gScene.value.remove(obj);
+  });
+  activeObstacles.length = 0;
+
+  roadScene.forEach(item => {
+    gScene.value.remove(item);
+  });
+  roadScene.length = 0;
+
+  activePlayers.forEach(alpaca => {
+    if (alpaca !== gPlayer.value) {
+      gScene.value.remove(alpaca.model);
+    } else {
+      alpaca.model.position.set(0, 0, 0);
+      alpaca.model.rotation.set(0, 0, 0);
+      alpaca.isDead = false;
+      alpaca.isBeingHit = false;
+    }
+  });
+  
+  activePlayers.length = 0;
+  
+  gUI.lockCamera = false;
+  gUI.cameraMode = 1;
+
+  console.log("🧹 Minigame cleaned up.");
 }

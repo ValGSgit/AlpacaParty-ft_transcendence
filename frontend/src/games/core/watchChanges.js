@@ -1,5 +1,5 @@
 import { watch } from 'vue'
-import { gUser, gScene, gAlpacas, gItems } from './globals.js'
+import { gUser } from './globals.js'
 import { saveGame } from './saveLoadGame.js'
 
 

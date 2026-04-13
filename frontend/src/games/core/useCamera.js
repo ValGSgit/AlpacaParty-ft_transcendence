@@ -103,5 +103,6 @@ export function changeCamera() {
 }
 
 export function checkControlsEnabled() {
+  return !gEditState.selected;
   return !gUI.lockCamera && !gEditState.selected;
 }

@@ -42,6 +42,10 @@ export async function saveGame() {
     };
   });
 
+/* TODO: save Decorations here */
+
+
+
   try {
     await api.put('users/me', {
       items: saveItems,

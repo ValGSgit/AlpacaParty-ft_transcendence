@@ -1,10 +1,11 @@
-import { gAlpacas, gCollectables, gCollidables, gEditables, gItems } from "./globals";
+import { gAlpacas, gCollectables, gCollidables, gDecorations, gEditables, gItems } from "./globals";
 
 export function removeObject(entity) {
   const model = entity.model ? entity.model : entity;
 
   removeFromArray(entity, gAlpacas);
   removeFromArray(entity, gItems);
+  removeFromArray(entity, gDecorations);
   removeFromArray(entity, gCollectables);
 
   removeFromArray(model, gCollidables);

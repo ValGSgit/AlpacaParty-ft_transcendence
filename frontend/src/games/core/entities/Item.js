@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 export const shopItems = [
+  { name: 'Lamp', path: '/models/lamp.glb', icon: '/icons/Wheat.png', cost: 0, type: 'item' },
   { name: 'Barn', path: '/models/barn.glb', icon: '/icons/Barn.png', cost: 100, type: 'item' },
   { name: 'Barrel', path: '/models/barrel.glb', icon: '/icons/Barrel.png', cost: 20, type: 'item' },
   { name: 'Fence', path: '/models/fence.glb', icon: '/icons/Fence.png', cost: 15, type: 'item' },

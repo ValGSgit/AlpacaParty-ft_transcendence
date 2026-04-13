@@ -38,4 +38,5 @@ export const gCollectables = []
 export const gCollidables = []
 export const gEditables = []
 export const gItems = []
+export const gDecorations = []
 

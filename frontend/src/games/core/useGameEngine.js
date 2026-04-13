@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { shallowRef } from 'vue';
 import { CONST } from '../config/constants.js';
-import { gAlpacas, gCollectables, gCollidables, gEditables, gEditState, gItems, gScene, gUser, gPlayer } from './globals.js';
+import { gAlpacas, gCollectables, gCollidables, gEditables, gEditState, gItems, gScene, gUser, gPlayer, gDecorations } from './globals.js';
 
 export function useGameEngine(containerRef) {
   // Use shallowRef for Three.js objects (prevents Vue from making them reactive and slow)
@@ -127,6 +127,7 @@ export function useGameEngine(containerRef) {
     gCollectables.length = 0;
     gCollidables.length = 0;
     gItems.length = 0;
+    gDecorations.length = 0;
     gEditables.length = 0;
   }
 
