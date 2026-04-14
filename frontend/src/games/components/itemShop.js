@@ -23,5 +23,3 @@ export function itemShop() {
   return { buyItem }
 }
 
-// Test for alpacas
-// setBlendshape(model, 'furry', 1.0);

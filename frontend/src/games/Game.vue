@@ -269,7 +269,7 @@ import { addDebugCoins } from './core/debug.js'
 import { updateAlpacas } from './core/entities/Alpaca.js'
 import { updateCollectables } from './core/entities/Collectable.js'
 import { shopItems } from './core/entities/Item.js'
-import { cleanupFPSstats } from './core/FPSstats.js'
+import { cleanupFPSstats, initFPSstats } from './core/FPSstats.js'
 import { gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser} from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
 import { changeCamera, checkControlsEnabled, useCamera } from './core/useCamera.js'
@@ -293,7 +293,7 @@ const { initInput, cleanupInput} = useInput()
 const { setTimeOfDay, updateLighting, toggleLightCycle} = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openFarmMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu } = useUIManager()
-const { init, cleanup, onResize } = useGameEngine(gameContainer)
+const { init, cleanup, onResize, setDoF } = useGameEngine(gameContainer)
 const { increaseFarmSize } = upgradeFarm()
 const { buyItem } = itemShop()
 const { isAuthenticated } = useAuthStore()
@@ -324,7 +324,7 @@ onMounted(async () => {
   }
   else
   {
-    //stats = initStats(gameContainer.value);
+    stats = initFPSstats(gameContainer.value);
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
@@ -332,7 +332,7 @@ onMounted(async () => {
 
     await initWorld(gScene.value, isAuthenticated)
     gameIsReady.value = true
-    stopMyWatcher = watchChanges()
+    stopMyWatcher = watchChanges(setDoF)
     gameLoop()
   }
   window.addEventListener('resize', onResize)
@@ -370,10 +370,10 @@ const gameLoop = () => {
     }
   }
 
-  gEngine.value.renderer.render(
-    gEngine.value.scene,
-    gEngine.value.camera
-  )
+  if (gEngine.value.composer) {
+    gEngine.value.composer.render();
+  }
+
   if (stats) stats.end();
 }
 

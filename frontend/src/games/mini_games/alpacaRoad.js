@@ -13,9 +13,9 @@ import { removeObject } from '../core/removeObjects.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const stripeLength = 10;
-const roadLength = 250;
+const roadLength = 700;
 const roadOffset = 100;
-const roadSpeed = 100;
+const roadSpeed = 50;
 
 let level = 0;
 let alivePlayers;
@@ -26,10 +26,16 @@ let obstacleTimer = 2;
 
 const fullPaths = ['models/lamp.glb']
 const singlePaths = ['models/trafficCones.glb']
+const sceneryPaths = ['models/newyorkBuilding.glb']
 
 const fullObstacle = [];
 const singleObstacle = [];
 const activeObstacles = [];
+
+const buildingSelection = []; // Templates loaded from GLB
+const activeBuildings = [];   // Instances currently on the road
+const buildingDepth = 60;     // How "wide" the building is along the Z axis
+const roadSideOffset = 0;    // Distance from center of road to the buildings
 const roadScene = [];
 let assetsLoaded = false;
 
@@ -41,13 +47,16 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
   gUI.cameraMode = 2;
 
   await setupRoadScene(gScene.value);
-  await loadObstacles(gScene.value);
+  await loadAssets(gScene.value);
   await initPlayers(playerCount, tempAlpacas);
+  initScenery()
   alivePlayers = playerCount;
 
   gMinigame.value.mode = 3;
   gMinigame.value.isActive = true;
   gUI.lockCamera = true;
+  gUI.DoF = true;
+  gUI.isLightCycling = false;
   assetsLoaded = true;
 }
 
@@ -61,10 +70,11 @@ async function setupRoadScene(scene) {
   const sidewalk = await createDecoration('/models/sidewalk.glb');
   roadScene.push(sidewalk.model)
   scene.add(sidewalk.model);
+
   initRoadStripes();
 }
 
-async function loadObstacles() {
+async function loadAssets() {
   if (fullObstacle.length === 0) {
     const loadedFull = await Promise.all(fullPaths.map(path => createItem(path)));
     loadedFull.forEach(item => {
@@ -78,6 +88,14 @@ async function loadObstacles() {
       singleObstacle.push(item.model);
     });
   }
+
+  if (buildingSelection.length === 0) {
+    const loadedAssets = await Promise.all(sceneryPaths.map(path => createDecoration(path)));
+    loadedAssets.forEach(item => {
+      buildingSelection.push(item.model);
+    });
+  }
+
 }
 
 async function initPlayers(playerCount, tempAlpacas) {
@@ -107,8 +125,33 @@ async function initPlayers(playerCount, tempAlpacas) {
   }
 }
 
+function initScenery() {
+  if (buildingSelection.length === 0) return;
+
+  // Calculate how many buildings we need to cover the entire road length
+  const numBuildings = Math.ceil(roadLength / buildingDepth) + 2; 
+  const startZ = -roadLength / 2 + roadOffset;
+
+  for (let i = 0; i < numBuildings; i++) {
+    const zPos = startZ + (i * buildingDepth);
+
+    // 1. Create Right Side Building
+    const bRight = buildingSelection[0].clone();
+    bRight.position.set(0, 0, zPos);
+    gScene.value.add(bRight);
+    activeBuildings.push(bRight);
+
+    // 2. Create Left Side Building (MIRRORED)
+    const bLeft = buildingSelection[0].clone();
+    bLeft.scale.x = -1;
+    bLeft.position.set(-0, 0, zPos);
+    gScene.value.add(bLeft);
+    activeBuildings.push(bLeft);
+  }
+}
+
 function initRoadStripes() {
-  const numRows = 4;
+  const numRows = 7;
   const spacingZ = roadLength / numRows;
   const startZ = (roadLength / 2 + roadOffset) - stripeLength / 2;
 
@@ -141,41 +184,6 @@ export function updateAlpacaRoad(delta) {
 	//updateDifficulty()
 }
 
-/* function spawnObstacles(delta) {
-  if (!gMinigame.value.isActive) return;
-
-  obstacleTimer -= delta;
-
-  if (obstacleTimer <= 0) {
-    obstacleTimer = getRandomTimer() / 2; // 1 - 4 sec
-    const validLanes = getValidLanes();
-    const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
-
-    let obstacle;
-    if (pos < 4) {
-      obstacle = singleObstacle[0].clone();
-      attachCollider(obstacle);
-      obstacle.position.x = playerPositions[pos];
-      obstacle.userData.isFullWidth = false;
-    } else {
-      obstacle = fullObstacle[0].clone();
-      attachCollider(obstacle);
-      obstacle.userData.isFullWidth = true;
-    }
-    obstacle.position.z = roadLength / 2 + roadOffset;
-
-    //attachCollider(obstacle);
-
-    obstacle.pointGiven = false;
-    obstacle.frustumCulled = false;
-    obstacle.traverse(child => { if(child.isMesh) child.frustumCulled = false; });
-
-
-    activeObstacles.push(obstacle);
-    gScene.value.add(obstacle);
-  }
-} */
-
 function spawnObstacles(delta) {
   if (!gMinigame.value.isActive || fullObstacle.length === 0) return;
 
@@ -188,24 +196,17 @@ function spawnObstacles(delta) {
 
     let obstacle;
     if (pos < 4) {
-      obstacle = singleObstacle[0].clone(); // .clone() is fine for non-skinned meshes
+      obstacle = singleObstacle[0].clone();
       obstacle.position.x = playerPositions[pos];
       obstacle.userData.isFullWidth = false;
     } else {
-      // Use SkeletonUtils for the complex lamp model
-      //obstacle = SkeletonUtils.clone(fullObstacle[0]);
       obstacle = fullObstacle[0].clone();
       obstacle.userData.isFullWidth = true;
     }
 
-    
-    // 🚨 NO MORE attachCollider(obstacle) here! 
     attachCollider(obstacle);
-    // It was already done in loadObstacles, so the clones already have it.
 
     obstacle.position.z = roadLength / 2 + roadOffset;
-
-
     obstacle.pointGiven = false;
     obstacle.frustumCulled = false;
     obstacle.traverse(child => { if(child.isMesh) child.frustumCulled = false; });
@@ -288,15 +289,33 @@ function removeObstacle(obstacle, index){
 }
 
 function updateRoadScene(delta) {
-  const endZ = (-roadLength / 2 + roadOffset) + stripeLength / 2;
+const movement = roadSpeed * delta;
+const backThreshold = -roadLength / 2 + roadOffset; // Where buildings "disappear"
+const teleportDistance = roadLength;    // How far forward they jump
 
-  for (let i = 1; i < roadScene.length; i++) {
-    const item = roadScene[i];
-    item.position.z -= (roadSpeed * delta);
-    if (item.position.z < endZ) {
-      item.position.z += roadLength - stripeLength;
-    }
+// 1. Update Stripes & Sidewalks (Existing logic)
+for (let i = 1; i < roadScene.length; i++) {
+  const item = roadScene[i];
+  item.position.z -= movement;
+  if (item.position.z < backThreshold + roadOffset) {
+    item.position.z += teleportDistance;
   }
+}
+
+// 2. Update Buildings (The City Loop)
+for (let i = 0; i < activeBuildings.length; i++) {
+  const bld = activeBuildings[i];
+  bld.position.z -= movement;
+
+  // If the building passes the player and goes off-screen
+  if (bld.position.z < backThreshold) {
+    // ✅ Teleport to the front of the "conveyor belt"
+    bld.position.z += teleportDistance + 200;
+    
+    // Optional: Randomize which building model is used if you have multiple
+    // if (buildingSelection.length > 1) { swapModelLogic(); }
+  }
+}
 }
 
 function spinAlpacaUp(alpaca, delta) {
@@ -350,7 +369,9 @@ function endMinigame() {
 
 export function cleanupAlpacaRoad() {
   assetsLoaded = false;
-  gMinigame.value.isActive = false;
+  gMinigame.value.isActive = false; 
+  gUI.DoF = false;
+  gUI.isLightCycling = true;
 
   activeObstacles.forEach(obj => {
     gScene.value.remove(obj);

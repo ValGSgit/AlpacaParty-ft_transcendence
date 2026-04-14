@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 
+//TODO remove lamp
 export const shopItems = [
   { name: 'Lamp', path: '/models/lamp.glb', icon: '/icons/Wheat.png', cost: 0, type: 'item' },
   { name: 'Barn', path: '/models/barn.glb', icon: '/icons/Barn.png', cost: 100, type: 'item' },

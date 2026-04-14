@@ -3,6 +3,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { shallowRef } from 'vue';
 import { CONST } from '../config/constants.js';
 import { gAlpacas, gCollectables, gCollidables, gEditables, gEditState, gItems, gScene, gUser, gPlayer, gDecorations } from './globals.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 export function useGameEngine(containerRef) {
   // Use shallowRef for Three.js objects (prevents Vue from making them reactive and slow)
@@ -10,7 +14,9 @@ export function useGameEngine(containerRef) {
   const camera = shallowRef(null)
   const renderer = shallowRef(null)
   const controls = shallowRef(null)
+  const composer = shallowRef(null)
 
+  let bokehPass = null;
   let animationId
 
   const init = () => {
@@ -38,6 +44,10 @@ export function useGameEngine(containerRef) {
     // camera mode
     gScene.value.cameraMode = 0
 
+    // FOG
+    const fogColor = '#56738e';
+    gScene.value.fog = new THREE.FogExp2(fogColor, 0.003);
+
     // CAMERA
     const w = containerRef.value.clientWidth
     const h = containerRef.value.clientHeight
@@ -51,6 +61,7 @@ export function useGameEngine(containerRef) {
     renderer.value.setPixelRatio(window.devicePixelRatio)
     renderer.value.shadowMap.enabled = true;
     renderer.value.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.value.outputColorSpace = THREE.SRGBColorSpace;
     containerRef.value.appendChild(renderer.value.domElement)
 
     // CONTROLS
@@ -62,12 +73,42 @@ export function useGameEngine(containerRef) {
     //to limit the camera movement to hemisphere instead of full sphere
     controls.value.maxPolarAngle = Math.PI / 2 - 0.1
 
+
+    const size = renderer.value.getSize(new THREE.Vector2());
+
+    const renderTarget = new THREE.WebGLRenderTarget(size.x, size.y, {
+      samples: 4 
+    });
+
+    composer.value = new EffectComposer(renderer.value, renderTarget);
+    composer.value.setPixelRatio(window.devicePixelRatio);
+
+    // 2. Add the basic render pass (draws the actual scene)
+    const renderPass = new RenderPass(scene.value, camera.value);
+    composer.value.addPass(renderPass);
+
+    // 3. Add the Depth of Field (Bokeh) pass
+    bokehPass = new BokehPass(scene.value, camera.value, {
+      focus: 50.0,       // Distance in units where things are sharp
+      aperture: 0.000001,  // How quickly things get blurry (lower = shallower)
+      maxblur: 0.01      // Maximum blur intensity
+    });
+    composer.value.addPass(bokehPass);
+    const outputPass = new OutputPass();
+    composer.value.addPass(outputPass)
+    bokehPass.enabled = true;
+
     return {
       scene: scene.value,
       camera: camera.value,
       renderer: renderer.value,
-      controls: controls.value
+      controls: controls.value,
+      composer: composer.value
     }
+  }
+
+  const setDoF = (enabled) => {
+    if (bokehPass) bokehPass.enabled = enabled
   }
 
   const clearScene = (scene) => {
@@ -120,6 +161,9 @@ export function useGameEngine(containerRef) {
     camera.value.aspect = w / h
     camera.value.updateProjectionMatrix()
     renderer.value.setSize(w, h)
+    if (composer.value) {
+      composer.value.setSize(w, h)
+    }
   }
 
   const resetGArrays = () => {
@@ -131,5 +175,5 @@ export function useGameEngine(containerRef) {
     gEditables.length = 0;
   }
 
-  return { init, cleanup, onResize, clearScene, resetGArrays }
+  return { init, cleanup, onResize, clearScene, resetGArrays, setDoF}
 }
