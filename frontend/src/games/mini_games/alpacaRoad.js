@@ -10,7 +10,6 @@ import { getRandomTimer } from '../utils/randomValues.js';
 import { setupLighting } from '../world/sceneBuilder.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { removeObject } from '../core/removeObjects.js';
-import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const stripeLength = 10;
 const roadLength = 700;
@@ -51,7 +50,8 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
   await setupRoadScene(gScene.value);
   await loadAssets(gScene.value);
   await initPlayers(playerCount, tempAlpacas);
-  initScenery()
+  initScenery();
+  initObstacles();
   alivePlayers = playerCount;
 
   gMinigame.value.mode = 3;
@@ -152,6 +152,14 @@ function initScenery() {
   }
 }
 
+function initObstacles() {
+  const amount = 8;
+  for (let i = 0; i < amount; ++i) {
+    createObstacle();
+    activeObstacles[i].position.z = startZ - (roadLength/amount * i);
+  }
+}
+
 function initRoadStripes() {
   const numRows = 8;
   const spacingZ = roadLength / numRows;
@@ -193,32 +201,35 @@ function spawnObstacles(delta) {
   obstacleTimer -= delta;
 
   if (obstacleTimer <= 0) {
-    obstacleTimer = getRandomTimer() / 2;
-    const validLanes = getValidLanes();
-    const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
-
-    let obstacle;
-    if (pos < 4) {
-      obstacle = singleObstacle[0].clone();
-      obstacle.position.x = playerPositions[pos];
-      obstacle.userData.isFullWidth = false;
-    } else {
-      obstacle = fullObstacle[0].clone();
-      obstacle.userData.isFullWidth = true;
-    }
-
-    attachCollider(obstacle);
-
-    obstacle.position.z = roadLength / 2 + roadOffset;
-    obstacle.pointGiven = false;
-    obstacle.frustumCulled = false;
-    obstacle.traverse(child => { if(child.isMesh) child.frustumCulled = false; });
-
-    activeObstacles.push(obstacle);
-    gScene.value.add(obstacle);
+    createObstacle();
   }
 }
-  
+
+function createObstacle() {
+  obstacleTimer = getRandomTimer() / 2;
+  const validLanes = getValidLanes();
+  const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
+
+  let obstacle;
+  if (pos < 4) {
+    obstacle = singleObstacle[0].clone();
+    obstacle.position.x = playerPositions[pos];
+    obstacle.userData.isFullWidth = false;
+  } else {
+    obstacle = fullObstacle[0].clone();
+    obstacle.userData.isFullWidth = true;
+  }
+
+  attachCollider(obstacle);
+
+  obstacle.position.z = startZ;
+  obstacle.pointGiven = false;
+  obstacle.frustumCulled = false;
+  obstacle.traverse(child => { if(child.isMesh) child.frustumCulled = false; });
+
+  activeObstacles.push(obstacle);
+  gScene.value.add(obstacle);
+}
 
 function getValidLanes() {
   const validLanes = [4];
