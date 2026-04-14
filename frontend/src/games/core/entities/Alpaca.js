@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { alpacaAI } from '../../components/alpacaAI.js';
 import { alpacaHandling } from '../../components/alpacaHandling.js';
 import { CONST } from '../../config/constants.js';
-import { gAlpacas, gCollidables, gPlayer, gUI, gUser } from '../globals.js';
+import { gAlpacas, gCollidables, gPlayer, gUI, gUser, gEngine } from '../globals.js';
 import { removeFromRegistry } from '../removeObjects.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
@@ -117,6 +117,19 @@ export class Alpaca {
 
   spit() {
     makeSpit(this)
+  }
+
+  spitToPoint(screenX, screenY) {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    mouse.x = (screenX / window.innerWidth) * 2 - 1;
+    mouse.y = -(screenY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, gEngine.value.camera);
+
+    const targetWorldPoint = new THREE.Vector3();
+    raycaster.ray.at(20, targetWorldPoint); 
+    makeSpit(this, targetWorldPoint);
   }
 
   beingHit(alpaca) {

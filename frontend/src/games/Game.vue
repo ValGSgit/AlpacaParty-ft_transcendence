@@ -301,6 +301,7 @@ import { changeGame } from './mini_games/init.js'
 import { initUser } from './user/initUser.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
+import { init_redot, render_redot } from './core/useSpatialBridge.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -335,6 +336,7 @@ onMounted(async () => {
   else
     showLoginWarning.value = false
   gEngine.value = init()
+  init_redot();
 
   //generateIcons();
 
@@ -394,6 +396,8 @@ const gameLoop = () => {
     gEngine.value.camera
   )
   if (stats) stats.end();
+  if (gUI.cameraMode === 3) // render red dot for first person mode
+    render_redot()
 }
 
 onUnmounted(() => {

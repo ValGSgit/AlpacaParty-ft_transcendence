@@ -29,7 +29,7 @@ export function alpacaHandling() {
     return true
   }
 
-  const makeSpit = (alpaca) => {
+  const makeSpit = (alpaca, targetPoint) => {
     if (alpaca.isDead)
       return
     const origin = new THREE.Vector3().copy(alpaca.model.position);
@@ -40,8 +40,15 @@ export function alpacaHandling() {
     origin.y += 5;
     origin.x += dx * 3;
     origin.z += dz * 3;
-
-    const direction = new THREE.Vector3(dx, -0.4, dz).normalize();
+    let direction
+    if (targetPoint) // shooting a specific spot, for AR glasses atm
+    {
+        direction = new THREE.Vector3()
+        .subVectors(targetPoint, origin)
+        .normalize();
+    }
+    else
+      direction = new THREE.Vector3(dx, -0.4, dz).normalize();
     const beam = createLaserBeam(origin, direction, 1); // Start small
     gScene.value.add(beam);
 
