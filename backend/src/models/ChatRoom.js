@@ -2,7 +2,7 @@
  * ChatRoom Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from '../config/prisma.js';
+import prisma from "#config/prisma.js";
 
 const ChatRoom = {
   async create({ name, ownerId, isPrivate = false }) {
@@ -11,9 +11,15 @@ const ChatRoom = {
         data: { name, ownerId: Number(ownerId), isPrivate },
       });
       await tx.chatRoomMember.create({
-        data: { roomId: room.id, userId: Number(ownerId), role: 'owner' },
+        data: { roomId: room.id, userId: Number(ownerId), role: "owner" },
       });
-      return { id: room.id, name: room.name, owner_id: room.ownerId, is_private: room.isPrivate, created_at: room.createdAt };
+      return {
+        id: room.id,
+        name: room.name,
+        owner_id: room.ownerId,
+        is_private: room.isPrivate,
+        created_at: room.createdAt,
+      };
     });
   },
 
@@ -38,14 +44,18 @@ const ChatRoom = {
 
   async isMember(roomId, userId) {
     const row = await prisma.chatRoomMember.findUnique({
-      where: { roomId_userId: { roomId: Number(roomId), userId: Number(userId) } },
+      where: {
+        roomId_userId: { roomId: Number(roomId), userId: Number(userId) },
+      },
     });
     return !!row;
   },
 
-  async addMember(roomId, userId, role = 'member') {
+  async addMember(roomId, userId, role = "member") {
     return prisma.chatRoomMember.upsert({
-      where: { roomId_userId: { roomId: Number(roomId), userId: Number(userId) } },
+      where: {
+        roomId_userId: { roomId: Number(roomId), userId: Number(userId) },
+      },
       update: {},
       create: { roomId: Number(roomId), userId: Number(userId), role },
     });
@@ -61,21 +71,19 @@ const ChatRoom = {
     const messages = await prisma.chatRoomMessage.findMany({
       where: { roomId: Number(roomId) },
       include: { sender: { select: { username: true, avatar: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: Number(limit),
       skip: Number(offset),
     });
-    return messages
-      .reverse()
-      .map((m) => ({
-        id: m.id,
-        room_id: m.roomId,
-        sender_id: m.senderId,
-        content: m.content,
-        created_at: m.createdAt,
-        sender_username: m.sender.username,
-        sender_avatar: m.sender.avatar,
-      }));
+    return messages.reverse().map((m) => ({
+      id: m.id,
+      room_id: m.roomId,
+      sender_id: m.senderId,
+      content: m.content,
+      created_at: m.createdAt,
+      sender_username: m.sender.username,
+      sender_avatar: m.sender.avatar,
+    }));
   },
 
   async sendMessage({ roomId, senderId, content }) {

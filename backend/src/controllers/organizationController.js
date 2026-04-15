@@ -39,16 +39,12 @@ export const getOrg = async (req, res, next) => {
 export const createOrg = async (req, res, next) => {
   try {
     const { name, description, avatar } = req.body;
-    const trimmedName = typeof name === 'string' ? name.trim() : '';
-    if (!name || !trimmedName)
-      return res.status(400).json({ error: { message: 'Organization name is required' } });
-    if (trimmedName.length > 100)
-      return res.status(400).json({ error: { message: 'Organization name must be 100 characters or fewer' } });
-    if (description != null && description.length > 2000)
-      return res.status(400).json({ error: { message: 'Description must be 2000 characters or fewer' } });
-    if (avatar != null && (typeof avatar !== 'string' || avatar.length > 2048))
-      return res.status(400).json({ error: { message: 'Invalid avatar URL' } });
-    const org = await Organization.create({ name: trimmedName, description: description?.trim() || null, ownerId: req.user.id, avatar: avatar || null });
+    if (!name?.trim()) return res.status(400).json({ error: { message: 'Organization name is required' } });
+    if (name.length > 100) return res.status(400).json({ error: { message: 'Organization name must be 100 characters or fewer' } });
+    if (description && description.length > 2000) return res.status(400).json({ error: { message: 'Description must be 2000 characters or fewer' } });
+    if (avatar && (typeof avatar !== 'string' || avatar.length > 2048)) return res.status(400).json({ error: { message: 'Invalid avatar URL' } });
+
+    const org = await Organization.create({ name: name.trim(), description: description?.trim() || null, ownerId: req.user.id, avatar: avatar || null });
     await GamificationService.checkOrgAchievements(req.user.id);
     res.status(201).json({ organization: org });
   } catch (err) { next(err); }
@@ -62,15 +58,15 @@ export const updateOrg = async (req, res, next) => {
       return res.status(403).json({ error: { message: 'Insufficient permissions' } });
     }
     const { name, description, avatar } = req.body;
-    if (name !== undefined) {
-      const trimmedName = typeof name === 'string' ? name.trim() : '';
-      if (!trimmedName || trimmedName.length < 1 || trimmedName.length > 100)
-        return res.status(400).json({ error: { message: 'Name must be between 1 and 100 characters' } });
+    if (name !== undefined && (!name?.trim() || name.length > 100)) {
+      return res.status(400).json({ error: { message: 'Name must be between 1 and 100 characters' } });
     }
-    if (description != null && description.length > 2000)
+    if (description !== undefined && description !== null && description.length > 2000) {
       return res.status(400).json({ error: { message: 'Description must be 2000 characters or fewer' } });
-    if (avatar != null && (typeof avatar !== 'string' || avatar.length > 2048))
+    }
+    if (avatar !== undefined && avatar !== null && (typeof avatar !== 'string' || avatar.length > 2048)) {
       return res.status(400).json({ error: { message: 'Invalid avatar URL' } });
+    }
     const org = await Organization.update(Number(req.params.id), { name: name?.trim(), description: description?.trim(), avatar });
     res.json({ organization: org });
   } catch (err) { next(err); }
@@ -81,7 +77,8 @@ export const deleteOrg = async (req, res, next) => {
   try {
     const org = await Organization.findById(Number(req.params.id));
     if (!org) return res.status(404).json({ error: { message: 'Organization not found' } });
-    if (org.ownerId !== req.user.id && !req.user.isAdmin) {
+    const isAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
+    if (org.ownerId !== req.user.id && !isAdmin) {
       return res.status(403).json({ error: { message: 'Only the owner can delete an organization' } });
     }
     await Organization.delete(org.id);
@@ -93,8 +90,7 @@ export const deleteOrg = async (req, res, next) => {
 export const addMember = async (req, res, next) => {
   try {
     const { userId, role = 'member' } = req.body;
-    if (userId == null)
-      return res.status(400).json({ error: { message: 'userId is required' } });
+    if (!userId) return res.status(400).json({ error: { message: 'userId is required' } });
     const membership = await Organization.isMember(Number(req.params.id), req.user.id);
     if (!membership || !['owner', 'admin'].includes(membership.role)) {
       return res.status(403).json({ error: { message: 'Insufficient permissions' } });

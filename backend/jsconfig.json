@@ -2,9 +2,7 @@
   "compilerOptions": {
     "target": "ES6",
     "lib": ["ESNext", "DOM"],
-    "baseUrl": ".",
     "paths": {
-      "#generated/*": ["./generated/*"],
       "#config/*": ["./src/config/*"],
       "#controllers/*": ["./src/controllers/*"],
       "#lib/*": ["./src/lib/*"],
@@ -12,6 +10,7 @@
       "#routes/*": ["./src/routes/*"],
       "#services/*": ["./src/services/*"],
       "#utils/*": ["./src/utils/*"],
+      "#models/*": ["./src/models/*"],
       "#validators/*": ["./src/validators/*"],
       "#/*": ["./src/*"]
     }

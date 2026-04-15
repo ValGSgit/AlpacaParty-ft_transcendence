@@ -8,7 +8,7 @@ const mockNotification = { create: jest.fn() };
 jest.unstable_mockModule('../../../src/models/Notification.js', () => ({ default: mockNotification }));
 
 // Mock prisma (transitive dependency)
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({
+jest.unstable_mockModule('#config/prisma.js', () => ({
   default: { notification: { create: jest.fn() } },
 }));
 

@@ -22,7 +22,7 @@ ENV MODSEC_RULE_ENGINE=On \
   PORT=8443 \
   SSL_PORT=8443
 
-# copy nginx config
+# Copy nginx config
 COPY conf/nginx.conf /etc/nginx/templates/conf.d/default.conf.template
 
 # Copy our tuning override (applied after CRS rules)

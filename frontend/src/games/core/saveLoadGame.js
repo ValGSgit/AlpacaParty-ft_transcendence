@@ -38,7 +38,6 @@ export async function saveGame() {
       rotation: item.model.rotation.y,
       scale: item.model.scale.toArray(),
       name: item.model.name,
-      type: item.type
     };
   });
 
@@ -47,7 +46,7 @@ export async function saveGame() {
 
 
   try {
-    await api.put('users/me', {
+    await api.put('/users/me/farmdata', {
       items: saveItems,
       alpacas: saveAlpacas,
       coins: gUser.value.coins,

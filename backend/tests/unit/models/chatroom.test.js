@@ -22,7 +22,7 @@ const mockPrisma = {
   },
   $transaction: jest.fn(),
 };
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
 
 const { default: ChatRoom } = await import('../../../src/models/ChatRoom.js');
 

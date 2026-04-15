@@ -23,7 +23,7 @@ const mockPrisma = {
   $queryRaw: jest.fn(),
 };
 
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({
+jest.unstable_mockModule('#config/prisma.js', () => ({
   default: mockPrisma,
 }));
 

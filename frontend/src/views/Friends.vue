@@ -138,6 +138,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import api from '../services/api.js'
+import { useAuthStore } from '../stores/auth.js'
+
+const authStore = useAuthStore()
 
 const activeTab = ref('friends')
 const tabs = [
@@ -241,7 +244,7 @@ async function searchUsers() {
     const { data } = await api.get('/users', {
       params: { search: userSearch.value.trim(), limit: searchPageSize, offset: searchPage.value * searchPageSize },
     })
-    searchResults.value = data.users || []
+    searchResults.value = (data.users || []).filter((u) => Number(u.id) !== Number(authStore.user?.id))
     searchTotal.value = data.total || searchResults.value.length
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Search failed'
@@ -251,6 +254,10 @@ async function searchUsers() {
 }
 
 async function sendRequestToUser(userId) {
+  if (Number(userId) === Number(authStore.user?.id)) {
+    error.value = 'Cannot friend yourself'
+    return
+  }
   try {
     await api.post('/friends/requests', { userId })
     requestedIds.value = new Set([...requestedIds.value, userId])

@@ -12,7 +12,8 @@ RESET  := \033[0m
 
 # ── Docker ──────────────────────────────────────────────────
 COMPOSE_PROJECT := alpacaparty-ft_transcendence
-DC := docker compose
+DC := docker compose --profile dev
+DC_E2E := docker compose --profile dev --profile e2e
 DC_PROD := docker compose -f compose.prod.yaml
 
 .DEFAULT_GOAL := help
@@ -23,8 +24,10 @@ DC_PROD := docker compose -f compose.prod.yaml
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
         shell-backend shell-frontend shell-db \
-	test e2e prod-e2e test-local \
+	test backend-test e2e prod-e2e test-local \
+	stress-test stress-test-build stress-test-live \
 	seed-admins prod-seed-admins make-admin prod-make-admin \
+	seed-example seed-example-reset prod-seed-example prod-seed-example-reset \
 	seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
         vault-status vault-secrets vault-shell \
         prod-vault-status prod-vault-unseal prod-vault-rotate-token \
@@ -67,6 +70,9 @@ help:
 	@echo "  $(GREEN)make test-local$(RESET)     Run backend tests locally (no Docker)"
 	@echo "  $(GREEN)make e2e$(RESET)            Run E2E tests against dev stack"
 	@echo "  $(GREEN)make prod-e2e$(RESET)       Seed data + run E2E tests against prod stack"
+	@echo "  $(GREEN)make stress-test$(RESET)    Run full containerized stress & security tests"
+	@echo "  $(GREEN)make stress-test-build$(RESET) Build stress-test image only (skip auto-run)"
+	@echo "  $(GREEN)make stress-test-live$(RESET) Watch stress-test results as they complete"
 	@echo ""
 	@echo "$(YELLOW)Database$(RESET)"
 	@echo "  $(GREEN)make seed-admins$(RESET)          Promote developer accounts to admin (dev)"
@@ -95,7 +101,7 @@ help:
 	@echo ""
 
 # ── DOCKER ──────────────────────────────────────────────────
-up: ssl-certs
+up: ssl-certs create-dirs
 	$(DC) up -d
 
 down:
@@ -112,6 +118,25 @@ restart:
 
 ps:
 	$(DC) ps
+
+# ── PRODUCTION ──────────────────────────────────────────────
+prod-up: .env
+	$(MAKE) --no-print-directory ssl-certs
+	$(DC_PROD) up -d --build
+
+prod-down:
+	$(DC_PROD) down
+
+prod-build: .env
+	$(DC_PROD) build --no-cache
+
+prod-logs:
+	$(DC_PROD) logs -f
+
+# Setup
+create-dirs:
+	@mkdir -p backend/node_modules
+	@mkdir -p frontend/node_modules
 
 # ── SECRETS ─────────────────────────────────────────────────
 # Generates .env from .env.example with cryptographically random
@@ -163,23 +188,15 @@ ssl-certs:
 	@echo "$(YELLOW)No .env found — generating one with random secrets…$(RESET)"
 	@$(MAKE) --no-print-directory generate-secrets
 
-# ── PRODUCTION ──────────────────────────────────────────────
-prod-up: .env
-	$(MAKE) --no-print-directory ssl-certs
-	$(DC_PROD) up -d --build
-
-prod-down:
-	$(DC_PROD) down
-
-prod-build: .env
-	$(DC_PROD) build --no-cache
-
-prod-logs:
-	$(DC_PROD) logs -f
-
 # ── LOCAL DEV ───────────────────────────────────────────────
 install:
 	cd backend  && npm install
+	cd frontend && npm install
+
+install-backend:
+	cd backend && npm install
+
+install-frontend:
 	cd frontend && npm install
 
 dev:
@@ -191,11 +208,29 @@ dev-backend:
 	cd backend && npm run dev
 
 # TESTING ─────────────────────────────────────────────────
-test:
+backend-test: create-dirs
+	$(DC) up -d postgres vault vault-init backend
+	$(DC) exec backend npm install --no-audit --no-fund --loglevel=error
+	$(DC) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
 	$(DC) exec backend npm test
 
-e2e:
-	$(DC) exec e2e npm test
+test: backend-test
+
+e2e: create-dirs seed-live
+	$(DC) up -d
+	@echo "Waiting for API health..."; \
+	for i in $$(seq 1 60); do \
+	  if curl -k -sSf https://localhost:8443/api/health >/dev/null; then \
+	    break; \
+	  fi; \
+	  if [ $$i -eq 60 ]; then \
+	    echo "API did not become ready in time"; \
+	    exit 1; \
+	  fi; \
+	  sleep 1; \
+	done
+	@E2E_API_KEY="$${E2E_API_KEY:-$$(grep '^API_KEYS=' .env | cut -d= -f2- | cut -d, -f1)}"; \
+	$(DC_E2E) run --build --rm -e E2E_API_KEY="$$E2E_API_KEY" e2e npm test
 
 # Production E2E: seeds data and runs Playwright against the production build.
 # Builds the e2e Docker image and runs it on the shared prod network so that
@@ -206,7 +241,7 @@ prod-e2e: prod-seed-live
 	@echo "$(CYAN)Running E2E tests against production build…$(RESET)"
 	docker run --rm \
 	  --network alpacaparty_net \
-	  -e E2E_BASE_URL=https://nginx:443 \
+	  -e E2E_BASE_URL=https://nginx:8443 \
 	  -e E2E_API_KEY=$$(grep '^API_KEYS=' .env | cut -d= -f2- | cut -d, -f1) \
 	  -e PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
 	  alpacaparty-e2e npm test
@@ -219,6 +254,25 @@ test-local:
 dev-frontend:
 	cd frontend && npm run dev
 
+# ── STRESS & SECURITY TESTS (CONTAINERIZED) ──────────────────────────────
+# Runs comprehensive load, performance, and security tests against the application.
+# All tools (siege, wrk, nikto, nmap, ab, jq) run inside Docker — no local install needed.
+
+# Full stress-test run: builds image, starts stack, runs tests, displays results
+stress-test: ssl-certs create-dirs
+	@bash scripts/run-stress-test.sh
+
+# Build the stress-test image without running tests
+stress-test-build: ssl-certs create-dirs
+	@bash scripts/run-stress-test.sh "https://nginx:443" "10s" "1" true
+
+# Run stress tests with smaller dataset and live report viewing
+stress-test-live: ssl-certs create-dirs
+	@bash scripts/run-stress-test.sh "https://nginx:443" "5m" "50" false && \
+	  echo "" && \
+	  echo "$(GREEN)Opening latest stress-test report...$(RESET)" && \
+	  tail -f $$(ls -t stress-test-results/report_*.txt 2>/dev/null | head -1) 2>/dev/null || true
+
 # ── SHELLS ──────────────────────────────────────────────────
 shell-backend:
 	$(DC) exec backend sh
@@ -228,6 +282,16 @@ shell-frontend:
 
 shell-db:
 	$(DC) exec postgres psql -U $${DB_USER:-alpacaparty} -d $${DB_NAME:-alpacaparty}
+
+shell-nginx:
+	$(DC) exec nginx sh
+
+prisma_studio:
+	$(DC) exec -d backend /usr/local/bin/start-prisma-studio.sh
+
+cmd ?=
+backend-cmd:
+	$(DC) run --rm backend $(cmd)
 
 # ── DATABASE SEEDS ──────────────────────────────────────────
 # Requires the postgres container to be running (make up / make prod-up).
@@ -276,17 +340,38 @@ prod-make-admin:
 	  sh -c '. /vault/keys/keys.env && export VAULT_TOKEN=$$VAULT_ADMIN_TOKEN && sh /scripts/vault-add-mod.sh'
 	@echo "$(GREEN)✓ $(USER) added to mod_users in prod Vault$(RESET)"
 
-seed-live:
-	$(DC) exec backend npm run seed:live
+seed-example:
+	$(DC) up -d backend
+	$(DC) exec backend npm install --no-audit --no-fund --loglevel=error
+	$(DC) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
+	$(DC) exec backend npm run seed:exampleData
 
-seed-live-reset:
-	$(DC) exec backend npm run seed:live:reset
+seed-example-reset:
+	$(DC) up -d backend
+	$(DC) exec backend npm install --no-audit --no-fund --loglevel=error
+	$(DC) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
+	$(DC) exec backend npm run seed:exampleData:reset
 
-prod-seed-live:
-	$(DC_PROD) exec backend npm run seed:live
+prod-seed-example:
+	$(DC_PROD) up -d backend
+	$(DC_PROD) exec backend npm install --no-audit --no-fund --loglevel=error
+	$(DC_PROD) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
+	$(DC_PROD) exec backend npm run seed:exampleData
 
-prod-seed-live-reset:
-	$(DC_PROD) exec backend npm run seed:live:reset
+prod-seed-example-reset:
+	$(DC_PROD) up -d backend
+	$(DC_PROD) exec backend npm install --no-audit --no-fund --loglevel=error
+	$(DC_PROD) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
+	$(DC_PROD) exec backend npm run seed:exampleData:reset
+
+# Backward-compatible aliases used by help text and existing scripts.
+seed-live: seed-example
+
+seed-live-reset: seed-example-reset
+
+prod-seed-live: prod-seed-example
+
+prod-seed-live-reset: prod-seed-example-reset
 
 # ── SECURITY ────────────────────────────────────────────────────────────────
 vault-status:
@@ -353,6 +438,8 @@ fclean:
 	@docker network prune -f >/dev/null
 	@docker image prune -f >/dev/null
 	@docker builder prune -f >/dev/null
+	@rm -rf backend/node_modules
+	@rm -rf frontend/node_modules
 	@echo "$(GREEN)✓ Full Docker cleanup complete for project $(COMPOSE_PROJECT)$(RESET)"
 
 deep-clean:
@@ -361,4 +448,6 @@ deep-clean:
 	$(DC_PROD) down --rmi all --volumes --remove-orphans || true
 	@docker system prune -af --volumes
 	@docker builder prune -af
+	@rm -rf backend/node_modules
+	@rm -rf frontend/node_modules
 	@echo "$(GREEN)✓ Aggressive Docker cleanup complete$(RESET)"

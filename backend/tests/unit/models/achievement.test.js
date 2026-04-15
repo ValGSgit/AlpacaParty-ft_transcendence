@@ -18,7 +18,7 @@ const mockPrisma = {
   },
 };
 
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
 
 const { default: Achievement } = await import('../../../src/models/Achievement.js');
 

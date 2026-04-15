@@ -17,7 +17,7 @@ test.describe('Help Assistant API', () => {
     const res = await request.post('/api/help/chat', {
       headers: authHeaders(user.accessToken),
       data: {
-        messages: [{ role: 'user', content: 'How do I add friends?' }],
+        message: 'How do I add friends?',
       },
     });
 

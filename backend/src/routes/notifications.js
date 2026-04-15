@@ -6,8 +6,6 @@ import {
   listNotifications, markRead, markAllRead, deleteNotification,
 } from '../controllers/notificationController.js';
 import { authenticate } from '../middleware/auth.js';
-import { validate, z } from '../middleware/validate.js';
-import { positiveId, paginationQuery } from '../schemas/shared.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -36,7 +34,7 @@ router.use(authenticate);
  *                 notifications: { type: array, items: { $ref: '#/components/schemas/Notification' } }
  *                 unreadCount: { type: integer, example: 3 }
  */
-router.get('/', validate({ query: paginationQuery }), listNotifications);
+router.get('/', listNotifications);
 
 /**
  * @openapi
@@ -78,7 +76,7 @@ router.put('/read-all', markAllRead);
  *                 notification: { $ref: '#/components/schemas/Notification' }
  *       404: { description: Notification not found }
  */
-router.put('/:id/read', validate({ params: z.object({ id: positiveId }) }), markRead);
+router.put('/:id/read', markRead);
 
 /**
  * @openapi
@@ -102,6 +100,6 @@ router.put('/:id/read', validate({ params: z.object({ id: positiveId }) }), mark
  *                 message: { type: string }
  *       404: { description: Notification not found }
  */
-router.delete('/:id', validate({ params: z.object({ id: positiveId }) }), deleteNotification);
+router.delete('/:id', deleteNotification);
 
 export default router;
