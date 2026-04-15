@@ -23,34 +23,30 @@
     </div>
     </div>
   </div>
-  
+
   <div ref="gameContainer" class="scene-container"></div>
   <div v-if="!gameIsReady" class="modal-overlay">Loading...</div>
-  
   <div v-if="gameIsReady">
 
-    <div v-if="gMinigame.mode === 1 && gUser.hp" class="title">Spit Royale</div>
-    <div v-if="gMinigame.mode === 2 && gUser.hp" class="title">Spit Royale</div>
-<div v-if="gMinigame.mode && !gMinigame.isActive" class="modal-overlay">
-  <div class="shop-title">
-    <div v-if="!gUser.hp">Game Over!</div>
-    <div v-if="gUser.hp">Congratulation! You Win!</div>
-    
-    <button v-if="gMinigame.mode === 1" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
-    <button v-if="gMinigame.mode === 2" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
-    
-    <template v-if="gMinigame.mode === 3">
-      <button v-for="player in gMinigame.players" :key="'end-' + player.id" class="shop-btn">
-        {{ player.name || `P${player.id}` }} Score: {{ player.point }} 🪵
-      </button>
-    </template>
-
-    <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: center;">
-      <button class="shop-btn"@click="changeGame(gMinigame.mode, playerCount)">Play Again 🔄</button>
-      <button class="shop-btn" @click="changeGame()" title="Return to Farm">Return to Farm 🚜</button>
+  <div v-if="gMinigame.mode && !gMinigame.isActive" class="modal-overlay">
+    <div class="shop-title">
+      <div v-if="!gUser.hp">Game Over! Final Score:</div>
+      <button v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
+      <template v-if="gMinigame.mode === 3">
+        <button v-for="player in gMinigame.players" :key="'end-' + player.id" class="shop-btn">
+          {{ player.name || `P${player.id}` }} Score: {{ player.point }} 🪵
+        </button>
+      </template>
+      <div class="action-container">
+        <button class="shop-btn" @click="changeGame(gMinigame.mode, playerCount)">
+          Play Again 🔄
+        </button>
+        <button class="shop-btn" @click="changeGame()" title="Return to Farm">
+          Return to Farm 🚜
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
   <div class="hud-container hud-left">
       <div v-if="gMinigame.mode === 0" class="stat"><span>💰 {{ gUser.coins }}</span></div>
@@ -64,7 +60,7 @@
           <span class="p-point">🪵 {{ player.point }}</span>
         </div>
       </template>
-    </div>
+  </div>
 
     <div v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="hud-hp">
       <div class="stat">
@@ -90,8 +86,7 @@
       <button v-if="!gMinigame.mode" class="hud-btn" @click="openEditMode()" title="Edit Scene">✏️</button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="openLightMenu()" title="Edit Light">☀️</button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="changeCamera()" title="Change Camera">🎥</button>    
-
-</div>
+    </div>
     
     <div v-if="gUI.shopMenu" class="modal-overlay">
       <div class="shop-title">Mini Shop
@@ -104,8 +99,8 @@
 
     <div v-if="gUI.gameMenu" class="modal-overlay">
       <div class="shop-title">Select Game
-        <button class="shop-btn" @click="changeGame(1, playerCount)" title="Spit Royale with AI">Spit Royale with AI</button>
-        <button v-if="isAuthenticated" class="shop-btn" @click="changeGame(2)" title="Spit Royale Online">Spit Royale Online</button>
+        <button class="shop-btn" @click="changeGame(1, 10)" title="Spit Royale with AI">Spit Royale with AI</button>
+        <button v-if="isAuthenticated" class="shop-btn" @click="changeGame(2, 1)" title="Spit Royale Online">Spit Royale Online</button>
       <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
       <select v-model="playerCount" class="player-selector" title="Number of Players">
         <option :value="1">1 Player</option>
@@ -117,54 +112,54 @@
       </div>
     </div>
 
-<div v-if="gUI.farmMenu" class="modal-overlay">
-  <div class="shop-title">
-    Upgrade Farm
-    <div class="stats-content">
-      <div class="stat-row">
-        <strong>Current Farm Size:</strong> {{ gUser.upgrades }}/{{ CONST.MAX_UPGRADES }}
-      </div>
-    </div>
+    <div v-if="gUI.farmMenu" class="modal-overlay">
+      <div class="shop-title">
+        Upgrade Farm
+        <div class="stats-content">
+          <div class="stat-row">
+            <strong>Current Farm Size:</strong> {{ gUser.upgrades }}/{{ CONST.MAX_UPGRADES }}
+          </div>
+        </div>
 
-    <div class="itemshop-grid">
-    <button class="itemshop-card" @click="increaseFarmSize(gUser.upgrades)">
-      <span class="item-name">Increase Farm Size</span>
-      <div class="icon-container">
-        <span style="position: relative; bottom: 10px;">🚜</span>
-        <span class="item-cost">🪙 {{ getUpgradeCost(gUser.upgrades)}}</span>
-      </div>
-    </button>
-
-     <button class="itemshop-card"@click="increaseHerdSize()">
-      <span class="item-name">Increase Herd Size</span>
-      <div class="icon-container">
-        <span style="position: relative; bottom: 10px;">🦙</span>
-        <span class="item-cost">🪙 5</span>
-      </div>
-    </button>
-  </div>
-
-    <button class="close-btn" @click="gUI.farmMenu = false" title="Close">✖️</button>
-  </div>
-</div>
-
-  <div v-if="gUI.itemShop" class="modal-overlay">
-    <div class="shop-title"> 
-      Buy Item 
-      
-      <div class="itemshop-grid">
-        <button v-for="item in shopItems" :key="item.name" class="itemshop-card" @click="buyItem(item)">
-          <span class="item-name">{{ item.name }}</span>
+        <div class="itemshop-grid">
+        <button class="itemshop-card" @click="increaseFarmSize(gUser.upgrades)">
+          <span class="item-name">Increase Farm Size</span>
           <div class="icon-container">
-            <img :src="item.icon" :alt="item.name" class="item-icon" />
-            <span class="item-cost">{{ item.cost }}🪙</span>
+            <span style="position: relative; bottom: 10px;">🚜</span>
+            <span class="item-cost">🪙 {{ getUpgradeCost(gUser.upgrades)}}</span>
+          </div>
+        </button>
+
+        <button class="itemshop-card"@click="increaseHerdSize()">
+          <span class="item-name">Increase Herd Size</span>
+          <div class="icon-container">
+            <span style="position: relative; bottom: 10px;">🦙</span>
+            <span class="item-cost">🪙 5</span>
           </div>
         </button>
       </div>
-      
-      <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
+
+        <button class="close-btn" @click="gUI.farmMenu = false" title="Close">✖️</button>
+      </div>
     </div>
-  </div>
+
+    <div v-if="gUI.itemShop" class="modal-overlay">
+      <div class="shop-title"> 
+        Buy Item 
+        
+        <div class="itemshop-grid">
+          <button v-for="item in shopItems" :key="item.name" class="itemshop-card" @click="buyItem(item)">
+            <span class="item-name">{{ item.name }}</span>
+            <div class="icon-container">
+              <img :src="item.icon" :alt="item.name" class="item-icon" />
+              <span class="item-cost">{{ item.cost }}🪙</span>
+            </div>
+          </button>
+        </div>
+        
+        <button class="close-btn" @click="closeItemShop()" title="Close">✖️</button>
+      </div>
+    </div>
     
     <div v-if="gUI.alpacaShop" class="modal-overlay">
       <div class="shop-title">Buy Alpaca
@@ -264,13 +259,13 @@
         <button class="close-btn" @click="closeLightMenu()" title="Close">✖️</button>
       </div>
     </div>
-
   </div>
 </template>
 
 <!---------------------- SCRIPT ------------------------->
 <script setup>
 import * as THREE from 'three'
+import { StereoEffect } from 'three/addons/effects/StereoEffect.js'
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
 import { alpacaHandling } from './components/alpacaHandling.js'
@@ -288,11 +283,12 @@ import { updateAlpacas } from './core/entities/Alpaca.js'
 import { updateCollectables } from './core/entities/Collectable.js'
 import { shopItems } from './core/entities/Item.js'
 import { cleanupFPSstats, initFPSstats } from './core/FPSstats.js'
-import { gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser} from './core/globals.js'
+import { gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
 import { changeCamera, checkControlsEnabled, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
 import { useInput } from './core/useInput.js'
+import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
@@ -301,8 +297,6 @@ import { changeGame } from './mini_games/init.js'
 import { initUser } from './user/initUser.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
-import { init_redot, render_redot } from './core/useSpatialBridge.js'
-import { StereoEffect } from 'three/addons/effects/StereoEffect.js';
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)

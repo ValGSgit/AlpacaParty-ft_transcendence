@@ -510,7 +510,9 @@ input:checked+.slider:before {
 }
 
 /* SHARED FLOATING TEXT */
-.floating-text, .floating-text-coins, .floating-text-hearts {
+.floating-text,
+.floating-text-coins,
+.floating-text-hearts {
   position: absolute;
   font-size: 28px;
   font-weight: 900;
@@ -627,11 +629,16 @@ input:checked+.slider:before {
   transform: translateX(-50%) scale(1.05);
 }
 
-
 /* ========================================= */
 /* Multiplayer                               */
 /* ========================================= */
 
+.action-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  justify-content: center;
+}
 
 .multiplayer-row {
   display: flex;
@@ -681,6 +688,7 @@ input:checked+.slider:before {
   padding: 1.75rem 1.25rem;
   transition: border-color 0.2s, transform 0.15s;
 }
+
 .feature-card:hover {
   border-color: var(--primary, #00f0ff);
   transform: translateY(-3px);

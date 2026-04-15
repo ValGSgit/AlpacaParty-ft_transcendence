@@ -8,8 +8,8 @@ export function printDebug() {
   if (gCollectables)
     console.log("gCollectables.length = ", gCollectables.length)
   if (gCollidables)
-    console.log("gCollidables.length = ", gCollidable.length)
-  if(gEditables)
+    console.log("gCollidables.length = ", gCollidables.length)
+  if (gEditables)
     console.log("gEditables.length = ", gEditables.length)
   //resetValues()
 }

@@ -140,7 +140,6 @@ async function initPlayers(playerCount, tempAlpacas) {
   }
 }
 
-// TODO: randomize buildings here
 function initScenery() {
   if (buildingSelection.length === 0) return;
 
@@ -208,6 +207,7 @@ export function updateAlpacaRoad(delta) {
   updatePlayers(delta)
   updateRoadScene(delta)
   updateDifficulty()
+
   if (alivePlayers === 0) {
     endMinigame();
   }
@@ -406,8 +406,6 @@ function updateRoadScene(delta) {
     if (building.position.z < roadBack) {
       building.position.z = startZ;
       building.scale.set(0.1, 0.1, 0.1);
-      // TODO: Randomize which building model is used
-      // if (buildingSelection.length > 1) { swapModelLogic(); }
     }
     const target = building.userData.targetScale;
     if (building.scale.distanceTo(target) < 0.01) {
@@ -445,7 +443,7 @@ function checkAlpaca(alpaca) {
   const isColliding = checkCollisionWith(alpaca.model, activeObstacles);
   if (isColliding) {
     alpaca.isBeingHit = true;
-    alpaca.hp--; //TODO
+    alpaca.hp--;
     spawnFloatingText(alpaca.model, '-💔', 'hearts');
     if (alpaca.hp === 0) {
       alpaca.isDead = true;
@@ -454,14 +452,18 @@ function checkAlpaca(alpaca) {
   }
 }
 
+// TODO: proper endgame function
 function endMinigame() {
-  let deadAlpacas;
+  let aliveAlpacas = initalPlayerCount;
   for (let i = 0; i < activePlayers.length; i++) {
     const alpaca = activePlayers[i];
-    if (!alpaca.isBeingHit && alpaca.isDead) deadAlpacas++;
+    if (!alpaca.isBeingHit && alpaca.isDead) {
+      aliveAlpacas--;
+    }
   }
-  if (deadAlpacas == alivePlayers)
+  if (aliveAlpacas == 0) {
     gMinigame.value.isActive = false
+  }
 }
 
 export function cleanupAlpacaRoad() {
