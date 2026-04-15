@@ -45,7 +45,6 @@ export const listUsers = async (req, res, next) => {
           id: true, username: true, email: true, avatar: true,
           isOnline: true, createdAt: true,
           userSettings: { select: { isAdmin: true } },
-          userStats:    { select: { xp: true, level: true } },
         },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: Number(limit),
@@ -62,8 +61,6 @@ export const listUsers = async (req, res, next) => {
       isOnline:  u.isOnline,
       createdAt: u.createdAt,
       isAdmin:   u.userSettings?.isAdmin ?? false,
-      level:     u.userStats?.level      ?? 1,
-      xp:        u.userStats?.xp         ?? 0,
     }));
     res.json({ users: shaped, total });
   } catch (err) {

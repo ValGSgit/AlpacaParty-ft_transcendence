@@ -124,14 +124,6 @@ const config = {
     ],
   },
 
-  // Gamification
-  xp: {
-    perWin: 25,
-    perLoss: 5,
-    perDraw: 10,
-    perPost: 5,
-    levelThreshold: 100, // XP per level
-  },
 };
 
 export default config;
