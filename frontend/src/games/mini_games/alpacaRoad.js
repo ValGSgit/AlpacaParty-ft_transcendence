@@ -75,7 +75,7 @@ async function setupRoadScene(scene) {
 
   initRoadStripes();
 }
-
+ 
 async function loadAssets() {
   if (fullObstacle.length === 0) {
     const loadedFull = await Promise.all(fullPaths.map(path => createItem(path)));
