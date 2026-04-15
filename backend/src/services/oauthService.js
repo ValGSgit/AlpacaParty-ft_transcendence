@@ -26,7 +26,12 @@ export function initializePassport() {
   });
 
   // ── Google ────────────────────────────────────────────────
-  if (config.oauth.google.clientId) {
+  if (config.oauth.google.clientId && !config.oauth.google.clientSecret) {
+    console.warn('[oauth] Google client configured without client secret; strategy disabled');
+  }
+
+  if (config.oauth.google.clientId && config.oauth.google.clientSecret) {
+    console.info(`[oauth] Google strategy enabled (callback: ${config.oauth.google.callbackUrl})`);
     passport.use(
       new GoogleStrategy(
         {
@@ -68,7 +73,12 @@ export function initializePassport() {
   }
 
   // ── GitHub ────────────────────────────────────────────────
-  if (config.oauth.github.clientId) {
+  if (config.oauth.github.clientId && !config.oauth.github.clientSecret) {
+    console.warn('[oauth] GitHub client configured without client secret; strategy disabled');
+  }
+
+  if (config.oauth.github.clientId && config.oauth.github.clientSecret) {
+    console.info(`[oauth] GitHub strategy enabled (callback: ${config.oauth.github.callbackUrl})`);
     passport.use(
       new GitHubStrategy(
         {

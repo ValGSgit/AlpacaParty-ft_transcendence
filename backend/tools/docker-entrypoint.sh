@@ -12,7 +12,13 @@ npm install
 run_with_secrets="npx env-cmd -f /run/secrets/.env"
 
 echo "Applying database migrations..."
-$run_with_secrets npx prisma migrate dev --name init
+if find prisma/migrations -mindepth 1 -maxdepth 1 -type d | grep -q .; then
+	# Apply committed migrations only; do not generate new files at container boot.
+	$run_with_secrets npx prisma migrate deploy
+else
+	echo "No migration folders found, creating initial migration..."
+	$run_with_secrets npx prisma migrate dev --name init
+fi
 
 echo "Create prisma client"
 $run_with_secrets npx prisma generate

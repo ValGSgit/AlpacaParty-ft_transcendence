@@ -76,6 +76,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
+import PostCard from '../components/PostCard.vue'
+import UserAvatar from '../components/UserAvatar.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
