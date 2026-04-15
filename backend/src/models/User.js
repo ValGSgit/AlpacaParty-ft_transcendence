@@ -16,10 +16,12 @@ const SAFE_SELECT = {
   lastSeen: true,
   createdAt: true,
   updatedAt: true,
-  userAuth:     { select: { oauthProvider: true } },
-  userStats:    { select: { xp: true, level: true } },
+  userAuth: { select: { oauthProvider: true } },
+  userStats: { select: { xp: true, level: true } },
   userSettings: { select: { isPublic: true, isAdmin: true } },
-  alpacaFarm:   { select: { coins: true, alpacas: true, items: true, upgrades: true } },
+  alpacaFarm: {
+    select: { coins: true, alpacas: true, items: true, upgrades: true },
+  },
 };
 
 /**
@@ -35,40 +37,34 @@ export function shapeUserForClient(u) {
     avatar: u.avatar,
     bio: u.bio,
     status: u.status,
-    is_public:      u.userSettings?.isPublic  ?? true,
-    is_admin:       u.userSettings?.isAdmin   ?? false,
-    isAdmin:        u.userSettings?.isAdmin   ?? false,
-    is_online:      u.isOnline,
-    isOnline:       u.isOnline,
+    is_public: u.userSettings?.isPublic ?? true,
+    is_admin: u.userSettings?.isAdmin ?? false,
+    isAdmin: u.userSettings?.isAdmin ?? false,
+    is_online: u.isOnline,
+    isOnline: u.isOnline,
     oauth_provider: u.userAuth?.oauthProvider ?? null,
-    xp:             u.userStats?.xp           ?? 0,
-    level:          u.userStats?.level        ?? 1,
-    coins:          u.alpacaFarm?.coins       ?? 0,
-    alpacas:        u.alpacaFarm?.alpacas     ?? [],
-    items:          u.alpacaFarm?.items       ?? [],
-    upgrades:       u.alpacaFarm?.upgrades    ?? 0,
-    last_seen:      u.lastSeen,
-    created_at:     u.createdAt,
-    updated_at:     u.updatedAt,
+    xp: u.userStats?.xp ?? 0,
+    level: u.userStats?.level ?? 1,
+    coins: u.alpacaFarm?.coins ?? 0,
+    alpacas: u.alpacaFarm?.alpacas ?? [],
+    items: u.alpacaFarm?.items ?? [],
+    upgrades: u.alpacaFarm?.upgrades ?? 0,
+    last_seen: u.lastSeen,
+    created_at: u.createdAt,
+    updated_at: u.updatedAt,
   };
 }
 
 const User = {
   async create({ username, email, passwordHash }) {
-    if (process.env.NODE_ENV === 'test') {
-      return await prisma.user.create({
-        data: { username, email, passwordHash },
-      });
-    }
-
     return await prisma.user.create({
       data: {
         username,
         email,
-        userAuth:     { create: { passwordHash } },
-        userStats:    { create: {} },
+        userAuth: { create: { passwordHash } },
+        userStats: { create: {} },
         userSettings: { create: {} },
-        alpacaFarm:   { create: {} },
+        alpacaFarm: { create: {} },
       },
       select: SAFE_SELECT,
     });
@@ -96,11 +92,11 @@ const User = {
         create: {
           username,
           email,
-          avatar: avatar || '/avatars/default.svg',
-          userAuth:     { create: { oauthProvider: provider, oauthId } },
-          userStats:    { create: {} },
+          avatar: avatar || "/avatars/default.svg",
+          userAuth: { create: { oauthProvider: provider, oauthId } },
+          userStats: { create: {} },
           userSettings: { create: {} },
-          alpacaFarm:   { create: {} },
+          alpacaFarm: { create: {} },
         },
         select: SAFE_SELECT,
       });
@@ -114,11 +110,11 @@ const User = {
       data: {
         username,
         email: internalEmail,
-        avatar: avatar || '/avatars/default.svg',
-        userAuth:     { create: { oauthProvider: provider, oauthId } },
-        userStats:    { create: {} },
+        avatar: avatar || "/avatars/default.svg",
+        userAuth: { create: { oauthProvider: provider, oauthId } },
+        userStats: { create: {} },
         userSettings: { create: {} },
-        alpacaFarm:   { create: {} },
+        alpacaFarm: { create: {} },
       },
       select: SAFE_SELECT,
     });
@@ -140,10 +136,6 @@ const User = {
   },
 
   async findByUsername(username) {
-    if (process.env.NODE_ENV === 'test') {
-      return prisma.user.findUnique({ where: { username } });
-    }
-
     return prisma.user.findUnique({
       where: { username },
       include: { userAuth: true },
@@ -151,10 +143,6 @@ const User = {
   },
 
   async findByEmail(email) {
-    if (process.env.NODE_ENV === 'test') {
-      return prisma.user.findUnique({ where: { email } });
-    }
-
     return prisma.user.findUnique({
       where: { email },
       include: { userAuth: true },
@@ -162,13 +150,13 @@ const User = {
   },
 
   async update(id, fields) {
-    const userAllowed    = ['username', 'email', 'avatar', 'bio', 'status'];
-    const settingsFields = ['isPublic'];
-    const farmFields     = ['coins', 'alpacas', 'items', 'upgrades'];
+    const userAllowed = ["username", "email", "avatar", "bio", "status"];
+    const settingsFields = ["isPublic"];
+    const farmFields = ["coins", "alpacas", "items", "upgrades"];
 
-    const userData    = {};
+    const userData = {};
     const settingsData = {};
-    const farmData    = {};
+    const farmData = {};
 
     for (const key of userAllowed) {
       if (fields[key] !== undefined) userData[key] = fields[key];
@@ -180,7 +168,11 @@ const User = {
       if (fields[key] !== undefined) farmData[key] = fields[key];
     }
 
-    if (!Object.keys(userData).length && !Object.keys(settingsData).length && !Object.keys(farmData).length) {
+    if (
+      !Object.keys(userData).length &&
+      !Object.keys(settingsData).length &&
+      !Object.keys(farmData).length
+    ) {
       return this.findById(id);
     }
 
@@ -197,18 +189,22 @@ const User = {
       );
     }
     if (Object.keys(settingsData).length) {
-      ops.push(prisma.userSettings.upsert({
-        where:  { userId: Number(id) },
-        create: { userId: Number(id), ...settingsData },
-        update: settingsData,
-      }));
+      ops.push(
+        prisma.userSettings.upsert({
+          where: { userId: Number(id) },
+          create: { userId: Number(id), ...settingsData },
+          update: settingsData,
+        }),
+      );
     }
     if (Object.keys(farmData).length) {
-      ops.push(prisma.alpacaFarm.upsert({
-        where:  { userId: Number(id) },
-        create: { userId: Number(id), ...farmData },
-        update: farmData,
-      }));
+      ops.push(
+        prisma.alpacaFarm.upsert({
+          where: { userId: Number(id) },
+          create: { userId: Number(id), ...farmData },
+          update: farmData,
+        }),
+      );
     }
 
     await Promise.all(ops);
@@ -216,7 +212,11 @@ const User = {
       return null;
     }
 
-    if (updatedUser && !Object.keys(settingsData).length && !Object.keys(farmData).length) {
+    if (
+      updatedUser &&
+      !Object.keys(settingsData).length &&
+      !Object.keys(farmData).length
+    ) {
       return updatedUser;
     }
     return this.findById(id);
@@ -225,21 +225,21 @@ const User = {
   async updatePassword(id, passwordHash) {
     await prisma.userAuth.update({
       where: { userId: Number(id) },
-      data:  { passwordHash },
+      data: { passwordHash },
     });
   },
 
   async setOnline(id, isOnline = true) {
     await prisma.user.update({
       where: { id: Number(id) },
-      data:  { isOnline, lastSeen: new Date() },
+      data: { isOnline, lastSeen: new Date() },
     });
   },
 
   async setOffline(id) {
     await prisma.user.update({
       where: { id: Number(id) },
-      data:  { isOnline: false, lastSeen: new Date() },
+      data: { isOnline: false, lastSeen: new Date() },
     });
   },
 
@@ -253,7 +253,7 @@ const User = {
     }
 
     const stats = await prisma.userStats.upsert({
-      where:  { userId: Number(id) },
+      where: { userId: Number(id) },
       create: { userId: Number(id), xp: amount, level: 1 },
       update: { xp: { increment: amount } },
     });
@@ -261,7 +261,7 @@ const User = {
     if (newLevel !== stats.level) {
       await prisma.userStats.update({
         where: { userId: Number(id) },
-        data:  { level: newLevel },
+        data: { level: newLevel },
       });
     }
     return this.findById(id);
@@ -270,12 +270,18 @@ const User = {
   async findAll({ limit = 50, offset = 0 } = {}) {
     return prisma.user.findMany({
       select: {
-        id: true, username: true, avatar: true, bio: true,
-        status: true, isOnline: true, lastSeen: true, createdAt: true,
-        userStats:    { select: { xp: true, level: true } },
+        id: true,
+        username: true,
+        avatar: true,
+        bio: true,
+        status: true,
+        isOnline: true,
+        lastSeen: true,
+        createdAt: true,
+        userStats: { select: { xp: true, level: true } },
         userSettings: { select: { isPublic: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: Number(limit),
       skip: Number(offset),
     });
@@ -289,13 +295,16 @@ const User = {
     return prisma.user.findMany({
       where: {
         OR: [
-          { username: { startsWith: term, mode: 'insensitive' } },
-          { bio:      { contains:   term, mode: 'insensitive' } },
+          { username: { startsWith: term, mode: "insensitive" } },
+          { bio: { contains: term, mode: "insensitive" } },
         ],
       },
       select: {
-        id: true, username: true, avatar: true, isOnline: true,
-        userStats:    { select: { xp: true, level: true } },
+        id: true,
+        username: true,
+        avatar: true,
+        isOnline: true,
+        userStats: { select: { xp: true, level: true } },
         userSettings: { select: { isPublic: true } },
       },
       take: Number(limit),
@@ -317,34 +326,47 @@ const User = {
       prisma.user.findUnique({
         where: { id: Number(id) },
         select: {
-          id: true, username: true, email: true, bio: true,
-          status: true, createdAt: true,
+          id: true,
+          username: true,
+          email: true,
+          bio: true,
+          status: true,
+          createdAt: true,
           userStats: { select: { xp: true, level: true } },
         },
       }),
       prisma.friend.findMany({
-        where:   { userId: Number(id) },
+        where: { userId: Number(id) },
         include: { friend: { select: { id: true, username: true } } },
       }),
       prisma.message.findMany({
-        where:   { senderId: Number(id) },
-        select:  { id: true, receiverId: true, content: true, createdAt: true },
-        orderBy: { createdAt: 'asc' },
+        where: { senderId: Number(id) },
+        select: { id: true, receiverId: true, content: true, createdAt: true },
+        orderBy: { createdAt: "asc" },
       }),
       prisma.game.findMany({
-        where:   { OR: [{ player1Id: Number(id) }, { player2Id: Number(id) }] },
-        orderBy: { createdAt: 'asc' },
+        where: { OR: [{ player1Id: Number(id) }, { player2Id: Number(id) }] },
+        orderBy: { createdAt: "asc" },
       }),
       prisma.post.findMany({
-        where:   { authorId: Number(id) },
-        select:  { id: true, content: true, imageUrl: true, createdAt: true },
-        orderBy: { createdAt: 'asc' },
+        where: { authorId: Number(id) },
+        select: { id: true, content: true, imageUrl: true, createdAt: true },
+        orderBy: { createdAt: "asc" },
       }),
     ]);
 
     return {
-      user: user ? { ...user, xp: user.userStats?.xp ?? 0, level: user.userStats?.level ?? 1 } : null,
-      friends: friends.map((f) => ({ friendId: f.friend.id, username: f.friend.username })),
+      user: user
+        ? {
+            ...user,
+            xp: user.userStats?.xp ?? 0,
+            level: user.userStats?.level ?? 1,
+          }
+        : null,
+      friends: friends.map((f) => ({
+        friendId: f.friend.id,
+        username: f.friend.username,
+      })),
       messages,
       games,
       posts,

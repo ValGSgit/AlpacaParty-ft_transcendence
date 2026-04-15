@@ -13,6 +13,7 @@ RESET  := \033[0m
 # ── Docker ──────────────────────────────────────────────────
 COMPOSE_PROJECT := alpacaparty-ft_transcendence
 DC := docker compose --profile dev
+DC_TEST := docker compose --profile test --env-file .env.test
 DC_E2E := docker compose --profile dev --profile e2e
 DC_PROD := docker compose -f compose.prod.yaml
 
@@ -207,12 +208,21 @@ dev:
 dev-backend:
 	cd backend && npm run dev
 
-# TESTING ─────────────────────────────────────────────────
+# TESTING
+# This runs with the test profile to use an temporary test database
+# example option: '-- users.routes.test.js' (tests only one file)
+options?=
 backend-test: create-dirs
-	$(DC) up -d postgres vault vault-init backend
-	$(DC) exec backend npm install --no-audit --no-fund --loglevel=error
-	$(DC) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
-	$(DC) exec backend npm test
+	@EXIT_CODE=0; \
+	$(DC_TEST) run --rm backend_test npm test $(options) || EXIT_CODE=$?; \
+	$(DC_TEST) down -v --remove-orphans; \
+	exit $EXIT_CODE
+
+backend-test-watch: create-dirs
+	@EXIT_CODE=0; \
+	$(DC_TEST) run --rm backend_test npm run test:watch $(options) || EXIT_CODE=$?; \
+	$(DC_TEST) down -v --remove-orphans; \
+	exit $EXIT_CODE
 
 test: backend-test
 
