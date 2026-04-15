@@ -7,6 +7,7 @@
 import { Prisma } from "@prisma/client";
 import CustomError from "#utils/CustomError.js";
 import { isValidationError } from "#validators/validatorUtils.js";
+import config from "#config/index.js";
 
 export const notFoundHandler = (_req, _res, next) => {
   const err = new Error("Not Found");
@@ -45,7 +46,8 @@ export const errorHandler = (err, _req, res, _next) => {
     error = handlePrismaError(err);
   }
 
-  console.log(`errorHandler: ${error.statusCode}: ${error.message}`);
+  if (config.envIsDev)
+    console.log(`errorHandler: ${error.statusCode}: ${error.message}`);
 
   res.status(error.statusCode).json({
     error: {
