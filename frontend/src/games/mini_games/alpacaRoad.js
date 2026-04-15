@@ -20,6 +20,7 @@ const startZ = roadLength + roadBack;
 
 let level;
 let alivePlayers;
+let initalPlayerCount;
 let activePlayers = [];
 const playerPositions = [-2.5, 2.5, -7.5, 7.5];
 
@@ -61,6 +62,7 @@ function initGameValues(playerCount) {
   level = 1;
   totalPoints = 0;
   alivePlayers = playerCount;
+  initalPlayerCount = playerCount;
   gUI.cameraMode = 2;
 
   gMinigame.value.mode = 3;
@@ -269,8 +271,9 @@ function updatePlayers(delta) {
 }
 
 function updateDifficulty() {
-  const pointsPerLevel = (3 * alivePlayers) + (level * alivePlayers) + 1;
-  const newLevel = Math.floor(totalPoints / pointsPerLevel) + 1;
+  const pointsPerLevel = 4 + level;
+  const avgPoints = totalPoints / initalPlayerCount;
+  const newLevel = Math.floor(avgPoints / pointsPerLevel) + 1;
 
 
   if (newLevel > level) {
@@ -292,7 +295,6 @@ function updateDifficulty() {
 }
 
 function showLevelAnnouncement(level) {
-  // Create a temporary div
   const el = document.createElement('div');
   el.className = 'level-up-announcement';
   el.innerText = `LEVEL ${level}`;
@@ -300,7 +302,7 @@ function showLevelAnnouncement(level) {
   // Basic styling (usually you'd put this in your CSS file)
   Object.assign(el.style, {
     position: 'absolute',
-    top: '50%',
+    top: '25%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
     fontSize: '5rem',
