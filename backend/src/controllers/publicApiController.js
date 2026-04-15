@@ -23,8 +23,6 @@ const toPublicUser = (user, anonymize = false) => ({
   avatar: anonymize ? maskAvatar : user.avatar,
   bio: anonymize ? 'Anonymized profile for public API testing' : user.bio,
   status: anonymize ? 'Anonymized' : user.status,
-  level: user.userStats?.level ?? user.level ?? 1,
-  xp: user.userStats?.xp ?? user.xp ?? 0,
   is_online: user.isOnline,
   created_at: user.createdAt,
 });

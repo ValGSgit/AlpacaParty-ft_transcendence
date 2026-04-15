@@ -1,7 +1,6 @@
 import AuthService from './authService.js';
 import User from '../models/User.js';
 import Game from '../models/Game.js';
-import GamificationService from './gamificationService.js';
 
 const TICK_RATE = 20;
 const ARENA_RADIUS = 18;
@@ -438,9 +437,7 @@ export function initializeSpitRoyaleNamespace(io) {
       endReason: reason,
     };
 
-    const [p1Reward, p2Reward] = await Promise.all([
-      GamificationService.processGameEnd(player1.userId, p1Result, 'spit_royale', p1Context),
-      GamificationService.processGameEnd(player2.userId, p2Result, 'spit_royale', p2Context),
+    await Promise.all([
       Game.updateStats(player1.userId, 'spit_royale', p1Result),
       Game.updateStats(player2.userId, 'spit_royale', p2Result),
       Game.updateElo(player1.userId, 'spit_royale', newP1Elo),
@@ -449,8 +446,8 @@ export function initializeSpitRoyaleNamespace(io) {
 
     return {
       byPlayerId: {
-        [player1.id]: { ...p1Reward, elo: { from: p1Stats.elo, to: newP1Elo } },
-        [player2.id]: { ...p2Reward, elo: { from: p2Stats.elo, to: newP2Elo } },
+        [player1.id]: { elo: { from: p1Stats.elo, to: newP1Elo } },
+        [player2.id]: { elo: { from: p2Stats.elo, to: newP2Elo } },
       },
       winnerUserId,
     };

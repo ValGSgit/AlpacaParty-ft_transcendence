@@ -15,6 +15,9 @@ import {
   requestDeletion,
   listDataRequests,
   deleteMe,
+  getApiKey,
+  generateApiKey,
+  revokeApiKey,
 } from "#controllers/userController.js";
 import { generateAvatar, generateImage } from "#controllers/aiController.js";
 import {
@@ -186,6 +189,54 @@ router.post("/me/delete-request", requestDeletion);
  *                       created_at: { type: string, format: date-time }
  */
 router.get("/me/data-requests", listDataRequests);
+
+/**
+ * @openapi
+ * /users/me/api-key:
+ *   get:
+ *     tags: [Users]
+ *     summary: Get my Public API key (null if not yet generated)
+ *     responses:
+ *       200:
+ *         description: API key (full value) or null
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 apiKey: { type: string, nullable: true, example: "ap_abc123..." }
+ *   post:
+ *     tags: [Users]
+ *     summary: Generate (or regenerate) my Public API key
+ *     description: |
+ *       Returns the full key exactly once. Store it securely — subsequent GET calls
+ *       also return the full key, but after navigating away you should treat it as
+ *       partially hidden in the UI.
+ *     responses:
+ *       201:
+ *         description: New API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 apiKey: { type: string, example: "ap_a1b2c3d4e5f6..." }
+ *   delete:
+ *     tags: [Users]
+ *     summary: Revoke my Public API key
+ *     responses:
+ *       200:
+ *         description: Key revoked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string, example: "API key revoked" }
+ */
+router.get("/me/api-key", getApiKey);
+router.post("/me/api-key", generateApiKey);
+router.delete("/me/api-key", revokeApiKey);
 
 /**
  * @openapi

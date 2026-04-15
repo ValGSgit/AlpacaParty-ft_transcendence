@@ -13,14 +13,6 @@
         <h2>{{ authStore.user.username }}</h2>
         <span class="status">{{ authStore.user.status || 'No status set' }}</span>
 
-        <div class="xp-section">
-          <div class="level-badge">Level {{ authStore.user.level || 1 }}</div>
-          <div class="xp-bar">
-            <div class="xp-fill" :style="{ width: xpPercent + '%' }"></div>
-          </div>
-          <span class="xp-text">{{ authStore.user.xp || 0 }} XP</span>
-        </div>
-
         <div class="profile-tabs">
           <button :class="['tab-btn', { active: activeTab === 'overview' }]" @click="activeTab = 'overview'">
             Overview
@@ -172,6 +164,31 @@
             </form>
           </section>
 
+          <section class="settings-section">
+            <h3>Public API Key</h3>
+            <p class="toggle-desc" style="margin-bottom:1rem">
+              Use this key to access the <router-link to="/docs" class="inline-link">Public API</router-link>.
+              Pass it as the <code>X-API-Key</code> header on every request.
+            </p>
+            <div v-if="apiKeyMsg" :class="['banner', apiKeyMsg.type]">{{ apiKeyMsg.text }}</div>
+            <div v-if="currentApiKey" class="api-key-display">
+              <code class="api-key-value">{{ revealKey ? currentApiKey : currentApiKey.slice(0, 6) + '••••••••••••••••••••' }}</code>
+              <div class="api-key-actions">
+                <button class="btn-sm btn-secondary" @click="revealKey = !revealKey">
+                  {{ revealKey ? 'Hide' : 'Reveal' }}
+                </button>
+                <button class="btn-sm btn-secondary" @click="copyApiKey">Copy</button>
+                <button class="btn-sm btn-danger" @click="revokeApiKey" :disabled="apiKeyLoading">Revoke</button>
+              </div>
+            </div>
+            <div v-else class="api-key-empty">
+              <p class="toggle-desc">No API key generated yet.</p>
+            </div>
+            <button class="btn-primary" style="margin-top:0.9rem" @click="generateApiKey" :disabled="apiKeyLoading">
+              {{ apiKeyLoading ? 'Working…' : currentApiKey ? 'Regenerate Key' : 'Generate Key' }}
+            </button>
+          </section>
+
           <section class="settings-section danger-zone-container">
             <h3>My Data</h3>
             <div class="data-actions">
@@ -210,7 +227,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
@@ -236,17 +253,16 @@ const requestingData = ref(false)
 const pwError = ref(null)
 const exportFormat = ref('json')
 
+// API Key State
+const currentApiKey = ref(null)
+const apiKeyLoading = ref(false)
+const apiKeyMsg = ref(null)
+const revealKey = ref(false)
+
 const profileForm = ref({
   username: '', email: '', bio: '', status: '', avatar: '', is_public: false
 })
 const pwForm = ref({ current: '', newPw: '', confirm: '' })
-
-// Computed
-const xpPercent = computed(() => {
-  const xp = authStore.user?.xp || 0
-  const threshold = 100
-  return Math.min((xp % threshold) / threshold * 100, 100)
-})
 
 // Helpers
 function formatDate(ts) {
@@ -293,6 +309,12 @@ onMounted(async () => {
   } catch {} finally {
     postsLoading.value = false
   }
+
+  // 4. Fetch API key status
+  try {
+    const { data } = await api.get('/users/me/api-key')
+    currentApiKey.value = data.apiKey || null
+  } catch {}
 })
 
 // Settings Methods
@@ -350,6 +372,50 @@ async function changePassword() {
     pwError.value = e.response?.data?.error?.message || 'Failed to update password.'
   } finally {
     savingPw.value = false
+  }
+}
+
+function flashApiKey(text, type = 'success') {
+  apiKeyMsg.value = { text, type }
+  setTimeout(() => { apiKeyMsg.value = null }, 5000)
+}
+
+async function generateApiKey() {
+  apiKeyLoading.value = true
+  try {
+    const { data } = await api.post('/users/me/api-key')
+    currentApiKey.value = data.apiKey
+    revealKey.value = true
+    flashApiKey('API key generated. Copy it now — it will be partially hidden after you leave this page.')
+  } catch (e) {
+    flashApiKey(e.response?.data?.error?.message || 'Failed to generate API key.', 'error')
+  } finally {
+    apiKeyLoading.value = false
+  }
+}
+
+async function revokeApiKey() {
+  if (!window.confirm('Revoke your API key? Any integrations using it will stop working.')) return
+  apiKeyLoading.value = true
+  try {
+    await api.delete('/users/me/api-key')
+    currentApiKey.value = null
+    revealKey.value = false
+    flashApiKey('API key revoked.')
+  } catch (e) {
+    flashApiKey(e.response?.data?.error?.message || 'Failed to revoke API key.', 'error')
+  } finally {
+    apiKeyLoading.value = false
+  }
+}
+
+async function copyApiKey() {
+  if (!currentApiKey.value) return
+  try {
+    await navigator.clipboard.writeText(currentApiKey.value)
+    flashApiKey('Copied to clipboard.')
+  } catch {
+    flashApiKey('Could not copy — please select and copy manually.', 'error')
   }
 }
 
@@ -460,31 +526,6 @@ async function confirmDelete() {
 
 .profile-body h2 { margin: 0; color: var(--primary, #00f0ff); }
 .status { color: #999; font-size: 0.9rem; }
-
-.xp-section {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 1.25rem 0;
-  padding: 0.5rem 0;
-}
-.level-badge {
-  background: var(--primary, #00f0ff);
-  color: #000; font-weight: 700;
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px; font-size: 0.8rem; white-space: nowrap;
-}
-.xp-bar {
-  flex: 1; height: 8px;
-  background: var(--bg-tertiary, #1a1a2a);
-  border-radius: 4px; overflow: hidden;
-}
-.xp-fill {
-  height: 100%;
-  background: var(--primary, #00f0ff);
-  transition: width 0.3s;
-}
-.xp-text { font-size: 0.8rem; color: #999; white-space: nowrap; }
 
 /* ── Tabs ── */
 .profile-tabs {
@@ -624,4 +665,15 @@ async function confirmDelete() {
 .banner { padding: 0.6rem 1rem; margin-bottom: 1rem; border-radius: 6px; font-size: 0.9rem; text-align: center; }
 .banner.success { background: rgba(0,255,136,0.1); border: 1px solid var(--success, #00ff88); color: var(--success, #00ff88); }
 .banner.error   { background: rgba(255,0,110,0.1); border: 1px solid var(--danger, #ff006e); color: var(--danger, #ff006e); }
+
+/* ── API Key ── */
+.api-key-display { display: flex; flex-direction: column; gap: 0.6rem; }
+.api-key-value {
+  display: block; padding: 0.55rem 0.8rem;
+  background: var(--bg-secondary, #12121a); border: 1px solid var(--border-color, #2a2a3a);
+  border-radius: 6px; font-family: monospace; font-size: 0.85rem;
+  word-break: break-all; color: var(--primary, #00f0ff);
+}
+.api-key-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.api-key-empty { padding: 0.5rem 0; }
 </style>

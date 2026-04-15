@@ -240,3 +240,47 @@ export const deleteMe = async (req, res, next) => {
     return next(err);
   }
 };
+
+// ── Public API Key Management ────────────────────────────────────────────────
+
+/**
+ * GET /api/users/me/api-key
+ * Returns the current API key for the authenticated user, or null if not set.
+ */
+export const getApiKey = async (req, res, next) => {
+  try {
+    const key = await User.getApiKey(req.user.id);
+    res.json({ apiKey: key });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /api/users/me/api-key
+ * Generates (or regenerates) an API key for the authenticated user.
+ * Returns the full key — this is the only time it is returned in full.
+ */
+export const generateApiKey = async (req, res, next) => {
+  try {
+    const { randomUUID } = await import('crypto');
+    const key = `ap_${randomUUID().replace(/-/g, '')}`;
+    await User.setApiKey(req.user.id, key);
+    res.status(201).json({ apiKey: key });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * DELETE /api/users/me/api-key
+ * Revokes the current API key for the authenticated user.
+ */
+export const revokeApiKey = async (req, res, next) => {
+  try {
+    await User.revokeApiKey(req.user.id);
+    res.json({ message: "API key revoked" });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -17,11 +17,6 @@
         <span class="status">{{ profile.status || '' }}</span>
       </div>
 
-      <div class="xp-section" v-if="profile.level">
-        <div class="level-badge">Level {{ profile.level }}</div>
-        <span class="xp-text">{{ profile.xp || 0 }} XP</span>
-      </div>
-
       <div class="profile-info">
         <div class="info-row">
           <span class="label">Bio</span>
@@ -199,28 +194,6 @@ async function sendFriendRequest() {
 .status {
   color: #999;
   font-size: 0.9rem;
-}
-
-.xp-section {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  justify-content: center;
-}
-
-.level-badge {
-  background: var(--primary, #00f0ff);
-  color: #000;
-  font-weight: 700;
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-}
-
-.xp-text {
-  font-size: 0.8rem;
-  color: #999;
 }
 
 .profile-info {
