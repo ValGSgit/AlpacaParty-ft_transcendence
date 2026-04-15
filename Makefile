@@ -213,12 +213,16 @@ dev-backend:
 # example option: '-- users.routes.test.js' (tests only one file)
 options?=
 backend-test: create-dirs
-	$(DC_TEST) run --rm backend_test npm test ${options} || true
-	$(DC_TEST) down -v --remove-orphans
+	@EXIT_CODE=0; \
+	$(DC_TEST) run --rm backend_test npm test $(options) || EXIT_CODE=$?; \
+	$(DC_TEST) down -v --remove-orphans; \
+	exit $EXIT_CODE
 
 backend-test-watch: create-dirs
-	$(DC_TEST) run --rm backend_test npm run test:watch ${options} || true
-	$(DC_TEST) down -v --remove-orphans
+	@EXIT_CODE=0; \
+	$(DC_TEST) run --rm backend_test npm run test:watch $(options) || EXIT_CODE=$?; \
+	$(DC_TEST) down -v --remove-orphans; \
+	exit $EXIT_CODE
 
 test: backend-test
 

@@ -51,30 +51,12 @@ async function setupUsers() {
 async function setupNotifications() {
   await prisma.notification.deleteMany({});
 
-  {
+  for (let i = 1; i <= 3; i++) {
     const n = await Notification.create({
       userId: validUser.id,
-      type: "type1",
-      title: "Notfication1 title",
-      message: "Notification1 message",
-    });
-    nots.push(n);
-  }
-  {
-    const n = await Notification.create({
-      userId: validUser.id,
-      type: "type2",
-      title: "Notfication2 title",
-      message: "Notification2 message",
-    });
-    nots.push(n);
-  }
-  {
-    const n = await Notification.create({
-      userId: validUser.id,
-      type: "type3",
-      title: "Notfication3 title",
-      message: "Notification3 message",
+      type: `type${i}`,
+      title: `Notification${i} title`,
+      message: `Notification${i} message`,
     });
     nots.push(n);
   }

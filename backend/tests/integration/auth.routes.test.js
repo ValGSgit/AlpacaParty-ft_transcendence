@@ -93,7 +93,7 @@ describe("POST /api/auth/register", () => {
     });
 
     expect(res.status).toBe(409);
-    expect(res.body.error.message).toMatch(/user/i); // i == case insesitive
+    expect(res.body.error.message).toMatch(/user/i); // i == case insensitive
     expect(res.body.error.message).toMatch(/taken/i);
   });
 
@@ -105,7 +105,7 @@ describe("POST /api/auth/register", () => {
     });
 
     expect(res.status).toBe(409);
-    expect(res.body.error.message).toMatch(/email/i); // i == case insesitive
+    expect(res.body.error.message).toMatch(/email/i); // i == case insensitive
     expect(res.body.error.message).toMatch(/exists/i);
   });
 

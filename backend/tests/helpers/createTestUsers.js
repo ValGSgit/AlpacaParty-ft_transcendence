@@ -15,7 +15,8 @@ export const createTestUsers = async (num) => {
         username: `user${i}_${runTag}`,
         email: `user${i}_${runTag}@example.com`,
         avatar: "/avatars/default.svg",
-        status: "online",
+        status: "user status",
+        isOnline: i % 2 ? true : false,
         bio: "something",
         userAuth: {
           create: {

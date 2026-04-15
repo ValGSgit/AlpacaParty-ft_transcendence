@@ -96,7 +96,7 @@ router.get("/", (_req, res) => {
 router.use(
   rateLimit({
     windowMs: 60_000,
-    max: 100,
+    max: 30,
     message: "Public API rate limit exceeded",
   }),
 );
