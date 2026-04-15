@@ -2,7 +2,7 @@ import { alpacaHandling } from '../components/alpacaHandling.js';
 import { createAlpaca } from '../core/createObjects.js';
 import { gPlayer, gScene, gUI, gUser } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
-import { getValidRandomPos, spawnObjectRandomly } from '../utils/spawnRandomly.js';
+import { getValidRandomPos } from '../utils/spawnRandomly.js';
 import { setupEnvironment } from '../world/sceneBuilder.js';
 import { SpitRoyaleClient } from './client.js';
 import { changeFloorColor } from './utils.js';
@@ -14,6 +14,7 @@ let originalSpitFn = null; // Store the original spit function to restore later
 
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   gUser.value.gameMode = 1
+  playerCount = 10 // number of AI
   setupEnvironment(gScene.value)
   changeFloorColor('#ff0000', '#550000')
   registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
@@ -21,17 +22,15 @@ export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   gUI.cameraMode = 1
   for (let i = 0; i < playerCount - 1; i++) {
     let alpaca
+    const data = await getValidRandomPos('/models/alpaca.glb', 1);
     if (tempAlpacas[i]) {
       alpaca = tempAlpacas[i]
       registerEntity(alpaca, 'alpaca')
-      const data = await getValidRandomPos('/models/alpaca.glb', 1);
       alpaca.model.position.set(data[0].position[0], data[0].position[1], data[0].position[2])
-      gScene.value.add(alpaca.model)
     }
-    else {
-      alpaca = await spawnObjectRandomly('/models/alpaca.glb', 1, "alpaca")
-      gScene.value.add(alpaca)
-    }
+    else
+      alpaca = await createAlpaca(null, null, data[0].position, data[0].rotation, data[0].scale);
+    gScene.value.add(alpaca.model)
   }
 }
 

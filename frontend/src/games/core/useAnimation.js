@@ -3,6 +3,8 @@ import { CONST } from '../config/constants.js';
 import { gUser } from './globals.js';
 
 export function handleAnimation(player, animDir, speed) {
+  if (CONST.SBS_ENABLED)
+    speed /= 2 // SBS calibration
   const { mixer, animations } = player
 
   const idleAction = mixer.clipAction(animations[1])
