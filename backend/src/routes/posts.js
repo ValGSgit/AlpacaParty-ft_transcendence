@@ -19,8 +19,9 @@ const router = express.Router();
  * /posts:
  *   get:
  *     tags: [Posts]
- *     summary: Get the social feed (public posts + friends' posts if authenticated)
- *     security: [{}]
+ *     summary: Get the social feed (public posts + friends' posts)
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/limitParam'
  *       - $ref: '#/components/parameters/offsetParam'
@@ -58,7 +59,7 @@ const router = express.Router();
  *                 post: { $ref: '#/components/schemas/Post' }
  *       400: { description: content is required }
  */
-router.get('/', optionalAuth, getFeed);
+router.get('/', authenticate, getFeed);
 router.post('/', authenticate, createPost);
 
 /**

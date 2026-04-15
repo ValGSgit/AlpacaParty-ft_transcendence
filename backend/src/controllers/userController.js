@@ -138,7 +138,7 @@ export const getUser = async (req, res, next) => {
  */
 export const listUsers = async (req, res, next) => {
   try {
-    const pageSize = Number(req.query.pageSize) || Number(req.query.limit);
+    const pageSize = Number(req.query.pageSize) || Number(req.query.limit) || 50;
     const page = Number(req.query.page) || 1;
     const limit = Math.min(pageSize, 100);
     const offset = Number(req.query.offset) || Math.max((page - 1) * limit, 0);
