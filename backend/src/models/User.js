@@ -17,7 +17,7 @@ const SAFE_SELECT = {
   createdAt: true,
   updatedAt: true,
   userAuth:     { select: { oauthProvider: true } },
-  userSettings: { select: { isPublic: true, isAdmin: true, apiKey: true } },
+  userSettings: { select: { isPublic: true, isAdmin: true } },
   alpacaFarm:   { select: { coins: true, alpacas: true, items: true, upgrades: true } },
 };
 
@@ -127,7 +127,11 @@ const User = {
   async findByIdWithPassword(id) {
     return prisma.user.findUnique({
       where: { id: Number(id) },
-      include: { userAuth: true, userStats: true, userSettings: true },
+      include: {
+        userAuth: true,
+        userStats: true,
+        userSettings: { select: { userId: true, isPublic: true, isAdmin: true } },
+      },
     });
   },
 

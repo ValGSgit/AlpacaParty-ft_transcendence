@@ -31,7 +31,6 @@ export function usePhysics() {
       obstacleOBB.applyMatrix4(obstacleCollider.matrixWorld)
 
       if (sourceOBB.intersectsOBB(obstacleOBB)) {
-        console.log(obstacle)
         hasCollision = true
         if (CONST.DEBUG)
           drawDebugBox(obstacleCollider)

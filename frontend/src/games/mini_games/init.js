@@ -63,11 +63,11 @@ export async function changeGame(mode, playerCount) {
 }
 
 async function returnFarm() {
-  const { isAuthenticated } = useAuthStore()
+  const authStore = useAuthStore()
   gMinigame.value.isActive = false;
   gMinigame.value.mode = 0;
   gPlayer.value = null
   gUI.cameraMode = 0
-  await initWorld(gScene.value, isAuthenticated)
+  await initWorld(gScene.value, authStore.isAuthenticated)
   saveGame()
 }

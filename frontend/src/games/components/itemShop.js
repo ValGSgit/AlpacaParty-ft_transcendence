@@ -8,8 +8,6 @@ export function itemShop() {
 
   async function buyItem(selectedItem) {
     if (!checkCoinsPrice(selectedItem.cost)) return;
-
-    console.log(selectedItem);
     const item = await (selectedItem.type == 'item'
       ? createItem(selectedItem.path)
       : createDecoration(selectedItem.path));

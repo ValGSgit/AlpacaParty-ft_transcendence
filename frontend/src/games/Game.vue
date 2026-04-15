@@ -267,6 +267,7 @@
 import * as THREE from 'three'
 import { StereoEffect } from 'three/addons/effects/StereoEffect.js'
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useAuthStore } from '../stores/auth.js'
 import { alpacaHandling } from './components/alpacaHandling.js'
 import { alpacaConfig, alpacaShop } from './components/alpacaShop.js'
@@ -310,7 +311,8 @@ const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openFarmMenu, 
 const { init, cleanup, onResize, setDoF } = useGameEngine(gameContainer)
 const { increaseFarmSize } = upgradeFarm()
 const { buyItem } = itemShop()
-const { isAuthenticated } = useAuthStore()
+const authStore = useAuthStore()
+const { isAuthenticated } = storeToRefs(authStore)
 const { cancelPlacement, sellItem} =  useEditMode()
 const showLoginWarning = ref(false);
 const warningOff = () => {showLoginWarning.value = false;};
@@ -326,8 +328,7 @@ let effect
 
 onMounted(async () => {
   document.body.classList.add('lock-screen');
-  const { isAuthenticated } = useAuthStore()
-  if (!isAuthenticated)
+  if (!authStore.isAuthenticated)
     showLoginWarning.value = true
   else
     showLoginWarning.value = false
@@ -353,7 +354,7 @@ onMounted(async () => {
     cameraUpdate = updateCamera
     gUser.value = initUser()
 
-    await initWorld(gScene.value, isAuthenticated)
+    await initWorld(gScene.value, authStore.isAuthenticated)
     gameIsReady.value = true
     stopMyWatcher = watchChanges(setDoF)
     gameLoop()
