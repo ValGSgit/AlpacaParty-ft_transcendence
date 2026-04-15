@@ -309,7 +309,7 @@ const gameIsReady= shallowRef(false)
 const clock = new THREE.Clock()
 
 const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
-const { initInput, cleanupInput} = useInput()
+const { initInput, cleanupInput, updateInputState, resetInput} = useInput()
 const { setTimeOfDay, updateLighting, toggleLightCycle} = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openFarmMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu } = useUIManager()
@@ -369,6 +369,7 @@ onMounted(async () => {
 
 const gameLoop = () => {
   if (stats) stats.begin();
+  resetInput()
   animationFrameId = requestAnimationFrame(gameLoop)
   
   const delta = clock.getDelta()
@@ -381,6 +382,7 @@ const gameLoop = () => {
     }
   }
 
+  updateInputState()
   updateAlpacas(delta);
   updateCollectables(player, delta);
   updateCoins(delta);
