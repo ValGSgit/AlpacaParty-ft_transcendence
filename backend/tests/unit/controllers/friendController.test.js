@@ -23,14 +23,10 @@ const mockNotificationService = {
   friendRequest: jest.fn().mockResolvedValue(undefined),
   friendAccepted: jest.fn().mockResolvedValue(undefined),
 };
-const mockGamificationService = {
-  checkSocialAchievements: jest.fn().mockResolvedValue(undefined),
-};
 
 jest.unstable_mockModule('../../../src/models/Friend.js', () => ({ default: mockFriend }));
 jest.unstable_mockModule('../../../src/models/User.js', () => ({ default: mockUser }));
 jest.unstable_mockModule('../../../src/services/notificationService.js', () => ({ default: mockNotificationService }));
-jest.unstable_mockModule('../../../src/services/gamificationService.js', () => ({ default: mockGamificationService }));
 
 const {
   listFriends, listOnlineFriends, listRequests, sendRequest,
@@ -170,7 +166,6 @@ describe('acceptRequest', () => {
     await acceptRequest(req, res, next);
     expect(mockFriend.acceptRequest).toHaveBeenCalledWith(1, 1);
     expect(mockNotificationService.friendAccepted).toHaveBeenCalledWith(2, 'tester');
-    expect(mockGamificationService.checkSocialAchievements).toHaveBeenCalledWith(1);
     expect(res._json.request).toEqual(request);
   });
 

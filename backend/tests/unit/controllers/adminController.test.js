@@ -122,7 +122,6 @@ describe('listUsers', () => {
         isOnline: true,
         createdAt: '2025-01-01T00:00:00.000Z',
         userSettings: { isAdmin: false },
-        userStats: { level: 2, xp: 120 },
       },
     ]);
     mockPrisma.user.count.mockResolvedValue(1);
@@ -140,7 +139,6 @@ describe('listUsers', () => {
         isOnline: true,
         createdAt: true,
         userSettings: { select: { isAdmin: true } },
-        userStats: { select: { xp: true, level: true } },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 50,
@@ -156,8 +154,6 @@ describe('listUsers', () => {
           isOnline: true,
           createdAt: '2025-01-01T00:00:00.000Z',
           isAdmin: false,
-          level: 2,
-          xp: 120,
         },
       ],
       total: 1,
@@ -174,7 +170,6 @@ describe('listUsers', () => {
         isOnline: false,
         createdAt: '2025-01-02T00:00:00.000Z',
         userSettings: { isAdmin: true },
-        userStats: { level: 5, xp: 900 },
       },
     ]);
     mockPrisma.user.count.mockResolvedValue(10);
@@ -192,7 +187,6 @@ describe('listUsers', () => {
         isOnline: true,
         createdAt: true,
         userSettings: { select: { isAdmin: true } },
-        userStats: { select: { xp: true, level: true } },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 10,
@@ -208,8 +202,6 @@ describe('listUsers', () => {
           isOnline: false,
           createdAt: '2025-01-02T00:00:00.000Z',
           isAdmin: true,
-          level: 5,
-          xp: 900,
         },
       ],
       total: 10,
