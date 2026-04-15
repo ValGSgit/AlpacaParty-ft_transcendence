@@ -20,129 +20,129 @@ function mockRes() {
 }
 
 describe('requireApiKey', () => {
-  test('rejects request with no API key header', () => {
+  test('rejects request with no API key header', async () => {
     setKeys('valid-key-123');
     const req = { headers: {} };
     const res = mockRes();
     const next = jest.fn();
-    requireApiKey(req, res, next);
+    await requireApiKey(req, res, next);
     expect(res.statusCode).toBe(401);
     expect(next).not.toHaveBeenCalled();
   });
 
-  test('rejects request with wrong API key', () => {
+  test('rejects request with wrong API key', async () => {
     setKeys('correct-key');
     const req = { headers: { 'x-api-key': 'wrong-key' } };
     const res = mockRes();
     const next = jest.fn();
-    requireApiKey(req, res, next);
+    await requireApiKey(req, res, next);
     expect(res.statusCode).toBe(401);
     expect(next).not.toHaveBeenCalled();
   });
 
-  test('calls next() with valid API key', () => {
+  test('calls next() with valid API key', async () => {
     setKeys('my-valid-key');
     const req = { headers: { 'x-api-key': 'my-valid-key' } };
     const res = mockRes();
     const next = jest.fn();
-    requireApiKey(req, res, next);
+    await requireApiKey(req, res, next);
     expect(next).toHaveBeenCalled();
     expect(res.statusCode).toBe(200);
   });
 
-  test('supports multiple API keys (comma-separated)', () => {
+  test('supports multiple API keys (comma-separated)', async () => {
     setKeys('key-one,key-two,key-three');
     const next = jest.fn();
     for (const key of ['key-one', 'key-two', 'key-three']) {
       const req = { headers: { 'x-api-key': key } };
-      requireApiKey(req, mockRes(), next);
+      await requireApiKey(req, mockRes(), next);
     }
     expect(next).toHaveBeenCalledTimes(3);
   });
 
-  test('rejects empty key even if API_KEYS is set', () => {
+  test('rejects empty key even if API_KEYS is set', async () => {
     setKeys('real-key');
     const req = { headers: { 'x-api-key': '' } };
     const res = mockRes();
     const next = jest.fn();
-    requireApiKey(req, res, next);
+    await requireApiKey(req, res, next);
     expect(res.statusCode).toBe(401);
   });
 
-  test('trims whitespace from configured keys', () => {
+  test('trims whitespace from configured keys', async () => {
     setKeys('  spaced-key  , another-key ');
     const req = { headers: { 'x-api-key': 'spaced-key' } };
     const res = mockRes();
     const next = jest.fn();
-    requireApiKey(req, res, next);
+    await requireApiKey(req, res, next);
     expect(next).toHaveBeenCalled();
     expect(res.statusCode).toBe(200);
   });
 
-  test('does not trim whitespace from incoming request key', () => {
+  test('does not trim whitespace from incoming request key', async () => {
     setKeys('exact-key');
     const req = { headers: { 'x-api-key': '  exact-key  ' } };
     const res = mockRes();
     const next = jest.fn();
-    requireApiKey(req, res, next);
+    await requireApiKey(req, res, next);
     expect(res.statusCode).toBe(401);
     expect(next).not.toHaveBeenCalled();
   });
 
-  test('keys are case-sensitive', () => {
+  test('keys are case-sensitive', async () => {
     setKeys('CaseSensitive-Key');
     const req = { headers: { 'x-api-key': 'casesensitive-key' } };
     const res = mockRes();
     const next = jest.fn();
-    requireApiKey(req, res, next);
+    await requireApiKey(req, res, next);
     expect(res.statusCode).toBe(401);
     expect(next).not.toHaveBeenCalled();
   });
 
-  test('exact case match succeeds', () => {
+  test('exact case match succeeds', async () => {
     setKeys('CaseSensitive-Key');
     const req = { headers: { 'x-api-key': 'CaseSensitive-Key' } };
     const res = mockRes();
     const next = jest.fn();
-    requireApiKey(req, res, next);
+    await requireApiKey(req, res, next);
     expect(next).toHaveBeenCalled();
     expect(res.statusCode).toBe(200);
   });
 
-  test('rejects undefined API key header', () => {
+  test('rejects undefined API key header', async () => {
     setKeys('valid-key');
     const req = { headers: { 'x-api-key': undefined } };
     const res = mockRes();
     const next = jest.fn();
-    requireApiKey(req, res, next);
+    await requireApiKey(req, res, next);
     expect(res.statusCode).toBe(401);
     expect(next).not.toHaveBeenCalled();
   });
 
-  test('returns proper error body on rejection', () => {
+  test('returns proper error body on rejection', async () => {
     setKeys('valid-key');
     const req = { headers: {} };
     const res = mockRes();
     const next = jest.fn();
-    requireApiKey(req, res, next);
+    await requireApiKey(req, res, next);
     expect(res.body).toBeDefined();
     expect(res.body.error.message).toMatch(/invalid|missing/i);
   });
 
-  test('handles comma-separated keys with empty entries', () => {
+  test('handles comma-separated keys with empty entries', async () => {
     setKeys('key1,,key2');
     const next = jest.fn();
 
     const req1 = { headers: { 'x-api-key': '' } };
-    requireApiKey(req1, mockRes(), next);
+    await requireApiKey(req1, mockRes(), next);
     expect(next).not.toHaveBeenCalled();
 
     const req2 = { headers: { 'x-api-key': 'key1' } };
-    requireApiKey(req2, mockRes(), next);
+    await requireApiKey(req2, mockRes(), next);
     expect(next).toHaveBeenCalledTimes(1);
 
     const req3 = { headers: { 'x-api-key': 'key2' } };
-    requireApiKey(req3, mockRes(), next);
+    await requireApiKey(req3, mockRes(), next);
     expect(next).toHaveBeenCalledTimes(2);
   });
 });

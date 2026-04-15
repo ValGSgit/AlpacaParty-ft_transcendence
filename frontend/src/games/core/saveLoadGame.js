@@ -1,19 +1,26 @@
 import api from '../../services/api.js'
 import { useAuthStore } from '../../stores/auth.js'
-import { gAlpacas, gItems, gUser } from './globals.js'
+import { gAlpacas, gItems, gUser, gPlayer, gMinigame } from './globals.js'
 
 
 export async function saveGame() {
-  const { isAuthenticated } = useAuthStore()
-  if (!isAuthenticated) {
+  const authStore = useAuthStore()
+  if (!authStore.isAuthenticated || !authStore.user) {
     console.log("user not logged in, not saving")
     return
   }
 
-  if (gUser.value.gameMode)
+  if (gMinigame.value.mode)
     return
 
+  if (!gUser.value || !gPlayer.value) {
+    return
+  }
+
   const saveAlpacas = gAlpacas.map(alpaca => {
+    let selected = false
+    if (gPlayer.value === alpaca)
+      selected = true // save current selected alpaca
     return {
       name: alpaca.model.name,
       color: alpaca.color,
@@ -24,6 +31,7 @@ export async function saveGame() {
       rotationOffset: alpaca.rotationOffset,
       age: alpaca.age,
       aliveTime: alpaca.aliveTime,
+      selected
     };
   });
 
@@ -37,8 +45,12 @@ export async function saveGame() {
     };
   });
 
+/* TODO: save Decorations here */
+
+
+
   try {
-    await api.put('/users/me/farmdata', {
+    await api.put('/users/me/farmData', {
       items: saveItems,
       alpacas: saveAlpacas,
       coins: gUser.value.coins,

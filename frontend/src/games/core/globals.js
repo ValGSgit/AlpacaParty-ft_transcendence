@@ -5,6 +5,13 @@ export const gScene = shallowRef(null)
 export const gPlayer = shallowRef(null)
 export const gUser = ref(null)
 
+export const gMinigame = ref({
+  isActive: false,
+  mode: 0,
+  players: [],
+  aliveCount: 0
+})
+
 export const gUI = reactive({
   editMode: false,
   shopMenu: false,
@@ -12,10 +19,14 @@ export const gUI = reactive({
   alpacaShop: false,
   alpacaStats: false,
   isEditingName: false,
+  isLightCycling: true,
   lightMenu: false,
   gameMenu: false,
+  farmMenu: false,
   cameraMode: 0,
-  cameraPos: { x: 0, y: 0, z: 0 }
+  cameraPos: { x: 0, y: 0, z: 0 },
+  lockCamera: false,
+  DoF: false
 })
 
 export const gEditState = shallowReactive({
@@ -28,4 +39,5 @@ export const gCollectables = []
 export const gCollidables = []
 export const gEditables = []
 export const gItems = []
+export const gDecorations = []
 

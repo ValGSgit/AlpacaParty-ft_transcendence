@@ -134,8 +134,6 @@ router.use(requireApiKey);
  *                       id: { type: integer }
  *                       username: { type: string }
  *                       avatar: { type: string, nullable: true }
- *                       level: { type: integer }
- *                       xp: { type: integer }
  *                       is_online: { type: boolean }
  *       401: { description: Missing or invalid X-API-Key }
  */

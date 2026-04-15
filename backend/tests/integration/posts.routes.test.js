@@ -50,14 +50,11 @@ function auth(req) {
   return req.set('Authorization', `Bearer ${token}`);
 }
 
-// ── GET /api/posts (public feed, optionalAuth) ────────────────
+// ── GET /api/posts (authenticated feed) ───────────────────────
 describe('GET /api/posts', () => {
-  test('200 — returns feed without auth', async () => {
-    mockPrisma.post.findMany.mockResolvedValueOnce([samplePostPrisma]);
-    mockPrisma.repost.findMany.mockResolvedValueOnce([]);
+  test('401 — rejects unauthenticated request', async () => {
     const res = await request.get('/api/posts');
-    expect(res.status).toBe(200);
-    expect(res.body.posts).toHaveLength(1);
+    expect(res.status).toBe(401);
   });
 
   test('200 — returns feed with auth (viewerId included)', async () => {

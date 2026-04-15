@@ -1,15 +1,34 @@
-/* The Three.js container */
+/* ========================================= */
+/* BASE LAYOUT                               */
+/* ========================================= */
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+}
+
+.lock-screen {
+  overflow: hidden !important;
+}
+
 .scene-container {
   width: 100%;
   height: 100%;
   background: #000;
-  /* So you can see if it's loading */
 }
 
-.hud-left {
+.shop-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.hud-hp {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 82px;
+  left: 140px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -27,47 +46,9 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: transform 0.1s;
+  gap: 10px;
 }
 
-.hud-right {
-  position: absolute;
-  /* Floating on top */
-  top: 20px;
-  right: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  /* Critical: ensure the div itself doesn't block mouse clicks 
-     to the game, but the buttons inside DO accept clicks */
-  pointer-events: none;
-}
-
-.hud-btn {
-  pointer-events: auto;
-  /* Buttons must be clickable */
-  width: 50px;
-  height: 50px;
-  font-size: 24px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(0, 240, 255, 0.5);
-  border-radius: 8px;
-  backdrop-filter: blur(4px);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.1s;
-}
-
-.hud-btn:hover {
-  transform: scale(1.1);
-  background: rgba(0, 240, 255, 0.2);
-}
-
-/* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -78,140 +59,208 @@
   z-index: 100;
 }
 
-.shop-title {
-  font-size: 50px;
+.edit-mode {
+  position: fixed;
+  inset: 0;
+  padding-top: 90px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.hud-container {
+  position: absolute;
+  top: 20px;
   display: flex;
   flex-direction: column;
-  /* This stacks them vertically */
-  gap: 10px;
-  /* This adds clean spacing between them */
+  gap: 12px;
+  pointer-events: none;
+  /* Let clicks pass through to game */
+}
+
+.hud-left {
+  left: 20px;
+}
+
+.hud-right {
+  right: 20px;
+}
+
+/* ========================================= */
+/* SHARED COMPONENT STYLES (Consolidated!)   */
+/* ========================================= */
+
+.hud-btn,
+.stat-btn,
+.close-btn,
+.shop-btn,
+.stat {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  display: flex;
   align-items: center;
-  /* Keeps the button from stretching full-width */
+  justify-content: center;
+  transition: transform 0.1s, background 0.1s;
+}
+
+/* Button specific behaviors */
+.hud-btn,
+.stat-btn,
+.close-btn,
+.shop-btn {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.hud-btn:hover,
+.stat-btn:hover,
+.close-btn:hover,
+.shop-btn:hover,
+.itemshop-card:hover {
+  transform: scale(1.05);
+  border-color: #4abdff;
+  background: rgba(100, 200, 255, 0.5);
+}
+
+/* Individual Sizing Overrides */
+.hud-btn {
+  width: 50px;
+  height: 50px;
+  font-size: 24px;
+}
+
+.stat-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 24px;
+}
+
+.close-btn {
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+}
+
+.stat {
+  width: 100px;
+  height: 50px;
+  font-size: 24px;
+  cursor: default;
+  pointer-events: auto;
+}
+
+.shop-btn {
+  width: clamp(220px, 30vw, 300px);
+  height: 50px;
+  font-size: clamp(22px, 1vw, 28px);
+  background: rgba(255, 255, 255, 0.3);
+  border-width: 2px;
+}
+
+/* ========================================= */
+/* MODAL CONTENT & FORMS                     */
+/* ========================================= */
+
+.shop-title {
+  font-size: clamp(30px, 2vw, 45px);
+  font-weight: bold;
+  color: #FFF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  text-align: left;
+  gap: 1px;
 }
 
-.input-group label {
-  /* Adjust the size of the word "Name" here */
-  font-size: 50px;
+.input-group label,
+.input-group input[type="range"] {
+  font-size: 25px;
   font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  color: #333;
-  /* Adjust to match your UI text color */
+  text-align: center;
 }
 
-/* Input of Name */
 .input-group input[type="text"] {
   padding: 8px 12px;
-  font-size: 25px;
+  font-size: 20px;
   border-radius: 6px;
-  border: 1px solid #ccc;
+  border: 2px solid #8a8a8a;
   outline: none;
 }
 
-/* --- PRESET COLOR BUTTONS --- */
 .color-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  /* Creates a neat 2x2 grid */
   gap: 8px;
 }
 
-/* --- CUSTOM COLOR PICKER --- */
+/* Custom Color Picker */
 .custom-color-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* This resets the ugly browser default and makes a clean, clickable square */
-input[type="color"].custom-picker {
+.custom-picker {
   -webkit-appearance: none;
   border: none;
-  width: 44px;
-  /* Makes the color picker much larger */
-  height: 44px;
+  width: 50px;
+  height: 50px;
   border-radius: 8px;
   cursor: pointer;
   padding: 0;
   background: none;
 }
 
-input[type="color"].custom-picker::-webkit-color-swatch-wrapper {
+.custom-picker::-webkit-color-swatch-wrapper {
   padding: 0;
 }
 
-input[type="color"].custom-picker::-webkit-color-swatch {
+.custom-picker::-webkit-color-swatch {
   border: 2px solid #ccc;
   border-radius: 8px;
-  /* Matches the rounded corners */
 }
 
-/* Make sure the custom buy button takes up the remaining space */
-.custom-color-row .shop-btn {
-  flex-grow: 1;
-  height: 44px;
-  /* Matches the height of the color picker */
-  margin: 0;
+/* ========================================= */
+/* ITEM SHOP GRID                            */
+/* ========================================= */
+
+.itemshop-grid {
+  max-width: 650px;
+  max-height: 60vh;
+  padding: 15px;
+  display: grid;
+
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-/* Buttons for Alpaca Color */
-.shop-btn {
-  pointer-events: auto;
-  /* Buttons must be clickable */
-  width: 200px;
-  height: 50px;
-  font-size: 24px;
-  background: rgba(255, 255, 255, 0.5);
-  border: 2px solid rgba(0, 240, 255, 0.5);
+.itemshop-grid::-webkit-scrollbar {
+  width: 12px;
+}
+
+.itemshop-grid::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
-  backdrop-filter: blur(4px);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.1s;
 }
 
-.alpaca-stat {
-  font-size: 30px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.stat-btn {
-  pointer-events: auto;
-  /* Buttons must be clickable */
-  width: 30px;
-  height: 30px;
-  font-size: 24px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(0, 240, 255, 0.5);
+.itemshop-grid::-webkit-scrollbar-thumb {
+  background: rgba(0, 240, 255, 0.5);
   border-radius: 8px;
-  backdrop-filter: blur(4px);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.1s;
 }
 
-.edit-mode {
-  padding-top: 90px;
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: top;
-  justify-content: center;
-  z-index: 100;
+.itemshop-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 240, 255, 0.8);
 }
 
 .title {
@@ -245,36 +294,414 @@ input[type="color"].custom-picker::-webkit-color-swatch {
   font-size: 24px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(0, 240, 255, 0.5);
+}
+
+.itemshop-card {
+  background: rgba(28, 42, 58, 0.8);
+  border: 3px solid #3a4a5a;
   border-radius: 8px;
-  backdrop-filter: blur(4px);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  transition: transform 0.1s;
-}
-
-.close-btn:hover {
-  transform: scale(1.1);
-  background: rgba(0, 240, 255, 0.2);
-}
-
-.input-group {
-  margin-bottom: 15px;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  pointer-events: auto;
+  transition: transform 0.1s, border-color 0.1s;
 }
 
-.input-group label {
-  text-align: center;
-  font-size: 0.8rem;
+.itemshop-card:hover {
+  transform: scale(1.05);
+  border-color: #4abdff;
+  background: #1c2a3a;
+}
+
+.icon-container {
+  font-size: 55px;
+  width: 100px;
+  height: 100px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  /* Cost text anchors here */
+}
+
+.item-icon {
+  max-width: 100%;
+  max-height: 100%;
+  position: relative;
+  bottom: 5px;
+  left: -2px;
+  object-fit: contain;
+}
+
+.item-cost {
+  position: absolute;
+  bottom: -12px;
+  right: -23px;
+  color: #ffd700;
+  font-size: 30px;
   font-weight: bold;
-  color: #ffffff;
-  margin-bottom: 5px;
+  padding: 2px 6px;
 }
 
-.color-picker-row {
+.item-name {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: bold;
+  padding-bottom: 8px;
+  text-align: center;
+}
+
+/* ========================================= */
+/* STATS MODAL & TOGGLES                     */
+/* ========================================= */
+
+.stats-content {
+  text-align: left;
+  padding: 10px;
+  font-size: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5em;
+  /* Fixed typo from 0.5tem */
+  gap: 8px;
+}
+
+.speed-controls {
+  display: flex;
+  gap: 5px;
+}
+
+.editable-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  background: rgba(51, 51, 51, 0.8);
+  border: 2px solid #555;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  color: white;
+  transition: 0.1s;
+}
+
+.icon-btn:hover {
+  background: rgba(0, 128, 128, 0.8);
+  border-color: #00ffff;
+}
+
+.name-input {
+  background: rgba(255, 255, 255, 0.9);
+  border: 3px solid #333;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 18px;
+  color: #333;
+  width: 150px;
+  outline: none;
+}
+
+.name-input:focus {
+  border-color: #5CBF61;
+}
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-text {
+  font-size: 24px;
+  color: #FFF;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 54px;
+  height: 30px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background-color: #555;
+  border: 2px solid #888;
+  border-radius: 30px;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #FFF;
+  border-radius: 50%;
+  transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+input:checked+.slider {
+  background-color: #5CBF61;
+  border-color: #3e8e41;
+}
+
+input:checked+.slider:before {
+  transform: translateX(24px);
+  background-color: #000;
+}
+
+.game-select-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  justify-content: center;
+  margin: 5px 0;
+}
+
+.player-selector {
+  padding: 8px;
+  border-radius: 5px;
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  cursor: pointer;
+  height: 100%;
+}
+
+/* ========================================= */
+/* FLOATING ANIMATIONS                       */
+/* ========================================= */
+
+.floating-text-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 500;
+}
+
+/* SHARED FLOATING TEXT */
+.floating-text,
+.floating-text-coins,
+.floating-text-hearts {
+  position: absolute;
+  font-size: 28px;
+  font-weight: 900;
+  pointer-events: none;
+  animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.floating-text {
+  color: #00f0ff;
+  margin-top: -100px;
+  text-shadow: 1px 3px 0px #007780, 0px 4px 6px rgba(0, 0, 0, 0.5);
+}
+
+.floating-text-coins {
+  color: #ffd700;
+  margin-top: -40px;
+  margin-left: 20px;
+  text-shadow: 1px 3px 0px #b8860b, 0px 4px 6px rgba(0, 0, 0, 0.5);
+}
+
+.floating-text-hearts {
+  color: #ff0000;
+  text-shadow: 1px 3px 0px #491010, 0px 4px 6px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translate(-100%, -50%) translateY(0) scale(0.5);
+  }
+
+  30% {
+    transform: translate(-100%, -50%) translateY(-20px) scale(1.5);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-100%, -50%) translateY(-80px) scale(1);
+  }
+}
+
+/* ========================================= */
+/* EDIT MODE CONTROLS HINT                   */
+/* ========================================= */
+
+.controls-hint {
+  position: absolute;
+  bottom: clamp(135px, 5vw, 20px);
+  left: 25px;
+
+  background: rgba(28, 42, 58, 0.8);
+  border: 2px solid #3a4a5a;
+  border-radius: 8px;
+  padding: clamp(8px, 1.5vw, 15px);
+
+  color: #FFF;
+  z-index: 100;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1vw, 10px);
+  backdrop-filter: blur(4px);
+}
+
+.controls-hint h4 {
+  margin: 0;
+  padding-bottom: clamp(3px, 0.5vw, 5px);
+
+  /* Title font size: Min 14px, Scales at 2vw, Max 20px */
+  font-size: clamp(14px, 2vw, 20px);
+
+  color: #ffd700;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.control-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  /* Horizontal space between icon/text and the action text */
+  gap: clamp(15px, 3vw, 30px);
+
+  /* Row text font size: Min 10px, Scales at 1.5vw, Max 16px */
+  font-size: clamp(10px, 1.5vw, 16px);
+  font-weight: bold;
+}
+
+.control-row span:last-child {
+  color: #4abdff;
+}
+
+.edit-actions {
+  position: absolute;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
+
+.edit-mode .close-btn {
+  position: fixed;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  z-index: 100;
+}
+
+.edit-mode .close-btn:hover {
+  transform: translateX(-50%) scale(1.05);
+}
+
+/* ========================================= */
+/* Multiplayer                               */
+/* ========================================= */
+
+.action-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  justify-content: center;
+}
+
+.multiplayer-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px;
+  justify-content: flex-start;
+  min-width: 300px;
+}
+
+.p-name {
+  width: 100px;
+  flex-shrink: 0;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  gap: 20px;
+}
+
+.p-hp {
+  width: 75px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: center;
+  gap: 20px;
+}
+
+.p-point {
+  width: 60px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem 0 3rem;
+}
+
+.feature-card {
+  background: var(--bg-secondary, #12121a);
+  border: 1px solid var(--border-color, #2a2a3a);
+  border-radius: 12px;
+  padding: 1.75rem 1.25rem;
+  transition: border-color 0.2s, transform 0.15s;
+}
+
+.feature-card:hover {
+  border-color: var(--primary, #00f0ff);
+  transform: translateY(-3px);
+}
+
+.feature-card h3 {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 1.1rem;
+  color: #eee;
+}
+
+.feature-card p {
+  font-size: 0.9rem;
+  color: #888;
+  line-height: 1.5;
 }

@@ -88,6 +88,7 @@ model UserStats {
 model UserSettings {
   isPublic Boolean? @default(true) @map("is_public")
   isAdmin  Boolean? @default(false) @map("is_admin")
+  apiKey   String?  @unique @map("api_key") @db.VarChar(255)
 
   // Relations
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)

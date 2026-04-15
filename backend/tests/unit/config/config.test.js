@@ -211,13 +211,6 @@ describe('config', () => {
     }
   });
 
-  test('should have xp/gamification configuration', () => {
-    expect(config.xp).toBeDefined();
-    expect(config.xp.perWin).toBeGreaterThan(0);
-    expect(config.xp.perLoss).toBeGreaterThan(0);
-    expect(config.xp.levelThreshold).toBe(100);
-  });
-
   // ── JWT expiry relationship ───────────────────────────────────────────────
 
   test('jwt expiresIn and refreshExpiresIn should be different', () => {

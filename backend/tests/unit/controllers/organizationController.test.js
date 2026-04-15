@@ -19,13 +19,9 @@ const mockOrganization = {
 const mockNotificationService = {
   orgInvite: jest.fn().mockResolvedValue(undefined),
 };
-const mockGamificationService = {
-  checkOrgAchievements: jest.fn().mockResolvedValue(undefined),
-};
 
 jest.unstable_mockModule('../../../src/models/Organization.js', () => ({ default: mockOrganization }));
 jest.unstable_mockModule('../../../src/services/notificationService.js', () => ({ default: mockNotificationService }));
-jest.unstable_mockModule('../../../src/services/gamificationService.js', () => ({ default: mockGamificationService }));
 
 const {
   listOrgs, listMyOrgs, getOrg, createOrg, updateOrg, deleteOrg, addMember, removeMember,
@@ -130,7 +126,6 @@ describe('createOrg', () => {
     expect(mockOrganization.create).toHaveBeenCalledWith({
       name: 'NewOrg', description: 'A new org', ownerId: 1, avatar: null,
     });
-    expect(mockGamificationService.checkOrgAchievements).toHaveBeenCalledWith(1);
   });
 
   test('returns 400 when name is missing', async () => {

@@ -23,13 +23,6 @@ jest.unstable_mockModule('../../../src/services/notificationService.js', () => (
   default: mockNotificationService,
 }));
 
-const mockGamificationService = {
-  checkPostAchievements: jest.fn().mockResolvedValue(true),
-};
-jest.unstable_mockModule('../../../src/services/gamificationService.js', () => ({
-  default: mockGamificationService,
-}));
-
 const {
   getFeed, getUserPosts, createPost, getPost,
   updatePost, deletePost, likePost, unlikePost,
@@ -166,15 +159,6 @@ describe('createPost', () => {
     });
     expect(res._status).toBe(201);
     expect(res._json).toEqual({ post });
-  });
-
-  test('should call gamification after creating post', async () => {
-    mockPost.create.mockResolvedValue({ id: 1 });
-
-    const { req, res, next } = createReqRes({ body: { content: 'hello' } });
-    await createPost(req, res, next);
-
-    expect(mockGamificationService.checkPostAchievements).toHaveBeenCalledWith(1);
   });
 
   test('should normalize image_url to imageUrl', async () => {

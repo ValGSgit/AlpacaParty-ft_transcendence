@@ -8,8 +8,7 @@ import { removeObject } from '../core/removeObjects.js'
 import { saveGame } from '../core/saveLoadGame.js'
 import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
 import { useUIManager } from '../core/useUIManager.js'
-import { spendCoins } from './coins.js'
-
+import { addCoins, spendCoins } from './coins.js'
 
 const pointer = new THREE.Vector2()
 const raycaster = new THREE.Raycaster()
@@ -129,15 +128,28 @@ export function useEditMode() {
     }
   }
 
+  const scaleItem = (e) => {
+    const direction = e.deltaY > 0 ? -1 : 1;
+    const multiplier = 1 + (0.05 * direction);
+
+    gEditState.selected.scale.multiplyScalar(multiplier);
+
+    // Prevent it from getting too small or too massive
+    gEditState.selected.scale.clampScalar(0.6, 1.4);
+
+    if (gEditState.ghost) {
+      gEditState.ghost.scale.copy(gEditState.selected.scale);
+    }
+  }
+
   const rotateItem = (e) => {
     const direction = e.deltaY > 0 ? 1 : -1
     const steps = 16
     const rotationAmount = (Math.PI / steps) * direction
     gEditState.selected.rotation.y += rotationAmount
     if (gEditState.ghost) {
-      gEditState.ghost.rotation.y += rotationAmount
+      gEditState.ghost.rotation.copy(gEditState.selected.rotation)
     }
-    moveItem(e)
   }
 
   const placeItem = () => {
@@ -175,6 +187,28 @@ export function useEditMode() {
     resetSelected()
   }
 
+  const sellItem = () => {
+    if (!gEditState.selected) return;
+
+    const isAlpaca = gAlpacas.some(alpaca => alpaca.model === gEditState.selected)
+
+    if (isAlpaca && gAlpacas.length === 1) {
+      alert("Can't sell last alpaca!");
+      cancelPlacement();
+      return;
+    }
+
+    const selected = gEditState.selected
+    if (gEditState.ghost) {
+      gScene.value.remove(gEditState.ghost);
+    }
+    if (!selected.userData.isNew)
+      addCoins(Math.floor(selected.userData.cost / 2));
+    resetSelected();
+    removeObject(selected);
+  }
+
+
   const deleteItem = () => {
     if (!gEditState.selected) return;
 
@@ -192,9 +226,10 @@ export function useEditMode() {
     }
     resetSelected();
     removeObject(selected);
+    saveGame()
   }
 
-  return { deleteItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement }
+  return { deleteItem, sellItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, scaleItem, rotateItem, cancelPlacement }
 }
 
 function resetSelected() {

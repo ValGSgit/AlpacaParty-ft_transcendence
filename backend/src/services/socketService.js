@@ -19,7 +19,6 @@ import Message from '../models/Message.js';
 import ChatRoom from '../models/ChatRoom.js';
 import Game from '../models/Game.js';
 import NotificationService from './notificationService.js';
-import GamificationService from './gamificationService.js';
 import { initializeSpitRoyaleNamespace } from './spitRoyaleNamespace.js';
 
 /**
@@ -234,8 +233,6 @@ export function initializeSocket(httpServer, corsOrigins) {
             Game.updateStats(game.player2Id, game.gameType, p2Result),
             Game.updateElo(game.player1Id, game.gameType, newP1Elo),
             Game.updateElo(game.player2Id, game.gameType, newP2Elo),
-            GamificationService.processGameEnd(game.player1Id, p1Result, game.gameType),
-            GamificationService.processGameEnd(game.player2Id, p2Result, game.gameType),
           ]);
         }
 

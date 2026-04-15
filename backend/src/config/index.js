@@ -61,14 +61,14 @@ const config = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       callbackUrl:
         process.env.GOOGLE_CALLBACK_URL ||
-        "https://localhost:3000/api/auth/google/callback",
+        "https://localhost:8443/api/auth/google/callback",
     },
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
       callbackUrl:
         process.env.GITHUB_CALLBACK_URL ||
-        "https://localhost:3000/api/auth/github/callback",
+        "https://localhost:8443/api/auth/github/callback",
     },
   },
 
@@ -124,14 +124,6 @@ const config = {
     ],
   },
 
-  // Gamification
-  xp: {
-    perWin: 25,
-    perLoss: 5,
-    perDraw: 10,
-    perPost: 5,
-    levelThreshold: 100, // XP per level
-  },
 };
 
 export default config;

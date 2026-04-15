@@ -1,4 +1,4 @@
-import { gAlpacas, gCollectables, gCollidables, gEditables, gItems } from './globals.js';
+import { gAlpacas, gCollectables, gCollidables, gDecorations, gEditables, gItems} from './globals.js';
 
 export function registerEntity(entity, type) {
 
@@ -25,7 +25,7 @@ export function registerEntity(entity, type) {
     case 'decoration':
       model.userData.isEditable = true;
       model.userData.isCollider = false;
-      gItems.push(classInstance);
+      gDecorations.push(classInstance);
       gEditables.push(model);
       break;
 

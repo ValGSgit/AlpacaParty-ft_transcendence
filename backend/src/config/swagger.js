@@ -27,7 +27,25 @@ Authorization: Bearer <accessToken>
 Access tokens expire after **24 h**. Use **POST /auth/refresh** with your \`refreshToken\` to get a new pair.
 
 ## Public API
-The \`/public/*\` group uses an **X-API-Key** header instead of JWT — intended for server-to-server integrations.
+The \`/public/*\` group uses an **X-API-Key** header instead of JWT:
+\`\`\`
+X-API-Key: ap_your_key_here
+\`\`\`
+
+**Generating a key:** log in, go to **Profile → Settings → Public API Key**, and click **Generate Key**. You can revoke and regenerate at any time from the same page. Server-level keys (set via \`API_KEYS\` env / Vault) are also accepted.
+
+### Public endpoints
+| Method | Path | Description |
+|---|---|---|
+| GET | /public/users | List public user profiles |
+| GET | /public/users/:id | Single public profile |
+| GET | /public/leaderboard | Game leaderboard (ELO-ranked) |
+| GET | /public/posts | Public feed posts |
+| POST | /public/posts | Create a post (service-level) |
+| PUT | /public/posts/:id | Update a post (service-level) |
+| DELETE | /public/posts/:id | Delete a post (service-level) |
+| GET | /public/organizations | List organizations |
+| GET | /public/mock | Anonymized mock dataset |
 
 ## Rate limits
 | Scope | Limit |
@@ -51,7 +69,7 @@ The \`/public/*\` group uses an **X-API-Key** header instead of JWT — intended
       { name: 'Organizations', description: 'Create and manage organizations / teams' },
       { name: 'Uploads',       description: 'File upload and management (images, PDFs, CSV…)' },
       { name: 'Admin',         description: '🔐 Admin only — user management, site stats, GDPR processing' },
-      { name: 'Public API',    description: '🔑 API-key auth — read-only, anonymized data for external integrations' },
+      { name: 'Public API',    description: '🔑 API-key auth — public data and service-level writes for external integrations. Generate a key at Profile → Settings → Public API Key.' },
       { name: 'Help',          description: 'AI-powered help desk (Llama 3.3 70B via Groq)' },
     ],
     components: {
@@ -66,7 +84,7 @@ The \`/public/*\` group uses an **X-API-Key** header instead of JWT — intended
           type: 'apiKey',
           in: 'header',
           name: 'X-API-Key',
-          description: 'API key for **/public/*** endpoints',
+          description: 'API key for **/public/*** endpoints. Generate yours at **Profile → Settings → Public API Key**. Format: `ap_<uuid-no-dashes>`. Server-level keys (Vault/env `API_KEYS`) are also accepted.',
         },
       },
       parameters: {
@@ -100,8 +118,7 @@ The \`/public/*\` group uses an **X-API-Key** header instead of JWT — intended
             is_public:   { type: 'boolean', example: true },
             is_admin:    { type: 'boolean', example: false },
             is_online:   { type: 'boolean', example: true },
-            xp:          { type: 'integer', example: 1500 },
-            level:       { type: 'integer', example: 5 },
+            api_key:     { type: 'string',  nullable: true, example: 'ap_a1b2c3...' },
             coins:       { type: 'integer', example: 250 },
             created_at:  { type: 'string',  format: 'date-time' },
           },
@@ -167,7 +184,6 @@ The \`/public/*\` group uses an **X-API-Key** header instead of JWT — intended
             name:        { type: 'string',  example: 'First Blood' },
             description: { type: 'string',  example: 'Win your first game' },
             icon:        { type: 'string',  example: '🏆' },
-            xpReward:    { type: 'integer', example: 50 },
             unlocked:    { type: 'boolean', example: false },
           },
         },

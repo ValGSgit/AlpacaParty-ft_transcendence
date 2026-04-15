@@ -8,14 +8,22 @@ npm install
 # Builds the /run/secrets/.env file
 /usr/local/bin/load-secrets.sh
 
-# Helper variable
-run_with_secrets="npx env-cmd -f /run/secrets/.env"
+# Use local binaries directly — avoids npx re-downloading packages
+# when the npm 11 lookup misses local node_modules/.bin.
+run_with_secrets="./node_modules/.bin/env-cmd -f /run/secrets/.env"
+prisma="./node_modules/.bin/prisma"
 
 echo "Applying database migrations..."
-$run_with_secrets npx prisma migrate dev --name init
+if find prisma/migrations -mindepth 1 -maxdepth 1 -type d | grep -q .; then
+	# Apply committed migrations only; do not generate new files at container boot.
+	$run_with_secrets $prisma migrate deploy
+else
+	echo "No migration folders found, creating initial migration..."
+	$run_with_secrets $prisma migrate dev --name init
+fi
 
 echo "Create prisma client"
-$run_with_secrets npx prisma generate
+$run_with_secrets $prisma generate
 
 echo "Seed database"
 $run_with_secrets npm run seed

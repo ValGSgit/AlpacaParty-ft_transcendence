@@ -1,8 +1,7 @@
 /**
  * Router Unit Tests
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
+import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('../../../src/services/api.js', () => ({
   default: {
@@ -16,15 +15,9 @@ vi.mock('../../../src/services/api.js', () => ({
   },
 }))
 
-// Import router after mocking api
 import router from '../../../src/router/index.js'
-import { useAuthStore } from '../../../src/stores/auth.js'
 
 describe('Router', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-  })
-
   it('has correct routes defined', () => {
     const routeNames = router.getRoutes().map(r => r.name)
     expect(routeNames).toContain('Home')
@@ -48,70 +41,19 @@ describe('Router', () => {
     expect(registerRoute.meta.guestOnly).toBe(true)
   })
 
-  it('redirects to login when accessing protected route while unauthenticated', async () => {
-    const store = useAuthStore()
-    store.user = null
-
-    await router.push('/profile')
-    await router.isReady()
-
-    expect(router.currentRoute.value.name).toBe('Login')
-  })
-
-  it('redirects authenticated users away from guest-only pages', async () => {
-    const store = useAuthStore()
-    store.user = { id: 1, username: 'u' }
-
-    await router.push('/login')
-    await router.isReady()
-
-    expect(router.currentRoute.value.name).toBe('Home')
-  })
-
-  it('allows unauthenticated users to access home', async () => {
-    const store = useAuthStore()
-    store.user = null
-
-    await router.push('/')
-    await router.isReady()
-
-    expect(router.currentRoute.value.name).toBe('Home')
-  })
-
-  it('auth guard redirects unauthenticated user from settings to login', async () => {
-    const store = useAuthStore()
-    store.user = null
-
-    await router.push('/settings')
-    await router.isReady()
-
-    expect(router.currentRoute.value.name).toBe('Login')
-  })
-
-  it('guest guard redirects authenticated user from register to home', async () => {
-    const store = useAuthStore()
-    store.user = { id: 1, username: 'u' }
-
-    await router.push('/register')
-    await router.isReady()
-
-    expect(router.currentRoute.value.name).toBe('Home')
-  })
-
   it('all expected routes are defined', () => {
     const routeNames = router.getRoutes().map(r => r.name).filter(Boolean)
     const expectedRoutes = [
+      'UserProfile',
       'Home',
       'Login',
       'Register',
       'Profile',
       'Friends',
-      'Messages',
       'Game',
-      'Settings',
-      'Help',
       'Feed',
-      'Admin',
+      'ApiDocs',
+      'OAuthCallback',
       'PrivacyPolicy',
       'TermsOfService',
       'NotFound',

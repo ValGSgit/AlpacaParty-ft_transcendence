@@ -4,6 +4,7 @@ services:
   frontend:
     profiles:
       - dev
+    image: alpacaparty/frontend:dev
     build:
       context: .
       dockerfile: Dockerfile

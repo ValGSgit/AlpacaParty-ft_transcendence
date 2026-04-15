@@ -2,6 +2,7 @@
 # Frontend (Vue 3 + Vite) — Production
 services:
   frontend:
+    image: alpacaparty/frontend:prod
     build:
       context: .
       dockerfile: Dockerfile.prod

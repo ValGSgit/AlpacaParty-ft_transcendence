@@ -36,5 +36,12 @@ export const MATERIALS = {
     emissiveIntensity: 2,
     transparent: true,
     opacity: 0.8
+  }),
+}
+
+export const ROAD_MATERIALS = {
+  obstacle: new THREE.MeshStandardMaterial({
+    color: '#550000',
+    roughness: 0.8
   })
 }
