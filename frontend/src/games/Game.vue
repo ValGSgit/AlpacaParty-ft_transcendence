@@ -400,10 +400,7 @@ const gameLoop = () => {
   }
   if (CONST.SBS_ENABLED)
     effect.render(gEngine.value.scene, gEngine.value.camera);
-  else
-    gEngine.value.renderer.render(gEngine.value.scene, gEngine.value.camera)
-
-  if (gEngine.value.composer) {
+  else if (gEngine.value.composer) {
     gEngine.value.composer.render();
   }
 
