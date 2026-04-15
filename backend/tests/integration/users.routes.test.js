@@ -10,7 +10,7 @@ import {
   beforeAll,
 } from "@jest/globals";
 import supertest from "supertest";
-import prisma from "#lib/prisma.js";
+import prisma from "#config/prisma.js";
 import AuthService from "#services/authService.js";
 import { createTestApp } from "../helpers/createApp.js";
 import { createTestUsers } from "../helpers/createTestUsers.js";
@@ -20,8 +20,11 @@ let request;
 let validToken;
 let authPasswordHash;
 
+// #region Setup
+
 beforeAll(async () => {
   authPasswordHash = await AuthService.hashPassword("TestPassword1234");
+  await prisma.user.deleteMany({});
 });
 
 beforeEach(async () => {
@@ -64,6 +67,10 @@ afterAll(async () => {
   // Disconnect Prisma so Jest can exit properly
   await prisma.$disconnect();
 });
+
+// #endregion
+
+// #region Tests
 
 // ────────────────────────────────────────────────────────────────
 // GET /api/users/me
@@ -204,220 +211,37 @@ describe("GET /api/users", () => {
   });
 });
 
-// // ────────────────────────────────────────────────────────────────
-// // PUT /api/users/me
-// // ────────────────────────────────────────────────────────────────
-// describe('PUT /api/users/me', () => {
-//   test('200 — update bio', async () => {
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({
-//       rows: [{ ...authUser, bio: 'New bio' }],
-//     });
+// ────────────────────────────────────────────────────────────────
+// GET /api/users/:id
+// ────────────────────────────────────────────────────────────────
+describe("GET /api/users/:id", () => {
+  //Seed database with users
+  var createdUsers;
+  beforeAll(async () => {
+    createdUsers = await createTestUsers(3);
+  });
 
-//     const res = await request
-//       .put('/api/users/me')
-//       .set('Authorization', `Bearer ${validToken}`)
-//       .send({ bio: 'New bio' });
+  test("200 — get user 1", async () => {
+    const res = await request
+      .get(`/api/users/${createdUsers[0].id}`)
+      .set("Authorization", `Bearer ${validToken}`);
 
-//     expect(res.status).toBe(200);
-//     expect(res.body.user.bio).toBe('New bio');
-//   });
+    const user = res.body.user;
+    expect(res.status).toBe(200);
+    expect(user.username).toBeDefined();
+    expect(user.id).toBe(createdUsers[0].id);
+  });
 
-//   test('200 — update username (available)', async () => {
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({ rows: [] }); // findByUsername → available
-//     mockQuery.mockResolvedValueOnce({ rows: [{ ...authUser, username: 'newname' }] }); // update
+  test("200 — get user 2", async () => {
+    const res = await request
+      .get(`/api/users/${createdUsers[1].id}`)
+      .set("Authorization", `Bearer ${validToken}`);
 
-//     const res = await request
-//       .put('/api/users/me')
-//       .set('Authorization', `Bearer ${validToken}`)
-//       .send({ username: 'newname' });
+    const user = res.body.user;
+    expect(res.status).toBe(200);
+    expect(user.username).toBeDefined();
+    expect(user.id).toBe(createdUsers[1].id);
+  });
+});
 
-//     expect(res.status).toBe(200);
-//   });
-
-//   test('400 — username too short', async () => {
-//     mockAuth();
-//     const res = await request
-//       .put('/api/users/me')
-//       .set('Authorization', `Bearer ${validToken}`)
-//       .send({ username: 'ab' });
-
-//     expect(res.status).toBe(400);
-//   });
-
-//   test('400 — username invalid chars', async () => {
-//     mockAuth();
-//     const res = await request
-//       .put('/api/users/me')
-//       .set('Authorization', `Bearer ${validToken}`)
-//       .send({ username: 'bad user!' });
-
-//     expect(res.status).toBe(400);
-//   });
-
-//   test('409 — username taken', async () => {
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({ rows: [{ id: 99, username: 'taken' }] }); // findByUsername → exists
-
-//     const res = await request
-//       .put('/api/users/me')
-//       .set('Authorization', `Bearer ${validToken}`)
-//       .send({ username: 'taken' });
-
-//     expect(res.status).toBe(409);
-//   });
-
-//   test('409 — email taken', async () => {
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({ rows: [{ id: 99, email: 'taken@x.com' }] }); // findByEmail → exists
-
-//     const res = await request
-//       .put('/api/users/me')
-//       .set('Authorization', `Bearer ${validToken}`)
-//       .send({ email: 'taken@x.com' });
-
-//     expect(res.status).toBe(409);
-//   });
-
-//   test('200 — empty body returns current user', async () => {
-//     mockAuth();
-//     // User.update with no sets → calls findById
-//     mockQuery.mockResolvedValueOnce({ rows: [authUser] });
-
-//     const res = await request
-//       .put('/api/users/me')
-//       .set('Authorization', `Bearer ${validToken}`)
-//       .send({});
-
-//     expect(res.status).toBe(200);
-//   });
-// });
-
-// // ────────────────────────────────────────────────────────────────
-// // PUT /api/users/me/password
-// // ────────────────────────────────────────────────────────────────
-// describe("PUT /api/users/me/password", () => {
-//   test("200 — password changed successfully", async () => {
-//     const currentHash = await AuthService.hashPassword("OldPass1");
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({
-//       rows: [{ ...authUser, password_hash: currentHash }],
-//     }); // findByIdWithPassword
-//     mockQuery.mockResolvedValueOnce({ rows: [] }); // updatePassword
-
-//     const res = await request
-//       .put("/api/users/me/password")
-//       .set("Authorization", `Bearer ${validToken}`)
-//       .send({ currentPassword: "OldPass1", newPassword: "NewPass1" });
-
-//     expect(res.status).toBe(200);
-//     expect(res.body.message).toBe("Password updated");
-//   });
-
-//   test("400 — missing fields", async () => {
-//     mockAuth();
-//     const res = await request
-//       .put("/api/users/me/password")
-//       .set("Authorization", `Bearer ${validToken}`)
-//       .send({ currentPassword: "Old1" });
-
-//     expect(res.status).toBe(400);
-//   });
-
-//   test("401 — current password incorrect", async () => {
-//     const hash = await AuthService.hashPassword("RealPass1");
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({
-//       rows: [{ ...authUser, password_hash: hash }],
-//     });
-
-//     const res = await request
-//       .put("/api/users/me/password")
-//       .set("Authorization", `Bearer ${validToken}`)
-//       .send({ currentPassword: "WrongPass1", newPassword: "NewPass1" });
-
-//     expect(res.status).toBe(401);
-//   });
-
-//   test("400 — new password too weak", async () => {
-//     const hash = await AuthService.hashPassword("OldPass1");
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({
-//       rows: [{ ...authUser, password_hash: hash }],
-//     });
-
-//     const res = await request
-//       .put("/api/users/me/password")
-//       .set("Authorization", `Bearer ${validToken}`)
-//       .send({ currentPassword: "OldPass1", newPassword: "weak" });
-
-//     expect(res.status).toBe(400);
-//   });
-// });
-
-// // ────────────────────────────────────────────────────────────────
-// // GET /api/users/:id
-// // ────────────────────────────────────────────────────────────────
-// describe('GET /api/users/:id', () => {
-//   test('200 — returns user by id', async () => {
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({ rows: [{ id: 2, username: 'other', bio: 'hi', is_public: true }] });
-
-//     const res = await request.get('/api/users/2').set('Authorization', `Bearer ${validToken}`);
-//     expect(res.status).toBe(200);
-//     expect(res.body.user.username).toBe('other');
-//   });
-
-//   test('404 — user not found', async () => {
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({ rows: [] });
-
-//     const res = await request.get('/api/users/999').set('Authorization', `Bearer ${validToken}`);
-//     expect(res.status).toBe(404);
-//   });
-// });
-
-// // ────────────────────────────────────────────────────────────────
-// // GET /api/users
-// // ────────────────────────────────────────────────────────────────
-// describe('GET /api/users', () => {
-//   test('200 — returns list of users', async () => {
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({
-//       rows: [
-//         { id: 1, username: 'user1', is_public: true },
-//         { id: 2, username: 'user2', is_public: true },
-//       ],
-//     });
-
-//     const res = await request.get('/api/users').set('Authorization', `Bearer ${validToken}`);
-//     expect(res.status).toBe(200);
-//     expect(res.body.users).toHaveLength(2);
-//   });
-
-//   test('200 — search users', async () => {
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({
-//       rows: [{ id: 1, username: 'tester', avatar: null, is_online: true }],
-//     });
-
-//     const res = await request
-//       .get('/api/users?search=test')
-//       .set('Authorization', `Bearer ${validToken}`);
-
-//     expect(res.status).toBe(200);
-//     expect(res.body.users).toHaveLength(1);
-//   });
-
-//   test('200 — pagination params', async () => {
-//     mockAuth();
-//     mockQuery.mockResolvedValueOnce({ rows: [] });
-
-//     const res = await request
-//       .get('/api/users?limit=10&offset=20')
-//       .set('Authorization', `Bearer ${validToken}`);
-
-//     expect(res.status).toBe(200);
-//   });
-// });
+// #endregion
