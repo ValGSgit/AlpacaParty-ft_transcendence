@@ -5,7 +5,7 @@
 import prisma from "#config/prisma.js";
 
 const Game = {
-  async create({ player1Id, gameType = 'spit_royale' }) {
+  async create({ player1Id, gameType = "spit_royale" }) {
     return prisma.game.create({
       data: { player1Id: Number(player1Id), gameType, status: "waiting" },
     });
@@ -70,7 +70,7 @@ const Game = {
     });
   },
 
-  async getStats(userId, gameType = 'spit_royale') {
+  async getStats(userId, gameType = "spit_royale") {
     const stat = await prisma.gameStat.findUnique({
       where: { userId_gameType: { userId: Number(userId), gameType } },
     });
@@ -92,7 +92,14 @@ const Game = {
     await prisma.gameStat.upsert({
       where: { userId_gameType: { userId: Number(userId), gameType } },
       update: { [field]: { increment: 1 } },
-      create: { userId: Number(userId), gameType, wins: 0, losses: 0, draws: 0, [field]: 1 },
+      create: {
+        userId: Number(userId),
+        gameType,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        [field]: 1,
+      },
     });
   },
 
@@ -104,18 +111,23 @@ const Game = {
     });
   },
 
-  async getLeaderboard(gameType = 'spit_royale', { limit = 20, offset = 0, publicOnly = false } = {}) {
+  async getLeaderboard(
+    gameType = "spit_royale",
+    { limit = 20, offset = 0, publicOnly = false } = {},
+  ) {
     const rows = await prisma.gameStat.findMany({
       where: {
         gameType,
-        ...(publicOnly
-          ? (process.env.NODE_ENV === 'test'
-              ? { user: { isPublic: true } }
-              : { user: { userSettings: { isPublic: true } } })
-          : {}),
+        ...(publicOnly ? { user: { userSettings: { isPublic: true } } } : {}),
       },
       include: {
-        user: { select: { username: true, avatar: true, userStats: { select: { level: true } } } },
+        user: {
+          select: {
+            username: true,
+            avatar: true,
+            userStats: { select: { level: true } },
+          },
+        },
       },
       orderBy: { elo: "desc" },
       take: Number(limit),
@@ -149,7 +161,7 @@ const Game = {
   },
 
   async updateFarm(userId, farmData) {
-    if (process.env.NODE_ENV === 'test') {
+    if (process.env.NODE_ENV === "test") {
       return prisma.alpacaFarm.upsert({
         where: { userId: Number(userId) },
         update: { farmData },
