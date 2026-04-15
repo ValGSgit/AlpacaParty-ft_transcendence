@@ -1,12 +1,12 @@
 import * as THREE from 'three';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { shallowRef } from 'vue';
 import { CONST } from '../config/constants.js';
-import { gAlpacas, gCollectables, gCollidables, gEditables, gEditState, gItems, gScene, gUser, gPlayer, gDecorations } from './globals.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { gAlpacas, gCollectables, gCollidables, gDecorations, gEditables, gEditState, gItems, gPlayer, gScene, gUser } from './globals.js';
 
 export function useGameEngine(containerRef) {
   // Use shallowRef for Three.js objects (prevents Vue from making them reactive and slow)
@@ -46,7 +46,7 @@ export function useGameEngine(containerRef) {
 
     // FOG
     const fogColor = '#56738e';
-    gScene.value.fog = new THREE.FogExp2(fogColor, 0.003);
+    gScene.value.fog = new THREE.FogExp2(fogColor, 0.0025);
 
     // CAMERA
     const w = containerRef.value.clientWidth
@@ -77,7 +77,7 @@ export function useGameEngine(containerRef) {
     const size = renderer.value.getSize(new THREE.Vector2());
 
     const renderTarget = new THREE.WebGLRenderTarget(size.x, size.y, {
-      samples: 4 
+      samples: 4
     });
 
     composer.value = new EffectComposer(renderer.value, renderTarget);
@@ -175,5 +175,5 @@ export function useGameEngine(containerRef) {
     gEditables.length = 0;
   }
 
-  return { init, cleanup, onResize, clearScene, resetGArrays, setDoF}
+  return { init, cleanup, onResize, clearScene, resetGArrays, setDoF }
 }

@@ -9,7 +9,7 @@ import { removeObject } from '../core/removeObjects.js';
 import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
 import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
-import { setupLighting } from '../world/sceneBuilder.js';
+import { adjustSunBox, setSunLight, setupLighting } from '../world/sceneBuilder.js';
 
 const stripeLength = 10;
 const roadLength = 700;
@@ -27,9 +27,9 @@ const playerPositions = [-2.5, 2.5, -7.5, 7.5];
 let obstacleTimer = 2;
 let timerMultiplier = 1;
 
-const fullPaths = ['models/lamp.glb']
-const singlePaths = ['models/trafficCones.glb', 'models/fence.glb']
-const sceneryPaths = ['models/newyorkBuilding.glb', 'models/tree.glb']
+const fullPaths = ['models/lamp.glb', 'models/concreteBarricade.glb']
+const singlePaths = ['models/trafficCones.glb', 'models/barricade.glb']
+const sceneryPaths = ['models/newyorkBuilding.glb', 'models/tree.glb', 'models/bankBuilding.glb', 'models/brooklynBuilding.glb']
 
 const fullObstacle = [];
 const singleObstacle = [];
@@ -37,7 +37,7 @@ const activeObstacles = [];
 
 const buildingSelection = [];
 const activeBuildings = [];
-const buildingDepth = 70;
+const buildingDepth = 60;
 const buildingOffset = -30;
 const roadScene = [];
 let assetsLoaded = false;
@@ -75,6 +75,8 @@ function initGameValues(playerCount) {
 
 async function setupRoadScene(scene) {
   setupLighting(scene);
+  setSunLight(25, 125, roadLength / 4, 0, 0, 200);
+  adjustSunBox(200, 150, 1, 0, 0, 0);
   const road = PRIMITIVES.Box(30, 1, roadLength, '#666666')
   road.position.y = -road.geometry.parameters.height / 2;
   road.position.z += roadOffset;
@@ -236,12 +238,12 @@ function createObstacle() {
     console.log("Full Id:", id);
     obstacle = fullObstacle[id].clone();
     obstacle.userData.isFullWidth = true;
-    if (Math.round(Math.random()) % 2 == 0) {
-      obstacle.scale.x = -1;
-    }
   }
-
   attachCollider(obstacle);
+
+  if (Math.random() > 0.5) {
+    obstacle.rotation.y = Math.PI;
+  }
 
   obstacle.position.z = startZ;
   obstacle.pointGiven = false;
@@ -301,7 +303,7 @@ function updateDifficulty() {
     const difficultyFactor = 1 - Math.exp(-factor * level);
     roadSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;
 
-    timerMultiplier = Math.max(0.35, timerMultiplier - 0.075);
+    timerMultiplier = Math.max(0.5, timerMultiplier - 0.05);
 
     showLevelAnnouncement(level);
     console.log("Level:", level);
@@ -346,7 +348,7 @@ function updateObstacles(delta) {
     obstacle.updateMatrixWorld(true);
     if (!obstacle) continue;
     obstacle.position.z -= roadSpeed * delta;
-    if (obstacle.position.z < 0) {
+    if (obstacle.position.z < -0.25) {
       if (obstacle.userData.isCollider === true && !obstacle.pointGiven) {
         awardPoints(obstacle);
       }
@@ -489,6 +491,8 @@ export function cleanupAlpacaRoad() {
       alpaca.isDead = false;
       alpaca.isBeingHit = false;
     }
+    setSunLight();
+    adjustSunBox();
   });
 
   activePlayers.length = 0;
