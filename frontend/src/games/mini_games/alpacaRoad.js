@@ -8,7 +8,7 @@ import { registerEntity } from '../core/registerEntity.js';
 import { removeObject } from '../core/removeObjects.js';
 import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
-import { getRandomTimer } from '../utils/randomValues.js';
+import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
 import { setupLighting } from '../world/sceneBuilder.js';
 
 const stripeLength = 10;
@@ -28,8 +28,8 @@ let obstacleTimer = 2;
 let timerMultiplier = 1;
 
 const fullPaths = ['models/lamp.glb']
-const singlePaths = ['models/trafficCones.glb']
-const sceneryPaths = ['models/newyorkBuilding.glb']
+const singlePaths = ['models/trafficCones.glb', 'models/fence.glb']
+const sceneryPaths = ['models/newyorkBuilding.glb', 'models/tree.glb']
 
 const fullObstacle = [];
 const singleObstacle = [];
@@ -38,7 +38,7 @@ const activeObstacles = [];
 const buildingSelection = [];
 const activeBuildings = [];
 const buildingDepth = 70;
-const buildingOffset = -28;
+const buildingOffset = -30;
 const roadScene = [];
 let assetsLoaded = false;
 
@@ -144,18 +144,21 @@ function initScenery() {
 
   const numBuildings = Math.ceil(roadLength / buildingDepth) + 1;
 
+  let id = 0;
   for (let i = 0; i < numBuildings; i++) {
     const zPos = i * buildingDepth;
 
     // Right
-    const rBuild = buildingSelection[0].clone();
+    id = getRandomID(buildingSelection);
+    const rBuild = buildingSelection[id].clone();
     rBuild.position.set(buildingOffset, 0, zPos);
     gScene.value.add(rBuild);
     activeBuildings.push(rBuild);
     rBuild.userData.targetScale = new THREE.Vector3(1, 1, 1);
 
     // Left
-    const lBuild = buildingSelection[0].clone();
+    id = getRandomID(buildingSelection);
+    const lBuild = buildingSelection[id].clone();
     lBuild.scale.x = -1;
     lBuild.position.set(-buildingOffset, 0, zPos);
     gScene.value.add(lBuild);
@@ -221,15 +224,19 @@ function createObstacle() {
   const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
 
   let obstacle;
+  let id = 0;
   if (pos < 4) {
-    obstacle = singleObstacle[0].clone();
+    id = getRandomID(singleObstacle);
+    console.log("Single Id:", id);
+    obstacle = singleObstacle[id].clone();
     obstacle.position.x = playerPositions[pos];
     obstacle.userData.isFullWidth = false;
   } else {
-    obstacle = fullObstacle[0].clone();
+    id = getRandomID(fullObstacle);
+    console.log("Full Id:", id);
+    obstacle = fullObstacle[id].clone();
     obstacle.userData.isFullWidth = true;
     if (Math.round(Math.random()) % 2 == 0) {
-      console.log("flip!");
       obstacle.scale.x = -1;
     }
   }
@@ -243,6 +250,11 @@ function createObstacle() {
 
   activeObstacles.push(obstacle);
   gScene.value.add(obstacle);
+}
+
+function getRandomID(array) {
+  const id = getRandomInt(array.length);
+  return id;
 }
 
 function getValidLanes() {
@@ -363,7 +375,7 @@ function awardPoints(obstacle) {
       }
     }
   }
-  console.log(totalPoints);
+  console.log("Total:", totalPoints);
   obstacle.pointGiven = true;
 }
 
