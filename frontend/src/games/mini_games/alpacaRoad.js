@@ -228,6 +228,10 @@ function createObstacle() {
   } else {
     obstacle = fullObstacle[0].clone();
     obstacle.userData.isFullWidth = true;
+    if (Math.round(Math.random()) % 2 == 0) {
+      console.log("flip!");
+      obstacle.scale.x = -1;
+    }
   }
 
   attachCollider(obstacle);
