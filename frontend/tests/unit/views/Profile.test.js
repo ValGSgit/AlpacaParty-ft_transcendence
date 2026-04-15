@@ -156,26 +156,4 @@ describe('Profile.vue', () => {
     expect(wrapper.find('.edit-form').exists()).toBe(false)
   })
 
-  it('displays user stats (XP, level, coins)', () => {
-    const store = useAuthStore()
-    store.user = {
-      username: 'gamer',
-      email: 'g@g.com',
-      avatar: '/avatars/default.svg',
-      bio: '',
-      status: 'gaming',
-      xp: 250,
-      level: 3,
-      coins: 1500,
-      created_at: '2025-01-01T00:00:00Z',
-    }
-
-    wrapper = mount(Profile, {
-      global: { plugins: [pinia, router] },
-    })
-
-    expect(wrapper.text()).toContain('Level 3')
-    expect(wrapper.text()).toContain('250 XP')
-    expect(wrapper.text()).toContain('1500')
-  })
 })

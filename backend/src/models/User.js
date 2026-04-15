@@ -239,50 +239,11 @@ const User = {
     });
   },
 
-<<<<<<< merge(pre-dev)
   async findAll({ limit = 50, offset = 0 } = {}) {
     return prisma.user.findMany({
       select: {
         id: true, username: true, avatar: true, bio: true,
         status: true, isOnline: true, lastSeen: true, createdAt: true,
-=======
-  async addXp(id, amount) {
-    if (!prisma.userStats?.upsert) {
-      await prisma.user.update({
-        where: { id: Number(id) },
-        data: { xp: { increment: amount } },
-      });
-      return this.findById(id);
-    }
-
-    const stats = await prisma.userStats.upsert({
-      where: { userId: Number(id) },
-      create: { userId: Number(id), xp: amount, level: 1 },
-      update: { xp: { increment: amount } },
-    });
-    const newLevel = Math.max(1, Math.floor(stats.xp / 100) + 1);
-    if (newLevel !== stats.level) {
-      await prisma.userStats.update({
-        where: { userId: Number(id) },
-        data: { level: newLevel },
-      });
-    }
-    return this.findById(id);
-  },
-
-  async findAll({ limit = 50, offset = 0 } = {}) {
-    return prisma.user.findMany({
-      select: {
-        id: true,
-        username: true,
-        avatar: true,
-        bio: true,
-        status: true,
-        isOnline: true,
-        lastSeen: true,
-        createdAt: true,
-        userStats: { select: { xp: true, level: true } },
->>>>>>> backend
         userSettings: { select: { isPublic: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -304,15 +265,7 @@ const User = {
         ],
       },
       select: {
-<<<<<<< merge(pre-dev)
         id: true, username: true, avatar: true, isOnline: true,
-=======
-        id: true,
-        username: true,
-        avatar: true,
-        isOnline: true,
-        userStats: { select: { xp: true, level: true } },
->>>>>>> backend
         userSettings: { select: { isPublic: true } },
       },
       take: Number(limit),
@@ -371,18 +324,8 @@ const User = {
       prisma.user.findUnique({
         where: { id: Number(id) },
         select: {
-<<<<<<< merge(pre-dev)
           id: true, username: true, email: true, bio: true,
           status: true, createdAt: true,
-=======
-          id: true,
-          username: true,
-          email: true,
-          bio: true,
-          status: true,
-          createdAt: true,
-          userStats: { select: { xp: true, level: true } },
->>>>>>> backend
         },
       }),
       prisma.friend.findMany({
@@ -406,22 +349,8 @@ const User = {
     ]);
 
     return {
-<<<<<<< merge(pre-dev)
       user: user ?? null,
       friends: friends.map((f) => ({ friendId: f.friend.id, username: f.friend.username })),
-=======
-      user: user
-        ? {
-            ...user,
-            xp: user.userStats?.xp ?? 0,
-            level: user.userStats?.level ?? 1,
-          }
-        : null,
-      friends: friends.map((f) => ({
-        friendId: f.friend.id,
-        username: f.friend.username,
-      })),
->>>>>>> backend
       messages,
       games,
       posts,
