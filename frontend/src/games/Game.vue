@@ -302,6 +302,7 @@ import { initUser } from './user/initUser.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
 import { init_redot, render_redot } from './core/useSpatialBridge.js'
+import { StereoEffect } from 'three/addons/effects/StereoEffect.js';
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -327,6 +328,7 @@ let cameraUpdate = null;
 let stopMyWatcher
 let stats;
 let playerCount = 1
+let effect
 
 onMounted(async () => {
   document.body.classList.add('lock-screen');
@@ -336,7 +338,13 @@ onMounted(async () => {
   else
     showLoginWarning.value = false
   gEngine.value = init()
-  init_redot();
+  if (CONST.AR_ENABLED)
+    init_redot();
+  if (CONST.SBS_ENABLED)
+  {
+    effect = new StereoEffect(gEngine.value.renderer);
+    effect.setSize(window.innerWidth, window.innerHeight);
+  }
 
   //generateIcons();
 
@@ -390,11 +398,10 @@ const gameLoop = () => {
       gEngine.value.controls.update()
     }
   }
-
-  gEngine.value.renderer.render(
-    gEngine.value.scene,
-    gEngine.value.camera
-  )
+  if (CONST.SBS_ENABLED)
+    effect.render(gEngine.value.scene, gEngine.value.camera);
+  else
+    gEngine.value.renderer.render(gEngine.value.scene, gEngine.value.camera)
   if (stats) stats.end();
   if (gUI.cameraMode === 3) // render red dot for first person mode
     render_redot()

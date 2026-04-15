@@ -19,6 +19,7 @@ export const CONST = {
   DEBUG: 0,
   COLLIDER_SIZE: 0.8,
   AR_ENABLED: false,
+  SBS_ENABLED: false,
 
   MAX_UPGRADES: 5,
 
