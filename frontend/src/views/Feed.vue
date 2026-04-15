@@ -162,6 +162,12 @@ import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
 import FakeAd from '../components/FakeAd.vue'
 import ActiveLeaderboard from '../components/ActiveLeaderboard.vue'
+import ErrorBanner from '../components/ErrorBanner.vue'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+import EmptyState from '../components/EmptyState.vue'
+import BaseModal from '../components/BaseModal.vue'
+import BaseButton from '../components/BaseButton.vue'
+import BaseInput from '../components/BaseInput.vue'
 
 const authStore = useAuthStore()
 const posts = ref([])

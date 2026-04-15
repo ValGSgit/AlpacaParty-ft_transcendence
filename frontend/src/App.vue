@@ -114,6 +114,7 @@ import { useAuthStore } from './stores/auth.js'
 import api from './services/api.js'
 import { connectSocket, disconnectSocket } from './services/socket.js'
 import Messages from './views/Messages.vue';
+import NotifBadge from './components/NotifBadge.vue';
 
 const authStore = useAuthStore()
 const router = useRouter()
