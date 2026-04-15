@@ -208,6 +208,9 @@ export function updateAlpacaRoad(delta) {
   updatePlayers(delta)
   updateRoadScene(delta)
   updateDifficulty()
+  if (alivePlayers === 0) {
+    endMinigame();
+  }
 }
 
 function spawnObstacles(delta) {
@@ -229,13 +232,11 @@ function createObstacle() {
   let id = 0;
   if (pos < 4) {
     id = getRandomID(singleObstacle);
-    console.log("Single Id:", id);
     obstacle = singleObstacle[id].clone();
     obstacle.position.x = playerPositions[pos];
     obstacle.userData.isFullWidth = false;
   } else {
     id = getRandomID(fullObstacle);
-    console.log("Full Id:", id);
     obstacle = fullObstacle[id].clone();
     obstacle.userData.isFullWidth = true;
   }
@@ -280,7 +281,7 @@ function updatePlayers(delta) {
     if (alpaca.isBeingHit) {
       spinAlpacaUp(alpaca, delta);
     }
-    if (alpaca.isDead && !alpaca.isBeingHit) {
+    if (alpaca.isDead && alpaca.isBeingHit) {
       if (alpaca.model.position.z > roadBack) {
         alpaca.model.position.z -= (roadSpeed * delta);
       }
@@ -444,14 +445,11 @@ function checkAlpaca(alpaca) {
   const isColliding = checkCollisionWith(alpaca.model, activeObstacles);
   if (isColliding) {
     alpaca.isBeingHit = true;
-    //alpaca.hp--; //TODO
+    alpaca.hp--; //TODO
     spawnFloatingText(alpaca.model, '-💔', 'hearts');
     if (alpaca.hp === 0) {
       alpaca.isDead = true;
       alivePlayers--;
-      if (alivePlayers === 0) {
-        endMinigame();
-      }
     }
   }
 }
