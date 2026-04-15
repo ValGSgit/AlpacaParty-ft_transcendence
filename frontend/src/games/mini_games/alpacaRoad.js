@@ -1,29 +1,30 @@
 import * as THREE from 'three';
 import * as PRIMITIVES from '../assets/primitives.js';
+import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca, createDecoration, createItem } from '../core/createObjects.js';
-import { gDecorations, gItems, gMinigame, gPlayer, gScene, gUI} from '../core/globals.js';
+import { gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
+import { removeObject } from '../core/removeObjects.js';
 import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
 import { getRandomTimer } from '../utils/randomValues.js';
 import { setupLighting } from '../world/sceneBuilder.js';
-import { useFloatingText } from '../components/floatingText.js';
-import { removeObject } from '../core/removeObjects.js';
 
 const stripeLength = 10;
 const roadLength = 700;
 const roadBack = -25;
 const roadOffset = roadLength / 2 + roadBack;
-const roadSpeed = 25;
+let roadSpeed = 25;
 const startZ = roadLength + roadBack;
 
-let level = 0;
+let level;
 let alivePlayers;
 let activePlayers = [];
 const playerPositions = [-2.5, 2.5, -7.5, 7.5];
 
 let obstacleTimer = 2;
+let timerMultiplier = 1;
 
 const fullPaths = ['models/lamp.glb']
 const singlePaths = ['models/trafficCones.glb']
@@ -33,31 +34,39 @@ const fullObstacle = [];
 const singleObstacle = [];
 const activeObstacles = [];
 
-const buildingSelection = []; // Templates loaded from GLB
-const activeBuildings = [];   // Instances currently on the road
-const buildingDepth = 60;     // How "wide" the building is along the Z axis
-const buildingOffset = -28;    // Distance from center of road to the buildings
+const buildingSelection = [];
+const activeBuildings = [];
+const buildingDepth = 70;
+const buildingOffset = -28;
 const roadScene = [];
 let assetsLoaded = false;
+
+let totalPoints = 0;
+
 
 const { spawnFloatingText } = useFloatingText();
 
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
-  level = 0;
   cleanupAlpacaRoad()
-  gUI.cameraMode = 0;
 
   await setupRoadScene(gScene.value);
   await loadAssets(gScene.value);
   await initPlayers(playerCount, tempAlpacas);
   initScenery();
   initObstacles();
+  initGameValues(playerCount);
+}
+
+function initGameValues(playerCount) {
+  level = 1;
+  totalPoints = 0;
   alivePlayers = playerCount;
+  gUI.cameraMode = 2;
 
   gMinigame.value.mode = 3;
   gMinigame.value.isActive = true;
   gUI.lockCamera = true;
-  gUI.DoF = true;
+  gUI.DoF = false;
   gUI.isLightCycling = false;
   assetsLoaded = true;
 }
@@ -75,7 +84,7 @@ async function setupRoadScene(scene) {
 
   initRoadStripes();
 }
- 
+
 async function loadAssets() {
   if (fullObstacle.length === 0) {
     const loadedFull = await Promise.all(fullPaths.map(path => createItem(path)));
@@ -127,10 +136,11 @@ async function initPlayers(playerCount, tempAlpacas) {
   }
 }
 
+// TODO: randomize buildings here
 function initScenery() {
   if (buildingSelection.length === 0) return;
 
-  const numBuildings = Math.ceil(roadLength / buildingDepth) + 2; 
+  const numBuildings = Math.ceil(roadLength / buildingDepth) + 1;
 
   for (let i = 0; i < numBuildings; i++) {
     const zPos = i * buildingDepth;
@@ -156,15 +166,13 @@ function initObstacles() {
   const amount = 8;
   for (let i = 0; i < amount; ++i) {
     createObstacle();
-    activeObstacles[i].position.z = startZ - (roadLength/amount * i);
+    activeObstacles[i].position.z = startZ - (roadLength / amount * i);
   }
 }
 
 function initRoadStripes() {
   const numRows = 8;
   const spacingZ = roadLength / numRows;
-
-  console.log(startZ);
 
   const stripeMat = new THREE.MeshStandardMaterial({ color: '#dddddd' });
   const stripe = PRIMITIVES.Box(1, 0.1, stripeLength, stripeMat);
@@ -186,13 +194,13 @@ function initRoadStripes() {
 
 
 export function updateAlpacaRoad(delta) {
-	if (!assetsLoaded) return;
+  if (!assetsLoaded) return;
 
-	spawnObstacles(delta)
-	updateObstacles(delta)
-	updatePlayers(delta)
-	updateRoadScene(delta)
-	//updateDifficulty()
+  spawnObstacles(delta)
+  updateObstacles(delta)
+  updatePlayers(delta)
+  updateRoadScene(delta)
+  updateDifficulty()
 }
 
 function spawnObstacles(delta) {
@@ -201,12 +209,12 @@ function spawnObstacles(delta) {
   obstacleTimer -= delta;
 
   if (obstacleTimer <= 0) {
+    obstacleTimer = (getRandomTimer() / 2) * timerMultiplier;
     createObstacle();
   }
 }
 
 function createObstacle() {
-  obstacleTimer = getRandomTimer() / 2;
   const validLanes = getValidLanes();
   const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
 
@@ -225,7 +233,7 @@ function createObstacle() {
   obstacle.position.z = startZ;
   obstacle.pointGiven = false;
   obstacle.frustumCulled = false;
-  obstacle.traverse(child => { if(child.isMesh) child.frustumCulled = false; });
+  obstacle.traverse(child => { if (child.isMesh) child.frustumCulled = false; });
 
   activeObstacles.push(obstacle);
   gScene.value.add(obstacle);
@@ -253,11 +261,65 @@ function updatePlayers(delta) {
       spinAlpacaUp(alpaca, delta);
     }
     if (alpaca.isDead && !alpaca.isBeingHit) {
-      if (alpaca.model.position.z > -roadLength / 2 + roadOffset) {
+      if (alpaca.model.position.z > roadBack) {
         alpaca.model.position.z -= (roadSpeed * delta);
       }
     }
   }
+}
+
+function updateDifficulty() {
+  const pointsPerLevel = (3 * alivePlayers) + (level * alivePlayers) + 1;
+  const newLevel = Math.floor(totalPoints / pointsPerLevel) + 1;
+
+
+  if (newLevel > level) {
+    level = newLevel;
+
+    const minSpeed = 25;
+    const maxSpeed = 100;
+    const factor = 0.1;
+    const difficultyFactor = 1 - Math.exp(-factor * level);
+    roadSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;
+
+    timerMultiplier = Math.max(0.35, timerMultiplier - 0.075);
+
+    showLevelAnnouncement(level);
+    console.log("Level:", level);
+    console.log("Speed:", roadSpeed);
+    console.log("Timer:", timerMultiplier);
+  }
+}
+
+function showLevelAnnouncement(level) {
+  // Create a temporary div
+  const el = document.createElement('div');
+  el.className = 'level-up-announcement';
+  el.innerText = `LEVEL ${level}`;
+
+  // Basic styling (usually you'd put this in your CSS file)
+  Object.assign(el.style, {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    fontSize: '5rem',
+    fontWeight: 'bold',
+    color: '#FFD700', // Gold
+    textShadow: '0 0 20px rgba(0,0,0,0.5)',
+    pointerEvents: 'none',
+    zIndex: '1000',
+    transition: 'all 0.5s ease-out'
+  });
+
+  document.body.appendChild(el);
+
+  // Animation and Cleanup
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translate(-50%, -70%) scale(1.5)';
+    setTimeout(() => el.remove(), 500);
+  }, 1000);
 }
 
 function updateObstacles(delta) {
@@ -277,26 +339,29 @@ function updateObstacles(delta) {
   }
 }
 
-function  awardPoints(obstacle) {
+function awardPoints(obstacle) {
   for (let i = 0; i < activePlayers.length; i++) {
     const alpaca = activePlayers[i];
     if (!alpaca.isDead && !alpaca.isBeingHit) {
       if (obstacle.userData.isFullWidth) {
         alpaca.point++;
+        totalPoints++;
         spawnFloatingText(alpaca.model, '+1');
       } else {
         const distance = Math.abs(alpaca.model.position.x - obstacle.position.x);
         if (distance < 1) {
           activePlayers[i].point++;
+          totalPoints += alivePlayers;
           spawnFloatingText(alpaca.model, '+1');
         }
       }
     }
   }
+  console.log(totalPoints);
   obstacle.pointGiven = true;
 }
 
-function removeObstacle(obstacle, index){
+function removeObstacle(obstacle, index) {
   gScene.value.remove(obstacle);
   activeObstacles.splice(index, 1);
   removeObject(obstacle);
@@ -320,14 +385,13 @@ function updateRoadScene(delta) {
     if (building.position.z < roadBack) {
       building.position.z = startZ;
       building.scale.set(0.1, 0.1, 0.1);
-      // Optional: Randomize which building model is used
+      // TODO: Randomize which building model is used
       // if (buildingSelection.length > 1) { swapModelLogic(); }
     }
     const target = building.userData.targetScale;
     if (building.scale.distanceTo(target) < 0.01) {
       building.scale.copy(building.userData.targetScale);
-    } else
-    {
+    } else {
       building.scale.lerp(building.userData.targetScale, delta * 5);
     }
   }
@@ -360,7 +424,7 @@ function checkAlpaca(alpaca) {
   const isColliding = checkCollisionWith(alpaca.model, activeObstacles);
   if (isColliding) {
     alpaca.isBeingHit = true;
-    //alpaca.hp--; TODO
+    //alpaca.hp--; //TODO
     spawnFloatingText(alpaca.model, '-💔', 'hearts');
     if (alpaca.hp === 0) {
       alpaca.isDead = true;
@@ -373,18 +437,18 @@ function checkAlpaca(alpaca) {
 }
 
 function endMinigame() {
-  let hitAlpacas;
+  let deadAlpacas;
   for (let i = 0; i < activePlayers.length; i++) {
     const alpaca = activePlayers[i];
-    if (alpaca.isBeingHit) hitAlpacas++;
+    if (!alpaca.isBeingHit && alpaca.isDead) deadAlpacas++;
   }
-  if (hitAlpacas == alivePlayers)
+  if (deadAlpacas == alivePlayers)
     gMinigame.value.isActive = false
 }
 
 export function cleanupAlpacaRoad() {
   assetsLoaded = false;
-  gMinigame.value.isActive = false; 
+  gMinigame.value.isActive = false;
   gUI.DoF = false;
   gUI.isLightCycling = true;
 
@@ -408,9 +472,9 @@ export function cleanupAlpacaRoad() {
       alpaca.isBeingHit = false;
     }
   });
-  
+
   activePlayers.length = 0;
-  
+
   gUI.lockCamera = false;
   gUI.cameraMode = 1;
 
