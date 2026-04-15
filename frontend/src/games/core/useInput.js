@@ -5,6 +5,8 @@ import { useEditMode } from '../components/editMode.js'
 import { printDebug } from './debug.js'
 import { gEditState, gEngine, gPlayer, gScene, gUI, gMinigame } from './globals.js'
 import { useUIManager } from './useUIManager.js'
+import { CONST } from '../config/constants.js';
+import { useSpatialBridge, handInput, headInput } from './useSpatialBridge.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions
 const keys = reactive({
@@ -15,6 +17,17 @@ export function useInput() {
   const { switchAlpaca } = alpacaHandling()
   const { selectItem, highlightItem, moveItem, placeItem, rotateItem, scaleItem, cancelPlacement } = useEditMode()
   const { closeMenus, openAlpacaShop } = useUIManager()
+
+  // Only when AR glasses is connected
+  const handleSpatialInput = (data) => {
+    if (data.type === 'hand')
+      handInput(data);
+    if (data.type === 'head' && gEngine.value?.camera)
+      headInput(data)
+  }
+
+  // Initialize the bridge
+  const { initSpatialBridge, closeSpatialBridge } = useSpatialBridge(handleSpatialInput)
 
   const onKeyDown = (e) => {
     switch (e.code) {
@@ -121,6 +134,8 @@ export function useInput() {
     window.addEventListener('wheel', onWheel, { passive: true })
     canvas.addEventListener('dblclick', onDoubleClick)
     canvas.addEventListener('pointerdown', onPointerDown)
+    if (CONST.AR_ENABLED)
+      initSpatialBridge() // Start the WebSocket
   }
 
   const cleanupInput = () => {
@@ -132,6 +147,8 @@ export function useInput() {
     window.removeEventListener('wheel', onWheel);
     canvas.removeEventListener('dblclick', onDoubleClick)
     canvas.removeEventListener('pointerdown', onPointerDown)
+    if (CONST.AR_ENABLED)
+      closeSpatialBridge() // Stop the WebSocket
   }
 
   return { keys, initInput, cleanupInput }

@@ -24,13 +24,19 @@ export function usePlayerControls() {
 
     // Jump up
     if (keydown && model.position.y <= CONST.JUMPING_MAX_HEIGHT && !player.isFalling) {
-      model.position.y += CONST.JUMPING_SPEED * delta;
+      if (CONST.SBS_ENABLED)
+        model.position.y += CONST.JUMPING_SPEED * 2;
+      else
+        model.position.y += CONST.JUMPING_SPEED * delta;
       player.isJumping = true;
       isVerticalMoving = true;
     }
     // Fall down
     if (model.position.y > 0 && (!keydown || player.isFalling)) {
-      model.position.y -= CONST.JUMPING_SPEED * delta;
+      if (CONST.SBS_ENABLED)
+        model.position.y -= CONST.JUMPING_SPEED * 2;
+      else
+        model.position.y -= CONST.JUMPING_SPEED * delta;
       player.isJumping = true;
     }
     // Hit the ground

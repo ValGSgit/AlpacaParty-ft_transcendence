@@ -3,6 +3,24 @@
     <div class="shop-title">Welcome to Alpaca Party!
       <button class="shop-btn" @click="warningOff" title="Close">Try</button>
       <router-link to="/login" class="shop-btn">Login</router-link>
+      <div class="features">
+      <div class="feature-card">
+        <h3>🦙 Raise Alpacas</h3>
+        <p>Buy, name and customise alpacas with unique colours and speeds.</p>
+      </div>
+      <div class="feature-card">
+        <h3>🌳 Build Your Farm</h3>
+        <p>Plant trees, expand land and decorate your world.</p>
+      </div>
+      <div class="feature-card">
+        <h3>💰 Earn Coins</h3>
+        <p>Collect coins to unlock upgrades and grow your herd.</p>
+      </div>
+        <div class="feature-card">
+        <h3>🕹️ Mini Games</h3>
+        <p>Play Mini games with your friends, online and offline.</p>
+      </div>
+    </div>
     </div>
   </div>
   
@@ -86,7 +104,7 @@
 
     <div v-if="gUI.gameMenu" class="modal-overlay">
       <div class="shop-title">Select Game
-        <button class="shop-btn" @click="changeGame(1, 10)" title="Spit Royale with AI">Spit Royale with AI</button>
+        <button class="shop-btn" @click="changeGame(1, playerCount)" title="Spit Royale with AI">Spit Royale with AI</button>
         <button v-if="isAuthenticated" class="shop-btn" @click="changeGame(2)" title="Spit Royale Online">Spit Royale Online</button>
       <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
       <select v-model="playerCount" class="player-selector" title="Number of Players">
@@ -283,6 +301,8 @@ import { changeGame } from './mini_games/init.js'
 import { initUser } from './user/initUser.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
+import { init_redot, render_redot } from './core/useSpatialBridge.js'
+import { StereoEffect } from 'three/addons/effects/StereoEffect.js';
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -308,14 +328,23 @@ let cameraUpdate = null;
 let stopMyWatcher
 let stats;
 let playerCount = 1
+let effect
 
 onMounted(async () => {
+  document.body.classList.add('lock-screen');
   const { isAuthenticated } = useAuthStore()
   if (!isAuthenticated)
     showLoginWarning.value = true
   else
     showLoginWarning.value = false
   gEngine.value = init()
+  if (CONST.AR_ENABLED)
+    init_redot();
+  if (CONST.SBS_ENABLED)
+  {
+    effect = new StereoEffect(gEngine.value.renderer);
+    effect.setSize(window.innerWidth, window.innerHeight);
+  }
 
   //generateIcons();
 
@@ -369,15 +398,22 @@ const gameLoop = () => {
       gEngine.value.controls.update()
     }
   }
+  if (CONST.SBS_ENABLED)
+    effect.render(gEngine.value.scene, gEngine.value.camera);
+  else
+    gEngine.value.renderer.render(gEngine.value.scene, gEngine.value.camera)
 
   if (gEngine.value.composer) {
     gEngine.value.composer.render();
   }
 
   if (stats) stats.end();
+  if (gUI.cameraMode === 3) // render red dot for first person mode
+    render_redot()
 }
 
 onUnmounted(() => {
+  document.body.classList.remove('lock-screen');
   saveGame()
   if (stopMyWatcher) stopMyWatcher()
   cancelAnimationFrame(animationFrameId)

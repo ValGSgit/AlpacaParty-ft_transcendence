@@ -28,6 +28,7 @@ export async function changeGame(mode, playerCount) {
   gUser.value.hp = CONST.HP
   gUser.value.isPlaying = true
   gPlayer.value.point = 0
+  gPlayer.value.isDead = 0
   gUser.value.point = 0
   gUser.value.name = gPlayer.value.name
   gPlayer.value.model.position.set(0, 0, 0)

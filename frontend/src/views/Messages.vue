@@ -60,7 +60,7 @@
             </div>
           </li>
           <li v-if="!filteredFriends.length && !friendSearch" class="conv-item empty-friend">
-            <span class="empty small">No friends yet — add some!</span>
+            <span class="empty small">Add some friend!</span>
           </li>
         </ul>
 
@@ -355,7 +355,6 @@ function sendMessage() {
       if (ack?.error) {
         msgError.value = ack.error
       } else if (ack?.message) {
-        messages.value.push(ack.message)
         scrollToBottom()
       }
     })
@@ -364,7 +363,6 @@ function sendMessage() {
       if (ack?.error) {
         msgError.value = ack.error
       } else if (ack?.message) {
-        messages.value.push(ack.message)
         scrollToBottom()
       }
     })
@@ -492,8 +490,9 @@ onUnmounted(() => {
 .messages-page {
   display: grid;
   grid-template-columns: 280px 1fr;
-  height: calc(100vh - 56px); /* below navbar */
   overflow: hidden;
+  height: 100%;
+  min-height: 0;
 }
 
 /* ── Sidebar ── */
@@ -635,6 +634,7 @@ onUnmounted(() => {
   flex-direction: column;
   background: var(--bg-primary, #0a0a0f);
   overflow: hidden;
+  height: 100%;
 }
 
 .no-selection {
@@ -684,6 +684,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  min-height: 0;
 }
 .msg { display: flex; align-items: baseline; gap: 0.5rem; }
 .msg.mine { flex-direction: row-reverse; }
