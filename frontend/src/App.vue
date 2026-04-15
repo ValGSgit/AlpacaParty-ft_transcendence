@@ -99,7 +99,6 @@
         <span class="footer-copy">&copy; 2026 AlpacaParty</span>
         <div class="footer-links">
           <router-link to="/docs">API Docs</router-link>
-          <router-link to="/showcase">Showcase</router-link>
           <router-link to="/privacy">Privacy Policy</router-link>
           <router-link to="/terms">Terms of Service</router-link>
         </div>

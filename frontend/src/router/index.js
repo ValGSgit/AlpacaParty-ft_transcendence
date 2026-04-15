@@ -17,8 +17,6 @@ const NotFound = () => import('../views/NotFound.vue')
 const OAuthCallback = () => import('../views/OAuthCallback.vue')
 const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
 const TermsOfService = () => import('../views/TermsOfService.vue')
-const PublicShowcase = () => import('../views/PublicShowcase.vue')
-const SecurityDashboard = () => import('../views/SecurityDashboard.vue')
 const ApiDocs  = () => import('../views/ApiDocs.vue')
 
 const routes = [
@@ -65,21 +63,9 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/security',
-    name: 'SecurityDashboard',
-    component: SecurityDashboard,
-    meta: { requiresAuth: true },
-  },
-  {
     path: '/docs',
     name: 'ApiDocs',
     component: ApiDocs,
-    meta: { requiresAuth: false },
-  },
-  {
-    path: '/showcase',
-    name: 'PublicShowcase',
-    component: PublicShowcase,
     meta: { requiresAuth: false },
   },
   {

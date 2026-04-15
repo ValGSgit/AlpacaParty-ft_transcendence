@@ -3,7 +3,8 @@
  * Must be used after authenticate()
  */
 export const requireAdmin = (req, res, next) => {
-  if (!req.user || !req.user.isAdmin) {
+  const isAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
+  if (!req.user || !isAdmin) {
     return res.status(403).json({ error: { message: 'Admin access required' } });
   }
   next();

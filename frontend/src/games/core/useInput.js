@@ -13,6 +13,8 @@ const keys = reactive({
   w: false, a: false, s: false, d: false, space: false, pointer: false
 })
 
+const heldKeys = new Set();
+
 export function useInput() {
   const { switchAlpaca } = alpacaHandling()
   const { selectItem, highlightItem, moveItem, placeItem, rotateItem, scaleItem, cancelPlacement } = useEditMode()
@@ -31,11 +33,11 @@ export function useInput() {
 
   const onKeyDown = (e) => {
     switch (e.code) {
-      case 'KeyW': keys.w = true; break
-      case 'KeyA': keys.a = true; break
-      case 'KeyS': keys.s = true; break
-      case 'KeyD': keys.d = true; break
-      case 'Space': keys.space = true; break
+      case 'KeyW': heldKeys.add(e.code); break // add it to the set so it doesnt fight with the controller
+      case 'KeyA': heldKeys.add(e.code); break
+      case 'KeyS': heldKeys.add(e.code); break
+      case 'KeyD': heldKeys.add(e.code); break
+      case 'Space': heldKeys.add(e.code); break
       case 'KeyF': if (gPlayer.value) gPlayer.value.spit(); break
       case 'ShiftLeft': keys.shift = true; break;
       case 'KeyP': printDebug(); break
@@ -48,11 +50,11 @@ export function useInput() {
 
   const onKeyUp = (e) => {
     switch (e.code) {
-      case 'KeyW': keys.w = false; break
-      case 'KeyA': keys.a = false; break
-      case 'KeyS': keys.s = false; break
-      case 'KeyD': keys.d = false; break
-      case 'Space': keys.space = false; break
+      case 'KeyW': heldKeys.delete(e.code); break
+      case 'KeyA': heldKeys.delete(e.code); break
+      case 'KeyS': heldKeys.delete(e.code); break
+      case 'KeyD': heldKeys.delete(e.code); break
+      case 'Space': heldKeys.delete(e.code); break
       case 'KeyQ': keys.q = false; break
       case 'KeyL': keys.l = false; break
       case 'Enter': keys.enter = false; break
@@ -125,6 +127,40 @@ export function useInput() {
     }
   }
 
+  //reset input so the keys dont stick (addictive)
+  function resetInput() {
+    keys.w = false;
+    keys.a = false;
+    keys.s = false;
+    keys.d = false;
+    keys.space = false;
+  }
+
+  // keyboard and controller working together
+  function updateInputState() {
+    keys.w = heldKeys.has('KeyW');
+    keys.s = heldKeys.has('KeyS');
+    keys.a = heldKeys.has('KeyA');
+    keys.d = heldKeys.has('KeyD');
+    keys.space = heldKeys.has('Space');
+  
+    const gp = navigator.getGamepads()[0];
+    if (gp) {
+      if (gp.axes[1] < -0.1) keys.w = true;
+      if (gp.axes[1] > 0.1)  keys.s = true;
+      if (gp.axes[0] < -0.1) keys.a = true;
+      if (gp.axes[0] > 0.1)  keys.d = true;
+      if (gp.buttons[0].pressed) keys.space = true;
+      if (gp.buttons[1].pressed && gPlayer.value) gPlayer.value.spit();
+    }
+  }
+
+  const onGamepadConnect = (e) => {
+    console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+      e.gamepad.index, e.gamepad.id,
+      e.gamepad.buttons.length, e.gamepad.axes.length);
+  };
+
   const initInput = () => {
     const canvas = gEngine.value.renderer.domElement;
 
@@ -134,6 +170,7 @@ export function useInput() {
     window.addEventListener('wheel', onWheel, { passive: true })
     canvas.addEventListener('dblclick', onDoubleClick)
     canvas.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener("gamepadconnected", onGamepadConnect);
     if (CONST.AR_ENABLED)
       initSpatialBridge() // Start the WebSocket
   }
@@ -147,9 +184,10 @@ export function useInput() {
     window.removeEventListener('wheel', onWheel);
     canvas.removeEventListener('dblclick', onDoubleClick)
     canvas.removeEventListener('pointerdown', onPointerDown)
+    window.removeEventListener("gamepadconnected", onGamepadConnect);
     if (CONST.AR_ENABLED)
       closeSpatialBridge() // Stop the WebSocket
   }
 
-  return { keys, initInput, cleanupInput }
+  return { keys, initInput, cleanupInput, updateInputState, resetInput }
 }

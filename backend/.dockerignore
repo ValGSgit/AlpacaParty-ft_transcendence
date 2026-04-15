@@ -17,10 +17,6 @@ yarn-error.log*
 # Testing
 coverage
 .nyc_output
-*.test.js
-*.spec.js
-__tests__
-tests
 
 # IDE
 .vscode

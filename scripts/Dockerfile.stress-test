@@ -1,0 +1,39 @@
+# AlpacaParty — Stress & Security Testing Container
+# Includes: siege, wrk, nikto, nmap, ab, curl, jq
+FROM debian:bookworm-slim
+
+LABEL maintainer="AlpacaParty <dev@alpacaparty.test>"
+
+# Install all required tools + runtime essentials
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    jq \
+    siege \
+    wrk \
+    nmap \
+    apache2-utils \
+    openssl \
+    bash \
+    coreutils \
+    grep \
+    sed \
+    gawk \
+    bc \
+    netcat-traditional \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create working directory
+WORKDIR /app
+
+# Copy the stress-test script from scripts context
+COPY stress-test.sh /app/stress-test.sh
+RUN chmod +x /app/stress-test.sh
+
+# Create output directory for reports
+RUN mkdir -p /app/stress-test-results
+
+# Default: run stress test
+# Override BASE_URL and other params as needed
+ENTRYPOINT ["/app/stress-test.sh"]
+CMD ["https://nginx:443", "30s", "25"]

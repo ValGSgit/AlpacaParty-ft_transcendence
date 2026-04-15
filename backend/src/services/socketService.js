@@ -19,7 +19,6 @@ import Message from '../models/Message.js';
 import ChatRoom from '../models/ChatRoom.js';
 import Game from '../models/Game.js';
 import NotificationService from './notificationService.js';
-import GamificationService from './gamificationService.js';
 import { initializeSpitRoyaleNamespace } from './spitRoyaleNamespace.js';
 
 /**
@@ -72,7 +71,7 @@ export function initializeSocket(httpServer, corsOrigins) {
   async function markOnline(userId, socketId) {
     if (!onlineSockets.has(userId)) {
       onlineSockets.set(userId, new Set());
-      await User.setOnline(userId, true);
+      await User.setOnline(userId);
       io.emit('presence', { userId, isOnline: true });
     }
     onlineSockets.get(userId).add(socketId);
@@ -84,7 +83,7 @@ export function initializeSocket(httpServer, corsOrigins) {
       sockets.delete(socketId);
       if (sockets.size === 0) {
         onlineSockets.delete(userId);
-        await User.setOnline(userId, false);
+        await User.setOffline(userId);
         io.emit('presence', { userId, isOnline: false });
       }
     }
@@ -234,8 +233,6 @@ export function initializeSocket(httpServer, corsOrigins) {
             Game.updateStats(game.player2Id, game.gameType, p2Result),
             Game.updateElo(game.player1Id, game.gameType, newP1Elo),
             Game.updateElo(game.player2Id, game.gameType, newP2Elo),
-            GamificationService.processGameEnd(game.player1Id, p1Result, game.gameType),
-            GamificationService.processGameEnd(game.player2Id, p2Result, game.gameType),
           ]);
         }
 

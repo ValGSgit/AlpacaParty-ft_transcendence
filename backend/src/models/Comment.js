@@ -1,7 +1,7 @@
 /**
  * Comment Model — Prisma data access layer
  */
-import prisma from '../config/prisma.js';
+import prisma from "#config/prisma.js";
 
 const AUTHOR_SELECT = { select: { username: true, avatar: true } };
 
@@ -25,8 +25,13 @@ const Comment = {
         data: { postId: Number(postId), authorId: Number(authorId), content },
         include: { author: AUTHOR_SELECT },
       });
-      const count = await tx.comment.count({ where: { postId: Number(postId) } });
-      await tx.post.update({ where: { id: Number(postId) }, data: { commentsCount: count } });
+      const count = await tx.comment.count({
+        where: { postId: Number(postId) },
+      });
+      await tx.post.update({
+        where: { id: Number(postId) },
+        data: { commentsCount: count },
+      });
       return c;
     });
     return shapeComment(comment);
@@ -36,7 +41,7 @@ const Comment = {
     const comments = await prisma.comment.findMany({
       where: { postId: Number(postId) },
       include: { author: AUTHOR_SELECT },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
       take: Number(limit),
       skip: Number(offset),
     });
@@ -44,12 +49,19 @@ const Comment = {
   },
 
   async delete(id, authorId) {
-    const comment = await prisma.comment.findUnique({ where: { id: Number(id) } });
+    const comment = await prisma.comment.findUnique({
+      where: { id: Number(id) },
+    });
     if (!comment || comment.authorId !== Number(authorId)) return false;
     await prisma.$transaction(async (tx) => {
       await tx.comment.delete({ where: { id: Number(id) } });
-      const count = await tx.comment.count({ where: { postId: comment.postId } });
-      await tx.post.update({ where: { id: comment.postId }, data: { commentsCount: count } });
+      const count = await tx.comment.count({
+        where: { postId: comment.postId },
+      });
+      await tx.post.update({
+        where: { id: comment.postId },
+        data: { commentsCount: count },
+      });
     });
     return true;
   },

@@ -175,7 +175,8 @@ describe('Help.vue', () => {
     // Wait for async operations
     await vi.waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/help/chat', expect.objectContaining({
-        messages: expect.any(Array),
+        message: expect.any(String),
+        history: expect.any(Array),
       }))
     })
   })

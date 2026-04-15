@@ -11,8 +11,8 @@ build/
 .env.production
 
 # ── SSL certificates ────────────────────────────────────────
-nginx/ssl/
-backend/ssl/
+*/ssl/
+ssl/
 
 # ── IDE ──────────────────────────────────────────────────────
 .vscode/

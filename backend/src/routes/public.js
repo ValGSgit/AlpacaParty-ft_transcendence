@@ -18,8 +18,6 @@ import {
   listUsers, getUser, getLeaderboard, getPosts, listOrganizations, getMockDataset,
   createPost, updatePost, deletePost,
 } from '../controllers/publicApiController.js';
-import { validate, z } from '../middleware/validate.js';
-import { positiveId, imageUrlSchema } from '../schemas/shared.js';
 
 const router = express.Router();
 
@@ -80,8 +78,6 @@ router.use(requireApiKey);
  *                       id: { type: integer }
  *                       username: { type: string }
  *                       avatar: { type: string, nullable: true }
- *                       level: { type: integer }
- *                       xp: { type: integer }
  *                       is_online: { type: boolean }
  *       401: { description: Missing or invalid X-API-Key }
  */
@@ -213,13 +209,7 @@ router.get('/leaderboard', getLeaderboard);
  *                 post: { $ref: '#/components/schemas/Post' }
  */
 router.get('/posts', getPosts);
-router.post('/posts', validate({
-  body: z.object({
-    content:  z.string({ required_error: 'content is required' }).trim().min(1, 'content is required').max(5000),
-    authorId: z.preprocess((v) => (v != null) ? Number(v) : v, z.number({ required_error: 'authorId is required', invalid_type_error: 'authorId is required' }).int().positive()),
-    imageUrl: imageUrlSchema,
-  }),
-}), createPost);
+router.post('/posts', createPost);
 
 /**
  * @openapi
@@ -274,14 +264,8 @@ router.post('/posts', validate({
  *                 message: { type: string }
  *       404: { description: Post not found }
  */
-router.put('/posts/:id', validate({
-  params: z.object({ id: positiveId }),
-  body:   z.object({
-    content:  z.string().min(1).max(5000).trim().optional(),
-    imageUrl: imageUrlSchema,
-  }),
-}), updatePost);
-router.delete('/posts/:id', validate({ params: z.object({ id: positiveId }) }), deletePost);
+router.put('/posts/:id', updatePost);
+router.delete('/posts/:id', deletePost);
 
 /**
  * @openapi
