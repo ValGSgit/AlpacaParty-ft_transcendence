@@ -1,6 +1,6 @@
 import api from '../../services/api.js'
 import { useAuthStore } from '../../stores/auth.js'
-import { gAlpacas, gItems, gUser } from './globals.js'
+import { gAlpacas, gItems, gUser, gPlayer } from './globals.js'
 
 
 export async function saveGame() {
@@ -10,10 +10,13 @@ export async function saveGame() {
     return
   }
 
-  if (gUser.value.gameMode)
+  if (gMinigame.value.mode)
     return
 
   const saveAlpacas = gAlpacas.map(alpaca => {
+    let selected = false
+    if (gPlayer.value === alpaca)
+      selected = true // save current selected alpaca
     return {
       name: alpaca.model.name,
       color: alpaca.color,
@@ -24,6 +27,7 @@ export async function saveGame() {
       rotationOffset: alpaca.rotationOffset,
       age: alpaca.age,
       aliveTime: alpaca.aliveTime,
+      selected
     };
   });
 
@@ -36,6 +40,10 @@ export async function saveGame() {
       name: item.model.name,
     };
   });
+
+/* TODO: save Decorations here */
+
+
 
   try {
     await api.put('/users/me/farmdata', {

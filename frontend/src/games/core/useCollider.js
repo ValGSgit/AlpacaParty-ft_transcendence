@@ -10,8 +10,8 @@ export function attachCollider(model) {
     if (child.isMesh) {
       if (child.name.startsWith('UCX_')) {
         collider = child;
-        collider.name = "Collider";
-        child.visible = false;
+        collider.name = "UCX_Collider";
+        collider.visible = false;
       }
       else {
         child.castShadow = true;
@@ -22,6 +22,9 @@ export function attachCollider(model) {
 
   if (!collider) {
     collider = generateCollider(model);
+  } else {
+    collider = generateCollider(model, collider);
+    collider.name = "Collider";
   }
 
   model.userData.collider = collider;
@@ -29,8 +32,8 @@ export function attachCollider(model) {
 }
 
 function setupOBB(colliderMesh) {
-  colliderMesh.geometry.computeBoundingBox()
-  const boundingBox = colliderMesh.geometry.boundingBox
+  colliderMesh.geometry.computeBoundingBox();
+  const boundingBox = colliderMesh.geometry.boundingBox;
 
   const baseOBB = new OBB()
   boundingBox.getCenter(baseOBB.center)
@@ -39,23 +42,26 @@ function setupOBB(colliderMesh) {
   colliderMesh.userData.baseOBB = baseOBB
 }
 
-function generateCollider(model) {
+
+function generateCollider(model, ucx) {
+  const compute = ucx ? ucx : model;
   let size = new THREE.Vector3()
   const center = new THREE.Vector3()
-  const boundingBox = new THREE.Box3().setFromObject(model)
+  const boundingBox = new THREE.Box3().setFromObject(compute)
 
   boundingBox.getSize(size)
   boundingBox.getCenter(center)
-  size.multiplyScalar(CONST.COLLIDER_SIZE)
+  if (!ucx)
+    size.multiplyScalar(CONST.COLLIDER_SIZE)
+
   const geo = new THREE.BoxGeometry(size.x, size.y, size.z)
   const mat = CONST.DEBUG ? MATS.debug : MATS.collider
   const collider = new THREE.Mesh(geo, mat)
 
   model.add(collider)
   model.worldToLocal(center)
-
   collider.position.copy(center)
   collider.name = "Collider"
 
-  return collider
-}
+  return collider;
+} 

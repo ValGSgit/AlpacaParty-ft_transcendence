@@ -6,18 +6,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 
-const Home     = () => import('../views/Home.vue')
 const Login    = () => import('../views/Login.vue')
 const Register = () => import('../views/Register.vue')
 const Profile  = () => import('../views/Profile.vue')
 const UserProfile = () => import('../views/UserProfile.vue')
 const Friends  = () => import('../views/Friends.vue')
-const Messages = () => import('../views/Messages.vue')
 const Game     = () => import('../games/Game.vue')
-const Settings = () => import('../views/Settings.vue')
-const Help     = () => import('../views/Help.vue')
 const Feed     = () => import('../views/Feed.vue')
-const Admin    = () => import('../views/Admin.vue')
 const NotFound = () => import('../views/NotFound.vue')
 const OAuthCallback = () => import('../views/OAuthCallback.vue')
 const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
@@ -30,7 +25,7 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home,
+    component: Game,
     meta: { requiresAuth: false },
   },
   {
@@ -58,39 +53,15 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/messages',
-    name: 'Messages',
-    component: Messages,
-    meta: { requiresAuth: true },
-  },
-  {
     path: '/game',
     name: 'Game',
     component: Game,
     meta: { requiresAuth: false },
   },
   {
-    path: '/settings',
-    name: 'Settings',
-    component: Settings,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/help',
-    name: 'Help',
-    component: Help,
-    meta: { requiresAuth: true },
-  },
-  {
     path: '/feed',
     name: 'Feed',
     component: Feed,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/admin',
-    name: 'Admin',
-    component: Admin,
     meta: { requiresAuth: true },
   },
   {

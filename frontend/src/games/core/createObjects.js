@@ -45,7 +45,6 @@ export async function createItem(
   return markRaw(item);
 }
 
-// WIP: uses Item aswell (testing atm)
 export async function createDecoration(
   path,
   position = [0, 0, 0],

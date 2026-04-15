@@ -2,14 +2,16 @@ import * as THREE from 'three';
 import { alpacaAI } from '../../components/alpacaAI.js';
 import { alpacaHandling } from '../../components/alpacaHandling.js';
 import { CONST } from '../../config/constants.js';
-import { gCollidables, gPlayer, gUI, gUser } from '../globals.js';
-import { removeFromRegistry } from '../removeObjects.js';
+import { gAlpacas, gCollidables, gPlayer, gUI, gUser, gEngine, gMinigame } from '../globals.js';
+import { removeFromArray } from '../removeObjects.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
 
 const { updateAI } = alpacaAI();
 const { updatePlayer } = usePlayerControls();
 const { makeSpit } = alpacaHandling()
+
+export const alpaca = { name: 'Alpaca', path: '/models/alpaca.glb', type: 'alpaca' };
 
 export class Alpaca {
   constructor(model, animations, options = {}) {
@@ -46,6 +48,7 @@ export class Alpaca {
 
     this.isMoving = false;
     this.isAutoMoving = false;
+    this.isBeingHit = false;
     this.target = new THREE.Vector3();
     this.point = 0;
     this.ai = {
@@ -74,19 +77,24 @@ export class Alpaca {
     return CONST.PLAYER_ROTATION + this.rotationOffset;
   }
 
-  // CONST.PLAYER_FORWARD_SPEED = 0.2
+  // CONST.PLAYER_FORWARD_SPEED = 14.0
   changeSpeed(amount) {
-    if (this.speedOffset + amount < -0.1) {
-      this.speedOffset = -0.1
-    } else if (this.speedOffset + amount > 0.1) {
-      this.speedOffset = 0.1
-    } else {
-      this.speedOffset += amount;
+    const isIncrease = amount > 0 ? true : false;
+    const speedAdjustment = 4.0;
+
+    console.log("isIncrease:", isIncrease);
+    if (isIncrease)
+    {
+      if (this.speedOffset <= 0)
+        this.speedOffset += speedAdjustment;
+    }
+    else {
+      if (this.speedOffset >= 0)
+        this.speedOffset -= speedAdjustment;
     }
   }
-
+ 
   update(delta) {
-    //if (this.isDead === 1) return;
     const player = gPlayer.value;
     const isPlayer = (player && this.model.uuid === player.model.uuid);
 
@@ -97,7 +105,7 @@ export class Alpaca {
     if (gUI.editMode) {
       this.isMoving = false;
       this.animDir = 0;
-    } else if (!isPlayer) {
+    } else if (!isPlayer && gMinigame.value.mode !== 3) {
       updateAI(this, delta);
       this.animDir = this.isMoving ? 1 : 0;
     } else {
@@ -116,10 +124,23 @@ export class Alpaca {
     makeSpit(this)
   }
 
+  spitToPoint(screenX, screenY) {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    mouse.x = (screenX / window.innerWidth) * 2 - 1;
+    mouse.y = -(screenY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, gEngine.value.camera);
+
+    const targetWorldPoint = new THREE.Vector3();
+    raycaster.ray.at(20, targetWorldPoint); 
+    makeSpit(this, targetWorldPoint);
+  }
+
   beingHit(alpaca) {
     if (this.isDead)
       return
-    if (this.hp > 0 && gUser.value.gameMode) // only reduce hp in mini games
+    if (this.hp > 0 && gMinigame.value.mode) // only reduce hp in mini games
     {
       this.hp--
       if (this === gPlayer.value)
@@ -129,7 +150,7 @@ export class Alpaca {
     if (this.hp === 0) {
       this.isDead = 1 // dead
       //remove itself from gCollidables
-      removeFromRegistry(this.model, gCollidables)
+      removeFromArray(this.model, gCollidables)
       alpaca.point++ // credit for the spit owner
       if (alpaca === gPlayer.value)
         gUser.value.point++ // for display
@@ -146,5 +167,12 @@ export class Alpaca {
         } */
     else
       this.isDead = -1 // dying
+  }
+}
+
+export function updateAlpacas(delta) {
+  for (let i = 0; i < gAlpacas.length; i++) {
+    const alpaca = gAlpacas[i]
+    alpaca.update(delta);
   }
 }

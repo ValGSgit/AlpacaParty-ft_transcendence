@@ -1,6 +1,13 @@
 import * as THREE from 'three';
-import { gPlayer, gUser } from '../globals';
+import { useFloatingText } from '../../components/floatingText';
+import { gCollectables, gPlayer, gUser } from '../globals';
 import { removeObject } from '../removeObjects';
+
+const { spawnFloatingText } = useFloatingText();
+
+export const collectables = [
+  { name: 'Coin', path: '/models/coin.glb', type: 'collectable' }
+]
 
 export class Collectable {
   constructor(model, animations, options = {}) {
@@ -36,8 +43,8 @@ export class Collectable {
 
     const distance = this.model.position.distanceTo(gPlayer.value.model.position);
     if (distance < 2.5) {
-      console.log("collect coin!");
       gUser.value.coins += 1;
+      spawnFloatingText(this.model, '+1', 'coins');
       this.destroy();
     }
   }
@@ -58,6 +65,15 @@ export class Collectable {
 
     if (this.mixer) {
       this.mixer.stopAllAction();
+    }
+  }
+}
+
+export function updateCollectables(player, delta) {
+  if (player && player.model) {
+    for (let i = gCollectables.length - 1; i >= 0; i--) {
+      const coin = gCollectables[i];
+      if (coin.update) coin.update(delta);
     }
   }
 }

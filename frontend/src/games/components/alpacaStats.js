@@ -1,7 +1,6 @@
 import { ref } from 'vue';
 import { gPlayer } from "../core/globals";
 
-
 const updateVue = ref(0);
 
 export function alpacaStats() {

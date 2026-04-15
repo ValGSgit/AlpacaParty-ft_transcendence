@@ -1,6 +1,6 @@
 import { useEditMode } from "../components/editMode";
-import { gEngine, gUI, gUser } from "./globals";
-import { changeGame } from '../mini_games/init.js'
+import { changeGame } from '../mini_games/init.js';
+import { gEngine, gUI, gMinigame } from "./globals";
 
 export function useUIManager() {
 
@@ -13,6 +13,7 @@ export function useUIManager() {
     if (gUI.editMode) closeEditMode();
     if (gUI.shopMenu) closeShopMenu();
     if (gUI.gameMenu) closeGameMenu();
+    if (gUI.farmMenu) closeFarmMenu();
   }
 
   const openEditMode = () => {
@@ -74,7 +75,7 @@ export function useUIManager() {
   }
 
   const openGameMenu = () => {
-    if (gUser.value.gameMode)
+    if (gMinigame.value.mode)
       changeGame()
     else
       gUI.gameMenu = true
@@ -84,9 +85,21 @@ export function useUIManager() {
     gUI.gameMenu = false
   }
 
+  const openFarmMenu = () => {
+    gUI.farmMenu = true
+    gUI.shopMenu = false
+  }
+
+  const closeFarmMenu = () => {
+    gUI.farmMenu = false
+  }
+
+
   return {
     closeMenus,
     openEditMode,
+    closeFarmMenu,
+    openFarmMenu,
     closeEditMode,
     openShopMenu,
     closeShopMenu,

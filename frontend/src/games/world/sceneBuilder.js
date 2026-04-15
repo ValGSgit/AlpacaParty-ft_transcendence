@@ -10,12 +10,14 @@ export function setupEnvironment(scene) {
   createFloor(scene)
 }
 
-function setupLighting(scene) {
+export function setupLighting(scene) {
   const ambientLight = new THREE.AmbientLight('#ffffff', 0.8)
   const sunLight = new THREE.DirectionalLight('#ffffff', 1.2)
 
   sunLight.position.set(10, 45, 3)
   sunLight.castShadow = true
+  sunLight.shadow.mapSize.width = 4096;
+  sunLight.shadow.mapSize.height = 4096;
   sunLight.shadow.bias = -0.001
 
   const d = 60

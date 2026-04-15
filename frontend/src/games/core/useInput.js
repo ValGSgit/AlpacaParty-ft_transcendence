@@ -3,8 +3,10 @@ import { reactive } from 'vue'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { useEditMode } from '../components/editMode.js'
 import { printDebug } from './debug.js'
-import { gEditState, gEngine, gScene, gPlayer, gUI, gUser } from './globals.js'
+import { gEditState, gEngine, gPlayer, gScene, gUI, gMinigame } from './globals.js'
 import { useUIManager } from './useUIManager.js'
+import { CONST } from '../config/constants.js';
+import { useSpatialBridge, handInput, headInput } from './useSpatialBridge.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions
 const keys = reactive({
@@ -13,8 +15,19 @@ const keys = reactive({
 
 export function useInput() {
   const { switchAlpaca } = alpacaHandling()
-  const { selectItem, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement } = useEditMode()
+  const { selectItem, highlightItem, moveItem, placeItem, rotateItem, scaleItem, cancelPlacement } = useEditMode()
   const { closeMenus, openAlpacaShop } = useUIManager()
+
+  // Only when AR glasses is connected
+  const handleSpatialInput = (data) => {
+    if (data.type === 'hand')
+      handInput(data);
+    if (data.type === 'head' && gEngine.value?.camera)
+      headInput(data)
+  }
+
+  // Initialize the bridge
+  const { initSpatialBridge, closeSpatialBridge } = useSpatialBridge(handleSpatialInput)
 
   const onKeyDown = (e) => {
     switch (e.code) {
@@ -24,8 +37,12 @@ export function useInput() {
       case 'KeyD': keys.d = true; break
       case 'Space': keys.space = true; break
       case 'KeyF': if (gPlayer.value) gPlayer.value.spit(); break
+      case 'ShiftLeft': keys.shift = true; break;
       case 'KeyP': printDebug(); break
       case 'Escape': handleEscapeKey(); break
+      case 'KeyQ': keys.q = true; break
+      case 'KeyL': keys.l = true; break
+      case 'Enter': keys.enter = true; break
     }
   }
 
@@ -36,18 +53,27 @@ export function useInput() {
       case 'KeyS': keys.s = false; break
       case 'KeyD': keys.d = false; break
       case 'Space': keys.space = false; break
+      case 'KeyQ': keys.q = false; break
+      case 'KeyL': keys.l = false; break
+      case 'Enter': keys.enter = false; break
+      case 'ShiftLeft': keys.shift = false; break;
     }
   }
 
   const onWheel = (e) => {
     if (gUI.editMode && gEditState.selected) {
-      rotateItem(e)
+      if (keys.shift) {
+        scaleItem(e)
+      }
+      else {
+        rotateItem(e)
+      }
     }
   }
 
   const onDoubleClick = (e) => {
     // disable double click in mini games
-    if (gUser.value.gameMode)
+    if (gMinigame.value.mode)
       return
     console.log("double Click!");
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
@@ -108,6 +134,8 @@ export function useInput() {
     window.addEventListener('wheel', onWheel, { passive: true })
     canvas.addEventListener('dblclick', onDoubleClick)
     canvas.addEventListener('pointerdown', onPointerDown)
+    if (CONST.AR_ENABLED)
+      initSpatialBridge() // Start the WebSocket
   }
 
   const cleanupInput = () => {
@@ -119,6 +147,8 @@ export function useInput() {
     window.removeEventListener('wheel', onWheel);
     canvas.removeEventListener('dblclick', onDoubleClick)
     canvas.removeEventListener('pointerdown', onPointerDown)
+    if (CONST.AR_ENABLED)
+      closeSpatialBridge() // Stop the WebSocket
   }
 
   return { keys, initInput, cleanupInput }
