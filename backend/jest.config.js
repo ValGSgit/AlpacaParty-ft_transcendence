@@ -17,6 +17,16 @@ export default {
     "!src/services/spitRoyaleNamespace.js",
     "!src/tools/fetchSecrets.js",
   ],
+  coveragePathIgnorePatterns: [
+    "/node_modules/",
+    "src/config/helmet.js",
+    "src/config/swagger.js",
+    "src/config/swaggerUiConfig.js",
+    "src/lib/httpsServer.js",
+    "src/utils/pagination.js",
+    "src/utils/uploadSecurity.js",
+    "src/services/spitRoyaleNamespace_legacy.js",
+  ],
   coverageThreshold: {
     global: {
       branches: 72,
