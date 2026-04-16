@@ -6,6 +6,7 @@ import { getValidRandomPos } from '../utils/spawnRandomly.js';
 import { setupEnvironment } from '../world/sceneBuilder.js';
 import { SpitRoyaleClient } from './client.js';
 import { changeFloorColor } from './utils.js';
+import { removeObject } from '../core/removeObjects.js'
 
 let onlineClient = null;
 const remotePlayers = {};
@@ -72,7 +73,8 @@ export function cleanupClient() {
   }
   for (const id in remotePlayers) {
     if (remotePlayers[id] !== "loading" && remotePlayers[id]) {
-      gScene.value.remove(remotePlayers[id]);
+      gScene.value.remove(remotePlayers[id].model);
+      removeObject(remotePlayers[id]);
     }
     delete remotePlayers[id];
   }
@@ -80,28 +82,32 @@ export function cleanupClient() {
 
 function listenServerEvents(onlineClient) {
   onlineClient.socket.on('spit:message', (msg) => {
-
-    // 1. A remote player shot a laser!
+    // A remote player shot a laser!
     if (msg.type === 'player_spit') {
-      const remoteModel = remotePlayers[msg.playerId];
-      if (remoteModel) {
+      if (remotePlayers[msg.playerId]) {
         const { makeSpit } = alpacaHandling();
         // Pass a mock object that makeSpit can read (it only needs the model)
-        makeSpit({ model: remoteModel, isDead: false });
+        makeSpit(remotePlayers[msg.playerId]);
       }
     }
 
-    // 2. Someone took damage
+    // Someone took damage
     if (msg.type === 'player_hit') {
       if (msg.targetId === onlineClient.localPlayerId) {
         gUser.value.hp = msg.health; // Update my UI
         gPlayer.value.hp = msg.health;
-        // You can trigger your beingHit animation here!
         gPlayer.value.isDead = -1
         if (gUser.value.hp === 0) {
           gPlayer.value.isDead = 1
           gMinigame.value.isActive = false
         }
+      }
+      else
+      {
+        remotePlayers[msg.targetId].hp--
+        remotePlayers[msg.targetId].isDead = -1
+        if (remotePlayers[msg.targetId].hp === 0)
+          remotePlayers[msg.targetId].isDead = 1
       }
     }
   });
@@ -123,12 +129,20 @@ function listenServerEvents(onlineClient) {
           model.userData.networkId = p.id;
 
           gScene.value.add(model);
-          remotePlayers[p.id] = model;
+          remotePlayers[p.id] = newAlpaca;
         });
 
       } else if (remotePlayers[p.id] !== "loading") {
-        remotePlayers[p.id].position.set(p.x, p.y || 0, p.z);
-        if (p.angle !== undefined) remotePlayers[p.id].rotation.y = p.angle;
+        if (remotePlayers[p.id].model.position.x !== p.x || remotePlayers[p.id].model.position.z !== p.z || remotePlayers[p.id].model.rotation.y !== p.angle)
+          remotePlayers[p.id].isMoving = true
+        else
+          remotePlayers[p.id].isMoving = false
+        if (remotePlayers[p.id].model.position.y > 0)
+          remotePlayers[p.id].isJumping = true
+        else
+          remotePlayers[p.id].isJumping = false
+        remotePlayers[p.id].model.position.set(p.x, p.y || 0, p.z);
+        if (p.angle !== undefined) remotePlayers[p.id].model.rotation.y = p.angle;
       }
     }
     cleanUpDisconnectedPlayers(serverPlayerIds)
@@ -160,13 +174,10 @@ function cleanUpDisconnectedPlayers(serverPlayerIds) {
   for (const id in remotePlayers) {
     if (!serverPlayerIds.has(id)) {
 
-      const modelToRemove = remotePlayers[id];
-
+      const modelToRemove = remotePlayers[id].model;
       if (modelToRemove !== "loading" && modelToRemove) {
-        // 1. Remove from scene visually
         gScene.value.remove(modelToRemove);
-
-        // 2. Destroy from memory completely
+        removeObject(remotePlayers[id]);
         modelToRemove.traverse((child) => {
           if (child.isMesh) {
             child.geometry.dispose();
@@ -178,8 +189,6 @@ function cleanUpDisconnectedPlayers(serverPlayerIds) {
           }
         });
       }
-
-      // 3. Remove from our tracking dictionary
       delete remotePlayers[id];
     }
   }

@@ -135,7 +135,7 @@ export function initializeSpitRoyaleNamespace(io) {
           target.alive = false;
           // Kick just the dead player out, leave everyone else playing!
           target.socket.emit('spit:message', { type: 'game_over', winner: 'You were eliminated!' });
-          removePlayer(target.id, match);
+          //removePlayer(target.id, match);
         }
       }
     });
