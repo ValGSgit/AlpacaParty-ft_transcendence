@@ -139,7 +139,7 @@ const hasFooter = computed(() => {
 async function handleLogout() {
   disconnectSocket()
   await authStore.logout()
-  router.push('/')
+  router.push('/login')
 }
 
 function toggleNotifications() {

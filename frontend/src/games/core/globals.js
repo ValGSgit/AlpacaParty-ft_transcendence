@@ -7,6 +7,7 @@ export const gUser = ref(null)
 
 export const gMinigame = ref({
   isActive: false,
+  isGameOver: false,
   mode: 0,
   players: [],
   aliveCount: 0

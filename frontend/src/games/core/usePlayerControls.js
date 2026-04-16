@@ -1,8 +1,8 @@
-import { CONST } from '../config/constants.js'
-import { useInput } from './useInput.js'
-import { checkWithinBounds, usePhysics } from './usePhysics.js'
 import { alpacaAI } from '../components/alpacaAI.js';
-import { gUser, gPlayer, gAlpacas, gMinigame } from './globals.js';
+import { CONST } from '../config/constants.js';
+import { gAlpacas, gMinigame, gPlayer } from './globals.js';
+import { useInput } from './useInput.js';
+import { checkWithinBounds, usePhysics } from './usePhysics.js';
 
 export function usePlayerControls() {
   const { keys } = useInput()
@@ -79,7 +79,12 @@ export function usePlayerControls() {
     const nextZ = model.position.z + dz;
 
     if (checkWithinBounds(nextX, nextZ)) {
-      checkCollision(model, nextX, nextZ, nextRotY);
+      const collided = checkCollision(model, nextX, nextZ, nextRotY);
+      if (collided) {
+        // Apply a small bounce back so the player doesn't get pixel-perfect stuck inside the collision box
+        model.position.x -= dx * 0.5;
+        model.position.z -= dz * 0.5;
+      }
     }
   }
 

@@ -1,6 +1,6 @@
 import api from '../../services/api.js'
 import { useAuthStore } from '../../stores/auth.js'
-import { gAlpacas, gItems, gUser, gPlayer, gMinigame } from './globals.js'
+import { gAlpacas, gItems, gUser, gPlayer, gMinigame, gDecorations } from './globals.js'
 
 
 export async function saveGame() {
@@ -35,23 +35,35 @@ export async function saveGame() {
     };
   });
 
-  const saveItems = gItems.map(item => {
+const getItemsData = () => {
+  const items = gItems.map(item => {
     return {
       path: item.path,
       position: item.model.position.toArray(),
       rotation: item.model.rotation.y,
       scale: item.model.scale.toArray(),
       name: item.model.name,
+      type: item.type
     };
   });
 
-/* TODO: save Decorations here */
-
-
+  const decorations = gDecorations.map(item => {
+    return {
+      path: item.path,
+      position: item.model.position.toArray(),
+      rotation: item.model.rotation.y,
+      scale: item.model.scale.toArray(),
+      name: item.model.name,
+      type: item.type
+    };
+  });
+  return [...items, ...decorations];
+};
 
   try {
+    const itemsData = getItemsData();
     await api.put('/users/me/farmData', {
-      items: saveItems,
+      items: itemsData,
       alpacas: saveAlpacas,
       coins: gUser.value.coins,
       upgrades: gUser.value.upgrades

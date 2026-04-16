@@ -1,6 +1,6 @@
-import { watch } from 'vue'
-import { gUser, gUI} from './globals.js'
-import { saveGame } from './saveLoadGame.js'
+import { watch } from 'vue';
+import { gUI, gUser } from './globals.js';
+import { saveGame } from './saveLoadGame.js';
 
 
 export function watchChanges(setDoF) {
@@ -11,10 +11,9 @@ export function watchChanges(setDoF) {
     })
 
   const stopDoFWatcher = watch(() => gUI.DoF, (newVal) => {
-      if (setDoF) setDoF(newVal);
-      saveGame(); // Save so the preference is remembered
-    }, { immediate: true });
+    if (setDoF) setDoF(newVal);
+  }, { immediate: true });
 
-    return () => {stopGamePlayWatcher(); stopDoFWatcher;};
+  return () => { stopGamePlayWatcher(); stopDoFWatcher; };
 }
 

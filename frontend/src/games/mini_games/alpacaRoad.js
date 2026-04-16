@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import * as PRIMITIVES from '../assets/primitives.js';
+import { useCoinUI } from '../components/coins.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca, createDecoration, createItem } from '../core/createObjects.js';
-import { gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
+import { gAlpacas, gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
 import { removeObject } from '../core/removeObjects.js';
 import { attachCollider } from '../core/useCollider.js';
@@ -11,7 +12,6 @@ import { usePhysics } from '../core/usePhysics.js';
 import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
 import { adjustSunBox, setSunLight, setupLighting } from '../world/sceneBuilder.js';
 
-const stripeLength = 10;
 const roadLength = 700;
 const roadBack = -25;
 const roadOffset = roadLength / 2 + roadBack;
@@ -22,7 +22,7 @@ let level;
 let alivePlayers;
 let initalPlayerCount;
 let activePlayers = [];
-const playerPositions = [-2.5, 2.5, -7.5, 7.5];
+const playerPositions = [2.5, -2.5, -7.5, 7.5];
 
 let obstacleTimer = 2;
 let timerMultiplier = 1;
@@ -44,8 +44,8 @@ let assetsLoaded = false;
 
 let totalPoints = 0;
 
-
 const { spawnFloatingText } = useFloatingText();
+const { collectRewards } = useCoinUI();
 
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
   cleanupAlpacaRoad()
@@ -116,18 +116,18 @@ async function loadAssets() {
 async function initPlayers(playerCount, tempAlpacas) {
   activePlayers.length = 0;
   activePlayers.push(gPlayer.value);
+  registerEntity(gPlayer.value, 'alpaca');
   gMinigame.value.players = [];
   for (let i = 0; i < playerCount - 1; i++) {
     if (tempAlpacas[i]) {
       activePlayers.push(tempAlpacas[i]);
+      registerEntity(tempAlpacas[i], 'alpaca');
     } else {
       activePlayers.push(await createAlpaca());
     }
   }
-
   for (let i = 0; i < activePlayers.length; i++) {
     const alpaca = activePlayers[i];
-    registerEntity(alpaca, 'alpaca');
     gScene.value.add(alpaca.model);
     alpaca.model.position.x += playerPositions[i];
 
@@ -138,6 +138,7 @@ async function initPlayers(playerCount, tempAlpacas) {
       point: 0
     });
   }
+  console.log(gAlpacas)
 }
 
 function initScenery() {
@@ -181,7 +182,7 @@ function initRoadStripes() {
   const spacingZ = roadLength / numRows;
 
   const stripeMat = new THREE.MeshStandardMaterial({ color: '#dddddd' });
-  const stripe = PRIMITIVES.Box(1, 0.1, stripeLength, stripeMat);
+  const stripe = PRIMITIVES.Box(1, 0.1, 10, stripeMat);
 
   for (let row = 0; row < numRows; row++) {
     let offsetX = -5;
@@ -208,7 +209,7 @@ export function updateAlpacaRoad(delta) {
   updateRoadScene(delta)
   updateDifficulty()
 
-  if (alivePlayers === 0) {
+  if (alivePlayers <= 0) {
     endMinigame();
   }
 }
@@ -307,9 +308,6 @@ function updateDifficulty() {
     timerMultiplier = Math.max(0.5, timerMultiplier - 0.05);
 
     showLevelAnnouncement(level);
-    console.log("Level:", level);
-    console.log("Speed:", roadSpeed);
-    console.log("Timer:", timerMultiplier);
   }
 }
 
@@ -378,7 +376,6 @@ function awardPoints(obstacle) {
       }
     }
   }
-  console.log("Total:", totalPoints);
   obstacle.pointGiven = true;
 }
 
@@ -452,17 +449,11 @@ function checkAlpaca(alpaca) {
   }
 }
 
-// TODO: proper endgame function
 function endMinigame() {
-  let aliveAlpacas = initalPlayerCount;
-  for (let i = 0; i < activePlayers.length; i++) {
-    const alpaca = activePlayers[i];
-    if (!alpaca.isBeingHit && alpaca.isDead) {
-      aliveAlpacas--;
-    }
-  }
-  if (aliveAlpacas == 0) {
-    gMinigame.value.isActive = false
+  // Wait for all death animations to finish before ending
+  const allAnimationsDone = activePlayers.every(a => !a.isBeingHit);
+  if (allAnimationsDone) {
+    gMinigame.value.isActive = false;
   }
 }
 
@@ -476,6 +467,11 @@ export function cleanupAlpacaRoad() {
     gScene.value.remove(obj);
   });
   activeObstacles.length = 0;
+
+  activeBuildings.forEach(building => {
+    gScene.value.remove(building);
+  });
+  activeBuildings.length = 0;
 
   roadScene.forEach(item => {
     gScene.value.remove(item);
@@ -491,14 +487,12 @@ export function cleanupAlpacaRoad() {
       alpaca.isDead = false;
       alpaca.isBeingHit = false;
     }
-    setSunLight();
-    adjustSunBox();
   });
-
   activePlayers.length = 0;
 
+  setSunLight();
+  adjustSunBox();
   gUI.lockCamera = false;
   gUI.cameraMode = 1;
-
   console.log("🧹 Minigame cleaned up.");
 }
