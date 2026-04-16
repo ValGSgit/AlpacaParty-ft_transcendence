@@ -208,7 +208,7 @@ export function updateAlpacaRoad(delta) {
   updateRoadScene(delta)
   updateDifficulty()
 
-  if (alivePlayers === 0) {
+  if (alivePlayers <= 0) {
     endMinigame();
   }
 }
@@ -307,9 +307,6 @@ function updateDifficulty() {
     timerMultiplier = Math.max(0.5, timerMultiplier - 0.05);
 
     showLevelAnnouncement(level);
-    console.log("Level:", level);
-    console.log("Speed:", roadSpeed);
-    console.log("Timer:", timerMultiplier);
   }
 }
 
@@ -378,7 +375,6 @@ function awardPoints(obstacle) {
       }
     }
   }
-  console.log("Total:", totalPoints);
   obstacle.pointGiven = true;
 }
 
@@ -452,17 +448,11 @@ function checkAlpaca(alpaca) {
   }
 }
 
-// TODO: proper endgame function
 function endMinigame() {
-  let aliveAlpacas = initalPlayerCount;
-  for (let i = 0; i < activePlayers.length; i++) {
-    const alpaca = activePlayers[i];
-    if (!alpaca.isBeingHit && alpaca.isDead) {
-      aliveAlpacas--;
-    }
-  }
-  if (aliveAlpacas == 0) {
-    gMinigame.value.isActive = false
+  // Wait for all death animations to finish before ending
+  const allAnimationsDone = activePlayers.every(a => !a.isBeingHit);
+  if (allAnimationsDone) {
+    gMinigame.value.isActive = false;
   }
 }
 
@@ -476,6 +466,11 @@ export function cleanupAlpacaRoad() {
     gScene.value.remove(obj);
   });
   activeObstacles.length = 0;
+
+  activeBuildings.forEach(building => {
+    gScene.value.remove(building);
+  });
+  activeBuildings.length = 0;
 
   roadScene.forEach(item => {
     gScene.value.remove(item);
@@ -491,14 +486,11 @@ export function cleanupAlpacaRoad() {
       alpaca.isDead = false;
       alpaca.isBeingHit = false;
     }
-    setSunLight();
-    adjustSunBox();
   });
-
   activePlayers.length = 0;
 
+  setSunLight();
+  adjustSunBox();
   gUI.lockCamera = false;
   gUI.cameraMode = 1;
-
-  console.log("🧹 Minigame cleaned up.");
 }
