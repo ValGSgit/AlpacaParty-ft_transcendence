@@ -49,6 +49,11 @@ html {
   gap: 10px;
 }
 
+.stat.overlay {
+  transform: scale(1.1);
+  z-index: 300;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -643,10 +648,10 @@ input:checked+.slider:before {
 .multiplayer-row {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 10px;
+  gap: 25px;
+  padding: 20px;
   justify-content: flex-start;
-  min-width: 300px;
+  min-width: 350px;
 }
 
 .p-name {
@@ -704,4 +709,43 @@ input:checked+.slider:before {
   font-size: 0.9rem;
   color: #888;
   line-height: 1.5;
+}
+
+.flying-coin {
+  position: fixed;
+  font-size: 2rem;
+  z-index: 9999;
+  pointer-events: none;
+  transition:
+    left 1.2s cubic-bezier(0.1, -0.1, 0.2, 0),
+    top 1.2s cubic-bezier(0.2, var(--arc-factor, 1.2), 0.3, 0),
+    opacity 1s ease-in,
+    transform 1s ease-in;
+  opacity: 1;
+}
+
+.flying-coin.is-flying {
+  transform: translate(-50%, -50%) scale(0.5);
+  opacity: 0.5;
+}
+
+@keyframes hud-pop {
+  0% {
+    transform: scale(1.1);
+  }
+
+  50% {
+    transform: scale(1.7);
+    color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    border: 1px solid rgba(255, 215, 0, 0.8);
+  }
+
+  100% {
+    transform: scale(1.1);
+  }
+}
+
+.animate-pulse {
+  animation: hud-pop 0.2s ease-out;
 }

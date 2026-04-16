@@ -51,3 +51,68 @@ export function clearCoins() {
 export function addCoins(amount) {
   gUser.value.coins += amount;
 }
+
+export function useCoinUI() {
+
+  const spawnFlyingCoin = (index, targetX, targetY) => {
+    const coin = document.createElement('div');
+    coin.innerHTML = '🪙';
+    coin.className = 'flying-coin';
+
+    const isUp = Math.random() > 0.5;
+    const randomArc = isUp ? 0.3 + Math.random() * 0.5 : - 0.1 - Math.random() * 0.5
+    coin.style.setProperty('--arc-factor', randomArc);
+
+    const startX = window.innerWidth / 2 + (Math.random() * 100 - 50);
+    const startY = window.innerHeight / 2 + (Math.random() * 100 - 50);
+    coin.style.left = `${startX}px`;
+    coin.style.top = `${startY}px`;
+
+    document.body.appendChild(coin);
+
+    requestAnimationFrame(() => {
+      coin.style.transform = 'translate(-50%, -50%) scale(1)';
+    });
+
+    setTimeout(() => {
+      coin.style.left = `${targetX}px`;
+      coin.style.top = `${targetY}px`;
+      coin.classList.add('is-flying');
+    }, 50 + index * 4);
+
+    coin.addEventListener('transitionend', (e) => {
+      if (e.propertyName !== 'left') return;
+
+      gUser.value.coins += 1;
+      coin.remove();
+
+      const hudElement = document.getElementById('coin-hud');
+      if (hudElement) {
+        hudElement.classList.remove('animate-pulse');
+        void hudElement.offsetWidth;
+        hudElement.classList.add('animate-pulse');
+      }
+    });
+  };
+
+  const collectRewards = (amount) => {
+    const hudElement = document.getElementById('coin-hud');
+    let targetX = 100; // Fallback
+    let targetY = 100; // Fallback
+
+    if (hudElement) {
+      const rect = hudElement.getBoundingClientRect();
+      targetX = rect.left + rect.width / 2;
+      targetY = rect.top + rect.height / 2;
+    }
+
+    for (let i = 0; i < amount; i++) {
+      setTimeout(() => {
+        spawnFlyingCoin(i, targetX, targetY);
+      }, 10 + i * 10);
+    }
+  };
+
+  return { collectRewards };
+}
+

@@ -28,7 +28,7 @@
   <div v-if="!gameIsReady" class="modal-overlay">Loading...</div>
   <div v-if="gameIsReady">
 
-  <div v-if="gMinigame.mode && !gMinigame.isActive" class="modal-overlay">
+  <div v-if="gMinigame.mode && gMinigame.isGameOver" class="modal-overlay">
     <div class="shop-title">
       <div v-if="!gUser.hp">Game Over! Final Score:</div>
       <button v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
@@ -48,12 +48,17 @@
     </div>
   </div>
 
-  <div class="hud-container hud-left">
-      <div v-if="gMinigame.mode === 0" class="stat"><span>💰 {{ gUser.coins }}</span></div>
+<div class="hud-container hud-left">
+    <div 
+      id="coin-hud" 
+      v-if="gMinigame.mode === 0 || gMinigame.isGameOver" 
+      class="stat":class="{ 'overlay': gMinigame.isGameOver }">
+      <span>💰 {{ gUser.coins }}</span>
+    </div>
       <div v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="stat">
         <span>🦙 {{ gUser.point }} </span>
       </div>
-      <template v-if="gMinigame.mode === 3">
+      <template v-if="gMinigame.mode === 3 &&!gMinigame.isGameOver">
         <div v-for="player in gMinigame.players" :key="'ui-' + player.id" class="stat multiplayer-row">
           <span class="p-name">{{ player.name || `P${player.id}`}}:</span>
           <span class="p-hp">{{ getHearts(player.hp) }}</span>
@@ -264,10 +269,10 @@
 
 <!---------------------- SCRIPT ------------------------->
 <script setup>
+import { storeToRefs } from 'pinia'
 import * as THREE from 'three'
 import { StereoEffect } from 'three/addons/effects/StereoEffect.js'
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
-import { storeToRefs } from 'pinia'
 import { useAuthStore } from '../stores/auth.js'
 import { alpacaHandling } from './components/alpacaHandling.js'
 import { alpacaConfig, alpacaShop } from './components/alpacaShop.js'

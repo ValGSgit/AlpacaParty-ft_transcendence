@@ -29,6 +29,7 @@ export async function changeGame(mode, playerCount) {
   gUser.value.name = gPlayer.value.name
   resetAlpaca(gPlayer.value)
 
+  gMinigame.value.isGameOver = false;
   gMinigame.value.players = [];
   tempAlpacas.length = 0
   for (let i = 1; i < gAlpacas.length; ++i) {
@@ -41,7 +42,7 @@ export async function changeGame(mode, playerCount) {
   clearCoins()
   resetGArrays()
 
-  switch(mode) {
+  switch (mode) {
     case 1:
       initSpitRoyalAI(playerCount, tempAlpacas);
       break;
@@ -66,7 +67,7 @@ async function returnFarm() {
   saveGame()
 }
 
-function resetAlpaca(alpaca){
+function resetAlpaca(alpaca) {
   alpaca.hp = CONST.HP
   alpaca.point = 0
   alpaca.isDead = 0
