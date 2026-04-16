@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import * as PRIMITIVES from '../assets/primitives.js';
+import { useCoinUI } from '../components/coins.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca, createDecoration, createItem } from '../core/createObjects.js';
@@ -11,7 +12,6 @@ import { usePhysics } from '../core/usePhysics.js';
 import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
 import { adjustSunBox, setSunLight, setupLighting } from '../world/sceneBuilder.js';
 
-const stripeLength = 10;
 const roadLength = 700;
 const roadBack = -25;
 const roadOffset = roadLength / 2 + roadBack;
@@ -44,8 +44,8 @@ let assetsLoaded = false;
 
 let totalPoints = 0;
 
-
 const { spawnFloatingText } = useFloatingText();
+const { collectRewards } = useCoinUI();
 
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
   cleanupAlpacaRoad()
@@ -182,7 +182,7 @@ function initRoadStripes() {
   const spacingZ = roadLength / numRows;
 
   const stripeMat = new THREE.MeshStandardMaterial({ color: '#dddddd' });
-  const stripe = PRIMITIVES.Box(1, 0.1, stripeLength, stripeMat);
+  const stripe = PRIMITIVES.Box(1, 0.1, 10, stripeMat);
 
   for (let row = 0; row < numRows; row++) {
     let offsetX = -5;
@@ -209,7 +209,7 @@ export function updateAlpacaRoad(delta) {
   updateRoadScene(delta)
   updateDifficulty()
 
-  if (alivePlayers === 0) {
+  if (alivePlayers <= 0) {
     endMinigame();
   }
 }
@@ -453,8 +453,9 @@ function checkAlpaca(alpaca) {
   }
 }
 
-// TODO: proper endgame function
 function endMinigame() {
+  if (gMinigame.value.isGameOver) return;
+
   let aliveAlpacas = initalPlayerCount;
   for (let i = 0; i < activePlayers.length; i++) {
     const alpaca = activePlayers[i];
@@ -462,8 +463,19 @@ function endMinigame() {
       aliveAlpacas--;
     }
   }
-  if (aliveAlpacas == 0) {
-    gMinigame.value.isActive = false
+  if (aliveAlpacas <= 0) {
+    gMinigame.value.isGameOver = true;
+    gMinigame.value.isActive = false;
+    const playerPoints = activePlayers[0].point || 0;
+    const earnedCoins = Math.floor(playerPoints / 10);
+
+    console.log(`Minigame Over! Points: ${playerPoints}, Coins: ${earnedCoins}`);
+
+    if (earnedCoins > 0) {
+      setTimeout(() => {
+        collectRewards(earnedCoins);
+      }, 50);
+    }
   }
 }
 
@@ -500,6 +512,5 @@ export function cleanupAlpacaRoad() {
 
   gUI.lockCamera = false;
   gUI.cameraMode = 1;
-
   console.log("🧹 Minigame cleaned up.");
 }
