@@ -300,7 +300,6 @@ import { watchChanges } from './core/watchChanges.js'
 import './game.css'
 import { updateAlpacaRoad } from './mini_games/alpacaRoad.js'
 import { changeGame } from './mini_games/init.js'
-import { initUser } from './user/initUser.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
 
@@ -357,7 +356,7 @@ onMounted(async () => {
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
-    gUser.value = initUser()
+    //gUser.value = initUser()
 
     await initWorld(gScene.value, authStore.isAuthenticated)
     gameIsReady.value = true

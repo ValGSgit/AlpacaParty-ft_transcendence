@@ -1,14 +1,16 @@
 import * as THREE from 'three';
 import { CONST } from '../config/constants.js';
+import { createDecoration } from '../core/createObjects.js';
 import { shopItems } from '../core/entities/Item.js';
-import { gScene, gUser, gCollidables } from '../core/globals.js';
+import { gCollidables, gScene, gUser } from '../core/globals.js';
 import { getModel } from '../core/modelCache.js';
 import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
-import { getRandomScale, getRandomRot, getRandomPos } from '../utils/randomValues.js';
-import { createDecoration, createItem } from '../core/createObjects.js';
+import { getRandomRot, getRandomScale } from '../utils/randomValues.js';
 
-export const UPGRADE_COST = [25, 50, 100, 250, 500];
+const UPGRADE_COST = [25, 50, 100, 250, 500];
+const HERDSIZE_COST = [5, 15, 25, 50, 100];
+const HERDSIZES = [3, 5, 7, 10, 15, 20];
 
 export function upgradeFarm() {
 

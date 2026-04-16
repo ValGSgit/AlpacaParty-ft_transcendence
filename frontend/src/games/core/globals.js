@@ -1,9 +1,17 @@
 import { reactive, ref, shallowReactive, shallowRef } from 'vue'
+import { CONST } from '../config/constants'
 
 export const gEngine = shallowRef(null)
 export const gScene = shallowRef(null)
 export const gPlayer = shallowRef(null)
-export const gUser = ref(null)
+
+export const gUser = ref({
+  coins: 999,
+  upgrades: 0,
+  point: 0,
+  hp: CONST.HP,
+  name: "Alpaca 1",
+})
 
 export const gMinigame = ref({
   isActive: false,
