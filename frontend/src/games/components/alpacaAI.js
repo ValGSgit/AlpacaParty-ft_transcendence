@@ -1,7 +1,7 @@
 import * as THREE from 'three';
+import { gMinigame } from '../core/globals.js';
 import { checkWithinBounds, usePhysics } from '../core/usePhysics.js';
 import { getRandomPos, getRandomTimer } from '../utils/randomValues.js';
-import { gMinigame } from '../core/globals.js'
 
 const dummy = new THREE.Object3D();
 

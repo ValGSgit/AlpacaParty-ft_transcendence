@@ -123,7 +123,7 @@ async function initPlayers(playerCount, tempAlpacas) {
       activePlayers.push(tempAlpacas[i]);
       registerEntity(tempAlpacas[i], 'alpaca');
     } else {
-      activePlayers.push(await createAlpaca()); // it registerEntity automactically here
+      activePlayers.push(await createAlpaca());
     }
   }
   for (let i = 0; i < activePlayers.length; i++) {

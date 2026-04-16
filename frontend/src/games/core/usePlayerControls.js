@@ -1,8 +1,8 @@
-import { CONST } from '../config/constants.js'
-import { useInput } from './useInput.js'
-import { checkWithinBounds, usePhysics } from './usePhysics.js'
 import { alpacaAI } from '../components/alpacaAI.js';
-import { gUser, gPlayer, gAlpacas, gMinigame } from './globals.js';
+import { CONST } from '../config/constants.js';
+import { gAlpacas, gMinigame, gPlayer } from './globals.js';
+import { useInput } from './useInput.js';
+import { checkWithinBounds, usePhysics } from './usePhysics.js';
 
 export function usePlayerControls() {
   const { keys } = useInput()
