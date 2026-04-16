@@ -23,7 +23,7 @@ export const CONST = {
 
   MAX_UPGRADES: 5,
 
-  HP: 2, // TODO: change back to 3
+  HP: 3,
   SECONDS_PER_INGAME_YEAR: 300,
   SECONDS_PER_DAYPHASE: 60,
 

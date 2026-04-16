@@ -79,7 +79,12 @@ export function usePlayerControls() {
     const nextZ = model.position.z + dz;
 
     if (checkWithinBounds(nextX, nextZ)) {
-      checkCollision(model, nextX, nextZ, nextRotY);
+      const collided = checkCollision(model, nextX, nextZ, nextRotY);
+      if (collided) {
+        // Apply a small bounce back so the player doesn't get pixel-perfect stuck inside the collision box
+        model.position.x -= dx * 0.5;
+        model.position.z -= dz * 0.5;
+      }
     }
   }
 
