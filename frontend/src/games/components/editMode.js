@@ -203,11 +203,12 @@ export function useEditMode() {
     if (gEditState.ghost) {
       gScene.value.remove(gEditState.ghost);
     }
+    if (selected.userData.cost === undefined)
+      selected.userData.cost = 0 // fall back if the item is created at the very beginning
     if (!selected.userData.isNew)
       addCoins(Math.floor(selected.userData.cost / 2));
     resetSelected();
-    console.log(selected.parent)
-    selected =get_entity(selected)
+    selected = get_entity(selected)
     removeObject(selected);
     if (selected === gPlayer.value) //switch to another alpaca if the playing alpaca got deleted
         gPlayer.value = gAlpacas[0]
