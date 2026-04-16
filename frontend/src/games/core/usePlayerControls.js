@@ -62,10 +62,10 @@ export function usePlayerControls() {
     let isWalking = false;
     if (gMinigame.value.mode !== 3) // no walking for alpaca road mini game
     {
-      if (keys.w) { dir = 1; isWalking = true; }
-      if (keys.s) { dir = -1; speed = speed * 0.5; isWalking = true; }
-      if (keys.a) { nextRotY += rotSpeed; isWalking = true; }
-      if (keys.d) { nextRotY -= rotSpeed; isWalking = true; }
+      if (keys.w) { dir = 1; isWalking = true; player.isAutoMoving = false; }
+      if (keys.s) { dir = -1; speed = speed * 0.5; isWalking = true; player.isAutoMoving = false; }
+      if (keys.a) { nextRotY += rotSpeed; isWalking = true; player.isAutoMoving = false; }
+      if (keys.d) { nextRotY -= rotSpeed; isWalking = true; player.isAutoMoving = false; }
     }
 
     return { dir, speed, nextRotY, isWalking };

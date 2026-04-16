@@ -2,11 +2,11 @@ import * as THREE from 'three'
 import { reactive } from 'vue'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { useEditMode } from '../components/editMode.js'
+import { CONST } from '../config/constants.js'
 import { printDebug } from './debug.js'
-import { gEditState, gEngine, gPlayer, gScene, gUI, gMinigame } from './globals.js'
+import { gEditState, gEngine, gMinigame, gPlayer, gScene, gUI } from './globals.js'
+import { handInput, headInput, useSpatialBridge } from './useSpatialBridge.js'
 import { useUIManager } from './useUIManager.js'
-import { CONST } from '../config/constants.js';
-import { useSpatialBridge, handInput, headInput } from './useSpatialBridge.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions
 const keys = reactive({
@@ -75,8 +75,9 @@ export function useInput() {
 
   const onDoubleClick = (e) => {
     // disable double click in mini games
-    if (gMinigame.value.mode)
+    if (gMinigame.value.isActive)
       return
+
     console.log("double Click!");
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
     const pointer = new THREE.Vector2()
@@ -143,13 +144,13 @@ export function useInput() {
     keys.a = heldKeys.has('KeyA');
     keys.d = heldKeys.has('KeyD');
     keys.space = heldKeys.has('Space');
-  
+
     const gp = navigator.getGamepads()[0];
     if (gp) {
       if (gp.axes[1] < -0.1) keys.w = true;
-      if (gp.axes[1] > 0.1)  keys.s = true;
+      if (gp.axes[1] > 0.1) keys.s = true;
       if (gp.axes[0] < -0.1) keys.a = true;
-      if (gp.axes[0] > 0.1)  keys.d = true;
+      if (gp.axes[0] > 0.1) keys.d = true;
       if (gp.buttons[0].pressed) keys.space = true;
       if (gp.buttons[1].pressed && gPlayer.value) gPlayer.value.spit();
     }
