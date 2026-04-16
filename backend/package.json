@@ -2,18 +2,29 @@
   "name": "alpacaparty-backend",
   "version": "0.1.0",
   "description": "AlpacaParty Express.js backend",
-  "main": "src/server.js",
+  "main": "src/index.js",
   "type": "module",
+  "imports": {
+    "#config/*.js": "./src/config/*.js",
+    "#controllers/*.js": "./src/controllers/*.js",
+    "#lib/prisma.js": "./src/config/prisma.js",
+    "#lib/*.js": "./src/lib/*.js",
+    "#middleware/*.js": "./src/middleware/*.js",
+    "#routes/*.js": "./src/routes/*.js",
+    "#services/*.js": "./src/services/*.js",
+    "#utils/*.js": "./src/utils/*.js",
+    "#models/*.js": "./src/models/*.js",
+    "#validators/*.js": "./src/validators/*.js"
+  },
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy",
-    "seed:live": "node prisma/seedLive.js",
-    "seed:live:reset": "SEED_RESET=true node prisma/seedLive.js --reset",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
-    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "npx prisma db seed",
+    "seed:exampleData": "node prisma/seedExampleData.js",
+    "seed:exampleData:reset": "SEED_RESET=true node prisma/seedExampleData.js --reset",
+    "seed:live": "node prisma/seedExampleData.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --coverage",
+    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --watchAll"
   },
   "keywords": [
     "alpacaparty",
@@ -28,21 +39,26 @@
     "@huggingface/inference": "^4.8.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
+    "csv-parse": "^6.1.0",
     "dotenv": "^16.4.0",
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.0",
+    "express-validator": "^7.3.1",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.0",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
-    "socket.io": "^4.8.0"
+    "socket.io": "^4.8.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "prisma": "^7.4.2",
+    "env-cmd": "^10.1.0"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",
     "jest": "^30.0.0",
-    "prisma": "^7.4.2",
     "supertest": "^7.0.0"
   }
 }

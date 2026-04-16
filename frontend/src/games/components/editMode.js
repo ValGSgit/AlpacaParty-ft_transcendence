@@ -3,13 +3,12 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 import { markRaw } from 'vue'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
-import { gAlpacas, gEditables, gEditState, gEngine, gScene, gUI } from '../core/globals.js'
+import { gAlpacas, gEditables, gEditState, gEngine, gPlayer, gScene, gUI } from '../core/globals.js'
 import { removeObject } from '../core/removeObjects.js'
 import { saveGame } from '../core/saveLoadGame.js'
 import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
 import { useUIManager } from '../core/useUIManager.js'
-import { spendCoins } from './coins.js'
-
+import { addCoins, spendCoins } from './coins.js'
 
 const pointer = new THREE.Vector2()
 const raycaster = new THREE.Raycaster()
@@ -129,15 +128,28 @@ export function useEditMode() {
     }
   }
 
+  const scaleItem = (e) => {
+    const direction = e.deltaY > 0 ? -1 : 1;
+    const multiplier = 1 + (0.05 * direction);
+
+    gEditState.selected.scale.multiplyScalar(multiplier);
+
+    // Prevent it from getting too small or too massive
+    gEditState.selected.scale.clampScalar(0.6, 1.4);
+
+    if (gEditState.ghost) {
+      gEditState.ghost.scale.copy(gEditState.selected.scale);
+    }
+  }
+
   const rotateItem = (e) => {
     const direction = e.deltaY > 0 ? 1 : -1
     const steps = 16
     const rotationAmount = (Math.PI / steps) * direction
     gEditState.selected.rotation.y += rotationAmount
     if (gEditState.ghost) {
-      gEditState.ghost.rotation.y += rotationAmount
+      gEditState.ghost.rotation.copy(gEditState.selected.rotation)
     }
-    moveItem(e)
   }
 
   const placeItem = () => {
@@ -175,26 +187,33 @@ export function useEditMode() {
     resetSelected()
   }
 
-  const deleteItem = () => {
+  const sellItem = () => {
     if (!gEditState.selected) return;
 
     const isAlpaca = gAlpacas.some(alpaca => alpaca.model === gEditState.selected)
 
     if (isAlpaca && gAlpacas.length === 1) {
-      alert("Can't delete last alpaca!");
+      alert("Can't sell last alpaca!");
       cancelPlacement();
       return;
     }
 
-    const selected = gEditState.selected
+    let selected = gEditState.selected
     if (gEditState.ghost) {
       gScene.value.remove(gEditState.ghost);
     }
+    if (selected.userData.cost === undefined)
+      selected.userData.cost = 0 // fall back if the item is created at the very beginning
+    if (!selected.userData.isNew)
+      addCoins(Math.floor(selected.userData.cost / 2));
     resetSelected();
     removeObject(selected);
+    if (selected === gPlayer.value) //switch to another alpaca if the playing alpaca got deleted
+      gPlayer.value = gAlpacas[0]
+    saveGame()
   }
 
-  return { deleteItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement }
+  return { sellItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, scaleItem, rotateItem, cancelPlacement }
 }
 
 function resetSelected() {

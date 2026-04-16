@@ -2,7 +2,7 @@
  * DataRequest Model — Prisma data access layer (GDPR)
  * @owner ValGSgit
  */
-import prisma from '../config/prisma.js';
+import prisma from "#config/prisma.js";
 
 const DataRequest = {
   async create({ userId, type }) {
@@ -18,12 +18,12 @@ const DataRequest = {
   async getByUser(userId) {
     return prisma.dataRequest.findMany({
       where: { userId: Number(userId) },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   },
 
   async updateStatus(id, status, fileUrl = null) {
-    const isTerminal = status === 'completed' || status === 'cancelled';
+    const isTerminal = status === "completed" || status === "cancelled";
     return prisma.dataRequest.update({
       where: { id: Number(id) },
       data: {
@@ -36,11 +36,15 @@ const DataRequest = {
 
   async getPending() {
     const rows = await prisma.dataRequest.findMany({
-      where: { status: { in: ['pending', 'processing'] } },
+      where: { status: { in: ["pending", "processing"] } },
       include: { user: { select: { username: true } } },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
     });
-    return rows.map((r) => ({ ...r, username: r.user.username, user: undefined }));
+    return rows.map((r) => ({
+      ...r,
+      username: r.user.username,
+      user: undefined,
+    }));
   },
 };
 

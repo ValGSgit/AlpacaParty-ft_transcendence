@@ -4,16 +4,9 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 import supertest from 'supertest';
 
-// ── Mock database ──
-const mockQuery = jest.fn();
-jest.unstable_mockModule('../../src/config/database.js', () => ({
-  query: mockQuery,
-  getClient: jest.fn(),
-  default: { on: jest.fn(), query: mockQuery },
-}));
 
 // Health tests should not depend on generated Prisma runtime artifacts.
-jest.unstable_mockModule('../../src/config/prisma.js', () => ({
+jest.unstable_mockModule('#config/prisma.js', () => ({
   default: {
     $disconnect: jest.fn(),
   },
@@ -28,7 +21,6 @@ let app;
 let request;
 
 beforeEach(async () => {
-  mockQuery.mockReset();
   app = await createTestApp();
   request = supertest(app);
 });

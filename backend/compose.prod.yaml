@@ -1,40 +1,44 @@
 # Backend (Express) — Production
 #
 # Secrets (DB_PASSWORD, JWT_SECRET, OAuth creds, API keys) are NOT passed here.
-# They are fetched from Vault by server.js at startup via loadVaultSecrets().
-# Only non-sensitive infrastructure config and the Vault bootstrap token are set.
+# They are fetched from Vault by load-secrets.sh (via fetchSecrets.js) at entrypoint time
+# and written to /run/secrets/.env (tmpfs). env-cmd then injects them for all commands.
+# Only non-sensitive infrastructure config is set in the environment block below.
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    container_name: alpacaparty_backend_prod
+    container_name: backend_prod
     environment:
       NODE_ENV: production
-      PORT: 3000
+      API_PORT: ${API_PORT:-3000}
 
       # ── Infrastructure (non-secret) ───────────────────────────
       DB_HOST: postgres
-      DB_PORT: 5432
+      DB_PORT: ${DB_PORT:-5432}
 
       # ── App config (non-secret) ───────────────────────────────
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-1h}"
+      JWT_REFRESH_EXPIRES_IN: "${JWT_REFRESH_EXPIRES_IN:-7d}"
       CORS_ORIGINS: ${CORS_ORIGINS:-https://localhost:8443}
       FRONTEND_URL: ${FRONTEND_URL:-https://localhost:8443}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://localhost:8443/api/auth/google/callback}
       GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-https://localhost:8443/api/auth/github/callback}
       SSL_CERT_PATH: /app/ssl/cert.pem
       SSL_KEY_PATH: /app/ssl/key.pem
+      UPLOAD_DIR: /app/uploads
 
       # ── Vault bootstrap ────────────────────────────────────────
       VAULT_ADDR: https://vault:8200
       # Trust the shared self-signed cert for HTTPS connections to Vault
       NODE_EXTRA_CA_CERTS: /app/ssl/cert.pem
-      # VAULT_TOKEN is read automatically from /run/vault-keys/keys.env by vault.js.
-      # No manual token management required.
+      # VAULT_TOKEN is read from /run/vault-keys/keys.env by load-secrets.sh.
+      # Written there by vault-init on first boot — no manual token management required.
+    tmpfs:
+      - /run/secrets:size=64m,mode=1777
     volumes:
       - ssl:/app/ssl
-      - ssl:/ssl
       - backend_uploads:/app/uploads
       # Read-only access to the keys written by vault-init (VAULT_TOKEN)
       - vault_keys:/run/vault-keys:ro
@@ -46,7 +50,11 @@ services:
       vault-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-check-certificate --quiet --tries=1 --spider https://localhost:3000/api/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-check-certificate --quiet --tries=1 --spider https://localhost:3000/api/health || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

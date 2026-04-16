@@ -42,7 +42,7 @@ jest.unstable_mockModule('../../../src/config/index.js', () => ({
 const mockPrisma = {
   file: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), delete: jest.fn() },
 };
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
 
 // Mock File model
 const mockFile = { create: jest.fn() };

@@ -1,10 +1,10 @@
 import * as THREE from 'three'
-import { createAlpaca, createItem } from '../core/createObjects.js'
+import { createAlpaca, createDecoration, createItem } from '../core/createObjects.js'
+import { shopItems } from '../core/entities/Item.js'
 import { gPlayer } from '../core/globals.js'
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js'
 import { loadGameData } from './dataLoader.js'
 import { setupEnvironment } from './sceneBuilder.js'
-
 
 export async function initWorld(scene, isAuthenticated = false) {
   // Load user data BEFORE setting up the environment so that
@@ -36,14 +36,18 @@ export async function initAlpacas(scene, user) {
         savedData.color,
         savedData.position,
         savedData.rotation,
-        savedData.scale
+        savedData.scale,
       );
       newAlpaca.speedOffset = savedData.speedOffset;
       newAlpaca.rotationOffset = savedData.rotationOffset;
+      newAlpaca.age = savedData.age;
+      newAlpaca.aliveTime = savedData.aliveTime;
+      newAlpaca.selected = savedData.selected;
     } else {
       newAlpaca = await createAlpaca();
     }
     if (!gPlayer.value) gPlayer.value = newAlpaca;
+    if (newAlpaca.selected) gPlayer.value = newAlpaca;
     alpacaGroup.add(newAlpaca.model)
   }
   scene.add(alpacaGroup);
@@ -55,11 +59,14 @@ export async function initItems(scene, savedItems) {
   if (savedItems && savedItems.length > 0) {
     itemsGroup = await initSavedItems(savedItems);
   } else {
-    //itemsGroup.add(await spawnObjectRandomly('/models/alpaca.glb', 4, 'alpaca'))
-    itemsGroup.add(await spawnObjectRandomly('/models/tree.glb', 4, 'item'))
-    itemsGroup.add(await spawnObjectRandomly('/models/grass.glb', 30, 'decoration'))
-    itemsGroup.add(await spawnObjectRandomly('/models/stones.glb', 4, 'decoration'))
-    itemsGroup.add(await spawnObjectRandomly('/models/fence.glb', 1, 'item'))
+    const tree = shopItems.find(item => item.name === 'Tree');
+    itemsGroup.add(await spawnObjectRandomly(tree, 4));
+
+    const stones = shopItems.find(item => item.name === 'Stones');
+    itemsGroup.add(await spawnObjectRandomly(stones, 4));
+
+    const grass = shopItems.find(item => item.name === 'Grass');
+    itemsGroup.add(await spawnObjectRandomly(grass, 30));
   }
   scene.add(itemsGroup);
 }
@@ -67,7 +74,11 @@ export async function initItems(scene, savedItems) {
 async function initSavedItems(savedItems) {
   const loadedItems = new THREE.Group()
   for (const item of savedItems) {
-    const loadedItem = await createItem(item.path, item.position, item.rotation, item.scale);
+    let loadedItem
+    if (item.type === 'item')
+      loadedItem = await createItem(item.path, item.position, item.rotation, item.scale);
+    else
+      loadedItem = await createDecoration(item.path, item.position, item.rotation, item.scale);
     loadedItem.model.name = item.name;
     loadedItems.add(loadedItem.model);
   }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { gMinigame } from '../core/globals.js';
 import { checkWithinBounds, usePhysics } from '../core/usePhysics.js';
 import { getRandomPos, getRandomTimer } from '../utils/randomValues.js';
 
@@ -37,27 +38,33 @@ export function alpacaAI() {
 
       dummy.position.copy(model.position);
       dummy.lookAt(target);
-      model.quaternion.slerp(dummy.quaternion, 5 * delta);
 
-      const speed = alpaca.speed;
+      const speed = alpaca.speed * delta;
       const nextX = model.position.x + (direction.x * speed);
       const nextZ = model.position.z + (direction.z * speed);
-
       const isWithinBounds = checkWithinBounds(nextX, nextZ);
       const isColliding = checkCollision(model, nextX, nextZ);
+      const bounceDistance = 0.5;
 
       if (!isWithinBounds || isColliding) {
+        const backwardVector = new THREE.Vector3(0, 0, -1);
+        backwardVector.applyQuaternion(model.quaternion);
+        if (isWithinBounds)
+          model.position.addScaledVector(backwardVector, bounceDistance);
         ai.state = 'idle';
         ai.timer = 1;
         alpaca.isAutoMoving = false
       } else {
         model.position.x = nextX;
         model.position.z = nextZ;
+        model.quaternion.slerp(dummy.quaternion, 5 * delta);
       }
     }
   };
 
   const updateAI = (alpaca, delta) => {
+    if (gMinigame.value.mode > 1) // no AI update in multiplayer and alpacaRoad
+      return
     switch (alpaca.ai.state) {
       case 'idle':
         handleIdle(alpaca, delta);

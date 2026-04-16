@@ -10,25 +10,52 @@ export function setupEnvironment(scene) {
   createFloor(scene)
 }
 
-function setupLighting(scene) {
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
+export function setupLighting(scene) {
+  const ambientLight = new THREE.AmbientLight('#ffffff', 0.8)
   const sunLight = new THREE.DirectionalLight('#ffffff', 1.2)
+  gScene.value.ambientLight = ambientLight
+  gScene.value.sunLight = sunLight
 
-  sunLight.position.set(10, 45, 3)
+  setSunLight(15, 45, 3);
   sunLight.castShadow = true
+  sunLight.shadow.mapSize.width = 4096;
+  sunLight.shadow.mapSize.height = 4096;
   sunLight.shadow.bias = -0.001
-
-  const d = 60
-  sunLight.shadow.camera.left = -d
-  sunLight.shadow.camera.right = d
-  sunLight.shadow.camera.top = d
-  sunLight.shadow.camera.bottom = -d
 
   scene.add(ambientLight)
   scene.add(sunLight)
+  scene.add(sunLight.target);
 
-  gScene.value.ambientLight = ambientLight
-  gScene.value.sunLight = sunLight
+  adjustSunBox();
+
+  if (CONST.DEBUG) {
+    const helper = new THREE.CameraHelper(sunLight.shadow.camera);
+    sunLight.helper = helper;
+    scene.add(helper);
+  }
+}
+
+export function adjustSunBox(val = 60, far = 70, near = 10) {
+  const sunLight = gScene.value.sunLight;
+
+  sunLight.shadow.camera.left = -val
+  sunLight.shadow.camera.right = val
+  sunLight.shadow.camera.top = val
+  sunLight.shadow.camera.bottom = -val
+
+  sunLight.shadow.camera.far = far;
+  sunLight.shadow.camera.near = near;
+  sunLight.shadow.camera.updateProjectionMatrix();
+  if (sunLight.helper)
+    sunLight.helper.update();
+}
+
+export function setSunLight(x = 15, y = 45, z = 3, tX = 0, tY = 0, tZ = 0) {
+  const sunLight = gScene.value.sunLight;
+
+  sunLight.position.set(x, y, z);
+  sunLight.target.position.set(tX, tY, tZ);
+  sunLight.target.updateMatrixWorld();
 }
 
 function createFloor(scene) {

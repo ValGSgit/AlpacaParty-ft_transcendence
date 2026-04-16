@@ -4,7 +4,7 @@
 services:
   vault:
     image: hashicorp/vault:1.16
-    container_name: alpacaparty_vault_prod
+    container_name: vault_prod
     user: "0"        # start as root so we can chown /vault/data before dropping to vault user
     # Fix named-volume ownership (root:root on first creation) then drop to vault (uid 100 gid 1000).
     # su-exec is shipped in the hashicorp/vault image; -config=/vault/config loads vault.hcl from
@@ -43,7 +43,7 @@ services:
                      #              (2) install jq if absent via apk add
     environment:
       VAULT_ADDR: https://vault:8200
-      VAULT_SKIP_VERIFY: "true"
+      VAULT_CACERT: /vault/ssl/cert.pem
       # Secrets to seed into Vault (only needed at seed time, not by the running backend)
       DB_PASSWORD: ${DB_PASSWORD}
       DB_USER: ${DB_USER:-alpacaparty}

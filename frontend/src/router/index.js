@@ -6,32 +6,24 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 
-const Home     = () => import('../views/Home.vue')
 const Login    = () => import('../views/Login.vue')
 const Register = () => import('../views/Register.vue')
 const Profile  = () => import('../views/Profile.vue')
 const UserProfile = () => import('../views/UserProfile.vue')
 const Friends  = () => import('../views/Friends.vue')
-const Messages = () => import('../views/Messages.vue')
 const Game     = () => import('../games/Game.vue')
-const SpitRoyale = () => import('../views/SpitRoyale.vue')
-const Settings = () => import('../views/Settings.vue')
-const Help     = () => import('../views/Help.vue')
 const Feed     = () => import('../views/Feed.vue')
-const Admin    = () => import('../views/Admin.vue')
 const NotFound = () => import('../views/NotFound.vue')
 const OAuthCallback = () => import('../views/OAuthCallback.vue')
 const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
 const TermsOfService = () => import('../views/TermsOfService.vue')
-const PublicShowcase = () => import('../views/PublicShowcase.vue')
-const SecurityDashboard = () => import('../views/SecurityDashboard.vue')
 const ApiDocs  = () => import('../views/ApiDocs.vue')
 
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home,
+    component: Game,
     meta: { requiresAuth: false },
   },
   {
@@ -59,34 +51,10 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/messages',
-    name: 'Messages',
-    component: Messages,
-    meta: { requiresAuth: true },
-  },
-  {
     path: '/game',
     name: 'Game',
     component: Game,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/spit-royale',
-    name: 'SpitRoyale',
-    component: SpitRoyale,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/settings',
-    name: 'Settings',
-    component: Settings,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/help',
-    name: 'Help',
-    component: Help,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: false },
   },
   {
     path: '/feed',
@@ -95,27 +63,9 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/admin',
-    name: 'Admin',
-    component: Admin,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/security',
-    name: 'SecurityDashboard',
-    component: SecurityDashboard,
-    meta: { requiresAuth: true },
-  },
-  {
     path: '/docs',
     name: 'ApiDocs',
     component: ApiDocs,
-    meta: { requiresAuth: false },
-  },
-  {
-    path: '/showcase',
-    name: 'PublicShowcase',
-    component: PublicShowcase,
     meta: { requiresAuth: false },
   },
   {

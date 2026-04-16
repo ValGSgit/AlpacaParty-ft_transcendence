@@ -2,7 +2,7 @@
  * Organization Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from '../config/prisma.js';
+import prisma from "#config/prisma.js";
 
 function shapeOrg(org) {
   return {
@@ -13,18 +13,18 @@ function shapeOrg(org) {
 }
 
 const Organization = {
-  async create({ name, description = '', ownerId, avatar }) {
+  async create({ name, description = "", ownerId, avatar }) {
     return prisma.$transaction(async (tx) => {
       const org = await tx.organization.create({
         data: {
           name,
-          description: description || '',
+          description: description || "",
           ownerId: Number(ownerId),
-          avatar: avatar || '/avatars/default-org.svg',
+          avatar: avatar || "/avatars/default-org.svg",
         },
       });
       await tx.organizationMember.create({
-        data: { orgId: org.id, userId: Number(ownerId), role: 'owner' },
+        data: { orgId: org.id, userId: Number(ownerId), role: "owner" },
       });
       return org;
     });
@@ -52,7 +52,7 @@ const Organization = {
     }
   },
 
-  async addMember(orgId, userId, role = 'member') {
+  async addMember(orgId, userId, role = "member") {
     return prisma.organizationMember.upsert({
       where: { orgId_userId: { orgId: Number(orgId), userId: Number(userId) } },
       update: {},
@@ -69,8 +69,12 @@ const Organization = {
   async getMembers(orgId, { limit = 50, offset = 0 } = {}) {
     const rows = await prisma.organizationMember.findMany({
       where: { orgId: Number(orgId) },
-      include: { user: { select: { id: true, username: true, avatar: true, isOnline: true } } },
-      orderBy: [{ role: 'asc' }, { user: { username: 'asc' } }],
+      include: {
+        user: {
+          select: { id: true, username: true, avatar: true, isOnline: true },
+        },
+      },
+      orderBy: [{ role: "asc" }, { user: { username: "asc" } }],
       take: Number(limit),
       skip: Number(offset),
     });
@@ -88,7 +92,7 @@ const Organization = {
     const rows = await prisma.organizationMember.findMany({
       where: { userId: Number(userId) },
       include: { org: true },
-      orderBy: { org: { name: 'asc' } },
+      orderBy: { org: { name: "asc" } },
     });
     return rows.map((r) => ({ ...r.org, role: r.role }));
   },
@@ -96,7 +100,7 @@ const Organization = {
   async findAll({ limit = 50, offset = 0 } = {}) {
     const orgs = await prisma.organization.findMany({
       include: { _count: { select: { members: true } } },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
       take: Number(limit),
       skip: Number(offset),
     });
@@ -107,12 +111,12 @@ const Organization = {
     const orgs = await prisma.organization.findMany({
       where: {
         OR: [
-          { name: { contains: term, mode: 'insensitive' } },
-          { description: { contains: term, mode: 'insensitive' } },
+          { name: { contains: term, mode: "insensitive" } },
+          { description: { contains: term, mode: "insensitive" } },
         ],
       },
       include: { _count: { select: { members: true } } },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
       take: Number(limit),
     });
     return orgs.map(shapeOrg);

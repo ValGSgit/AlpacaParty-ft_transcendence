@@ -13,14 +13,13 @@
  *   game:{id}         — game session room
  */
 import { Server } from 'socket.io';
-import AuthService from './authService.js';
 import User from '../models/User.js';
 import Message from '../models/Message.js';
 import ChatRoom from '../models/ChatRoom.js';
 import Game from '../models/Game.js';
 import NotificationService from './notificationService.js';
-import GamificationService from './gamificationService.js';
 import { initializeSpitRoyaleNamespace } from './spitRoyaleNamespace.js';
+import { socketAuthMiddleware } from './socketAuth.js';
 
 /**
  * Compute Elo delta. Simple 32-K factor implementation.
@@ -46,25 +45,7 @@ export function initializeSocket(httpServer, corsOrigins) {
   initializeSpitRoyaleNamespace(io);
 
   // ── Auth middleware ──────────────────────────────────────────
-  io.use(async (socket, next) => {
-    try {
-      const token = socket.handshake.auth?.token
-        || socket.handshake.headers?.authorization?.split(' ')[1];
-
-      if (!token) return next(new Error('Authentication required'));
-
-      const decoded = AuthService.verifyToken(token);
-      if (!decoded || decoded.type === 'refresh') return next(new Error('Invalid token'));
-
-      const user = await User.findById(decoded.id);
-      if (!user) return next(new Error('User not found'));
-
-      socket.user = user;
-      next();
-    } catch (err) {
-      next(err);
-    }
-  });
+  io.use(socketAuthMiddleware());
 
   // ── Presence tracking ────────────────────────────────────────
   const onlineSockets = new Map(); // userId -> Set<socketId>
@@ -72,7 +53,7 @@ export function initializeSocket(httpServer, corsOrigins) {
   async function markOnline(userId, socketId) {
     if (!onlineSockets.has(userId)) {
       onlineSockets.set(userId, new Set());
-      await User.setOnline(userId, true);
+      await User.setOnline(userId);
       io.emit('presence', { userId, isOnline: true });
     }
     onlineSockets.get(userId).add(socketId);
@@ -84,7 +65,7 @@ export function initializeSocket(httpServer, corsOrigins) {
       sockets.delete(socketId);
       if (sockets.size === 0) {
         onlineSockets.delete(userId);
-        await User.setOnline(userId, false);
+        await User.setOffline(userId);
         io.emit('presence', { userId, isOnline: false });
       }
     }
@@ -234,8 +215,6 @@ export function initializeSocket(httpServer, corsOrigins) {
             Game.updateStats(game.player2Id, game.gameType, p2Result),
             Game.updateElo(game.player1Id, game.gameType, newP1Elo),
             Game.updateElo(game.player2Id, game.gameType, newP2Elo),
-            GamificationService.processGameEnd(game.player1Id, p1Result, game.gameType),
-            GamificationService.processGameEnd(game.player2Id, p2Result, game.gameType),
           ]);
         }
 

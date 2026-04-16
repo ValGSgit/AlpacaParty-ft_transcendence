@@ -4,7 +4,6 @@
  */
 import Organization from '../models/Organization.js';
 import NotificationService from '../services/notificationService.js';
-import GamificationService from '../services/gamificationService.js';
 
 /** GET /api/organizations */
 export const listOrgs = async (req, res, next) => {
@@ -45,7 +44,6 @@ export const createOrg = async (req, res, next) => {
     if (avatar && (typeof avatar !== 'string' || avatar.length > 2048)) return res.status(400).json({ error: { message: 'Invalid avatar URL' } });
 
     const org = await Organization.create({ name: name.trim(), description: description?.trim() || null, ownerId: req.user.id, avatar: avatar || null });
-    await GamificationService.checkOrgAchievements(req.user.id);
     res.status(201).json({ organization: org });
   } catch (err) { next(err); }
 };
@@ -77,7 +75,8 @@ export const deleteOrg = async (req, res, next) => {
   try {
     const org = await Organization.findById(Number(req.params.id));
     if (!org) return res.status(404).json({ error: { message: 'Organization not found' } });
-    if (org.ownerId !== req.user.id && !req.user.isAdmin) {
+    const isAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
+    if (org.ownerId !== req.user.id && !isAdmin) {
       return res.status(403).json({ error: { message: 'Only the owner can delete an organization' } });
     }
     await Organization.delete(org.id);

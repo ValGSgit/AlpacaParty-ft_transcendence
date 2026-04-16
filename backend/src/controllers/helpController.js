@@ -30,9 +30,9 @@ Your role:
 /** POST /api/help/chat — non-streaming, returns full message */
 export const chat = async (req, res, next) => {
   try {
-    const { messages } = req.body;
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: { message: 'messages array is required' } });
+    const { message, history = [] } = req.body;
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ error: { message: 'message is required' } });
     }
 
     const apiKey = config.groqApiKey;
@@ -40,13 +40,14 @@ export const chat = async (req, res, next) => {
       return res.status(503).json({ error: { message: 'Help service is not configured' } });
     }
 
-    // Build the conversation with system prompt
+    const prior = Array.isArray(history) ? history : [];
     const conversation = [
       { role: 'system', content: SYSTEM_PROMPT },
-      ...messages.slice(-20).map(({ role, content }) => ({
+      ...prior.slice(-19).map(({ role, content }) => ({
         role: role === 'user' ? 'user' : 'assistant',
         content: String(content).slice(0, 2000),
       })),
+      { role: 'user', content: message.slice(0, 2000) },
     ];
 
     const response = await fetch(GROQ_API_URL, {
@@ -80,9 +81,9 @@ export const chat = async (req, res, next) => {
 /** POST /api/help/chat/stream — SSE streaming response */
 export const chatStream = async (req, res, next) => {
   try {
-    const { messages } = req.body;
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: { message: 'messages array is required' } });
+    const { message, history = [] } = req.body;
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ error: { message: 'message is required' } });
     }
 
     const apiKey = config.groqApiKey;
@@ -90,12 +91,14 @@ export const chatStream = async (req, res, next) => {
       return res.status(503).json({ error: { message: 'Help service is not configured' } });
     }
 
+    const prior = Array.isArray(history) ? history : [];
     const conversation = [
       { role: 'system', content: SYSTEM_PROMPT },
-      ...messages.slice(-20).map(({ role, content }) => ({
+      ...prior.slice(-19).map(({ role, content }) => ({
         role: role === 'user' ? 'user' : 'assistant',
         content: String(content).slice(0, 2000),
       })),
+      { role: 'user', content: message.slice(0, 2000) },
     ];
 
     const response = await fetch(GROQ_API_URL, {

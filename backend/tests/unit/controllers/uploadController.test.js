@@ -4,7 +4,7 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
 // Mock prisma
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({
+jest.unstable_mockModule('#config/prisma.js', () => ({
   default: { file: { create: jest.fn(), findFirst: jest.fn(), findMany: jest.fn(), delete: jest.fn() } },
 }));
 

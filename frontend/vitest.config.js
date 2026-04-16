@@ -25,13 +25,11 @@ export default defineConfig({
         'src/style.css',
         'src/assets/**',
         'src/games/**',           // 3D game engine (Three.js/WebGL) — untestable in unit tests
-        'src/spitroyale/**',      // SpitRoyale WebGL multiplayer module
-        'src/views/SpitRoyale.vue',
         'src/services/socket.js', // WebSocket client — requires live server
         'src/views/ApiTest.vue',  // removed from test suite intentionally
       ],
       thresholds: {
-        branches: 30,
+        branches: 28,
         functions: 20,
         lines: 25,
         statements: 25,

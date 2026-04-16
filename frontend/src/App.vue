@@ -11,6 +11,25 @@
           <span class="logo-text">Alpaca Party!</span>
         </router-link>
 
+        <!-- Message box -->
+        <div v-if="authStore.isAuthenticated" :class="['bottom-left-nav', { 'with-footer': hasFooter }]">
+          <div class="msg-wrapper">
+            <button class="nav-link nav-btn message-btn" @click="showMessagesModal = true" title="Messages">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span v-if="unreadMessages" class="notif-badge msg-badge">{{ unreadMessages }}</span>
+            </button>
+        
+            <div v-if="showMessagesModal" class="modal-overlay" @click.self="showMessagesModal = false">
+              <div class="messages-modal-content">
+                <button class="modal-close-top" @click="showMessagesModal = false">&times;</button>
+                <Messages /> 
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Mobile hamburger -->
         <button class="hamburger" @click="mobileOpen = !mobileOpen" aria-label="Toggle menu">
           <span :class="['bar', { open: mobileOpen }]"></span>
@@ -20,8 +39,7 @@
 
         <div :class="['nav-links', { open: mobileOpen }]">
           <!-- Public links -->
-          <router-link to="/docs" class="nav-link" @click="mobileOpen = false">Docs</router-link>
-          <router-link to="/showcase" class="nav-link" @click="mobileOpen = false">Showcase</router-link>
+          <router-link to="/game" class="nav-link nav-game" @click="mobileOpen = false">AlpacaFarm</router-link>
 
           <template v-if="authStore.isAuthenticated">
             <!-- Divider -->
@@ -30,26 +48,14 @@
             <!-- Core social -->
             <router-link to="/feed" class="nav-link" @click="mobileOpen = false">Feed</router-link>
             <router-link to="/friends" class="nav-link" @click="mobileOpen = false">Friends</router-link>
-            <router-link to="/messages" class="nav-link" @click="mobileOpen = false">Messages</router-link>
-
-            <!-- Game -->
-            <router-link to="/game" class="nav-link nav-game" @click="mobileOpen = false">AlpacaFarm</router-link>
-            <router-link to="/spit-royale" class="nav-link nav-game" @click="mobileOpen = false">SpitRoyale</router-link>
 
             <!-- Divider -->
             <span class="nav-divider"></span>
 
             <!-- User area -->
-            <router-link to="/profile" class="nav-link" @click="mobileOpen = false">Profile</router-link>
-            <router-link to="/settings" class="nav-link" @click="mobileOpen = false">Settings</router-link>
-            <router-link to="/help" class="nav-link nav-help" @click="mobileOpen = false">Help</router-link>
-
-            <!-- Admin links -->
-            <template v-if="authStore.user?.is_admin">
-              <span class="nav-divider"></span>
-              <router-link to="/admin" class="nav-link nav-admin" @click="mobileOpen = false">Admin</router-link>
-              <router-link to="/security" class="nav-link nav-admin" @click="mobileOpen = false">Security</router-link>
-            </template>
+            <router-link to="/profile" class="nav-link" @click="mobileOpen = false">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </router-link>
 
             <!-- Notifications -->
             <div class="notif-wrapper">
@@ -88,12 +94,11 @@
     <main :class="['main-content', { 'game-content': ['Game', 'SpitRoyale'].includes($route.name) }]">
       <router-view />
     </main>
-    <footer v-if="!['Game', 'SpitRoyale'].includes($route.name)" class="app-footer">
+    <footer v-if="hasFooter" class="app-footer">
       <div class="footer-container">
         <span class="footer-copy">&copy; 2026 AlpacaParty</span>
         <div class="footer-links">
           <router-link to="/docs">API Docs</router-link>
-          <router-link to="/showcase">Showcase</router-link>
           <router-link to="/privacy">Privacy Policy</router-link>
           <router-link to="/terms">Terms of Service</router-link>
         </div>
@@ -103,26 +108,38 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth.js'
 import api from './services/api.js'
 import { connectSocket, disconnectSocket } from './services/socket.js'
+import Messages from './views/Messages.vue';
+import NotifBadge from './components/NotifBadge.vue';
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute();
 const unreadCount = ref(0)
+const unreadMessages = ref(0)
 const showNotifPanel = ref(false)
 const notifications = ref([])
 const mobileOpen = ref(false)
 
+const showMessagesModal = ref(false);
+
 // Close mobile menu on route change
 router.afterEach(() => { mobileOpen.value = false })
+
+const hasFooter = computed(() => {
+  const pagesWithoutFooter = ['Game', 'Home'];
+  if (pagesWithoutFooter.includes(route.name)) return false;
+  return true;
+});
 
 async function handleLogout() {
   disconnectSocket()
   await authStore.logout()
-  router.push('/')
+  router.push('/login')
 }
 
 function toggleNotifications() {
@@ -143,6 +160,8 @@ async function fetchUnreadCount() {
     const { data } = await api.get('/notifications')
     const notifs = data.notifications || []
     unreadCount.value = notifs.filter(n => !n.is_read).length
+    // WIP: show correct red numbers on the icon
+    //unreadMessages.value = notifs.filter(n => !n.is_read && (n.type === 'dm' || n.type === 'message')).length;
   } catch {}
 }
 
@@ -160,8 +179,8 @@ async function markNotifRead(n) {
   else if (n.type === 'game_invite' || n.type === 'game_finish') router.push('/game')
   else if (n.type === 'post_like') router.push('/feed')
   else if (n.type === 'achievement') router.push('/profile')
-  else if (n.type === 'dm' || n.type === 'message') router.push('/messages')
-  else router.push('/profile')
+  //else if (n.type === 'dm' || n.type === 'message') router.push('/messages')
+  else router.push('/')
 }
 
 function formatNotifTime(ts) {

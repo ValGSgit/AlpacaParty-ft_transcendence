@@ -4,11 +4,8 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
 // Mock prisma
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({
+jest.unstable_mockModule('#config/prisma.js', () => ({
   default: { user: { findUnique: jest.fn() } },
-}));
-jest.unstable_mockModule('../../../src/config/database.js', () => ({
-  query: jest.fn(), getClient: jest.fn(), default: { on: jest.fn(), query: jest.fn() },
 }));
 
 // Mock User model

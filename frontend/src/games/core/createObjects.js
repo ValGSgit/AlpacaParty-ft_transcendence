@@ -20,7 +20,7 @@ export async function createAlpaca(
   attachCollider(clone);
 
   const alpaca = new Alpaca(clone, animations, {
-    name, color, position, rotation, scale
+    name, color, position, rotation, scale,
   });
 
   registerEntity(alpaca, 'alpaca');
@@ -39,12 +39,12 @@ export async function createItem(
 
   const item = new Item(clone, animations, { position, rotation, scale });
   item.path = path;
+  item.type = 'item' // used to distingush between deco for colliders
 
   registerEntity(item, 'item');
   return markRaw(item);
 }
 
-// WIP: uses Item aswell (testing atm)
 export async function createDecoration(
   path,
   position = [0, 0, 0],
@@ -57,6 +57,7 @@ export async function createDecoration(
 
   const deco = new Item(clone, animations, { position, rotation, scale });
   deco.path = path;
+  deco.type = 'deco' // used to distingush between item for colliders
 
   registerEntity(deco, 'decoration');
   return markRaw(deco);
@@ -70,8 +71,9 @@ export async function createCollectable(
 ) {
   const { model, animations } = await getModel(path);
   const clone = SkeletonUtils.clone(model);
+  attachCollider(clone);
+
   const collectable = new Collectable(clone, animations, { position, rotation, scale });
-  attachCollider(collectable.model);
   registerEntity(collectable, 'collectable');
   return markRaw(collectable);
 }

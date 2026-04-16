@@ -3,13 +3,13 @@ import { gAlpacas, gUser } from '../core/globals.js'
 
 export const CONST = {
   BASE_RADIUS: 25,
-  PLAYER_FORWARD_SPEED: 0.2,
-  PLAYER_ROTATION: 0.05,
+  PLAYER_FORWARD_SPEED: 14,
+  PLAYER_ROTATION: 4.0,
 
-  JUMPING_SPEED: 0.1,
-  JUMPING_MAX_HEIGHT: 2,
+  JUMPING_SPEED: 9,
+  JUMPING_MAX_HEIGHT: 3,
 
-  CALIBRATION: 25, // Change this for animation speed
+  CALIBRATION: 0.25, // Change this for animation speed
 
   CAMERA_OFFSET: { x: 0, y: 3, z: 0 },
   CAMERA_LERP: 0.025,
@@ -17,17 +17,18 @@ export const CONST = {
   MAX_ZOOM: 200.0,
 
   DEBUG: 0,
-  COLLIDER_SIZE: 0.9,
+  COLLIDER_SIZE: 0.8,
+  AR_ENABLED: false,
+  SBS_ENABLED: false,
 
   MAX_UPGRADES: 5,
+
   HP: 3,
+  SECONDS_PER_INGAME_YEAR: 300,
+  SECONDS_PER_DAYPHASE: 60,
 
   get ALPACA_COST() {
     return gAlpacas.length
-  },
-
-  get UPGRADE_COST() {
-    return gUser.value.upgrades + 1.0
   },
 
   get FLOOR_RADIUS() {
@@ -38,7 +39,7 @@ export const CONST = {
     return this.FLOOR_RADIUS - 2
   },
 
-  get PLAYER_BACKWARD_SPEED() {
-    return this.PLAYER_FORWARD_SPEED * 0.5
-  }
+  get MAX_COINS() {
+    return 3 + gUser.value.upgrades;
+  },
 }

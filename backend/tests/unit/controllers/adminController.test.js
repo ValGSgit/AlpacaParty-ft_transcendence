@@ -3,10 +3,11 @@ import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 // ── Mocks ────────────────────────────────────────────────────────────────────
 const mockPrisma = {
   user: { count: jest.fn(), findUnique: jest.fn(), update: jest.fn(), findMany: jest.fn() },
+  userSettings: { upsert: jest.fn() },
   message: { count: jest.fn() },
   organization: { count: jest.fn() },
 };
-jest.unstable_mockModule('../../../src/config/prisma.js', () => ({
+jest.unstable_mockModule('#config/prisma.js', () => ({
   default: mockPrisma,
 }));
 
@@ -112,8 +113,17 @@ describe('getStats', () => {
 // ── listUsers ────────────────────────────────────────────────────────────────
 describe('listUsers', () => {
   test('should return users array and total', async () => {
-    const users = [{ id: 1, username: 'alice' }];
-    mockPrisma.user.findMany.mockResolvedValue(users);
+    mockPrisma.user.findMany.mockResolvedValue([
+      {
+        id: 1,
+        username: 'alice',
+        email: 'alice@example.com',
+        avatar: '/avatars/a.png',
+        isOnline: true,
+        createdAt: '2025-01-01T00:00:00.000Z',
+        userSettings: { isAdmin: false },
+      },
+    ]);
     mockPrisma.user.count.mockResolvedValue(1);
 
     const { req, res, next } = createReqRes();
@@ -121,17 +131,47 @@ describe('listUsers', () => {
 
     expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
       where: {},
-      select: { id: true, username: true, email: true, avatar: true, isOnline: true, isAdmin: true, level: true, xp: true, createdAt: true },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        avatar: true,
+        isOnline: true,
+        createdAt: true,
+        userSettings: { select: { isAdmin: true } },
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 50,
       skip: 0,
     });
-    expect(res._json).toEqual({ users, total: 1 });
+    expect(res._json).toEqual({
+      users: [
+        {
+          id: 1,
+          username: 'alice',
+          email: 'alice@example.com',
+          avatar: '/avatars/a.png',
+          isOnline: true,
+          createdAt: '2025-01-01T00:00:00.000Z',
+          isAdmin: false,
+        },
+      ],
+      total: 1,
+    });
   });
 
   test('should use search when query param provided', async () => {
-    const users = [{ id: 2, username: 'bob' }];
-    mockPrisma.user.findMany.mockResolvedValue(users);
+    mockPrisma.user.findMany.mockResolvedValue([
+      {
+        id: 2,
+        username: 'bob',
+        email: 'bob@example.com',
+        avatar: '/avatars/b.png',
+        isOnline: false,
+        createdAt: '2025-01-02T00:00:00.000Z',
+        userSettings: { isAdmin: true },
+      },
+    ]);
     mockPrisma.user.count.mockResolvedValue(10);
 
     const { req, res, next } = createReqRes({ query: { search: 'bob', limit: '10', offset: '5' } });
@@ -139,12 +179,33 @@ describe('listUsers', () => {
 
     expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
       where: { OR: [{ username: { startsWith: 'bob', mode: 'insensitive' } }, { email: { contains: 'bob', mode: 'insensitive' } }] },
-      select: { id: true, username: true, email: true, avatar: true, isOnline: true, isAdmin: true, level: true, xp: true, createdAt: true },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        avatar: true,
+        isOnline: true,
+        createdAt: true,
+        userSettings: { select: { isAdmin: true } },
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 10,
       skip: 5,
     });
-    expect(res._json).toEqual({ users, total: 10 });
+    expect(res._json).toEqual({
+      users: [
+        {
+          id: 2,
+          username: 'bob',
+          email: 'bob@example.com',
+          avatar: '/avatars/b.png',
+          isOnline: false,
+          createdAt: '2025-01-02T00:00:00.000Z',
+          isAdmin: true,
+        },
+      ],
+      total: 10,
+    });
   });
 
   test('should call next on error', async () => {
@@ -201,31 +262,39 @@ describe('deleteUser', () => {
 // ── toggleAdmin ──────────────────────────────────────────────────────────────
 describe('toggleAdmin', () => {
   test('should toggle admin status from false to true', async () => {
-    mockPrisma.user.findUnique.mockResolvedValue({ id: 5, isAdmin: false });
-    mockPrisma.user.update.mockResolvedValue({ id: 5, username: 'bob', isAdmin: true });
+    mockPrisma.user.findUnique.mockResolvedValue({ id: 5, username: 'bob', userSettings: { isAdmin: false } });
+    mockPrisma.userSettings.upsert.mockResolvedValue({ userId: 5, isAdmin: true });
 
     const { req, res, next } = createReqRes({ params: { id: '5' } });
     await toggleAdmin(req, res, next);
 
-    expect(mockPrisma.user.update).toHaveBeenCalledWith({
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: 5 },
-      data: { isAdmin: true },
-      select: { id: true, username: true, isAdmin: true },
+      select: { id: true, username: true, userSettings: { select: { isAdmin: true } } },
+    });
+    expect(mockPrisma.userSettings.upsert).toHaveBeenCalledWith({
+      where: { userId: 5 },
+      create: { userId: 5, isAdmin: true },
+      update: { isAdmin: true },
     });
     expect(res._json).toEqual({ user: { id: 5, username: 'bob', isAdmin: true } });
   });
 
   test('should toggle admin status from true to false', async () => {
-    mockPrisma.user.findUnique.mockResolvedValue({ id: 5, isAdmin: true });
-    mockPrisma.user.update.mockResolvedValue({ id: 5, username: 'bob', isAdmin: false });
+    mockPrisma.user.findUnique.mockResolvedValue({ id: 5, username: 'bob', userSettings: { isAdmin: true } });
+    mockPrisma.userSettings.upsert.mockResolvedValue({ userId: 5, isAdmin: false });
 
     const { req, res, next } = createReqRes({ params: { id: '5' } });
     await toggleAdmin(req, res, next);
 
-    expect(mockPrisma.user.update).toHaveBeenCalledWith({
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: 5 },
-      data: { isAdmin: false },
-      select: { id: true, username: true, isAdmin: true },
+      select: { id: true, username: true, userSettings: { select: { isAdmin: true } } },
+    });
+    expect(mockPrisma.userSettings.upsert).toHaveBeenCalledWith({
+      where: { userId: 5 },
+      create: { userId: 5, isAdmin: false },
+      update: { isAdmin: false },
     });
     expect(res._json).toEqual({ user: { id: 5, username: 'bob', isAdmin: false } });
   });
@@ -238,7 +307,7 @@ describe('toggleAdmin', () => {
 
     expect(res._status).toBe(404);
     expect(res._json).toEqual({ error: { message: 'User not found' } });
-    expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    expect(mockPrisma.userSettings.upsert).not.toHaveBeenCalled();
   });
 
   test('should call next on error', async () => {

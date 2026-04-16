@@ -83,6 +83,17 @@ const NotificationService = {
     });
   },
 
+  async postCommented(authorId, commenterUsername, postId) {
+    return this.notify({
+      userId: authorId,
+      type: 'post_comment',
+      title: 'New Comment',
+      message: `${commenterUsername} commented on your post.`,
+      referenceType: 'post',
+      referenceId: postId,
+    });
+  },
+
   async postLiked(authorId, likerUsername, postId) {
     return this.notify({
       userId: authorId,

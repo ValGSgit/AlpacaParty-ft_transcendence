@@ -162,6 +162,12 @@ import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
 import FakeAd from '../components/FakeAd.vue'
 import ActiveLeaderboard from '../components/ActiveLeaderboard.vue'
+import ErrorBanner from '../components/ErrorBanner.vue'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+import EmptyState from '../components/EmptyState.vue'
+import BaseModal from '../components/BaseModal.vue'
+import BaseButton from '../components/BaseButton.vue'
+import BaseInput from '../components/BaseInput.vue'
 
 const authStore = useAuthStore()
 const posts = ref([])
@@ -247,12 +253,7 @@ async function createPost() {
     if (selectedImage.value) {
       const formData = new FormData()
       formData.append('files', selectedImage.value)
-      const uploadRes = await api.post('/uploads', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress(evt) {
-          if (evt.total) uploadProgress.value = Math.round((evt.loaded / evt.total) * 100)
-        },
-      })
+      const uploadRes = await api.post('/uploads', formData)
       imageUrl = uploadRes.data.files?.[0]?.url
       if (!imageUrl) {
         error.value = 'Image upload failed — try a smaller file or different format'
@@ -355,7 +356,18 @@ async function deleteComment(post, comment) {
 
 // ── Repost ────────────────────────────────────────────────────────────────
 
-function openRepostModal(post) {
+async function openRepostModal(post) {
+  if (post.user_reposted) {
+    // Already reposted — toggle off immediately without opening modal
+    try {
+      await api.delete(`/posts/${post.id}/repost`)
+      post.reposts_count = Math.max(0, (post.reposts_count || 1) - 1)
+      post.user_reposted = false
+    } catch (e) {
+      error.value = e.response?.data?.error?.message || 'Failed to remove repost'
+    }
+    return
+  }
   repostModalPost.value = post
   repostComment.value = ''
 }
@@ -375,16 +387,7 @@ async function submitRepost(withComment) {
     post.user_reposted = true
     closeRepostModal()
   } catch (e) {
-    const msg = e.response?.data?.error?.message
-    if (msg === 'Already reposted') {
-      // toggle off
-      await api.delete(`/posts/${post.id}/repost`)
-      post.reposts_count = Math.max(0, (post.reposts_count || 1) - 1)
-      post.user_reposted = false
-      closeRepostModal()
-    } else {
-      error.value = msg || 'Failed to repost'
-    }
+    error.value = e.response?.data?.error?.message || 'Failed to repost'
   }
 }
 

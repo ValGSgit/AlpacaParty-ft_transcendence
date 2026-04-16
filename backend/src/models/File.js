@@ -2,7 +2,7 @@
  * File Model — Prisma data access layer
  * @owner ValGSgit
  */
-import prisma from '../config/prisma.js';
+import prisma from "#config/prisma.js";
 
 /** Convert BigInt fields to Number so JSON.stringify works. */
 function safeFile(f) {
@@ -11,7 +11,14 @@ function safeFile(f) {
 }
 
 const File = {
-  async create({ uploaderId, originalName, storedName, mimeType, sizeBytes, url }) {
+  async create({
+    uploaderId,
+    originalName,
+    storedName,
+    mimeType,
+    sizeBytes,
+    url,
+  }) {
     const record = await prisma.file.create({
       data: {
         uploaderId: Number(uploaderId),
@@ -26,13 +33,19 @@ const File = {
   },
 
   async findById(id) {
-    return safeFile(await prisma.file.findUnique({ where: { id: Number(id) } }));
+    return safeFile(
+      await prisma.file.findUnique({ where: { id: Number(id) } }),
+    );
+  },
+
+  async findByStoredName(storedName) {
+    return safeFile(await prisma.file.findFirst({ where: { storedName } }));
   },
 
   async getByUploader(uploaderId, { limit = 50, offset = 0 } = {}) {
     const rows = await prisma.file.findMany({
       where: { uploaderId: Number(uploaderId) },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: Number(limit),
       skip: Number(offset),
     });

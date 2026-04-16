@@ -4,10 +4,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    container_name: alpacaparty_nginx_prod
+    container_name: nginx_prod
     ports:
-      - "${NGINX_PORT:-8443}:8443"
-      - "8000:8443"
+      - "8443:443"
+      - "8080:80"
     volumes:
       - ssl:/etc/nginx/conf/ssl
     depends_on:

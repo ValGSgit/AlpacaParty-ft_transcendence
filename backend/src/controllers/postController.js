@@ -4,7 +4,6 @@
  */
 import Post from '../models/Post.js';
 import NotificationService from '../services/notificationService.js';
-import GamificationService from '../services/gamificationService.js';
 
 /** GET /api/posts */
 export const getFeed = async (req, res, next) => {
@@ -35,7 +34,6 @@ export const createPost = async (req, res, next) => {
       return res.status(400).json({ error: { message: 'invalid imageUrl' } });
     }
     const post = await Post.create({ authorId: req.user.id, content: content.trim(), imageUrl: normalizedImageUrl, isPublic: !!isPublic });
-    await GamificationService.checkPostAchievements(req.user.id);
     res.status(201).json({ post });
   } catch (err) { next(err); }
 };
@@ -73,7 +71,8 @@ export const updatePost = async (req, res, next) => {
 export const deletePost = async (req, res, next) => {
   try {
     const deleted = await Post.delete(Number(req.params.id), req.user.id);
-    if (!deleted && !req.user.isAdmin) return res.status(404).json({ error: { message: 'Post not found or not yours' } });
+    const isAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
+    if (!deleted && !isAdmin) return res.status(404).json({ error: { message: 'Post not found or not yours' } });
     res.json({ message: 'Post deleted' });
   } catch (err) { next(err); }
 };
