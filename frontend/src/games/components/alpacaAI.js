@@ -40,10 +40,9 @@ export function alpacaAI() {
       dummy.lookAt(target);
       model.quaternion.slerp(dummy.quaternion, 5 * delta);
 
-      const speed = alpaca.speed;
+      const speed = alpaca.speed * delta;
       const nextX = model.position.x + (direction.x * speed);
       const nextZ = model.position.z + (direction.z * speed);
-
       const isWithinBounds = checkWithinBounds(nextX, nextZ);
       const isColliding = checkCollision(model, nextX, nextZ);
 

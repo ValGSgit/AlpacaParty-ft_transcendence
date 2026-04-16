@@ -3,7 +3,7 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 import { markRaw } from 'vue'
 import { CONST } from '../config/constants.js'
 import { MATERIALS as MATS } from '../config/materials.js'
-import { gAlpacas, gEditables, gEditState, gEngine, gScene, gUI } from '../core/globals.js'
+import { gAlpacas, gEditables, gEditState, gEngine, gScene, gUI, gPlayer, gItems, gDecorations } from '../core/globals.js'
 import { removeObject } from '../core/removeObjects.js'
 import { saveGame } from '../core/saveLoadGame.js'
 import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
@@ -191,6 +191,7 @@ export function useEditMode() {
     if (!gEditState.selected) return;
 
     const isAlpaca = gAlpacas.some(alpaca => alpaca.model === gEditState.selected)
+    const isItem = gItems.some(alpaca => alpaca.model === gEditState.selected)
 
     if (isAlpaca && gAlpacas.length === 1) {
       alert("Can't sell last alpaca!");
@@ -198,38 +199,33 @@ export function useEditMode() {
       return;
     }
 
-    const selected = gEditState.selected
+    let selected = gEditState.selected
     if (gEditState.ghost) {
       gScene.value.remove(gEditState.ghost);
     }
     if (!selected.userData.isNew)
       addCoins(Math.floor(selected.userData.cost / 2));
     resetSelected();
+    console.log(selected.parent)
+    selected =get_entity(selected)
     removeObject(selected);
-  }
-
-
-  const deleteItem = () => {
-    if (!gEditState.selected) return;
-
-    const isAlpaca = gAlpacas.some(alpaca => alpaca.model === gEditState.selected)
-
-    if (isAlpaca && gAlpacas.length === 1) {
-      alert("Can't delete last alpaca!");
-      cancelPlacement();
-      return;
-    }
-
-    const selected = gEditState.selected
-    if (gEditState.ghost) {
-      gScene.value.remove(gEditState.ghost);
-    }
-    resetSelected();
-    removeObject(selected);
+    if (selected === gPlayer.value) //switch to another alpaca if the playing alpaca got deleted
+        gPlayer.value = gAlpacas[0]
     saveGame()
   }
 
-  return { deleteItem, sellItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, scaleItem, rotateItem, cancelPlacement }
+  return { sellItem, selectItem, removeHighlight, highlightItem, moveItem, placeItem, scaleItem, rotateItem, cancelPlacement }
+}
+
+function get_entity(selected){
+  let entity
+  entity = gAlpacas.find(item => item.model === selected)
+  if (entity) return entity
+  entity = gItems.find(item => item.model === selected)
+  if (entity) return entity
+  entity = gDecorations.find(item => item.model === selected)
+  if (entity) return entity
+  return selected
 }
 
 function resetSelected() {

@@ -14,6 +14,7 @@ let originalSpitFn = null; // Store the original spit function to restore later
 
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   gMinigame.value.mode = 1
+  playerCount = 10 // total numbers of players
   setupEnvironment(gScene.value)
   changeFloorColor('#ff0000', '#550000')
   registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
@@ -99,7 +100,7 @@ function listenServerEvents(onlineClient) {
         gPlayer.value.isDead = -1
         if (gUser.value.hp === 0) {
           gPlayer.value.isDead = 1
-          gUser.value.isPlaying = false
+          gMinigame.value.isActive = false
         }
       }
     }

@@ -155,9 +155,9 @@ export class Alpaca {
       if (alpaca === gPlayer.value)
         gUser.value.point++ // for display
       if (this === gPlayer.value)
-        gUser.value.isPlaying = false // gameover
-      if (gUser.value.isPlaying && gCollidables.length === 1)
-        gUser.value.isPlaying = false // win, last standing alpaca
+        gMinigame.value.isActive = false // gameover
+      if (gMinigame.value.isActive && gCollidables.length === 1)
+        gMinigame.value.isActive = false // win, last standing alpaca
     }
     /*     else if (this.hp < 0)
         {

@@ -3,7 +3,7 @@ import * as PRIMITIVES from '../assets/primitives.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca, createDecoration, createItem } from '../core/createObjects.js';
-import { gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
+import { gAlpacas, gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
 import { removeObject } from '../core/removeObjects.js';
 import { attachCollider } from '../core/useCollider.js';
@@ -22,7 +22,7 @@ let level;
 let alivePlayers;
 let initalPlayerCount;
 let activePlayers = [];
-const playerPositions = [-2.5, 2.5, -7.5, 7.5];
+const playerPositions = [2.5, -2.5, -7.5, 7.5];
 
 let obstacleTimer = 2;
 let timerMultiplier = 1;
@@ -116,18 +116,18 @@ async function loadAssets() {
 async function initPlayers(playerCount, tempAlpacas) {
   activePlayers.length = 0;
   activePlayers.push(gPlayer.value);
+  registerEntity(gPlayer.value, 'alpaca');
   gMinigame.value.players = [];
   for (let i = 0; i < playerCount - 1; i++) {
     if (tempAlpacas[i]) {
       activePlayers.push(tempAlpacas[i]);
+      registerEntity(tempAlpacas[i], 'alpaca');
     } else {
-      activePlayers.push(await createAlpaca());
+      activePlayers.push(await createAlpaca()); // it registerEntity automactically here
     }
   }
-
   for (let i = 0; i < activePlayers.length; i++) {
     const alpaca = activePlayers[i];
-    registerEntity(alpaca, 'alpaca');
     gScene.value.add(alpaca.model);
     alpaca.model.position.x += playerPositions[i];
 
@@ -138,6 +138,7 @@ async function initPlayers(playerCount, tempAlpacas) {
       point: 0
     });
   }
+  console.log(gAlpacas)
 }
 
 function initScenery() {
