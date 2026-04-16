@@ -162,6 +162,12 @@ import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
 import FakeAd from '../components/FakeAd.vue'
 import ActiveLeaderboard from '../components/ActiveLeaderboard.vue'
+import ErrorBanner from '../components/ErrorBanner.vue'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+import EmptyState from '../components/EmptyState.vue'
+import BaseModal from '../components/BaseModal.vue'
+import BaseButton from '../components/BaseButton.vue'
+import BaseInput from '../components/BaseInput.vue'
 
 const authStore = useAuthStore()
 const posts = ref([])
@@ -247,12 +253,7 @@ async function createPost() {
     if (selectedImage.value) {
       const formData = new FormData()
       formData.append('files', selectedImage.value)
-      const uploadRes = await api.post('/uploads', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress(evt) {
-          if (evt.total) uploadProgress.value = Math.round((evt.loaded / evt.total) * 100)
-        },
-      })
+      const uploadRes = await api.post('/uploads', formData)
       imageUrl = uploadRes.data.files?.[0]?.url
       if (!imageUrl) {
         error.value = 'Image upload failed — try a smaller file or different format'

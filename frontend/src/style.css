@@ -54,87 +54,92 @@ a:hover {
   color: var(--primary-dark);
 }
 
-.shop-btn {
-
-  /* white-space: nowrap; */
-  min-width: 210px;
-  min-height: 60px;
-
-  padding: 12px 24px;
+/* Position the button at the bottom left */
+.bottom-left-nav {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1000;
 }
 
-/* --- Alpaca Stats Modal --- */
-
-.stats-content {
-  text-align: left;
-  padding: 10px;
-  font-size: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  /* Automatically adds space between all the rows! */
+.bottom-left-nav.with-footer {
+  bottom: 60px; /* Adjust this to sit above your footer height */
 }
 
-.stat-row {
+.message-btn {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(28, 42, 58, 0.8);
+  border: 1px solid rgba(0, 240, 255, 0.5);
   display: flex;
   align-items: center;
-  margin-bottom: 0.5tem;
-  gap: 8px;
-}
-
-.stat-color-box {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #333;
-  border-radius: 4px;
-}
-
-/* Space between - and + for Speed */
-.speed-controls {
-  display: flex;
-  gap: 5px;
-}
-
-
-.editable-text {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* pencil in alpaca stats */
-.icon-btn {
-  background: '#333';
-  border: 4px solid #333;
-  font-size: 20px;
+  justify-content: center;
   cursor: pointer;
-  padding: 6px;
-  border-radius: 8px;
-  opacity: 0.75;
+  backdrop-filter: blur(4px);
+  transition: transform 0.2s;
 }
 
-.icon-btn:hover {
-  background: rgba(0, 128, 128, 0.25);
-  opacity: 1;
+.message-btn:hover {
+  transform: scale(1.1);
+  background: rgba(40, 60, 80, 0.9);
 }
 
-.editing-mode {
+/* Red Badge Styling */
+.msg-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #ff006e; /* Match your danger color */
+  color: white;
+  font-size: 11px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid #0a0a0f; /* Adds a gap between badge and icon */
 }
 
-.name-input {
-  background: rgba(255, 255, 255, 0.9);
-  border: 3px solid #333;
-  border-radius: 8px;
-  padding: 6px 8px;
-  font-size: 18px;
-  font-family: inherit;
-  color: #333;
-  width: 150px;
-  outline: none;
+/* Modal Overlay Styles */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
 }
 
-.name-input:focus {
-  border-color: #5CBF61;
+.messages-modal-content {
+  width: 60vw;
+  height: 60vh;
+  max-width: 800px;
+  background: #0a0a0f;
+  border: 1px solid #2a2a3a;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.modal-close-top {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 2001;
+}
+
+.modal-close-top:hover {
+  color: #fff;
 }

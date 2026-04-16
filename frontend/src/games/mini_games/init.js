@@ -1,58 +1,76 @@
-import { ref } from 'vue'
-import { saveGame } from '../core/saveLoadGame.js'
-import { useGameEngine } from '../core/useGameEngine.js'
-import { gScene, gPlayer, gAlpacas, gUI, gUser, gCollidables} from '../core/globals.js';
-import { initWorld } from '../world/initWorld.js'
-import { createAlpaca, createItem } from '../core/createObjects.js'
-import { useAuthStore } from '../../stores/auth.js'
-import { setupEnvironment } from '../world/sceneBuilder.js'
-import { spawnObjectRandomly } from '../utils/spawnRandomly.js';
+import { ref } from 'vue';
+import { useAuthStore } from '../../stores/auth.js';
+import { clearCoins } from '../components/coins.js';
 import { CONST } from '../config/constants.js';
-import { registerEntity } from '../core/registerEntity.js';
-import { clearCoins } from '../components/coins.js'
-import * as GRADIENT from "../utils/createGradient.js"
+import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
+import { saveGame } from '../core/saveLoadGame.js';
+import { useGameEngine } from '../core/useGameEngine.js';
+import { initWorld } from '../world/initWorld.js';
+import { initAlpacaRoad } from './alpacaRoad.js';
+import { cleanupClient, initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
 
 const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
+const tempAlpacas = []
 
-export async function changeGame() {
+export async function changeGame(mode, playerCount) {
   if (!gPlayer.value || !gUser.value) return;
-
-  const { isAuthenticated } = useAuthStore()
-  gPlayer.value.hp = CONST.HP
+  if (gMinigame.value.mode === 0)
+    saveGame()
+  // clean up all clients
+  cleanupClient()
+  // Reset state
+  if (playerCount === undefined)
+    playerCount = 1
+  gUI.lockCamera = false
+  gUI.gameMenu = false
   gUser.value.hp = CONST.HP
-  gPlayer.value.point = 0
   gUser.value.point = 0
+  gUser.value.name = gPlayer.value.name
+  resetAlpaca(gPlayer.value)
+
+  gMinigame.value.isGameOver = false;
+  gMinigame.value.players = [];
+  tempAlpacas.length = 0
+  for (let i = 1; i < gAlpacas.length; ++i) {
+    if (gAlpacas[i] !== gPlayer.value) {
+      tempAlpacas.push(gAlpacas[i])
+      resetAlpaca(gAlpacas[i])
+    }
+  }
   clearScene(gScene.value)
   clearCoins()
   resetGArrays()
-  if (gUser.value.gameMode === 0)
-    initGame1()
-  else {
-  gUser.value.gameMode = 0
-  gPlayer.value = null
-  gUI.cameraMode = 0
-  await initWorld(gScene.value, isAuthenticated)
-  saveGame()
+
+  switch (mode) {
+    case 1:
+      initSpitRoyalAI(playerCount, tempAlpacas);
+      break;
+    case 2:
+      initSpitRoyalOnline();
+      break;
+    case 3:
+      initAlpacaRoad(playerCount, tempAlpacas);
+      break;
+    default:
+      await returnFarm();
   }
 }
 
-async function initGame1(){
-
-  gUser.value.gameMode = 1
-  setupEnvironment(gScene.value)
-  changeFloorColor('#ff0000', '#550000')
-  registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
-  gScene.value.add(gPlayer.value.model)
-  gUI.cameraMode = 1
-  gScene.value.add(await spawnObjectRandomly('/models/alpaca.glb', 10, "alpaca"))
+async function returnFarm() {
+  const authStore = useAuthStore()
+  gMinigame.value.isActive = false;
+  gMinigame.value.mode = 0;
+  gPlayer.value = null
+  gUI.cameraMode = 0
+  await initWorld(gScene.value, authStore.isAuthenticated)
+  saveGame()
 }
 
-function changeFloorColor(top, bottom){
-  const floorMat = gScene.value?.floor?.material?.[1];
-  if (!floorMat) return;
-  const newTexture = GRADIENT.Radial(top, bottom);
-  if (floorMat.map) floorMat.map.dispose();
-  floorMat.map = newTexture;
-  floorMat.needsUpdate = true;
+function resetAlpaca(alpaca) {
+  alpaca.hp = CONST.HP
+  alpaca.point = 0
+  alpaca.isDead = 0
+  alpaca.model.position.set(0, 0, 0)
+  alpaca.model.rotation.y = 0
 }

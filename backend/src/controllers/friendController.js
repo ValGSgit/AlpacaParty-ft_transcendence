@@ -5,7 +5,6 @@
 import Friend from '../models/Friend.js';
 import User from '../models/User.js';
 import NotificationService from '../services/notificationService.js';
-import GamificationService from '../services/gamificationService.js';
 
 /** GET /api/friends — list my friends */
 export const listFriends = async (req, res, next) => {
@@ -39,7 +38,14 @@ export const listRequests = async (req, res, next) => {
 export const sendRequest = async (req, res, next) => {
   try {
     const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: { message: 'userId is required' } });
+    if (!userId) {
+      return res.status(400).json({
+        error: {
+          message: 'userId is required',
+          fields: { userId: 'userId is required' },
+        },
+      });
+    }
     if (Number(userId) === req.user.id) {
       return res.status(400).json({ error: { message: 'Cannot friend yourself' } });
     }
@@ -59,7 +65,6 @@ export const acceptRequest = async (req, res, next) => {
     const request = await Friend.acceptRequest(Number(req.params.id), req.user.id);
     if (!request) return res.status(404).json({ error: { message: 'Request not found' } });
     await NotificationService.friendAccepted(request.senderId, req.user.username);
-    await GamificationService.checkSocialAchievements(req.user.id);
     res.json({ request });
   } catch (err) { next(err); }
 };

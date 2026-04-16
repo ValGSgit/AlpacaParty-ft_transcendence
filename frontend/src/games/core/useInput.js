@@ -3,51 +3,79 @@ import { reactive } from 'vue'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { useEditMode } from '../components/editMode.js'
 import { printDebug } from './debug.js'
-import { gEditState, gEngine, gScene, gPlayer, gUI, gUser } from './globals.js'
+import { gEditState, gEngine, gPlayer, gScene, gUI, gMinigame } from './globals.js'
 import { useUIManager } from './useUIManager.js'
+import { CONST } from '../config/constants.js';
+import { useSpatialBridge, handInput, headInput } from './useSpatialBridge.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions
 const keys = reactive({
   w: false, a: false, s: false, d: false, space: false, pointer: false
 })
 
+const heldKeys = new Set();
+
 export function useInput() {
   const { switchAlpaca } = alpacaHandling()
-  const { selectItem, highlightItem, moveItem, placeItem, rotateItem, cancelPlacement } = useEditMode()
+  const { selectItem, highlightItem, moveItem, placeItem, rotateItem, scaleItem, cancelPlacement } = useEditMode()
   const { closeMenus, openAlpacaShop } = useUIManager()
+
+  // Only when AR glasses is connected
+  const handleSpatialInput = (data) => {
+    if (data.type === 'hand')
+      handInput(data);
+    if (data.type === 'head' && gEngine.value?.camera)
+      headInput(data)
+  }
+
+  // Initialize the bridge
+  const { initSpatialBridge, closeSpatialBridge } = useSpatialBridge(handleSpatialInput)
 
   const onKeyDown = (e) => {
     switch (e.code) {
-      case 'KeyW': keys.w = true; break
-      case 'KeyA': keys.a = true; break
-      case 'KeyS': keys.s = true; break
-      case 'KeyD': keys.d = true; break
-      case 'Space': keys.space = true; break
+      case 'KeyW': heldKeys.add(e.code); break // add it to the set so it doesnt fight with the controller
+      case 'KeyA': heldKeys.add(e.code); break
+      case 'KeyS': heldKeys.add(e.code); break
+      case 'KeyD': heldKeys.add(e.code); break
+      case 'Space': heldKeys.add(e.code); break
       case 'KeyF': if (gPlayer.value) gPlayer.value.spit(); break
+      case 'ShiftLeft': keys.shift = true; break;
       case 'KeyP': printDebug(); break
       case 'Escape': handleEscapeKey(); break
+      case 'KeyQ': keys.q = true; break
+      case 'KeyL': keys.l = true; break
+      case 'Enter': keys.enter = true; break
     }
   }
 
   const onKeyUp = (e) => {
     switch (e.code) {
-      case 'KeyW': keys.w = false; break
-      case 'KeyA': keys.a = false; break
-      case 'KeyS': keys.s = false; break
-      case 'KeyD': keys.d = false; break
-      case 'Space': keys.space = false; break
+      case 'KeyW': heldKeys.delete(e.code); break
+      case 'KeyA': heldKeys.delete(e.code); break
+      case 'KeyS': heldKeys.delete(e.code); break
+      case 'KeyD': heldKeys.delete(e.code); break
+      case 'Space': heldKeys.delete(e.code); break
+      case 'KeyQ': keys.q = false; break
+      case 'KeyL': keys.l = false; break
+      case 'Enter': keys.enter = false; break
+      case 'ShiftLeft': keys.shift = false; break;
     }
   }
 
   const onWheel = (e) => {
     if (gUI.editMode && gEditState.selected) {
-      rotateItem(e)
+      if (keys.shift) {
+        scaleItem(e)
+      }
+      else {
+        rotateItem(e)
+      }
     }
   }
 
   const onDoubleClick = (e) => {
     // disable double click in mini games
-    if (gUser.value.gameMode)
+    if (gMinigame.value.mode)
       return
     console.log("double Click!");
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
@@ -99,6 +127,40 @@ export function useInput() {
     }
   }
 
+  //reset input so the keys dont stick (addictive)
+  function resetInput() {
+    keys.w = false;
+    keys.a = false;
+    keys.s = false;
+    keys.d = false;
+    keys.space = false;
+  }
+
+  // keyboard and controller working together
+  function updateInputState() {
+    keys.w = heldKeys.has('KeyW');
+    keys.s = heldKeys.has('KeyS');
+    keys.a = heldKeys.has('KeyA');
+    keys.d = heldKeys.has('KeyD');
+    keys.space = heldKeys.has('Space');
+  
+    const gp = navigator.getGamepads()[0];
+    if (gp) {
+      if (gp.axes[1] < -0.1) keys.w = true;
+      if (gp.axes[1] > 0.1)  keys.s = true;
+      if (gp.axes[0] < -0.1) keys.a = true;
+      if (gp.axes[0] > 0.1)  keys.d = true;
+      if (gp.buttons[0].pressed) keys.space = true;
+      if (gp.buttons[1].pressed && gPlayer.value) gPlayer.value.spit();
+    }
+  }
+
+  const onGamepadConnect = (e) => {
+    console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+      e.gamepad.index, e.gamepad.id,
+      e.gamepad.buttons.length, e.gamepad.axes.length);
+  };
+
   const initInput = () => {
     const canvas = gEngine.value.renderer.domElement;
 
@@ -108,6 +170,9 @@ export function useInput() {
     window.addEventListener('wheel', onWheel, { passive: true })
     canvas.addEventListener('dblclick', onDoubleClick)
     canvas.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener("gamepadconnected", onGamepadConnect);
+    if (CONST.AR_ENABLED)
+      initSpatialBridge() // Start the WebSocket
   }
 
   const cleanupInput = () => {
@@ -119,7 +184,10 @@ export function useInput() {
     window.removeEventListener('wheel', onWheel);
     canvas.removeEventListener('dblclick', onDoubleClick)
     canvas.removeEventListener('pointerdown', onPointerDown)
+    window.removeEventListener("gamepadconnected", onGamepadConnect);
+    if (CONST.AR_ENABLED)
+      closeSpatialBridge() // Stop the WebSocket
   }
 
-  return { keys, initInput, cleanupInput }
+  return { keys, initInput, cleanupInput, updateInputState, resetInput }
 }

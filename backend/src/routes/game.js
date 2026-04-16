@@ -7,8 +7,6 @@ import {
   getFarm, saveFarm, getAchievements, getChallenges,
 } from '../controllers/gameController.js';
 import { authenticate } from '../middleware/auth.js';
-import { validate, z } from '../middleware/validate.js';
-import { paginationQuery } from '../schemas/shared.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -65,9 +63,7 @@ router.get('/stats', getStats);
  *                       eloDelta: { type: integer, example: 15 }
  *                       playedAt: { type: string, format: date-time }
  */
-router.get('/history', validate({
-  query: paginationQuery.extend({ gameType: z.string().optional() }),
-}), getHistory);
+router.get('/history', getHistory);
 
 /**
  * @openapi
@@ -102,9 +98,7 @@ router.get('/history', validate({
  *                       wins: { type: integer }
  *                       losses: { type: integer }
  */
-router.get('/leaderboard', validate({
-  query: paginationQuery.extend({ gameType: z.string().optional() }),
-}), getLeaderboard);
+router.get('/leaderboard', getLeaderboard);
 
 /**
  * @openapi
@@ -150,15 +144,7 @@ router.get('/leaderboard', validate({
  *                 message: { type: string }
  */
 router.get('/farm', getFarm);
-router.put('/farm', validate({
-  body: z.object({
-    farmData: z.any().optional(),
-    farm:     z.any().optional(),
-  }).passthrough().refine(
-    (d) => d.farmData !== undefined || d.farm !== undefined,
-    { message: 'farmData is required' },
-  ),
-}), saveFarm);
+router.put('/farm', saveFarm);
 
 /**
  * @openapi

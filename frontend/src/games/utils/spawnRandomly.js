@@ -6,14 +6,13 @@ import { attachCollider } from '../core/useCollider';
 import { usePhysics } from "../core/usePhysics";
 import { getRandomPos, getRandomRot, getRandomScale } from "./randomValues";
 
-
-export async function spawnObjectRandomly(path, amount, type) {
+export async function spawnObjectRandomly(object, amount) {
   const itemsGroup = new THREE.Group();
-  const itemsData = await getValidRandomPos(path, amount);
+  const itemsData = await getValidRandomPos(object.path, amount);
 
   for (const data of itemsData) {
     let item;
-    switch (type) {
+    switch (object.type) {
       case 'alpaca':
         item = await createAlpaca(null, null, data.position, data.rotation, data.scale);
         break;
@@ -31,13 +30,15 @@ export async function spawnObjectRandomly(path, amount, type) {
         console.warn(`Spawn Object Warning: Unknown entity type '${type}'`);
     }
     if (item && item.model) {
+      if (object.type === 'item' || object.type === 'decoration')
+        item.model.userData.cost = object.cost;
       itemsGroup.add(item.model)
     }
   }
   return itemsGroup;
 }
 
-async function getValidRandomPos(path, amount) {
+export async function getValidRandomPos(path, amount) {
   const itemsData = [];
   const { checkCollisionWith } = usePhysics();
   const { model } = await getModel(path);

@@ -1,19 +1,26 @@
 import api from '../../services/api.js'
 import { useAuthStore } from '../../stores/auth.js'
-import { gAlpacas, gItems, gUser } from './globals.js'
+import { gAlpacas, gItems, gUser, gPlayer, gMinigame, gDecorations } from './globals.js'
 
 
 export async function saveGame() {
-  const { isAuthenticated } = useAuthStore()
-  if (!isAuthenticated) {
+  const authStore = useAuthStore()
+  if (!authStore.isAuthenticated || !authStore.user) {
     console.log("user not logged in, not saving")
     return
   }
 
-  if (gUser.value.gameMode)
+  if (gMinigame.value.mode)
     return
 
+  if (!gUser.value || !gPlayer.value) {
+    return
+  }
+
   const saveAlpacas = gAlpacas.map(alpaca => {
+    let selected = false
+    if (gPlayer.value === alpaca)
+      selected = true // save current selected alpaca
     return {
       name: alpaca.model.name,
       color: alpaca.color,
@@ -24,10 +31,12 @@ export async function saveGame() {
       rotationOffset: alpaca.rotationOffset,
       age: alpaca.age,
       aliveTime: alpaca.aliveTime,
+      selected
     };
   });
 
-  const saveItems = gItems.map(item => {
+const getItemsData = () => {
+  const items = gItems.map(item => {
     return {
       path: item.path,
       position: item.model.position.toArray(),
@@ -38,9 +47,23 @@ export async function saveGame() {
     };
   });
 
+  const decorations = gDecorations.map(item => {
+    return {
+      path: item.path,
+      position: item.model.position.toArray(),
+      rotation: item.model.rotation.y,
+      scale: item.model.scale.toArray(),
+      name: item.model.name,
+      type: item.type
+    };
+  });
+  return [...items, ...decorations];
+};
+
   try {
-    await api.put('users/me', {
-      items: saveItems,
+    const itemsData = getItemsData();
+    await api.put('/users/me/farmData', {
+      items: itemsData,
       alpacas: saveAlpacas,
       coins: gUser.value.coins,
       upgrades: gUser.value.upgrades

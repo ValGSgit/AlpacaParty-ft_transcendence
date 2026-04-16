@@ -1,32 +1,31 @@
 #!/bin/sh
-
-set -e
-
-# Install dependencies (always use npm install — npm ci requires exact lock file sync)
-# (prev version) npm install --ignore-scripts
-
-# Sync database schema (idempotent — works whether DB is empty or pre-initialized by init.sql)
-# (prev)echo "Syncing database schema..."
-# (prev)npx prisma db push --accept-data-loss
-
 set -e
 
 # Creates package lock if it does not exist
-if [ ! -f "package-lock.json" ]; then
-  echo run npm install
-  npm install --ignore-scripts
-else 
-  echo package-lock.json exists
-  npm clean-install --ignore-scripts
+echo "run npm install"
+npm install
+
+# Builds the /run/secrets/.env file
+/usr/local/bin/load-secrets.sh
+
+# Use local binaries directly — avoids npx re-downloading packages
+# when the npm 11 lookup misses local node_modules/.bin.
+run_with_secrets="./node_modules/.bin/env-cmd -f /run/secrets/.env"
+prisma="./node_modules/.bin/prisma"
+
+echo "Applying database migrations..."
+if find prisma/migrations -mindepth 1 -maxdepth 1 -type d | grep -q .; then
+	# Apply committed migrations only; do not generate new files at container boot.
+	$run_with_secrets $prisma migrate deploy
+else
+	echo "No migration folders found, creating initial migration..."
+	$run_with_secrets $prisma migrate dev --name init
 fi
 
-# Create migration files from schema if none exist, then apply all pending migrations.
-# migrate dev generates the initial migration on first run (creates the folder),
-# then on subsequent runs it's a no-op when schema is in sync.
-echo "Applying database migrations..."
-npx prisma migrate dev --name init
+echo "Create prisma client"
+$run_with_secrets $prisma generate
 
-# Regenerate client in case node_modules was freshly volume-mounted.
-npx prisma generate
+echo "Seed database"
+$run_with_secrets npm run seed
 
 exec "$@"

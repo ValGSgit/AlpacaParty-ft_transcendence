@@ -1,13 +1,19 @@
-import { watch } from 'vue'
-import { gUser, gScene, gAlpacas, gItems } from './globals.js'
-import { saveGame } from './saveLoadGame.js'
+import { watch } from 'vue';
+import { gUI, gUser } from './globals.js';
+import { saveGame } from './saveLoadGame.js';
 
 
-export function watchChanges() {
+export function watchChanges(setDoF) {
   // Watch specifically the coins and upgrades properties
-  const stopMyWatcher = watch([() => gUser.value.coins, () => gUser.value.upgrades],
+  const stopGamePlayWatcher = watch([() => gUser.coins, () => gUser.upgrades],
     () => {
       saveGame();
     })
-  return stopMyWatcher
+
+  const stopDoFWatcher = watch(() => gUI.DoF, (newVal) => {
+    if (setDoF) setDoF(newVal);
+  }, { immediate: true });
+
+  return () => { stopGamePlayWatcher(); stopDoFWatcher; };
 }
+

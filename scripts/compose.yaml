@@ -1,0 +1,29 @@
+# Stress Test Service — Runs comprehensive load/security tests
+services:
+  stress-test:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.stress-test
+    container_name: alpacaparty_stress_test
+    profiles:
+      - stress-test
+    volumes:
+      - stress_test_results:/app/stress-test-results
+    networks:
+      - alpacaparty_net
+    depends_on:
+      nginx:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    environment:
+      # Customize these via docker compose run --env flags
+      BASE_URL: https://nginx:443
+      DURATION: 30s
+      CONCURRENCY: 25
+    # Run the test as a one-shot job (don't restart)
+    restart: "no"
+
+volumes:
+  stress_test_results:
+    driver: local

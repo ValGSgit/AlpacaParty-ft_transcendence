@@ -11,8 +11,6 @@ import {
   repostPost, unrepostPost,
 } from '../controllers/commentController.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
-import { validate, z } from '../middleware/validate.js';
-import { positiveId, paginationQuery, imageUrlSchema } from '../schemas/shared.js';
 
 const router = express.Router();
 
@@ -21,8 +19,9 @@ const router = express.Router();
  * /posts:
  *   get:
  *     tags: [Posts]
- *     summary: Get the social feed (public posts + friends' posts if authenticated)
- *     security: [{}]
+ *     summary: Get the social feed (public posts + friends' posts)
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - $ref: '#/components/parameters/limitParam'
  *       - $ref: '#/components/parameters/offsetParam'
@@ -60,15 +59,8 @@ const router = express.Router();
  *                 post: { $ref: '#/components/schemas/Post' }
  *       400: { description: content is required }
  */
-router.get('/', optionalAuth, validate({ query: paginationQuery }), getFeed);
-router.post('/', authenticate, validate({
-  body: z.object({
-    content:   z.string({ required_error: 'content is required' }).trim().min(1, 'content is required').max(5000, 'content must be 5000 characters or fewer'),
-    imageUrl:  imageUrlSchema,
-    image_url: imageUrlSchema,
-    isPublic:  z.boolean().optional(),
-  }).passthrough(),
-}), createPost);
+router.get('/', authenticate, getFeed);
+router.post('/', authenticate, createPost);
 
 /**
  * @openapi
@@ -94,10 +86,7 @@ router.post('/', authenticate, validate({
  *               properties:
  *                 posts: { type: array, items: { $ref: '#/components/schemas/Post' } }
  */
-router.get('/user/:userId', optionalAuth, validate({
-  params: z.object({ userId: positiveId }),
-  query:  paginationQuery,
-}), getUserPosts);
+router.get('/user/:userId', optionalAuth, getUserPosts);
 
 /**
  * @openapi
@@ -169,17 +158,9 @@ router.get('/user/:userId', optionalAuth, validate({
  *       403: { description: Not your post }
  *       404: { description: Post not found }
  */
-router.get('/:id', optionalAuth, validate({ params: z.object({ id: positiveId }) }), getPost);
-router.put('/:id', authenticate, validate({
-  params: z.object({ id: positiveId }),
-  body: z.object({
-    content:   z.string().min(1).max(5000).trim().optional(),
-    imageUrl:  imageUrlSchema,
-    image_url: imageUrlSchema,
-    isPublic:  z.boolean().optional(),
-  }).passthrough(),
-}), updatePost);
-router.delete('/:id', authenticate, validate({ params: z.object({ id: positiveId }) }), deletePost);
+router.get('/:id', optionalAuth, getPost);
+router.put('/:id', authenticate, updatePost);
+router.delete('/:id', authenticate, deletePost);
 
 /**
  * @openapi
@@ -220,8 +201,8 @@ router.delete('/:id', authenticate, validate({ params: z.object({ id: positiveId
  *               properties:
  *                 likes_count: { type: integer }
  */
-router.post('/:id/like', authenticate, validate({ params: z.object({ id: positiveId }) }), likePost);
-router.delete('/:id/like', authenticate, validate({ params: z.object({ id: positiveId }) }), unlikePost);
+router.post('/:id/like', authenticate, likePost);
+router.delete('/:id/like', authenticate, unlikePost);
 
 /**
  * @openapi
@@ -273,14 +254,8 @@ router.delete('/:id/like', authenticate, validate({ params: z.object({ id: posit
  *               properties:
  *                 comment: { $ref: '#/components/schemas/Comment' }
  */
-router.get('/:id/comments', optionalAuth, validate({
-  params: z.object({ id: positiveId }),
-  query:  paginationQuery,
-}), getComments);
-router.post('/:id/comments', authenticate, validate({
-  params: z.object({ id: positiveId }),
-  body:   z.object({ content: z.string().min(1, 'content is required').max(2000, 'comment must be 2000 characters or fewer').trim() }),
-}), createComment);
+router.get('/:id/comments', optionalAuth, getComments);
+router.post('/:id/comments', authenticate, createComment);
 
 /**
  * @openapi
@@ -311,9 +286,7 @@ router.post('/:id/comments', authenticate, validate({
  *       403: { description: Not authorized }
  *       404: { description: Comment not found }
  */
-router.delete('/:id/comments/:commentId', authenticate, validate({
-  params: z.object({ id: positiveId, commentId: positiveId }),
-}), deleteComment);
+router.delete('/:id/comments/:commentId', authenticate, deleteComment);
 
 /**
  * @openapi
@@ -361,10 +334,7 @@ router.delete('/:id/comments/:commentId', authenticate, validate({
  *               properties:
  *                 reposts_count: { type: integer }
  */
-router.post('/:id/repost', authenticate, validate({
-  params: z.object({ id: positiveId }),
-  body:   z.object({ comment: z.string().max(500, 'repost comment must be 500 characters or fewer').nullable().optional() }),
-}), repostPost);
-router.delete('/:id/repost', authenticate, validate({ params: z.object({ id: positiveId }) }), unrepostPost);
+router.post('/:id/repost', authenticate, repostPost);
+router.delete('/:id/repost', authenticate, unrepostPost);
 
 export default router;
