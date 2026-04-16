@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { MATERIALS as MATS } from '../config/materials.js';
 import { gAlpacas, gPlayer, gScene, gMinigame } from "../core/globals.js";
 import { useUIManager } from '../core/useUIManager.js';
+import { getActiveClient } from '../mini_games/GameClient.js';
 
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const worldPoint = new THREE.Vector3();
@@ -92,15 +93,16 @@ export function alpacaHandling() {
           } else {
             // --- MULTIPLAYER LOGIC ---
             // Only the person who fired the laser is allowed to tell the server it hit!
-            if (s.owner === gPlayer.value && window.onlineClient) {
-               
+            const client = getActiveClient();
+            if (s.owner === gPlayer.value && client) {
+
                // Traverse up the 3D object to find the tag we will place on remote players
                let obj = hits[0].object;
                while (obj && !obj.userData.networkId) obj = obj.parent;
-               
-               if (obj && obj.userData.networkId && obj.userData.networkId !== window.onlineClient.localPlayerId) {
+
+               if (obj && obj.userData.networkId && obj.userData.networkId !== client.localPlayerId) {
                  // We hit a remote player! Tell the server.
-                 window.onlineClient.socket.emit('spit_hit', { targetId: obj.userData.networkId });
+                 client.emit('spit_hit', { targetId: obj.userData.networkId });
                }
             }
           }

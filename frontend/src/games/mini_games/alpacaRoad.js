@@ -308,9 +308,6 @@ function updateDifficulty() {
     timerMultiplier = Math.max(0.5, timerMultiplier - 0.05);
 
     showLevelAnnouncement(level);
-    console.log("Level:", level);
-    console.log("Speed:", roadSpeed);
-    console.log("Timer:", timerMultiplier);
   }
 }
 
@@ -379,7 +376,6 @@ function awardPoints(obstacle) {
       }
     }
   }
-  console.log("Total:", totalPoints);
   obstacle.pointGiven = true;
 }
 
@@ -454,28 +450,10 @@ function checkAlpaca(alpaca) {
 }
 
 function endMinigame() {
-  if (gMinigame.value.isGameOver) return;
-
-  let aliveAlpacas = initalPlayerCount;
-  for (let i = 0; i < activePlayers.length; i++) {
-    const alpaca = activePlayers[i];
-    if (!alpaca.isBeingHit && alpaca.isDead) {
-      aliveAlpacas--;
-    }
-  }
-  if (aliveAlpacas <= 0) {
-    gMinigame.value.isGameOver = true;
+  // Wait for all death animations to finish before ending
+  const allAnimationsDone = activePlayers.every(a => !a.isBeingHit);
+  if (allAnimationsDone) {
     gMinigame.value.isActive = false;
-    const playerPoints = activePlayers[0].point || 0;
-    const earnedCoins = Math.floor(playerPoints / 10);
-
-    console.log(`Minigame Over! Points: ${playerPoints}, Coins: ${earnedCoins}`);
-
-    if (earnedCoins > 0) {
-      setTimeout(() => {
-        collectRewards(earnedCoins);
-      }, 50);
-    }
   }
 }
 
@@ -489,6 +467,11 @@ export function cleanupAlpacaRoad() {
     gScene.value.remove(obj);
   });
   activeObstacles.length = 0;
+
+  activeBuildings.forEach(building => {
+    gScene.value.remove(building);
+  });
+  activeBuildings.length = 0;
 
   roadScene.forEach(item => {
     gScene.value.remove(item);
@@ -504,12 +487,11 @@ export function cleanupAlpacaRoad() {
       alpaca.isDead = false;
       alpaca.isBeingHit = false;
     }
-    setSunLight();
-    adjustSunBox();
   });
-
   activePlayers.length = 0;
 
+  setSunLight();
+  adjustSunBox();
   gUI.lockCamera = false;
   gUI.cameraMode = 1;
   console.log("🧹 Minigame cleaned up.");

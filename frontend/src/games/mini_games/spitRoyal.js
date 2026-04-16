@@ -45,7 +45,6 @@ export async function initSpitRoyalOnline() {
   gUI.cameraMode = 1;
 
   onlineClient = new SpitRoyaleClient();
-  window.onlineClient = onlineClient; // Expose it globally so alpacaHandling can reach it easily
   const playerName = gUser.value?.name || 'Vue_Alpaca';
   onlineClient.connect(playerName);
 
@@ -53,10 +52,10 @@ export async function initSpitRoyalOnline() {
   originalSpitFn = gPlayer.value.spit;
   gPlayer.value.spit = () => {
     originalSpitFn.call(gPlayer.value);
-    if (onlineClient) onlineClient.socket.emit('spit'); // Tell server we shot!
+    if (onlineClient) onlineClient.fireSpit();
   };
 
-  listenServerEvents(onlineClient)
+  setupCallbacks(onlineClient);
   gMinigame.value.isActive = true;
 }
 
@@ -80,21 +79,19 @@ export function cleanupClient() {
   }
 }
 
-function listenServerEvents(onlineClient) {
-  onlineClient.socket.on('spit:message', (msg) => {
-    // A remote player shot a laser!
+function setupCallbacks(client) {
+  // --- GAME-SPECIFIC EVENTS (player_spit, player_hit) ---
+  client.onGameEvent = (msg) => {
     if (msg.type === 'player_spit') {
       if (remotePlayers[msg.playerId]) {
         const { makeSpit } = alpacaHandling();
-        // Pass a mock object that makeSpit can read (it only needs the model)
-        makeSpit(remotePlayers[msg.playerId]);
+        makeSpit({ model: remoteModel, isDead: false });
       }
     }
 
-    // Someone took damage
     if (msg.type === 'player_hit') {
-      if (msg.targetId === onlineClient.localPlayerId) {
-        gUser.value.hp = msg.health; // Update my UI
+      if (msg.targetId === client.localPlayerId) {
+        gUser.value.hp = msg.health;
         gPlayer.value.hp = msg.health;
         gPlayer.value.isDead = -1
         if (gUser.value.hp === 0) {
@@ -110,13 +107,20 @@ function listenServerEvents(onlineClient) {
           remotePlayers[msg.targetId].isDead = 1
       }
     }
-  });
+  };
 
-  onlineClient.onStateUpdate = (state) => {
+  // --- GAME OVER ---
+  client.onGameOver = (msg) => {
+    gPlayer.value.isDead = 1;
+    gUser.value.isPlaying = false;
+  };
+
+  // --- STATE UPDATES (remote player positions) ---
+  client.onStateUpdate = (state) => {
     const serverPlayerIds = new Set(state.players.map(p => p.id));
 
     for (const p of state.players) {
-      if (p.id === onlineClient.localPlayerId) continue; // Skip ourselves
+      if (p.id === client.localPlayerId) continue; // Skip ourselves
 
       // --- REMOTE PLAYERS ---
       if (!remotePlayers[p.id]) {
@@ -148,17 +152,16 @@ function listenServerEvents(onlineClient) {
     cleanUpDisconnectedPlayers(serverPlayerIds)
   };
 
-  onlineClient.onJoined = (playerId, spawn) => {
+  // --- JOINED: snap to spawn, start sending inputs ---
+  client.onJoined = (playerId, spawn) => {
     console.log("Joined multiplayer as:", playerId);
 
-    // --- SNAP TO RANDOM SPAWN ---
     if (spawn) {
       gPlayer.value.model.position.set(spawn.x, 0, spawn.z);
       gPlayer.value.model.rotation.y = spawn.angle;
     }
 
-    // --- START SENDING INPUTS ---
-    onlineClient.getInput = () => {
+    client.getInput = () => {
       return {
         x: gPlayer.value?.model.position.x || 0,
         y: gPlayer.value?.model.position.y || 0,

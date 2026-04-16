@@ -1,12 +1,9 @@
-import AuthService from './authService.js';
-import User from '../models/User.js';
-//import { CONST } from '../../../frontend/src/games/config/constants.js';
-//can't do that as they are two different dockers
+import { socketAuthMiddleware } from './socketAuth.js';
 
-const TICK_RATE = 33; 
-const MAX_HEALTH = 3//CONST.HP;
+const TICK_RATE = 33;
+const MAX_HEALTH = 3;
 const MAX_PLAYERS = 20;
-const ARENA_RADIUS = 25//CONST.BASE_RADIUS;
+const ARENA_RADIUS = 25;
 const PLAYER_RADIUS = 2;
 
 function generateId() {
@@ -15,7 +12,7 @@ function generateId() {
 
 export function initializeSpitRoyaleNamespace(io) {
   const namespace = io.of('/spit-royale');
-  
+
   // Keep track of ongoing matches
   const matches = new Map();
   const playerToMatch = new Map();
@@ -23,49 +20,43 @@ export function initializeSpitRoyaleNamespace(io) {
   // --- HELPER: Random Non-Overlapping Spawn ---
   function getValidSpawn(players) {
     for (let attempts = 0; attempts < 50; attempts++) {
-      // Pick random angle and distance from center
       const angle = Math.random() * Math.PI * 2;
-      const r = Math.random() * (ARENA_RADIUS - 2); // -2 to stay away from the wall
-      
+      const r = Math.random() * (ARENA_RADIUS - 2);
+
       const x = Math.cos(angle) * r;
       const z = Math.sin(angle) * r;
-      
-      // Check distance against all other players
+
       let isOverlapping = false;
       for (const p of Object.values(players)) {
         const dx = p.x - x;
         const dz = p.z - z;
         const dist = Math.sqrt(dx * dx + dz * dz);
-        
-        if (dist < PLAYER_RADIUS * 2.5) { // 2.5 gives a nice buffer
+
+        if (dist < PLAYER_RADIUS * 2.5) {
           isOverlapping = true;
           break;
         }
       }
-      
+
       if (!isOverlapping) {
-        return { x, z, angle: -angle }; // Face towards the center roughly
+        return { x, z, angle: -angle };
       }
     }
-    // Fallback if the arena is wildly crowded
-    return { x: 0, z: 0, angle: 0 }; 
+    return { x: 0, z: 0, angle: 0 };
   }
 
-  namespace.use(async (socket, next) => {
-    // ... (Keep your auth middleware exactly the same) ...
-    next(); 
-  });
+  namespace.use(socketAuthMiddleware());
 
   namespace.on('connection', (socket) => {
     const playerId = `u${socket.user?.id || generateId()}`;
 
     // 1. JOINING THE ARENA
     socket.on('join', ({ name } = {}) => {
-      if (playerToMatch.has(playerId)) return; 
+      if (playerToMatch.has(playerId)) return;
 
       // Find a match that isn't full, or create a new one
       let matchToJoin = Array.from(matches.values()).find(m => Object.keys(m.players).length < MAX_PLAYERS);
-      
+
       if (!matchToJoin) {
         const matchId = generateId();
         matchToJoin = {
@@ -78,7 +69,6 @@ export function initializeSpitRoyaleNamespace(io) {
         matches.set(matchId, matchToJoin);
       }
 
-      // Generate a safe spawn point
       const spawn = getValidSpawn(matchToJoin.players);
 
       const newPlayer = {
@@ -94,10 +84,10 @@ export function initializeSpitRoyaleNamespace(io) {
       playerToMatch.set(playerId, matchToJoin.id);
       socket.join(matchToJoin.roomName);
 
-      socket.emit('spit:message', { 
-        type: 'joined', 
+      socket.emit('game:message', {
+        type: 'joined',
         playerId,
-        spawn: { x: spawn.x, z: spawn.z, angle: spawn.angle } 
+        spawn: { x: spawn.x, z: spawn.z, angle: spawn.angle }
       });
     });
 
@@ -118,7 +108,7 @@ export function initializeSpitRoyaleNamespace(io) {
     socket.on('spit', () => {
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
-      if (match) socket.broadcast.to(match.roomName).emit('spit:message', { type: 'player_spit', playerId });
+      if (match) socket.broadcast.to(match.roomName).emit('game:message', { type: 'player_spit', playerId });
     });
 
     socket.on('spit_hit', ({ targetId }) => {
@@ -128,14 +118,13 @@ export function initializeSpitRoyaleNamespace(io) {
 
       const target = match.players[targetId];
       if (target && target.alive) {
-        target.health -= 1; 
-        namespace.to(match.roomName).emit('spit:message', { type: 'player_hit', targetId, health: target.health });
+        target.health -= 1;
+        namespace.to(match.roomName).emit('game:message', { type: 'player_hit', targetId, health: target.health });
 
         if (target.health <= 0) {
           target.alive = false;
-          // Kick just the dead player out, leave everyone else playing!
-          target.socket.emit('spit:message', { type: 'game_over', winner: 'You were eliminated!' });
-          //removePlayer(target.id, match);
+          target.socket.emit('game:message', { type: 'game_over', reason: 'eliminated' });
+          removePlayer(target.id, match);
         }
       }
     });
@@ -151,11 +140,10 @@ export function initializeSpitRoyaleNamespace(io) {
   function removePlayer(pid, match) {
     const player = match.players[pid];
     if (player) player.socket.leave(match.roomName);
-    
+
     delete match.players[pid];
     playerToMatch.delete(pid);
 
-    // If the room is empty, shut it down to save server memory
     if (Object.keys(match.players).length === 0) {
       clearInterval(match.interval);
       matches.delete(match.id);
@@ -168,7 +156,7 @@ export function initializeSpitRoyaleNamespace(io) {
         id: p.id, name: p.name, x: p.x, y: p.y || 0, z: p.z, angle: p.angle, health: p.health
       }))
     };
-    namespace.to(match.roomName).emit('spit:message', { type: 'tick', state });
+    namespace.to(match.roomName).emit('game:message', { type: 'tick', state });
   }
 }
 export default initializeSpitRoyaleNamespace;
