@@ -24,30 +24,25 @@ export async function changeGame(mode, playerCount) {
     playerCount = 1
   gUI.lockCamera = false
   gUI.gameMenu = false
-  gPlayer.value.hp = CONST.HP
   gUser.value.hp = CONST.HP
-  gUser.value.isPlaying = true
-  gPlayer.value.point = 0
-  gPlayer.value.isDead = 0
   gUser.value.point = 0
   gUser.value.name = gPlayer.value.name
-  gPlayer.value.model.position.set(0, 0, 0)
-  gPlayer.value.model.rotation.y = 0
+  resetAlpaca(gPlayer.value)
 
+  gMinigame.value.isGameOver = false;
   gMinigame.value.players = [];
   tempAlpacas.length = 0
-  for (let i = 1; i < gAlpacas.length && i < playerCount - 1; ++i) {
+  for (let i = 1; i < gAlpacas.length; ++i) {
     if (gAlpacas[i] !== gPlayer.value) {
       tempAlpacas.push(gAlpacas[i])
-      gAlpacas[i].model.position.set(0, 0, 0)
-      gAlpacas[i].model.rotation.y = 0
+      resetAlpaca(gAlpacas[i])
     }
   }
   clearScene(gScene.value)
   clearCoins()
   resetGArrays()
 
-  switch(mode) {
+  switch (mode) {
     case 1:
       initSpitRoyalAI(playerCount, tempAlpacas);
       break;
@@ -70,4 +65,12 @@ async function returnFarm() {
   gUI.cameraMode = 0
   await initWorld(gScene.value, authStore.isAuthenticated)
   saveGame()
+}
+
+function resetAlpaca(alpaca) {
+  alpaca.hp = CONST.HP
+  alpaca.point = 0
+  alpaca.isDead = 0
+  alpaca.model.position.set(0, 0, 0)
+  alpaca.model.rotation.y = 0
 }
