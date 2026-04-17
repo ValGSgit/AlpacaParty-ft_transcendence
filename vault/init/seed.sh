@@ -46,8 +46,6 @@ vault kv put secret/alpacaparty \
   db_name="${DB_NAME:-alpacaparty}" \
   jwt_secret="${JWT_SECRET}" \
   api_keys="${API_KEYS:-change-me-to-a-secure-key}" \
-  groq_api_key="${GROQ_API_KEY:-}" \
-  huggingface_api_key="${HUGGINGFACE_API_KEY:-}" \
   google_client_id="${GOOGLE_CLIENT_ID:-}" \
   google_client_secret="${GOOGLE_CLIENT_SECRET:-}" \
   github_client_id="${GITHUB_CLIENT_ID:-}" \
