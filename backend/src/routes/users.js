@@ -88,9 +88,9 @@ router.use(authenticate);
  *                 message: { type: string, example: "Account deleted" }
  */
 router.get("/me", getMe);
-router.get("/me/farmData", getFarmData);
+router.get("/me/farmdata", getFarmData);
 router.put("/me", userUpdateValidation(), updateMe);
-router.put("/me/farmData", updateFarmData);
+router.put("/me/farmdata", updateFarmData);
 router.delete("/me", deleteMe);
 
 /**
