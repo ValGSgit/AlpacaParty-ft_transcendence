@@ -1,6 +1,6 @@
 import { useEditMode } from "../components/editMode";
 import { changeGame } from '../mini_games/init.js';
-import { gEngine, gUI, gMinigame } from "./globals";
+import { gEngine, gMinigame, gUI } from "./globals";
 
 export function useUIManager() {
 
@@ -75,6 +75,7 @@ export function useUIManager() {
   }
 
   const openGameMenu = () => {
+    closeEditMode()
     if (gMinigame.value.mode)
       changeGame()
     else
