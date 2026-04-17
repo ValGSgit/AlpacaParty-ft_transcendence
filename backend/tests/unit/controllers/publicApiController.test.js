@@ -235,7 +235,7 @@ describe('createPost', () => {
   test('creates post successfully', async () => {
     const post = { id: 1, content: 'hello', authorId: 1 };
     mockPost.create.mockResolvedValue(post);
-    const { req, res, next } = createReqRes({ body: { content: 'hello', authorId: 1 } });
+    const { req, res, next } = createReqRes({ body: { content: 'hello', authorId: 1 }, isServerKey: true });
     await createPost(req, res, next);
     expect(res._status).toBe(201);
     expect(res._json.post).toEqual(post);
@@ -257,15 +257,15 @@ describe('createPost', () => {
   });
 
   test('returns 400 when authorId is missing', async () => {
-    const { req, res, next } = createReqRes({ body: { content: 'hello' } });
+    const { req, res, next } = createReqRes({ body: { content: 'hello' }, isServerKey: true });
     await createPost(req, res, next);
     expect(res._status).toBe(400);
-    expect(res._json.error.message).toBe('authorId is required');
+    expect(res._json.error.message).toBe('authorId is required for server-level calls');
   });
 
   test('passes imageUrl when provided', async () => {
     mockPost.create.mockResolvedValue({ id: 1 });
-    const { req, res, next } = createReqRes({ body: { content: 'hello', authorId: 1, imageUrl: '/img.png' } });
+    const { req, res, next } = createReqRes({ body: { content: 'hello', authorId: 1, imageUrl: '/img.png' }, isServerKey: true });
     await createPost(req, res, next);
     expect(mockPost.create).toHaveBeenCalledWith({ authorId: 1, content: 'hello', imageUrl: '/img.png' });
   });
@@ -273,7 +273,7 @@ describe('createPost', () => {
   test('calls next on error', async () => {
     const err = new Error('fail');
     mockPost.create.mockRejectedValue(err);
-    const { req, res, next } = createReqRes({ body: { content: 'hi', authorId: 1 } });
+    const { req, res, next } = createReqRes({ body: { content: 'hi', authorId: 1 }, isServerKey: true });
     await createPost(req, res, next);
     expect(next).toHaveBeenCalledWith(err);
   });
@@ -285,7 +285,7 @@ describe('updatePost', () => {
     const existing = { id: 1, author_id: 2, content: 'old' };
     mockPost.findById.mockResolvedValue(existing);
     mockPost.update.mockResolvedValue({ id: 1, content: 'new' });
-    const { req, res, next } = createReqRes({ params: { id: '1' }, body: { content: 'new' } });
+    const { req, res, next } = createReqRes({ params: { id: '1' }, body: { content: 'new' }, apiKeyUserId: 2 });
     await updatePost(req, res, next);
     expect(mockPost.update).toHaveBeenCalledWith(1, 2, { content: 'new', imageUrl: undefined });
     expect(res._json.post.content).toBe('new');
@@ -320,7 +320,7 @@ describe('deletePost', () => {
   test('deletes post successfully', async () => {
     mockPost.findById.mockResolvedValue({ id: 1, author_id: 2 });
     mockPost.delete.mockResolvedValue(true);
-    const { req, res, next } = createReqRes({ params: { id: '1' } });
+    const { req, res, next } = createReqRes({ params: { id: '1' }, apiKeyUserId: 2 });
     await deletePost(req, res, next);
     expect(mockPost.delete).toHaveBeenCalledWith(1, 2);
     expect(res._json.message).toBe('Post deleted');

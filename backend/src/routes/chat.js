@@ -7,6 +7,10 @@ import {
   listRooms, createRoom, getRoomMessages, addMember, removeMember, deleteRoom,
 } from '../controllers/chatController.js';
 import { authenticate } from '../middleware/auth.js';
+import { body } from 'express-validator';
+import { chatRoomCreateValidation, idParamValidation } from '../validators/contentValidator.js';
+import { checkValidation } from '../validators/validatorUtils.js';
+import { chatSendLimiter } from '../middleware/rateLimiters.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -82,7 +86,7 @@ router.get('/unread', getUnreadCount);
  *                 messages: { type: array, items: { $ref: '#/components/schemas/Message' } }
  *       400: { description: Invalid user ID or cannot message yourself }
  */
-router.get('/dm/:userId', getConversation);
+router.get('/dm/:userId', idParamValidation('userId'), checkValidation, getConversation);
 
 /**
  * @openapi
@@ -124,7 +128,7 @@ router.get('/dm/:userId', getConversation);
  *       400: { description: Room name is required or too long }
  */
 router.get('/rooms', listRooms);
-router.post('/rooms', createRoom);
+router.post('/rooms', chatSendLimiter, chatRoomCreateValidation(), checkValidation, createRoom);
 
 /**
  * @openapi
@@ -151,7 +155,7 @@ router.post('/rooms', createRoom);
  *                 messages: { type: array, items: { $ref: '#/components/schemas/Message' } }
  *       403: { description: Not a member of this room }
  */
-router.get('/rooms/:id/messages', getRoomMessages);
+router.get('/rooms/:id/messages', idParamValidation(), checkValidation, getRoomMessages);
 
 /**
  * @openapi
@@ -186,7 +190,13 @@ router.get('/rooms/:id/messages', getRoomMessages);
  *       403: { description: Only the room owner can add members }
  *       404: { description: Room not found }
  */
-router.post('/rooms/:id/members', addMember);
+router.post(
+  '/rooms/:id/members',
+  idParamValidation(),
+  [body('userId').isInt({ min: 1 }).withMessage('userId must be a positive integer')],
+  checkValidation,
+  addMember,
+);
 
 /**
  * @openapi
@@ -217,7 +227,11 @@ router.post('/rooms/:id/members', addMember);
  *       403: { description: Only the room owner can remove other members }
  *       404: { description: Room not found }
  */
-router.delete('/rooms/:id/members/:userId', removeMember);
+router.delete(
+  '/rooms/:id/members/:userId',
+  idParamValidation(), idParamValidation('userId'), checkValidation,
+  removeMember,
+);
 
 /**
  * @openapi
@@ -242,6 +256,6 @@ router.delete('/rooms/:id/members/:userId', removeMember);
  *       403: { description: Not the room owner }
  *       404: { description: Room not found }
  */
-router.delete('/rooms/:id', deleteRoom);
+router.delete('/rooms/:id', idParamValidation(), checkValidation, deleteRoom);
 
 export default router;

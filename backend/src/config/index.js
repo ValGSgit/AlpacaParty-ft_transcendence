@@ -89,8 +89,6 @@ const config = {
         .filter(Boolean),
     );
   },
-  groqApiKey: process.env.GROQ_API_KEY || "",
-  huggingfaceApiKey: process.env.HUGGINGFACE_API_KEY || "",
   get modUsers() {
     return (process.env.MOD_USERS || "")
       .split(",")
@@ -115,12 +113,15 @@ const config = {
       "application/xml",
       "text/xml",
     ],
+    // NOTE: image/svg+xml intentionally excluded. SVG is script-capable,
+    // so even when upload is allowed (see allowedMimeTypes), we never serve
+    // it inline — uploadSecurity.js forces Content-Disposition: attachment
+    // for any mime type not listed here.
     imageMimeTypes: [
       "image/jpeg",
       "image/png",
       "image/gif",
       "image/webp",
-      "image/svg+xml",
     ],
   },
 

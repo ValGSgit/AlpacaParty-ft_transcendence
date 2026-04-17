@@ -62,7 +62,7 @@ const getItemsData = () => {
 
   try {
     const itemsData = getItemsData();
-    await api.put('/users/me/farmData', {
+    await api.put('/users/me/farmdata', {
       items: itemsData,
       alpacas: saveAlpacas,
       coins: gUser.value.coins,

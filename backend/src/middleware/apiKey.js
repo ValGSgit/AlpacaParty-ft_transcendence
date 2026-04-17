@@ -17,13 +17,18 @@ export const requireApiKey = async (req, res, next) => {
 
   if (key) {
     // 1. Fast path: check static server-level keys (in-memory Set from env/Vault).
-    if (config.apiKeys.has(key)) return next();
+    //    These are trusted service-level credentials and may act as any user.
+    if (config.apiKeys.has(key)) {
+      req.isServerKey = true;
+      return next();
+    }
 
-    // 2. Slow path: check user-generated keys stored in DB.
+    // 2. Slow path: check user-generated keys stored in DB. Scoped to their owner.
     try {
       const userId = await User.findByApiKey(key);
       if (userId) {
         req.apiKeyUserId = userId;
+        req.isServerKey = false;
         return next();
       }
     } catch {
@@ -33,6 +38,7 @@ export const requireApiKey = async (req, res, next) => {
 
   // 3. Fallback: accept a valid JWT Bearer token so authenticated users
   //    can also reach the public API without generating a separate key.
+  //    Scoped to the JWT's user — cannot impersonate other users.
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     try {
@@ -40,6 +46,7 @@ export const requireApiKey = async (req, res, next) => {
       const decoded = AuthService.verifyToken(token);
       if (decoded && decoded.type !== 'refresh') {
         req.apiKeyUserId = decoded.id;
+        req.isServerKey = false;
         return next();
       }
     } catch {
