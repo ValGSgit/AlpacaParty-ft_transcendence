@@ -42,6 +42,7 @@ export async function initAlpacas(scene, user) {
       newAlpaca.rotationOffset = savedData.rotationOffset;
       newAlpaca.age = savedData.age;
       newAlpaca.aliveTime = savedData.aliveTime;
+      newAlpaca.model.userData.cost = savedData.cost;
       newAlpaca.selected = savedData.selected;
     } else {
       newAlpaca = await createAlpaca();

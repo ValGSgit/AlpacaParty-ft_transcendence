@@ -31,6 +31,7 @@ export async function saveGame() {
       rotationOffset: alpaca.rotationOffset,
       age: alpaca.age,
       aliveTime: alpaca.aliveTime,
+      cost: alpaca.model.userData.cost,
       selected
     };
   });
