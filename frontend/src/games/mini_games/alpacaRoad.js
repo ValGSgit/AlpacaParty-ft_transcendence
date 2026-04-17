@@ -4,13 +4,15 @@ import { useCoinUI } from '../components/coins.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca, createDecoration, createItem } from '../core/createObjects.js';
-import { gAlpacas, gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
+import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
 import { removeObject } from '../core/removeObjects.js';
 import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
 import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
 import { adjustSunBox, setSunLight, setupLighting } from '../world/sceneBuilder.js';
+import { initClient } from './client.js';
+import { getActiveClient } from './GameClient.js';
 
 const roadLength = 700;
 const roadBack = -25;
@@ -56,6 +58,20 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
   initScenery();
   initObstacles();
   initGameValues(playerCount);
+}
+
+export async function initAlpacaRoadOnline(playerCount, tempAlpacas, matchId) {
+  cleanupAlpacaRoad()
+
+  await setupRoadScene(gScene.value);
+  await loadAssets(gScene.value);
+  await initPlayers(playerCount, tempAlpacas);
+  initScenery();
+  initObstacles();
+  initGameValues(playerCount);
+  initClient(1, matchId);
+  gMinigame.value.mode = 4;
+  gMinigame.value.isActive = false
 }
 
 function initGameValues(playerCount) {
@@ -513,4 +529,13 @@ export function cleanupAlpacaRoad() {
   gUI.lockCamera = false;
   gUI.cameraMode = 1;
   console.log("🧹 Minigame cleaned up.");
+}
+
+export function getReady(){
+  if (!gMinigame.value.isReady)
+    gMinigame.value.isReady = true
+  else
+    gMinigame.value.isReady = false
+  const client = getActiveClient();
+  client.emit('ready', ({ id: client.localPlayerId, ready: gMinigame.value.isReady }))
 }

@@ -4,14 +4,9 @@ import { gMinigame, gPlayer, gScene, gUI, gUser, gCollidables } from '../core/gl
 import { registerEntity } from '../core/registerEntity.js';
 import { getValidRandomPos } from '../utils/spawnRandomly.js';
 import { setupEnvironment } from '../world/sceneBuilder.js';
-import { SpitRoyaleClient } from './client.js';
 import { changeFloorColor } from './utils.js';
 import { removeObject, removeFromArray } from '../core/removeObjects.js'
-
-let onlineClient = null;
-const remotePlayers = {};
-let originalSpitFn = null; // Store the original spit function to restore later
-
+import { remotePlayers, initClient } from './client.js';
 
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   gMinigame.value.mode = 1
@@ -43,43 +38,11 @@ export async function initSpitRoyalOnline(matchId) {
   registerEntity(gPlayer.value, 'alpaca');
   gScene.value.add(gPlayer.value.model);
   gUI.cameraMode = 1;
-
-  onlineClient = new SpitRoyaleClient();
-  const playerName = gUser.value?.name || 'Vue_Alpaca';
-  onlineClient.connect(playerName, matchId);
-
-  // --- HOOK LOCAL SPIT ---
-  originalSpitFn = gPlayer.value.spit;
-  gPlayer.value.spit = () => {
-    originalSpitFn.call(gPlayer.value);
-    if (onlineClient) onlineClient.fireSpit();
-  };
-
-  setupCallbacks(onlineClient);
+  initClient(0, matchId)
   gMinigame.value.isActive = true;
 }
 
-export function cleanupClient() {
-  // --- MULTIPLAYER CLEANUP ---
-  if (onlineClient) {
-    onlineClient.destroy();
-    onlineClient = null;
-  }
-  // Restore original spit function if we overwrote it
-  if (originalSpitFn) {
-    gPlayer.value.spit = originalSpitFn;
-    originalSpitFn = null;
-  }
-  for (const id in remotePlayers) {
-    if (remotePlayers[id] !== "loading" && remotePlayers[id]) {
-      gScene.value.remove(remotePlayers[id].model);
-      removeObject(remotePlayers[id]);
-    }
-    delete remotePlayers[id];
-  }
-}
-
-function setupCallbacks(client) {
+export function setupCallbacks(client) {
   // --- GAME-SPECIFIC EVENTS (player_spit, player_hit) ---
   client.onGameEvent = (msg) => {
     if (msg.type === 'player_spit') {
@@ -170,7 +133,8 @@ function setupCallbacks(client) {
   // --- JOINED: snap to spawn, start sending inputs ---
   client.onJoined = (playerId, spawn) => {
     console.log("Joined multiplayer as:", playerId);
-    gMinigame.value.players.push(gPlayer.value);
+    if (gMinigame.value.mode !== 4) // don't push gPlayer in alpaca road multiplayer to avoid double
+      gMinigame.value.players.push(gPlayer.value);
     if (spawn) {
       gPlayer.value.model.position.set(spawn.x, 0, spawn.z);
       gPlayer.value.model.rotation.y = spawn.angle;
@@ -187,8 +151,7 @@ function setupCallbacks(client) {
   };
 }
 
-
-function cleanUpDisconnectedPlayers(serverPlayerIds) {
+export function cleanUpDisconnectedPlayers(serverPlayerIds) {
   for (const id in remotePlayers) {
     if (!serverPlayerIds.has(id)) {
 
