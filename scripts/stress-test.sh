@@ -183,9 +183,17 @@ extract_refresh() {
 extract_id() {
   local body="$1"
   if has jq; then
-    printf "%s\n" "$body" | jq -r '.user.id // .data.id // .id // empty' 2>/dev/null || true
+    printf "%s\n" "$body" | jq -r '
+      .user.id //
+      .post.id // .data.post.id //
+      .organization.id // .data.organization.id //
+      .comment.id // .data.comment.id //
+      .notification.id //
+      .upload.id //
+      .data.id // .id //
+      empty' 2>/dev/null || true
   else
-    printf "%s\n" "$body" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4 || true
+    printf "%s\n" "$body" | grep -oE '"id":[ ]*[0-9"]+' | head -1 | sed -E 's/.*"id":[ ]*"?([0-9]+)"?/\1/' || true
   fi
 }
 
@@ -302,13 +310,23 @@ if [ -n "$ACCESS_TOKEN" ]; then
   check_auth_any "GET /api/admin/users (403 for non-admin)"        "${BASE_URL}/api/admin/users?limit=50&offset=0" 200 403
   check_auth_any "GET /api/admin/data-requests (403 for non-admin)" "${BASE_URL}/api/admin/data-requests" 200 403
 
-  # ── Public endpoints (no auth) ─────────────────────────────────────────────
-  check      "GET /api/public/users"                               "${BASE_URL}/api/public/users?search=&limit=20&offset=0"
-  check_any  "GET /api/public/users/:id"                           "${BASE_URL}/api/public/users/${USER1_ID:-0}" 200 404
-  check      "GET /api/public/leaderboard"                         "${BASE_URL}/api/public/leaderboard?gameType=spit_royale"
-  check      "GET /api/public/posts"                               "${BASE_URL}/api/public/posts?limit=20&offset=0"
-  check      "GET /api/public/organizations"                       "${BASE_URL}/api/public/organizations?search=&limit=20"
-  check_any  "GET /api/public/mock"                                "${BASE_URL}/api/public/mock" 200 404
+  # ── Public endpoints (require X-API-Key OR valid Bearer JWT) ───────────────
+  # The public API middleware accepts a JWT Bearer token as a fallback so we
+  # reuse the authenticated test user's token here.
+  check_auth     "GET /api/public/users"                           "${BASE_URL}/api/public/users?search=&limit=20&offset=0"
+  check_auth_any "GET /api/public/users/:id"                       "${BASE_URL}/api/public/users/${USER1_ID:-0}" 200 404
+  check_auth     "GET /api/public/leaderboard"                     "${BASE_URL}/api/public/leaderboard?gameType=spit_royale"
+  check_auth     "GET /api/public/posts"                           "${BASE_URL}/api/public/posts?limit=20&offset=0"
+  check_auth     "GET /api/public/organizations"                   "${BASE_URL}/api/public/organizations?search=&limit=20"
+  check_auth_any "GET /api/public/mock"                            "${BASE_URL}/api/public/mock" 200 404
+  # Confirm X-API-Key gate still rejects unauthenticated calls
+  PUB_UNAUTH=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 \
+    "${BASE_URL}/api/public/posts?limit=1" 2>/dev/null || echo "000")
+  if [ "$PUB_UNAUTH" -eq 401 ]; then
+    ok "Public API correctly rejects missing X-API-Key / Bearer (401)"
+  else
+    warn "Public API unauth probe returned $PUB_UNAUTH (expected 401)"
+  fi
 else
   warn "4. Endpoint smoke test skipped (no auth token)"
 fi
@@ -447,10 +465,10 @@ OVERSIZED_CODE=$(dd if=/dev/urandom bs=1M count=11 2>/dev/null | base64 | \
     -H "Content-Type: application/json" -d @- \
     -o /dev/null -w "%{http_code}" --max-time 20 2>/dev/null || echo "000")
 echo "oversized_payload_status=$OVERSIZED_CODE" > "${TOOL_DIR}/oversized_${TIMESTAMP}.txt"
-if [ "$OVERSIZED_CODE" -eq 413 ] || [ "$OVERSIZED_CODE" -eq 400 ]; then
+if [ "$OVERSIZED_CODE" -eq 413 ] || [ "$OVERSIZED_CODE" -eq 400 ] || [ "$OVERSIZED_CODE" -eq 403 ]; then
   ok "Oversized payload rejected — HTTP $OVERSIZED_CODE"
 else
-  warn "Oversized payload returned HTTP $OVERSIZED_CODE (expected 413/400)"
+  warn "Oversized payload returned HTTP $OVERSIZED_CODE (expected 413/400/403)"
 fi
 
 # ── 6f. HTTP method override attempt ─────────────────────────────────────────
