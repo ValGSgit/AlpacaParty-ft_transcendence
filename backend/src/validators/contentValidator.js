@@ -66,7 +66,16 @@ export const chatMessageValidation = () => [
 ];
 
 export const chatRoomCreateValidation = () => [
-  contentChain(body("name"), { min: 1, max: 100, field: "name" }),
+  body("name")
+    .isString()
+    .withMessage("Room name must be a string")
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage("Room name is required")
+    .bail()
+    .isLength({ min: 1, max: 100 })
+    .withMessage("Room name must be 100 characters or fewer"),
   optionalContentChain(body("description"), { max: 500, field: "description" }),
 ];
 
