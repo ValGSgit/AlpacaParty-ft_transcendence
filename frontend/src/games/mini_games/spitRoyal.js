@@ -85,7 +85,7 @@ function setupCallbacks(client) {
     if (msg.type === 'player_spit') {
       if (remotePlayers[msg.playerId]) {
         const { makeSpit } = alpacaHandling();
-        makeSpit({ model: remoteModel, isDead: false });
+        makeSpit(remotePlayers[msg.playerId]);
       }
     }
 
@@ -97,10 +97,16 @@ function setupCallbacks(client) {
         if (gUser.value.hp === 0) {
           gPlayer.value.isDead = 1
           gMinigame.value.isActive = false
+          gMinigame.value.isGameOver = true;
         }
       }
       else
       {
+        if (msg.ownerId === client.localPlayerId)
+        {
+          gUser.value.point = msg.point
+          gPlayer.value.point = msg.point
+        }
         remotePlayers[msg.targetId].hp--
         remotePlayers[msg.targetId].isDead = -1
         if (remotePlayers[msg.targetId].hp === 0)

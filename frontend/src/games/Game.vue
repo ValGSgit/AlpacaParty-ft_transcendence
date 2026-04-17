@@ -31,6 +31,7 @@
   <div v-if="gMinigame.mode && gMinigame.isGameOver" class="modal-overlay">
     <div class="shop-title">
       <div v-if="!gUser.hp">Game Over! Final Score:</div>
+      <div v-if="gUser.hp">You Won! Final Score:</div>
       <button v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="shop-btn">You killed: {{ gUser.point }} 🦙</button>
       <template v-if="gMinigame.mode === 3">
         <button v-for="player in gMinigame.players" :key="'end-' + player.id" class="shop-btn">
