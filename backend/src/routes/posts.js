@@ -11,6 +11,14 @@ import {
   repostPost, unrepostPost,
 } from '../controllers/commentController.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
+import {
+  postCreateValidation, postUpdateValidation,
+  commentCreateValidation, repostValidation, idParamValidation,
+} from '../validators/contentValidator.js';
+import { checkValidation } from '../validators/validatorUtils.js';
+import {
+  postWriteLimiter, commentWriteLimiter, likeLimiter,
+} from '../middleware/rateLimiters.js';
 
 const router = express.Router();
 
@@ -60,7 +68,7 @@ const router = express.Router();
  *       400: { description: content is required }
  */
 router.get('/', authenticate, getFeed);
-router.post('/', authenticate, createPost);
+router.post('/', authenticate, postWriteLimiter, postCreateValidation(), checkValidation, createPost);
 
 /**
  * @openapi
@@ -86,7 +94,7 @@ router.post('/', authenticate, createPost);
  *               properties:
  *                 posts: { type: array, items: { $ref: '#/components/schemas/Post' } }
  */
-router.get('/user/:userId', optionalAuth, getUserPosts);
+router.get('/user/:userId', optionalAuth, idParamValidation('userId'), checkValidation, getUserPosts);
 
 /**
  * @openapi
@@ -158,9 +166,9 @@ router.get('/user/:userId', optionalAuth, getUserPosts);
  *       403: { description: Not your post }
  *       404: { description: Post not found }
  */
-router.get('/:id', optionalAuth, getPost);
-router.put('/:id', authenticate, updatePost);
-router.delete('/:id', authenticate, deletePost);
+router.get('/:id', optionalAuth, idParamValidation(), checkValidation, getPost);
+router.put('/:id', authenticate, postWriteLimiter, idParamValidation(), postUpdateValidation(), checkValidation, updatePost);
+router.delete('/:id', authenticate, idParamValidation(), checkValidation, deletePost);
 
 /**
  * @openapi
@@ -201,8 +209,8 @@ router.delete('/:id', authenticate, deletePost);
  *               properties:
  *                 likes_count: { type: integer }
  */
-router.post('/:id/like', authenticate, likePost);
-router.delete('/:id/like', authenticate, unlikePost);
+router.post('/:id/like', authenticate, likeLimiter, idParamValidation(), checkValidation, likePost);
+router.delete('/:id/like', authenticate, likeLimiter, idParamValidation(), checkValidation, unlikePost);
 
 /**
  * @openapi
@@ -254,8 +262,8 @@ router.delete('/:id/like', authenticate, unlikePost);
  *               properties:
  *                 comment: { $ref: '#/components/schemas/Comment' }
  */
-router.get('/:id/comments', optionalAuth, getComments);
-router.post('/:id/comments', authenticate, createComment);
+router.get('/:id/comments', optionalAuth, idParamValidation(), checkValidation, getComments);
+router.post('/:id/comments', authenticate, commentWriteLimiter, idParamValidation(), commentCreateValidation(), checkValidation, createComment);
 
 /**
  * @openapi
@@ -286,7 +294,12 @@ router.post('/:id/comments', authenticate, createComment);
  *       403: { description: Not authorized }
  *       404: { description: Comment not found }
  */
-router.delete('/:id/comments/:commentId', authenticate, deleteComment);
+router.delete(
+  '/:id/comments/:commentId',
+  authenticate,
+  idParamValidation(), idParamValidation('commentId'), checkValidation,
+  deleteComment,
+);
 
 /**
  * @openapi
@@ -334,7 +347,7 @@ router.delete('/:id/comments/:commentId', authenticate, deleteComment);
  *               properties:
  *                 reposts_count: { type: integer }
  */
-router.post('/:id/repost', authenticate, repostPost);
-router.delete('/:id/repost', authenticate, unrepostPost);
+router.post('/:id/repost', authenticate, postWriteLimiter, idParamValidation(), repostValidation(), checkValidation, repostPost);
+router.delete('/:id/repost', authenticate, idParamValidation(), checkValidation, unrepostPost);
 
 export default router;

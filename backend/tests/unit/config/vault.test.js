@@ -181,8 +181,6 @@ describe('key mapping', () => {
     mockVaultSuccess({
       ...FULL_SECRETS,
       api_keys: 'k1,k2',
-      groq_api_key: 'groq',
-      huggingface_api_key: 'hf',
       google_client_id: 'gcid',
       google_client_secret: 'gcsec',
       github_client_id: 'ghid',
@@ -193,8 +191,6 @@ describe('key mapping', () => {
 
     const written = mockFs.writeFileSync.mock.calls[0][1];
     expect(written).toContain('API_KEYS="k1,k2"');
-    expect(written).toContain('GROQ_API_KEY="groq"');
-    expect(written).toContain('HUGGINGFACE_API_KEY="hf"');
     expect(written).toContain('GOOGLE_CLIENT_ID="gcid"');
     expect(written).toContain('GOOGLE_CLIENT_SECRET="gcsec"');
     expect(written).toContain('GITHUB_CLIENT_ID="ghid"');

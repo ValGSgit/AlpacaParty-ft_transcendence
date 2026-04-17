@@ -100,39 +100,83 @@ export const getPosts = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-/** POST /api/public/posts — create a post via API key (service-level) */
+/**
+ * POST /api/public/posts — create a post via API key.
+ *
+ * Authorization rules:
+ *   - Server-level keys may specify any authorId (service impersonation).
+ *   - User-scoped keys / JWTs may only post as themselves; authorId is
+ *     ignored and forced to req.apiKeyUserId.
+ */
 export const createPost = async (req, res, next) => {
   try {
     const { content, authorId, imageUrl } = req.body;
     if (!content?.trim()) return res.status(400).json({ error: { message: 'content is required' } });
-    if (!authorId) return res.status(400).json({ error: { message: 'authorId is required' } });
-    const post = await Post.create({ authorId: Number(authorId), content: content.trim(), imageUrl: imageUrl || null });
+    if (content.length > 2000) return res.status(400).json({ error: { message: 'content must be 2000 characters or fewer' } });
+
+    let effectiveAuthorId;
+    if (req.isServerKey) {
+      if (!authorId) return res.status(400).json({ error: { message: 'authorId is required for server-level calls' } });
+      effectiveAuthorId = Number(authorId);
+    } else {
+      if (!req.apiKeyUserId) return res.status(403).json({ error: { message: 'Not authorized to create posts' } });
+      effectiveAuthorId = Number(req.apiKeyUserId);
+    }
+
+    const post = await Post.create({
+      authorId: effectiveAuthorId,
+      content: content.trim(),
+      imageUrl: imageUrl || null,
+    });
     res.status(201).json({ post });
   } catch (err) { next(err); }
 };
 
-/** PUT /api/public/posts/:id — update a post via API key (service-level) */
+/**
+ * PUT /api/public/posts/:id — update a post via API key.
+ *
+ * Server-level keys may update any post. User-scoped keys / JWTs may only
+ * update posts they authored.
+ */
 export const updatePost = async (req, res, next) => {
   try {
     const { content, imageUrl } = req.body;
-    const { id } = req.params;
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: { message: 'Invalid post id' } });
     if (!content?.trim() && imageUrl === undefined) {
       return res.status(400).json({ error: { message: 'Nothing to update' } });
     }
-    // Find post first, then update (no authorId restriction for API key ops)
-    const existing = await Post.findById(Number(id));
+
+    const existing = await Post.findById(id);
     if (!existing) return res.status(404).json({ error: { message: 'Post not found' } });
-    const post = await Post.update(Number(id), existing.author_id, { content, imageUrl });
+
+    if (!req.isServerKey && Number(existing.author_id) !== Number(req.apiKeyUserId)) {
+      return res.status(403).json({ error: { message: 'Cannot modify another user\'s post' } });
+    }
+
+    const post = await Post.update(id, existing.author_id, { content, imageUrl });
     res.json({ post });
   } catch (err) { next(err); }
 };
 
-/** DELETE /api/public/posts/:id — delete a post via API key (service-level) */
+/**
+ * DELETE /api/public/posts/:id — delete a post via API key.
+ *
+ * Server-level keys may delete any post. User-scoped keys / JWTs may only
+ * delete posts they authored.
+ */
 export const deletePost = async (req, res, next) => {
   try {
-    const existing = await Post.findById(Number(req.params.id));
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: { message: 'Invalid post id' } });
+    const existing = await Post.findById(id);
     if (!existing) return res.status(404).json({ error: { message: 'Post not found' } });
-    await Post.delete(Number(req.params.id), existing.author_id);
+
+    if (!req.isServerKey && Number(existing.author_id) !== Number(req.apiKeyUserId)) {
+      return res.status(403).json({ error: { message: 'Cannot delete another user\'s post' } });
+    }
+
+    await Post.delete(id, existing.author_id);
     res.json({ message: 'Post deleted' });
   } catch (err) { next(err); }
 };

@@ -4,10 +4,25 @@ import File from "#models/File.js";
 import config from "#config/index.js";
 import { authenticate } from "#middleware/auth.js";
 
+// Treat SVG as a script-capable document — never serve it inline.
+const INLINE_BLOCKED_MIME = new Set(["image/svg+xml"]);
+
 export const uploadSecurityCheck = async (req, res, next) => {
   // Strip leading slash to get the stored filename
   const storedName = req.path.replace(/^\//, "");
   if (!storedName) return next();
+
+  // Path-traversal guard. Stored filenames are generated UUIDs/hashes — they
+  // never contain slashes, backslashes, or parent-dir references. Anything
+  // else is an attempt to escape config.uploads.dir.
+  if (
+    storedName.includes("/") ||
+    storedName.includes("\\") ||
+    storedName.includes("..") ||
+    path.isAbsolute(storedName)
+  ) {
+    return res.status(404).json({ error: { message: "File not found" } });
+  }
 
   try {
     const imgMimeTypes = new Set(config.uploads.imageMimeTypes);
@@ -27,6 +42,8 @@ export const uploadSecurityCheck = async (req, res, next) => {
 
       if (mime && imgMimeTypes.has(mime) && fs.existsSync(diskPath)) {
         res.setHeader("Content-Type", mime);
+        res.setHeader("Content-Disposition", "inline");
+        res.setHeader("X-Content-Type-Options", "nosniff");
         return next();
       }
       return res.status(404).json({ error: { message: "File not found" } });
@@ -45,8 +62,9 @@ export const uploadSecurityCheck = async (req, res, next) => {
       }
     }
 
-    // Use 'inline' for images so they render in <img> tags; 'attachment' for others
-    if (imgMimeTypes.has(record?.mimeType)) {
+    // Use 'inline' for safe image types; force 'attachment' for SVG and
+    // anything non-image so they cannot execute scripts in the viewer.
+    if (imgMimeTypes.has(record.mimeType) && !INLINE_BLOCKED_MIME.has(record.mimeType)) {
       res.setHeader("Content-Disposition", "inline");
     } else {
       res.setHeader("Content-Disposition", "attachment");
