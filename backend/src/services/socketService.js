@@ -19,6 +19,7 @@ import ChatRoom from '../models/ChatRoom.js';
 import Game from '../models/Game.js';
 import NotificationService from './notificationService.js';
 import { initializeSpitRoyaleNamespace } from './spitRoyaleNamespace.js';
+import { initializeAlpacaRoadNamespace } from './alpacaRoadNamespace.js';
 import { socketAuthMiddleware } from './socketAuth.js';
 
 /**
@@ -43,6 +44,7 @@ export function initializeSocket(httpServer, corsOrigins) {
   // Share io with NotificationService so it can push real-time notifications
   NotificationService.setIo(io);
   initializeSpitRoyaleNamespace(io);
+  initializeAlpacaRoadNamespace(io);
 
   // ── Auth middleware ──────────────────────────────────────────
   io.use(socketAuthMiddleware());

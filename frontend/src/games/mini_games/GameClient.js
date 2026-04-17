@@ -60,12 +60,19 @@ export class GameClient {
       auth: { token },
     });
 
+    
     this.socket.on('connect', () => {
       console.log(`[GameClient] Connected to ${this.namespace}`);
       this.socket.emit('join', { name: playerName, roomId: matchId });
     });
-
+    
     this.socket.on('game:message', (msg) => this.#handleMessage(msg));
+    
+    this.socket.on('game:start', (data) => {
+      console.log(data.msg); // "Everyone is ready! Starting..."
+      //startCountdown(); 
+      gMinigame.value.isActive = true;
+    });
 
     this.socket.on('connect_error', (err) => {
       console.error(`[GameClient] ${this.namespace} error:`, err.message);

@@ -1,7 +1,7 @@
 import { useEditMode } from "../components/editMode";
 import { changeGame } from '../mini_games/init.js';
 import { gEngine, gUI, gMinigame } from "./globals";
-import { SpitRoyaleClient } from '../mini_games/client.js';
+import { SpitRoyaleClient,  AlpacaRoadClient} from '../mini_games/client.js';
 
 export function useUIManager() {
 
@@ -98,11 +98,18 @@ export function useUIManager() {
 
   let onlineClient = null;
 
-  const openLobbyMenu = () => {
+  const openLobbyMenu = (game) => {
     gUI.lobbyMenu = true
     gUI.gameMenu = false
-    onlineClient = new SpitRoyaleClient();
-    onlineClient.check();
+    gUI.isRoadGame = game
+    gMinigame.isReady = false
+    gMinigame.value.lobby = [] // start fresh
+    if (game === 0)
+      onlineClient = new SpitRoyaleClient();
+    if (game === 1)
+      onlineClient = new AlpacaRoadClient();
+    if (onlineClient)
+      onlineClient.check();
   }
 
   const closeLobbyMenu = () => {

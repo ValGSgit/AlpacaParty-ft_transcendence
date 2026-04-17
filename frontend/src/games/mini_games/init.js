@@ -6,8 +6,9 @@ import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/global
 import { saveGame } from '../core/saveLoadGame.js';
 import { useGameEngine } from '../core/useGameEngine.js';
 import { initWorld } from '../world/initWorld.js';
-import { initAlpacaRoad } from './alpacaRoad.js';
-import { cleanupClient, initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
+import { initAlpacaRoad, initAlpacaRoadOnline } from './alpacaRoad.js';
+import { initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
+import { cleanupClient } from './client.js';
 
 const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
@@ -52,6 +53,9 @@ export async function changeGame(mode, playerCount, matchId) {
       break;
     case 3:
       initAlpacaRoad(playerCount, tempAlpacas);
+      break;
+    case 4:
+      initAlpacaRoadOnline(playerCount, tempAlpacas, matchId);
       break;
     default:
       await returnFarm();
