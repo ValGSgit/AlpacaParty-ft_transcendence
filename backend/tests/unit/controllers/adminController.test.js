@@ -4,6 +4,7 @@ import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 const mockPrisma = {
   user: { count: jest.fn(), findUnique: jest.fn(), update: jest.fn(), findMany: jest.fn() },
   userSettings: { upsert: jest.fn() },
+  game: { count: jest.fn() },
   message: { count: jest.fn() },
   organization: { count: jest.fn() },
 };
@@ -78,6 +79,7 @@ describe('getStats', () => {
   test('should return all site statistics', async () => {
     mockUser.count.mockResolvedValue(100);
     mockPrisma.user.count.mockResolvedValue(12);
+    mockPrisma.game.count.mockResolvedValue(77);
     mockGame.countActive.mockResolvedValue(5);
     mockPost.count.mockResolvedValue(300);
     mockPrisma.message.count.mockResolvedValue(800);
@@ -90,7 +92,8 @@ describe('getStats', () => {
     expect(res._json.stats).toEqual({
       totalUsers: 100,
       onlineUsers: 12,
-      totalGames: 5,
+      totalGames: 77,
+      activeGames: 5,
       totalPosts: 300,
       totalMessages: 800,
       totalOrgs: 10,

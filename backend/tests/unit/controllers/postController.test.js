@@ -326,8 +326,11 @@ describe('deletePost', () => {
     expect(res._json).toEqual({ error: { message: 'Post not found or not yours' } });
   });
 
-  test('should succeed even if delete returns false when user is admin', async () => {
-    mockPost.delete.mockResolvedValue(false);
+  test('should force-delete by author id when user is admin', async () => {
+    mockPost.delete
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    mockPost.findById.mockResolvedValue({ id: 999, author_id: 42 });
 
     const { req, res, next } = createReqRes({
       params: { id: '999' },
@@ -335,6 +338,9 @@ describe('deletePost', () => {
     });
     await deletePost(req, res, next);
 
+    expect(mockPost.findById).toHaveBeenCalledWith(999);
+    expect(mockPost.delete).toHaveBeenNthCalledWith(1, 999, 1);
+    expect(mockPost.delete).toHaveBeenNthCalledWith(2, 999, 42);
     expect(res._json).toEqual({ message: 'Post deleted' });
   });
 
