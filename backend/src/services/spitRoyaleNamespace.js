@@ -77,7 +77,8 @@ export function initializeSpitRoyaleNamespace(io) {
         name: name || socket.user?.username || 'Vue_Llama',
         x: spawn.x, y: 0, z: spawn.z, angle: spawn.angle,
         health: MAX_HEALTH,
-        alive: true
+        alive: true,
+        point: 0
       };
 
       matchToJoin.players[playerId] = newPlayer;
@@ -111,7 +112,7 @@ export function initializeSpitRoyaleNamespace(io) {
       if (match) socket.broadcast.to(match.roomName).emit('game:message', { type: 'player_spit', playerId });
     });
 
-    socket.on('spit_hit', ({ targetId }) => {
+    socket.on('spit_hit', ({ targetId, ownerId }) => {
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
       if (!match) return;
@@ -119,13 +120,14 @@ export function initializeSpitRoyaleNamespace(io) {
       const target = match.players[targetId];
       if (target && target.alive) {
         target.health -= 1;
-        namespace.to(match.roomName).emit('game:message', { type: 'player_hit', targetId, health: target.health });
-
+        
         if (target.health <= 0) {
+          if (match.players[ownerId])
+            match.players[ownerId].point++
           target.alive = false;
           target.socket.emit('game:message', { type: 'game_over', reason: 'eliminated' });
-          removePlayer(target.id, match);
         }
+        namespace.to(match.roomName).emit('game:message', { type: 'player_hit', targetId, health: target.health, ownerId, point: match.players[ownerId].point });
       }
     });
 
@@ -153,7 +155,7 @@ export function initializeSpitRoyaleNamespace(io) {
   function gameLoop(match) {
     const state = {
       players: Object.values(match.players).map(p => ({
-        id: p.id, name: p.name, x: p.x, y: p.y || 0, z: p.z, angle: p.angle, health: p.health
+        id: p.id, name: p.name, x: p.x, y: p.y || 0, z: p.z, angle: p.angle, health: p.health, point: p.point
       }))
     };
     namespace.to(match.roomName).emit('game:message', { type: 'tick', state });
