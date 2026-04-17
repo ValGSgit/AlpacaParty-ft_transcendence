@@ -1,6 +1,7 @@
 import { useEditMode } from "../components/editMode";
 import { changeGame } from '../mini_games/init.js';
 import { gEngine, gUI, gMinigame } from "./globals";
+import { SpitRoyaleClient,  AlpacaRoadClient} from '../mini_games/client.js';
 
 export function useUIManager() {
 
@@ -14,6 +15,7 @@ export function useUIManager() {
     if (gUI.shopMenu) closeShopMenu();
     if (gUI.gameMenu) closeGameMenu();
     if (gUI.farmMenu) closeFarmMenu();
+    if (gUI.farmMenu) closeLobbyMenu();
   }
 
   const openEditMode = () => {
@@ -94,6 +96,29 @@ export function useUIManager() {
     gUI.farmMenu = false
   }
 
+  let onlineClient = null;
+
+  const openLobbyMenu = (game) => {
+    gUI.lobbyMenu = true
+    gUI.gameMenu = false
+    gUI.isRoadGame = game
+    gMinigame.isReady = false
+    gMinigame.value.lobby = [] // start fresh
+    if (game === 0)
+      onlineClient = new SpitRoyaleClient();
+    if (game === 1)
+      onlineClient = new AlpacaRoadClient();
+    if (onlineClient)
+      onlineClient.check();
+  }
+
+  const closeLobbyMenu = () => {
+    gUI.lobbyMenu = false
+    gUI.gameMenu = true
+    if (onlineClient)
+      onlineClient.destroy();
+  }
+
 
   return {
     closeMenus,
@@ -112,6 +137,8 @@ export function useUIManager() {
     openLightMenu,
     closeLightMenu,
     openGameMenu,
-    closeGameMenu
+    closeGameMenu,
+    openLobbyMenu,
+    closeLobbyMenu
   }
 }

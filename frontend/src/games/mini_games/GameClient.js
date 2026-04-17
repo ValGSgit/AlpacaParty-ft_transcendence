@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { gMinigame } from '../core/globals';
 
 /**
  * Active game client singleton — accessible from any module without window globals.
@@ -35,7 +36,22 @@ export class GameClient {
     this.getInput = () => ({});
   }
 
-  connect(playerName) {
+  check() {
+    if (this.socket) this.destroy();
+
+    const token = localStorage.getItem('accessToken');
+    this.socket = io(this.namespace, {
+      transports: ['websocket'],
+      auth: { token },
+    });
+    this.socket.on('lobby:list', (matchToJoin) => {
+      //console.log("matches: ", matchToJoin);
+      gMinigame.value.lobby = matchToJoin
+    });
+    this.socket.emit('check-lobby');
+  }
+
+  connect(playerName, matchId) {
     if (this.socket) this.destroy();
 
     const token = localStorage.getItem('accessToken');
@@ -44,12 +60,19 @@ export class GameClient {
       auth: { token },
     });
 
+    
     this.socket.on('connect', () => {
       console.log(`[GameClient] Connected to ${this.namespace}`);
-      this.socket.emit('join', { name: playerName });
+      this.socket.emit('join', { name: playerName, roomId: matchId });
     });
-
+    
     this.socket.on('game:message', (msg) => this.#handleMessage(msg));
+    
+    this.socket.on('game:start', (data) => {
+      console.log(data.msg); // "Everyone is ready! Starting..."
+      //startCountdown(); 
+      gMinigame.value.isActive = true;
+    });
 
     this.socket.on('connect_error', (err) => {
       console.error(`[GameClient] ${this.namespace} error:`, err.message);

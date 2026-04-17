@@ -122,7 +122,21 @@ export function initializeSpitRoyaleNamespace(io) {
   namespace.on('connection', (socket) => {
     const playerId = `u${socket.user?.id || generateId()}`;
 
-    socket.on('join', ({ name } = {}) => {
+    // lobby
+    socket.on('check-lobby', () => {
+        const lobbyList = Array.from(matches.values()).filter(m => Object.keys(m.players).length < MAX_PLAYERS).map(m => ({
+            matchid: m.id,
+            roomName: m.roomName,
+            state: m.state,
+            playerCount: Object.keys(m.players).length
+          }));
+        
+        // Send the whole list in one go
+        socket.emit('lobby:list', lobbyList);
+    });
+
+    // 1. JOINING THE ARENA
+    socket.on('join', ({ name, roomId } = {}) => {
       if (playerToMatch.has(playerId)) return;
 
       // Only join an open, not-yet-ended match.
@@ -130,11 +144,11 @@ export function initializeSpitRoyaleNamespace(io) {
         (m) => !m.ended && Object.keys(m.players).length < MAX_PLAYERS,
       );
 
-      if (!matchToJoin) {
+      if (!matchToJoin || roomId === -1) {
         const matchId = generateId();
         matchToJoin = {
           id: matchId,
-          roomName: `spit-match:${matchId}`,
+          roomName: `${name}'s Room`,
           state: 'playing',
           players: {},
           participants: [],   // { playerId, userId, name } — everyone who ever joined
@@ -144,6 +158,13 @@ export function initializeSpitRoyaleNamespace(io) {
         };
         matchToJoin.interval = setInterval(() => gameLoop(matchToJoin), TICK_RATE);
         matches.set(matchId, matchToJoin);
+        console.log("New roomId", matchId)
+      }
+      else if (roomId)
+      {
+        console.log("roomId", roomId)
+        matchToJoin = Array.from(matches.values()).find(m => m.id === roomId);
+        matches.set(roomId, matchToJoin);
       }
 
       const spawn = getValidSpawn(matchToJoin.players);

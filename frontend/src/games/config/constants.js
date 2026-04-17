@@ -1,5 +1,5 @@
-
 import { gAlpacas, gUser } from '../core/globals.js'
+import { gMinigame } from '../core/globals.js'
 
 export const CONST = {
   BASE_RADIUS: 25,
@@ -32,7 +32,10 @@ export const CONST = {
   },
 
   get FLOOR_RADIUS() {
-    return this.BASE_RADIUS + (gUser.value.upgrades * 5.0) //change upgrade size
+    let offset = 0
+    if (gMinigame.value.mode !== 2) // all players will have same size
+      offset = gUser.value.upgrades * 5.0 //change upgrade size
+    return this.BASE_RADIUS + offset
   },
 
   get MAX_MOVE_RADIUS() {
