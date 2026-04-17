@@ -5,6 +5,9 @@ import express from 'express';
 import { uploadFiles, listMyFiles, deleteFile } from '../controllers/uploadController.js';
 import { authenticate } from '../middleware/auth.js';
 import { upload } from '../services/uploadService.js';
+import { uploadLimiter } from '../middleware/rateLimiters.js';
+import { idParamValidation } from '../validators/contentValidator.js';
+import { checkValidation } from '../validators/validatorUtils.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -60,7 +63,7 @@ router.use(authenticate);
  *               properties:
  *                 files: { type: array, items: { $ref: '#/components/schemas/UploadedFile' } }
  */
-router.post('/', upload.array('files', 10), uploadFiles);
+router.post('/', uploadLimiter, upload.array('files', 10), uploadFiles);
 router.get('/', listMyFiles);
 
 /**
@@ -88,6 +91,6 @@ router.get('/', listMyFiles);
  *       403: { description: Not your file }
  *       404: { description: File not found }
  */
-router.delete('/:id', deleteFile);
+router.delete('/:id', idParamValidation(), checkValidation, deleteFile);
 
 export default router;

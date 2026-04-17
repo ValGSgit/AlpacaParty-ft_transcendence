@@ -138,30 +138,17 @@ export const me = async (req, res) =>
 /**
  * OAuth callback (Google / GitHub)
  *
- * Delivers tokens via an auto-submitting HTML page that uses
- * window.postMessage to hand the tokens to the opener/parent window.
- * This avoids placing tokens in the URL (query params appear in server
- * logs, Referer headers, and browser history).
+ * Redirects to the frontend callback route with tokens in the URL fragment.
+ * Fragments are processed client-side and are not sent back to the server.
  */
 export const oauthCallback = (req, res) => {
   const { accessToken, refreshToken } = oauthTokensForUser(req.user);
   const frontendOrigin = config.frontendUrl;
 
-  res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.send(`<!DOCTYPE html>
-<html><head><title>Authenticating…</title></head>
-<body>
-<script>
-(function() {
-  var data = ${JSON.stringify({ accessToken, refreshToken })};
-  if (window.opener) {
-    window.opener.postMessage({ type: 'oauth-callback', payload: data }, ${JSON.stringify(frontendOrigin)});
-    window.close();
-  } else {
-    window.location.replace(${JSON.stringify(frontendOrigin)} + '/oauth-callback#' + encodeURIComponent(JSON.stringify(data)));
-  }
-})();
-</script>
-<noscript>Authentication requires JavaScript.</noscript>
-</body></html>`);
+  const payload = encodeURIComponent(
+    JSON.stringify({ accessToken, refreshToken }),
+  );
+  const callbackUrl = `${frontendOrigin}/oauth-callback#${payload}`;
+
+  res.redirect(302, callbackUrl);
 };

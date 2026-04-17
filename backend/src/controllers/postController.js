@@ -70,10 +70,25 @@ export const updatePost = async (req, res, next) => {
 /** DELETE /api/posts/:id */
 export const deletePost = async (req, res, next) => {
   try {
-    const deleted = await Post.delete(Number(req.params.id), req.user.id);
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: { message: 'Invalid post id' } });
+
     const isAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
-    if (!deleted && !isAdmin) return res.status(404).json({ error: { message: 'Post not found or not yours' } });
-    res.json({ message: 'Post deleted' });
+
+    // Owner path: fast, no pre-fetch.
+    const deleted = await Post.delete(id, req.user.id);
+    if (deleted) return res.json({ message: 'Post deleted' });
+
+    // Not owner. For admins, look the post up and force-delete if it exists.
+    if (isAdmin) {
+      const existing = await Post.findById(id);
+      if (!existing) return res.status(404).json({ error: { message: 'Post not found' } });
+      const adminDeleted = await Post.delete(id, existing.author_id);
+      if (!adminDeleted) return res.status(404).json({ error: { message: 'Post not found' } });
+      return res.json({ message: 'Post deleted' });
+    }
+
+    return res.status(404).json({ error: { message: 'Post not found or not yours' } });
   } catch (err) { next(err); }
 };
 

@@ -64,15 +64,11 @@ jest.unstable_mockModule('../../../src/config/index.js', () => ({
   default: mockConfig,
 }));
 
-// Mock fs, path, crypto, and @huggingface/inference to prevent import errors
+// Mock fs to prevent import-time side effects when the controller loads.
 jest.unstable_mockModule('fs', () => ({
   default: { mkdirSync: jest.fn(), writeFileSync: jest.fn() },
   mkdirSync: jest.fn(),
   writeFileSync: jest.fn(),
-}));
-
-jest.unstable_mockModule('@huggingface/inference', () => ({
-  InferenceClient: jest.fn(),
 }));
 
 const {

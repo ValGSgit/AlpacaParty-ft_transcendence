@@ -25,6 +25,9 @@ import {
   updatePost,
   deletePost,
 } from "../controllers/publicApiController.js";
+import { body } from "express-validator";
+import { idParamValidation } from "../validators/contentValidator.js";
+import { checkValidation } from "../validators/validatorUtils.js";
 
 const router = express.Router();
 
@@ -165,7 +168,7 @@ router.get("/users", listUsers);
  *       401: { description: Missing or invalid X-API-Key }
  *       404: { description: User not found or profile is private }
  */
-router.get("/users/:id", getUser);
+router.get("/users/:id", idParamValidation(), checkValidation, getUser);
 
 /**
  * @openapi
@@ -265,7 +268,17 @@ router.get("/leaderboard", getLeaderboard);
  *                 post: { $ref: '#/components/schemas/Post' }
  */
 router.get("/posts", getPosts);
-router.post("/posts", createPost);
+router.post(
+  "/posts",
+  [
+    body("content").isString().trim().notEmpty().withMessage("content is required")
+      .isLength({ max: 2000 }).withMessage("content must be 2000 characters or fewer"),
+    body("imageUrl").optional({ values: "null" }).isString().isLength({ max: 2048 }).withMessage("invalid imageUrl"),
+    body("authorId").optional().isInt({ min: 1 }).withMessage("authorId must be a positive integer"),
+  ],
+  checkValidation,
+  createPost,
+);
 
 /**
  * @openapi
@@ -320,8 +333,18 @@ router.post("/posts", createPost);
  *                 message: { type: string }
  *       404: { description: Post not found }
  */
-router.put("/posts/:id", updatePost);
-router.delete("/posts/:id", deletePost);
+router.put(
+  "/posts/:id",
+  idParamValidation(),
+  [
+    body("content").optional({ values: "falsy" }).isString().trim().notEmpty()
+      .isLength({ max: 2000 }).withMessage("content must be 2000 characters or fewer"),
+    body("imageUrl").optional({ values: "null" }).isString().isLength({ max: 2048 }).withMessage("invalid imageUrl"),
+  ],
+  checkValidation,
+  updatePost,
+);
+router.delete("/posts/:id", idParamValidation(), checkValidation, deletePost);
 
 /**
  * @openapi

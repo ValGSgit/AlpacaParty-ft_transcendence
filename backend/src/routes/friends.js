@@ -10,6 +10,8 @@ import {
 import { authenticate } from '../middleware/auth.js';
 import { body } from 'express-validator';
 import { checkValidation } from '#validators/validatorUtils.js';
+import { friendRequestLimiter } from '#middleware/rateLimiters.js';
+import { idParamValidation } from '#validators/contentValidator.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -81,7 +83,7 @@ router.get('/blocked', listBlocked);
  *       404: { description: User not found }
  */
 router.get('/requests', listRequests);
-router.post('/requests', [body('userId').isInt({ min: 1 }).withMessage('userId must be a positive integer')], checkValidation, sendRequest);
+router.post('/requests', friendRequestLimiter, [body('userId').isInt({ min: 1 }).withMessage('userId must be a positive integer')], checkValidation, sendRequest);
 
 /**
  * @openapi
@@ -106,7 +108,7 @@ router.post('/requests', [body('userId').isInt({ min: 1 }).withMessage('userId m
  *       403: { description: Not your request to accept }
  *       404: { description: Request not found }
  */
-router.put('/requests/:id/accept', acceptRequest);
+router.put('/requests/:id/accept', idParamValidation(), checkValidation, acceptRequest);
 
 /**
  * @openapi
@@ -128,7 +130,7 @@ router.put('/requests/:id/accept', acceptRequest);
  *               properties:
  *                 request: { $ref: '#/components/schemas/FriendRequest' }
  */
-router.put('/requests/:id/decline', declineRequest);
+router.put('/requests/:id/decline', idParamValidation(), checkValidation, declineRequest);
 
 /**
  * @openapi
@@ -151,7 +153,7 @@ router.put('/requests/:id/decline', declineRequest);
  *               properties:
  *                 message: { type: string }
  */
-router.delete('/:id', removeFriend);
+router.delete('/:id', idParamValidation(), checkValidation, removeFriend);
 
 /**
  * @openapi
@@ -200,6 +202,6 @@ router.post('/block', [body('userId').isInt({ min: 1 }).withMessage('userId must
  *               properties:
  *                 message: { type: string }
  */
-router.delete('/block/:id', unblockUser);
+router.delete('/block/:id', idParamValidation(), checkValidation, unblockUser);
 
 export default router;
