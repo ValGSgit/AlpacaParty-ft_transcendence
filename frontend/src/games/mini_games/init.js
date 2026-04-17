@@ -13,7 +13,7 @@ const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
 const tempAlpacas = []
 
-export async function changeGame(mode, playerCount) {
+export async function changeGame(mode, playerCount, matchId) {
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0)
     saveGame()
@@ -24,6 +24,7 @@ export async function changeGame(mode, playerCount) {
     playerCount = 1
   gUI.lockCamera = false
   gUI.gameMenu = false
+  gUI.lobbyMenu = false
   gUser.value.hp = CONST.HP
   gUser.value.point = 0
   gUser.value.name = gPlayer.value.name
@@ -47,7 +48,7 @@ export async function changeGame(mode, playerCount) {
       initSpitRoyalAI(playerCount, tempAlpacas);
       break;
     case 2:
-      initSpitRoyalOnline();
+      initSpitRoyalOnline(matchId);
       break;
     case 3:
       initAlpacaRoad(playerCount, tempAlpacas);

@@ -1,12 +1,12 @@
 import { alpacaHandling } from '../components/alpacaHandling.js';
 import { createAlpaca } from '../core/createObjects.js';
-import { gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
+import { gMinigame, gPlayer, gScene, gUI, gUser, gCollidables } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
 import { getValidRandomPos } from '../utils/spawnRandomly.js';
 import { setupEnvironment } from '../world/sceneBuilder.js';
 import { SpitRoyaleClient } from './client.js';
 import { changeFloorColor } from './utils.js';
-import { removeObject } from '../core/removeObjects.js'
+import { removeObject, removeFromArray } from '../core/removeObjects.js'
 
 let onlineClient = null;
 const remotePlayers = {};
@@ -36,7 +36,7 @@ export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   gMinigame.value.isActive = true;
 }
 
-export async function initSpitRoyalOnline() {
+export async function initSpitRoyalOnline(matchId) {
   gMinigame.value.mode = 2;
   setupEnvironment(gScene.value);
   changeFloorColor('#ff0000', '#550000');
@@ -46,7 +46,7 @@ export async function initSpitRoyalOnline() {
 
   onlineClient = new SpitRoyaleClient();
   const playerName = gUser.value?.name || 'Vue_Alpaca';
-  onlineClient.connect(playerName);
+  onlineClient.connect(playerName, matchId);
 
   // --- HOOK LOCAL SPIT ---
   originalSpitFn = gPlayer.value.spit;
@@ -156,7 +156,10 @@ function setupCallbacks(client) {
         if (index !== -1){
           gMinigame.value.players[index].hp = p.health // update hp to see if alpaca isDead
           if (gMinigame.value.players[index].hp === 0)
+          {
             gMinigame.value.players[index].isDead = 1
+            removeFromArray(gMinigame.value.players[index].model, gCollidables)
+          }
           gMinigame.value.players = [...gMinigame.value.players]; // force UI update
         }
       }
