@@ -19,7 +19,7 @@ export function printDebug() {
 
 //clear all
 function resetValues() {
-  //gAlpacas.length = 0;
+  gAlpacas.length = 1;
   gUser.value.coins = 0;
   gItems.length = 0;
   gDecorations.length = 0;

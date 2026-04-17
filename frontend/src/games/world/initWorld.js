@@ -80,6 +80,7 @@ async function initSavedItems(savedItems) {
     else
       loadedItem = await createDecoration(item.path, item.position, item.rotation, item.scale);
     loadedItem.model.name = item.name;
+    loadedItem.model.userData.cost = item.cost;
     loadedItems.add(loadedItem.model);
   }
   return loadedItems;
