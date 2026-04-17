@@ -245,12 +245,15 @@ export const deleteMe = async (req, res, next) => {
 
 /**
  * GET /api/users/me/api-key
- * Returns the current API key for the authenticated user, or null if not set.
+ * Reports whether an API key exists and — for display — the last four
+ * characters only. The full key is returned exactly once at creation time
+ * (see POST below); if the user lost it, they must regenerate.
  */
 export const getApiKey = async (req, res, next) => {
   try {
     const key = await User.getApiKey(req.user.id);
-    res.json({ apiKey: key });
+    if (!key) return res.json({ hasKey: false, lastFour: null });
+    res.json({ hasKey: true, lastFour: key.slice(-4) });
   } catch (err) {
     next(err);
   }

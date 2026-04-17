@@ -60,7 +60,7 @@ X-API-Key: ap_your_key_here
     servers: [{ url: '/api', description: 'AlpacaParty backend' }],
     tags: [
       { name: 'Auth',          description: 'Register, login, OAuth (Google / GitHub), token refresh' },
-      { name: 'Users',         description: 'Profile management, password, GDPR export/deletion, AI image generation' },
+      { name: 'Users',         description: 'Profile management, password, GDPR export/deletion' },
       { name: 'Friends',       description: 'Friend requests, online list, blocking' },
       { name: 'Posts',         description: 'Social feed — create, like, comment, repost' },
       { name: 'Chat',          description: 'Direct messages and group chat rooms' },
@@ -70,7 +70,6 @@ X-API-Key: ap_your_key_here
       { name: 'Uploads',       description: 'File upload and management (images, PDFs, CSV…)' },
       { name: 'Admin',         description: '🔐 Admin only — user management, site stats, GDPR processing' },
       { name: 'Public API',    description: '🔑 API-key auth — public data and service-level writes for external integrations. Generate a key at Profile → Settings → Public API Key.' },
-      { name: 'Help',          description: 'AI-powered help desk (Llama 3.3 70B via Groq)' },
     ],
     components: {
       securitySchemes: {

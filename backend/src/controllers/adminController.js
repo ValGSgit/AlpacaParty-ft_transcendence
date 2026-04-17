@@ -17,6 +17,7 @@ export const getStats = async (req, res, next) => {
       totalUsers,
       onlineUsers,
       totalGames,
+      activeGames,
       totalPosts,
       totalMessages,
       totalOrgs,
@@ -24,6 +25,7 @@ export const getStats = async (req, res, next) => {
     ] = await Promise.all([
       User.count(),
       prisma.user.count({ where: { isOnline: true } }),
+      prisma.game.count(),
       Game.countActive(),
       Post.count(),
       prisma.message.count(),
@@ -35,12 +37,146 @@ export const getStats = async (req, res, next) => {
         totalUsers,
         onlineUsers,
         totalGames,
+        activeGames,
         totalPosts,
         totalMessages,
         totalOrgs,
         pendingRequests,
       },
       timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/admin/stats/history?days=30
+ *
+ * Returns daily time-series counts (user signups, games, posts) for the last
+ * N days plus top-N breakdowns for charting in the admin dashboard.
+ *
+ * Response shape:
+ *   {
+ *     range: { start, end, days },
+ *     series: {
+ *       signups:  [{ date: 'YYYY-MM-DD', count }],
+ *       games:    [{ date, count }],
+ *       posts:    [{ date, count }],
+ *       messages: [{ date, count }]
+ *     },
+ *     top: {
+ *       players:       [{ userId, username, elo, wins, losses }],
+ *       postAuthors:   [{ authorId, username, postCount }],
+ *       organizations: [{ id, name, memberCount }]
+ *     }
+ *   }
+ */
+export const getStatsHistory = async (req, res, next) => {
+  try {
+    const days = Math.min(Math.max(Number(req.query.days) || 30, 1), 365);
+    const end = new Date();
+    const start = new Date(end.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+    start.setUTCHours(0, 0, 0, 0);
+
+    const bucketByDay = (rows, field) => {
+      const buckets = new Map();
+      for (let i = 0; i < days; i += 1) {
+        const d = new Date(start.getTime() + i * 24 * 60 * 60 * 1000);
+        buckets.set(d.toISOString().slice(0, 10), 0);
+      }
+      for (const row of rows) {
+        const ts = row[field];
+        if (!ts) continue;
+        const key = new Date(ts).toISOString().slice(0, 10);
+        if (buckets.has(key)) buckets.set(key, buckets.get(key) + 1);
+      }
+      return Array.from(buckets.entries()).map(([date, count]) => ({ date, count }));
+    };
+
+    const [userRows, gameRows, postRows, messageRows, topStats, topAuthors, topOrgs] = await Promise.all([
+      prisma.user.findMany({
+        where: { createdAt: { gte: start } },
+        select: { createdAt: true },
+      }),
+      prisma.game.findMany({
+        where: { createdAt: { gte: start } },
+        select: { createdAt: true },
+      }),
+      prisma.post.findMany({
+        where: { createdAt: { gte: start } },
+        select: { createdAt: true },
+      }),
+      prisma.message.findMany({
+        where: { createdAt: { gte: start } },
+        select: { createdAt: true },
+      }),
+      prisma.gameStat.findMany({
+        where: { gameType: 'spit_royale' },
+        include: { user: { select: { id: true, username: true } } },
+        orderBy: { elo: 'desc' },
+        take: 10,
+      }),
+      prisma.post.groupBy({
+        by: ['authorId'],
+        _count: { authorId: true },
+        orderBy: { _count: { authorId: 'desc' } },
+        take: 10,
+      }),
+      prisma.organization.findMany({
+        select: {
+          id: true,
+          name: true,
+          _count: { select: { members: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+    ]);
+
+    // Resolve author IDs → usernames for the top-authors chart.
+    const authorIds = topAuthors.map((r) => r.authorId).filter(Boolean);
+    const authors = authorIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: authorIds } },
+          select: { id: true, username: true },
+        })
+      : [];
+    const authorById = new Map(authors.map((a) => [a.id, a.username]));
+
+    res.json({
+      range: {
+        start: start.toISOString(),
+        end: end.toISOString(),
+        days,
+      },
+      series: {
+        signups:  bucketByDay(userRows,    'createdAt'),
+        games:    bucketByDay(gameRows,    'createdAt'),
+        posts:    bucketByDay(postRows,    'createdAt'),
+        messages: bucketByDay(messageRows, 'createdAt'),
+      },
+      top: {
+        players: topStats.map((s) => ({
+          userId: s.userId,
+          username: s.user?.username ?? null,
+          elo: s.elo,
+          wins: s.wins,
+          losses: s.losses,
+          draws: s.draws,
+        })),
+        postAuthors: topAuthors.map((r) => ({
+          authorId: r.authorId,
+          username: authorById.get(r.authorId) ?? null,
+          postCount: r._count.authorId,
+        })),
+        organizations: topOrgs.map((o) => ({
+          id: o.id,
+          name: o.name,
+          memberCount: o._count?.members ?? 0,
+        })),
+      },
+      generatedAt: new Date().toISOString(),
     });
   } catch (err) {
     next(err);
