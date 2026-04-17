@@ -138,46 +138,17 @@ export const me = async (req, res) =>
 /**
  * OAuth callback (Google / GitHub)
  *
- * Delivers tokens via an auto-submitting HTML page that uses
- * window.postMessage to hand the tokens to the opener/parent window.
- * This avoids placing tokens in the URL (query params appear in server
- * logs, Referer headers, and browser history).
+ * Redirects to the frontend callback route with tokens in the URL fragment.
+ * Fragments are processed client-side and are not sent back to the server.
  */
 export const oauthCallback = (req, res) => {
   const { accessToken, refreshToken } = oauthTokensForUser(req.user);
   const frontendOrigin = config.frontendUrl;
 
-  // Deliver tokens via window.postMessage when opened in a popup. If the
-  // popup flow failed (no opener), render a short manual step rather than
-  // embedding the tokens in the redirect URL — URL fragments persist in
-  // browser history and may be exfiltrated via extensions or shared links.
-  res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.send(`<!DOCTYPE html>
-<html><head><title>Authenticating…</title></head>
-<body>
-<script>
-(function() {
-  var data = ${JSON.stringify({ accessToken, refreshToken })};
-  var origin = ${JSON.stringify(frontendOrigin)};
-  if (window.opener) {
-    window.opener.postMessage({ type: 'oauth-callback', payload: data }, origin);
-    window.close();
-    return;
-  }
-  // Fallback: POST tokens to the frontend via a transient form so they
-  // never appear in the URL bar, history, or Referer headers.
-  var form = document.createElement('form');
-  form.method = 'POST';
-  form.action = origin + '/oauth-callback';
-  var i1 = document.createElement('input');
-  i1.type = 'hidden'; i1.name = 'accessToken'; i1.value = data.accessToken;
-  var i2 = document.createElement('input');
-  i2.type = 'hidden'; i2.name = 'refreshToken'; i2.value = data.refreshToken;
-  form.appendChild(i1); form.appendChild(i2);
-  document.body.appendChild(form);
-  form.submit();
-})();
-</script>
-<noscript>Authentication requires JavaScript. <a href="${frontendOrigin}">Return to the app</a> and sign in again.</noscript>
-</body></html>`);
+  const payload = encodeURIComponent(
+    JSON.stringify({ accessToken, refreshToken }),
+  );
+  const callbackUrl = `${frontendOrigin}/oauth-callback#${payload}`;
+
+  res.redirect(302, callbackUrl);
 };
