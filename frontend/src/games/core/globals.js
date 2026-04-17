@@ -8,6 +8,7 @@ export const gUser = ref(null)
 export const gMinigame = ref({
   isActive: false,
   isGameOver: false,
+  isReady: false,
   mode: 0,
   players: [],
   aliveCount: 0,
@@ -24,6 +25,7 @@ export const gUI = reactive({
   isLightCycling: true,
   lightMenu: false,
   gameMenu: false,
+  isRoadGame: false,
   farmMenu: false,
   lobbyMenu: false,
   cameraMode: 0,
