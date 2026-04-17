@@ -5,7 +5,7 @@ import { saveGame } from './saveLoadGame.js';
 
 export function watchChanges(setDoF) {
   // Watch specifically the coins and upgrades properties
-  const stopGamePlayWatcher = watch([() => gUser.coins, () => gUser.upgrades],
+  const stopGamePlayWatcher = watch([() => gUser.value.coins, () => gUser.value.upgrades],
     () => {
       saveGame();
     })
