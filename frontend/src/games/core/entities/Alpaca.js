@@ -154,10 +154,11 @@ export class Alpaca {
       alpaca.point++ // credit for the spit owner
       if (alpaca === gPlayer.value)
         gUser.value.point++ // for display
-      if (this === gPlayer.value)
-        gMinigame.value.isActive = false // gameover
-      if (gMinigame.value.isActive && gCollidables.length === 1)
-        gMinigame.value.isActive = false // win, last standing alpaca
+      if (this === gPlayer.value || (gMinigame.value.isActive && gCollidables.length === 1))
+      {
+        gMinigame.value.isGameOver = true;
+        gMinigame.value.isActive = false
+      }
     }
     /*     else if (this.hp < 0)
         {

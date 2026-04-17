@@ -22,7 +22,7 @@ export async function saveGame() {
     if (gPlayer.value === alpaca)
       selected = true // save current selected alpaca
     return {
-      name: alpaca.model.name,
+      name: alpaca.name,
       color: alpaca.color,
       position: alpaca.model.position.toArray(),
       rotation: alpaca.model.rotation.y,
