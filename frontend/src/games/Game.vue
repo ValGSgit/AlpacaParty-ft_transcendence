@@ -111,6 +111,7 @@
     <div v-if="gUI.gameMenu" class="modal-overlay">
       <div class="shop-title">Select Game
         <button class="shop-btn" @click="changeGame(1, playerCount)" title="Spit Royale with AI">Spit Royale with AI</button>
+        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu()" title="Spit Royale Online">Spit Royale Lobby</button>
         <button v-if="isAuthenticated" class="shop-btn" @click="changeGame(2, 1)" title="Spit Royale Online">Spit Royale Online</button>
       <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
       <select v-model="playerCount" class="player-selector" title="Number of Players">
@@ -120,6 +121,16 @@
         <option :value="4">4 Players</option>
       </select>
         <button class="close-btn" @click="closeGameMenu()" title="Close">✖️</button>
+      </div>
+    </div>
+
+    <div v-if="gUI.lobbyMenu" class="modal-overlay">
+      <div class="shop-title">Spit Royale Lobby
+        <button class="shop-btn" @click="changeGame(2, 1, -1)" title="Spit Royale Online">Create New Room</button>
+        <div v-for="game in gMinigame.lobby">
+          <button v-if="isAuthenticated" class="shop-btn" @click="changeGame(2, 1, game.matchid)" title="Spit Royale Online"><span>{{ game.roomName }}</span></button>
+        </div>
+        <button class="close-btn" @click="closeLobbyMenu()" title="Close">✖️</button>
       </div>
     </div>
 
@@ -318,7 +329,7 @@ const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
 const { initInput, cleanupInput, updateInputState, resetInput} = useInput()
 const { setTimeOfDay, updateLighting, toggleLightCycle} = editLight()
 const { buyAlpaca } = alpacaShop()
-const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openFarmMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu } = useUIManager()
+const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openFarmMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu, openLobbyMenu, closeLobbyMenu } = useUIManager()
 const { init, cleanup, onResize, setDoF } = useGameEngine(gameContainer)
 const { increaseFarmSize } = upgradeFarm()
 const { buyItem } = itemShop()
