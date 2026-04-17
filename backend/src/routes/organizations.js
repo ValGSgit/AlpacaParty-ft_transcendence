@@ -7,6 +7,10 @@ import {
   addMember, removeMember,
 } from '../controllers/organizationController.js';
 import { authenticate } from '../middleware/auth.js';
+import { body } from 'express-validator';
+import { orgCreateValidation, orgUpdateValidation, idParamValidation } from '../validators/contentValidator.js';
+import { checkValidation } from '../validators/validatorUtils.js';
+import { orgWriteLimiter } from '../middleware/rateLimiters.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -60,7 +64,7 @@ router.use(authenticate);
  *       409: { description: Name already taken }
  */
 router.get('/', listOrgs);
-router.post('/', createOrg);
+router.post('/', orgWriteLimiter, orgCreateValidation(), checkValidation, createOrg);
 
 /**
  * @openapi
@@ -151,9 +155,9 @@ router.get('/mine', listMyOrgs);
  *       403: { description: Not the owner }
  *       404: { description: Organization not found }
  */
-router.get('/:id', getOrg);
-router.put('/:id', updateOrg);
-router.delete('/:id', deleteOrg);
+router.get('/:id', idParamValidation(), checkValidation, getOrg);
+router.put('/:id', orgWriteLimiter, idParamValidation(), orgUpdateValidation(), checkValidation, updateOrg);
+router.delete('/:id', idParamValidation(), checkValidation, deleteOrg);
 
 /**
  * @openapi
@@ -187,7 +191,13 @@ router.delete('/:id', deleteOrg);
  *       403: { description: Not the owner }
  *       404: { description: Organization or user not found }
  */
-router.post('/:id/members', addMember);
+router.post(
+  '/:id/members',
+  idParamValidation(),
+  [body('userId').isInt({ min: 1 }).withMessage('userId must be a positive integer')],
+  checkValidation,
+  addMember,
+);
 
 /**
  * @openapi
@@ -217,6 +227,10 @@ router.post('/:id/members', addMember);
  *       403: { description: Not authorized }
  *       404: { description: Organization not found }
  */
-router.delete('/:id/members/:userId', removeMember);
+router.delete(
+  '/:id/members/:userId',
+  idParamValidation(), idParamValidation('userId'), checkValidation,
+  removeMember,
+);
 
 export default router;

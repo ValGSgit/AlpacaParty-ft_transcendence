@@ -6,6 +6,8 @@ import {
   listNotifications, markRead, markAllRead, deleteNotification,
 } from '../controllers/notificationController.js';
 import { authenticate } from '../middleware/auth.js';
+import { idParamValidation } from '../validators/contentValidator.js';
+import { checkValidation } from '../validators/validatorUtils.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -76,7 +78,7 @@ router.put('/read-all', markAllRead);
  *                 notification: { $ref: '#/components/schemas/Notification' }
  *       404: { description: Notification not found }
  */
-router.put('/:id/read', markRead);
+router.put('/:id/read', idParamValidation(), checkValidation, markRead);
 
 /**
  * @openapi
@@ -100,6 +102,6 @@ router.put('/:id/read', markRead);
  *                 message: { type: string }
  *       404: { description: Notification not found }
  */
-router.delete('/:id', deleteNotification);
+router.delete('/:id', idParamValidation(), checkValidation, deleteNotification);
 
 export default router;

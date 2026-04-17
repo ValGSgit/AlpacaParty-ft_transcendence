@@ -19,11 +19,12 @@ import {
   generateApiKey,
   revokeApiKey,
 } from "#controllers/userController.js";
-import { generateAvatar, generateImage } from "#controllers/aiController.js";
 import {
   userPasswordValidation,
   userUpdateValidation,
 } from "#validators/userValidator.js";
+import { idParamValidation } from "#validators/contentValidator.js";
+import { checkValidation } from "#validators/validatorUtils.js";
 import {
   getFarmData,
   updateFarmData,
@@ -240,97 +241,6 @@ router.delete("/me/api-key", revokeApiKey);
 
 /**
  * @openapi
- * /users/me/generate-avatar:
- *   post:
- *     tags: [Users]
- *     summary: Generate an AI avatar image (costs 50 coins)
- *     description: |
- *       Uses Hugging Face FLUX.1-schnell to generate a custom alpaca-themed avatar.
- *       Costs **50 coins** per generation. The prompt is appended to a base avatar template.
- *     requestBody:
- *       required: false
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               prompt: { type: string, maxLength: 200, example: "Cute alpaca warrior in pixel art style" }
- *     responses:
- *       200:
- *         description: Avatar generated and set on user profile
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 user: { $ref: '#/components/schemas/User' }
- *                 avatarUrl: { type: string, example: "/uploads/avatar-42-a1b2c3d4e5f6g7h8.png" }
- *       402:
- *         description: Insufficient coins (need 50)
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/Error' }
- *       502:
- *         description: Image generation service temporarily unavailable
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/Error' }
- *       503:
- *         description: Image generation service not configured
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/Error' }
- */
-router.post("/me/generate-avatar", generateAvatar);
-
-/**
- * @openapi
- * /users/me/generate-image:
- *   post:
- *     tags: [Users]
- *     summary: Generate an AI image for posts (costs 50 coins)
- *     description: |
- *       Uses Hugging Face FLUX.1-schnell to generate an image from a text prompt.
- *       Costs **50 coins** per generation. The image is saved to `/uploads/` and can be
- *       attached to posts via the `imageUrl` field.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [prompt]
- *             properties:
- *               prompt: { type: string, maxLength: 200, example: "Alpaca riding a skateboard at sunset" }
- *     responses:
- *       200:
- *         description: Generated image URL
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 imageUrl: { type: string, example: "/uploads/generated-42-a1b2c3d4e5f6g7h8.jpg" }
- *       402:
- *         description: Insufficient coins (need 50)
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/Error' }
- *       502:
- *         description: Image generation service temporarily unavailable
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/Error' }
- *       503:
- *         description: Image generation service not configured
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/Error' }
- */
-router.post("/me/generate-image", generateImage);
-
-/**
- * @openapi
  * /users:
  *   get:
  *     tags: [Users]
@@ -377,6 +287,6 @@ router.get("/", listUsers);
  *                 user: { $ref: '#/components/schemas/User' }
  *       404: { description: User not found or profile is private }
  */
-router.get("/:id", getUser);
+router.get("/:id", idParamValidation(), checkValidation, getUser);
 
 export default router;
