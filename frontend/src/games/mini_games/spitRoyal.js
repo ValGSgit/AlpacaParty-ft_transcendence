@@ -107,10 +107,7 @@ function setupCallbacks(client) {
           gUser.value.point = msg.point
           gPlayer.value.point = msg.point
         }
-        remotePlayers[msg.targetId].hp--
         remotePlayers[msg.targetId].isDead = -1
-        if (remotePlayers[msg.targetId].hp === 0)
-          remotePlayers[msg.targetId].isDead = 1
       }
     }
   };
@@ -139,7 +136,9 @@ function setupCallbacks(client) {
           model.userData.networkId = p.id;
 
           gScene.value.add(model);
+          newAlpaca.name = p.name
           remotePlayers[p.id] = newAlpaca;
+          gMinigame.value.players.push(newAlpaca);
         });
 
       } else if (remotePlayers[p.id] !== "loading") {
@@ -153,6 +152,13 @@ function setupCallbacks(client) {
           remotePlayers[p.id].isJumping = false
         remotePlayers[p.id].model.position.set(p.x, p.y || 0, p.z);
         if (p.angle !== undefined) remotePlayers[p.id].model.rotation.y = p.angle;
+        const index = gMinigame.value.players.findIndex(alpaca => alpaca === remotePlayers[p.id]);
+        if (index !== -1){
+          gMinigame.value.players[index].hp = p.health // update hp to see if alpaca isDead
+          if (gMinigame.value.players[index].hp === 0)
+            gMinigame.value.players[index].isDead = 1
+          gMinigame.value.players = [...gMinigame.value.players]; // force UI update
+        }
       }
     }
     cleanUpDisconnectedPlayers(serverPlayerIds)
@@ -161,7 +167,7 @@ function setupCallbacks(client) {
   // --- JOINED: snap to spawn, start sending inputs ---
   client.onJoined = (playerId, spawn) => {
     console.log("Joined multiplayer as:", playerId);
-
+    gMinigame.value.players.push(gPlayer.value);
     if (spawn) {
       gPlayer.value.model.position.set(spawn.x, 0, spawn.z);
       gPlayer.value.model.rotation.y = spawn.angle;
@@ -198,6 +204,9 @@ function cleanUpDisconnectedPlayers(serverPlayerIds) {
           }
         });
       }
+      const index = gMinigame.value.players.findIndex(alpaca => alpaca === remotePlayers[id]);
+      if (index !== -1)
+        gMinigame.value.players.splice(index, 1);
       delete remotePlayers[id];
     }
   }

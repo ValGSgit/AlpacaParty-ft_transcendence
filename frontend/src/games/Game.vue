@@ -56,9 +56,13 @@
       class="stat":class="{ 'overlay': gMinigame.isGameOver }">
       <span>💰 {{ gUser.coins }}</span>
     </div>
-      <div v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="stat">
-        <span>🦙 {{ gUser.point }} </span>
-      </div>
+      <template v-if="gMinigame.mode === 2">
+        <div v-for="player in gMinigame.players" :key="'ui-' + player.id" class="stat multiplayer-row">
+          <span class="p-name">{{ player.name || `P${player.id}`}}:</span>
+          <span class="p-hp">{{ getHearts(player.hp) }}</span>
+          <span class="p-point">🦙 {{ player.point }}</span>
+        </div>
+      </template>
       <template v-if="gMinigame.mode === 3 &&!gMinigame.isGameOver">
         <div v-for="player in gMinigame.players" :key="'ui-' + player.id" class="stat multiplayer-row">
           <span class="p-name">{{ player.name || `P${player.id}`}}:</span>
@@ -68,8 +72,9 @@
       </template>
   </div>
 
-    <div v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="hud-hp">
+    <div v-if="gMinigame.mode === 1" class="hud-hp">
       <div class="stat">
+        <span>🦙 {{ gUser.point }} </span>
         <span>{{ getHearts(gUser.hp) }}</span>
       </div>
     </div>
