@@ -7,6 +7,9 @@ import { setupEnvironment } from '../world/sceneBuilder.js';
 import { changeFloorColor } from './utils.js';
 import { removeObject, removeFromArray } from '../core/removeObjects.js'
 import { remotePlayers, initClient } from './client.js';
+import { useFloatingText } from '../components/floatingText.js';
+
+const { spawnFloatingText } = useFloatingText();
 
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   gMinigame.value.mode = 1
@@ -15,6 +18,7 @@ export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   changeFloorColor('#ff0000', '#550000')
   registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
   gScene.value.add(gPlayer.value.model)
+  gMinigame.value.players.push(gPlayer.value);
   gUI.cameraMode = 1
   for (let i = 0; i < playerCount - 1; i++) {
     let alpaca
@@ -62,6 +66,7 @@ export function setupCallbacks(client) {
           gMinigame.value.isActive = false
           gMinigame.value.isGameOver = true;
         }
+        spawnFloatingText(gPlayer.value.model, '-💔', 'hearts');
       }
       else
       {
@@ -71,6 +76,7 @@ export function setupCallbacks(client) {
           gPlayer.value.point = msg.point
         }
         remotePlayers[msg.targetId].isDead = -1
+        spawnFloatingText(remotePlayers[msg.targetId].model, '-💔', 'hearts');
       }
     }
   };
@@ -123,7 +129,6 @@ export function setupCallbacks(client) {
             gMinigame.value.players[index].isDead = 1
             removeFromArray(gMinigame.value.players[index].model, gCollidables)
           }
-          gMinigame.value.players = [...gMinigame.value.players]; // force UI update
         }
       }
     }

@@ -39,7 +39,7 @@
         </button>
       </template>
       <div class="action-container">
-        <button v-if="gMinigame.mode === 1 && gMinigame.mode === 3" class="shop-btn" @click="changeGame(gMinigame.mode, playerCount)">
+        <button v-if="gMinigame.mode === 1 || gMinigame.mode === 3" class="shop-btn" @click="changeGame(gMinigame.mode, playerCount)">
           Play Again 🔄
         </button>
         <button class="shop-btn" @click="changeGame()" title="Return to Farm">
@@ -56,7 +56,7 @@
       class="stat":class="{ 'overlay': gMinigame.isGameOver }">
       <span>💰 {{ gUser.coins }}</span>
     </div>
-      <template v-if="gMinigame.mode === 2">
+      <template v-if="gMinigame.mode === 1 || gMinigame.mode === 2">
         <div v-for="player in gMinigame.players" :key="'ui-' + player.id" class="stat multiplayer-row">
           <span class="p-name">{{ player.name || `P${player.id}`}}:</span>
           <span class="p-hp">{{ getHearts(player.hp) }}</span>
@@ -71,13 +71,6 @@
         </div>
       </template>
   </div>
-
-    <div v-if="gMinigame.mode === 1" class="hud-hp">
-      <div class="stat">
-        <span>🦙 {{ gUser.point }} </span>
-        <span>{{ getHearts(gUser.hp) }}</span>
-      </div>
-    </div>
 
     <div class="floating-text-container">
       <div 
@@ -110,17 +103,18 @@
 
     <div v-if="gUI.gameMenu" class="modal-overlay">
       <div class="shop-title">Select Game
-        <button class="shop-btn" @click="changeGame(1, playerCount)" title="Spit Royale with AI">Spit Royale with AI</button>
-        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(0)" title="Spit Royale Online">Spit Royale Lobby</button>
-        <button v-if="isAuthenticated" class="shop-btn" @click="changeGame(2, 1)" title="Spit Royale Online">Spit Royale Online</button>
-        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(1)" title="Alpaca Road Online">Alpaca Road Lobby</button>
-      <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
-      <select v-model="playerCount" class="player-selector" title="Number of Players">
-        <option :value="1">1 Player</option>
-        <option :value="2">2 Players</option>
-        <option :value="3">3 Players</option>
-        <option :value="4">4 Players</option>
-      </select>
+        <div class="color-grid">
+        <button class="shop-btn" @click="changeGame(1, playerCount)" title="Spit Royale with AI">Spit Royale</button>
+        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(0)" title="Spit Royale Online">Online Lobby</button>
+        <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
+        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(1)" title="Alpaca Road Online">Online Lobby</button>
+        <select v-model="playerCount" class="player-selector" title="Number of Players">
+          <option :value="1">1 Player</option>
+          <option :value="2">2 Players</option>
+          <option :value="3">3 Players</option>
+          <option :value="4">4 Players</option>
+        </select>
+      </div>
         <button class="close-btn" @click="closeGameMenu()" title="Close">✖️</button>
       </div>
     </div>
@@ -128,6 +122,7 @@
     <div v-if="gUI.lobbyMenu && !gUI.isRoadGame" class="modal-overlay">
       <div class="shop-title">Spit Royale Lobby
         <button class="shop-btn" @click="changeGame(2, 1, -1)" title="Spit Royale Online">Create New Room</button>
+        <button v-if="gMinigame.lobby.length > 0" class="shop-btn" @click="changeGame(2, 1)" title="Spit Royale Online">Join Random Room</button>
         <div v-for="game in gMinigame.lobby">
           <button class="shop-btn" @click="changeGame(2, 1, game.matchid)" title="Spit Royale Online"><span>{{ game.roomName }}</span></button>
         </div>

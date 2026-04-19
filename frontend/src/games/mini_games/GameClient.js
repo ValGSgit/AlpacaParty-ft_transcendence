@@ -1,11 +1,13 @@
 import { io } from 'socket.io-client';
-import { gMinigame } from '../core/globals';
+import { gMinigame, gScene } from '../core/globals';
+import { useFloatingText } from '../components/floatingText.js';
 
 /**
  * Active game client singleton — accessible from any module without window globals.
  * Used by alpacaHandling.js to send hit events to the server.
  */
 let activeClient = null;
+const { spawnFloatingText } = useFloatingText();
 
 export function getActiveClient() {
   return activeClient;
@@ -69,9 +71,27 @@ export class GameClient {
     this.socket.on('game:message', (msg) => this.#handleMessage(msg));
     
     this.socket.on('game:start', (data) => {
-      console.log(data.msg); // "Everyone is ready! Starting..."
-      //startCountdown(); 
-      gMinigame.value.isActive = true;
+      const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+      async function startCountdown() {
+        spawnFloatingText(gScene.value.floor, 'Get Ready!');
+
+        await sleep(1000);
+
+        spawnFloatingText(gScene.value.floor, '3');
+        await sleep(1000);
+        
+        spawnFloatingText(gScene.value.floor, '2');
+        await sleep(1000);
+        
+        spawnFloatingText(gScene.value.floor, '1');
+        await sleep(1000);
+        
+        spawnFloatingText(gScene.value.floor, 'Start!');
+        gMinigame.value.isActive = true;
+      }
+
+      startCountdown();
     });
 
     this.socket.on('connect_error', (err) => {

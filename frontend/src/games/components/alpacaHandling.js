@@ -3,11 +3,13 @@ import { MATERIALS as MATS } from '../config/materials.js';
 import { gAlpacas, gPlayer, gScene, gMinigame } from "../core/globals.js";
 import { useUIManager } from '../core/useUIManager.js';
 import { getActiveClient } from '../mini_games/GameClient.js';
+import { useFloatingText } from '../components/floatingText.js';
 
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const worldPoint = new THREE.Vector3();
 const { openAlpacaStats } = useUIManager();
 const activeSpits = []; // Keep track of projectiles in flight
+const { spawnFloatingText } = useFloatingText();
 
 export function alpacaHandling() {
 
@@ -90,6 +92,7 @@ export function alpacaHandling() {
             // --- SINGLE PLAYER LOGIC ---
             const hitAlpaca = findAlpaca(hits[0].object);
             if (hitAlpaca) hitAlpaca.beingHit(s.owner);
+            spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
           } else {
             // --- MULTIPLAYER LOGIC ---
             // Only the person who fired the laser is allowed to tell the server it hit!
