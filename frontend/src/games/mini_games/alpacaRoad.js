@@ -226,6 +226,7 @@ export function updateAlpacaRoad(delta) {
   updateRoadScene(delta)
   updateDifficulty()
 
+  //alivePlayers update for multiplayer
   if (alivePlayers <= 0) {
     endMinigame();
   }
@@ -423,21 +424,41 @@ function awardPoints(obstacle) {
     const alpaca = activePlayers[i];
     if (!alpaca.isDead && !alpaca.isBeingHit) {
       if (obstacle.userData.isFullWidth) {
-        alpaca.point++;
+        if (gMinigame !== 4)
+          alpaca.point++;
         totalPoints++;
         spawnFloatingText(alpaca.model, '+1');
+        updatePointToServer(alpaca)
       } else {
         const distance = Math.abs(alpaca.model.position.x - obstacle.position.x);
         if (distance < 1) {
-          activePlayers[i].point++;
+          if (gMinigame !== 4)
+            activePlayers[i].point++;
           totalPoints += alivePlayers;
           spawnFloatingText(alpaca.model, '+1');
+          updatePointToServer(alpaca)
         }
       }
     }
   }
   console.log("Total:", totalPoints);
   obstacle.pointGiven = true;
+}
+
+function updatePointToServer(alpaca){
+  if (gMinigame.value.mode !== 4 || alpaca !== gPlayer.value)
+    return
+  const client = getActiveClient();
+  if (client)
+    client.emit('point', { ownerId: client.localPlayerId });
+}
+
+function updateHpToServer(alpaca){
+  if (gMinigame.value.mode !== 4 || alpaca !== gPlayer.value)
+    return
+  const client = getActiveClient();
+  if (client)
+    client.emit('hit', { targetId: client.localPlayerId });
 }
 
 function removeObstacle(obstacle, index) {
@@ -501,7 +522,9 @@ function checkAlpaca(alpaca) {
   const isColliding = checkCollisionWith(alpaca.model, activeObstacles);
   if (isColliding) {
     alpaca.isBeingHit = true;
-    alpaca.hp--;
+    if (gMinigame !== 4)
+      alpaca.hp--;
+    updateHpToServer(alpaca)
     spawnFloatingText(alpaca.model, '-💔', 'hearts');
     if (alpaca.hp === 0) {
       alpaca.isDead = true;

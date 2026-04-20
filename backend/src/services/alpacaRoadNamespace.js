@@ -175,7 +175,17 @@ export function initializeAlpacaRoadNamespace(io) {
       if (match) socket.broadcast.to(match.roomName).emit('game:message', { type: 'player_spit', playerId });
     });
 
-    socket.on('spit_hit', ({ targetId, ownerId }) => {
+    socket.on('point', ({ ownerId }) => {
+      const matchId = playerToMatch.get(playerId);
+      const match = matchId ? matches.get(matchId) : null;
+      if (!match) return;
+
+      if (match.players[ownerId])
+          match.players[ownerId].point++
+        namespace.to(match.roomName).emit('game:message', { type: 'get_point', ownerId, point: match.players[ownerId].point });
+    });
+
+    socket.on('hit', ({ targetId }) => {
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
       if (!match) return;
@@ -185,12 +195,10 @@ export function initializeAlpacaRoadNamespace(io) {
         target.health -= 1;
         
         if (target.health <= 0) {
-          if (match.players[ownerId])
-            match.players[ownerId].point++
           target.alive = false;
           target.socket.emit('game:message', { type: 'game_over', reason: 'eliminated' });
         }
-        namespace.to(match.roomName).emit('game:message', { type: 'player_hit', targetId, health: target.health, ownerId, point: match.players[ownerId].point });
+        namespace.to(match.roomName).emit('game:message', { type: 'get_hit', targetId, health: target.health});
       }
     });
 
