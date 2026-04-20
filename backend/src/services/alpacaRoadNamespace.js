@@ -99,6 +99,7 @@ export function initializeAlpacaRoadNamespace(io) {
       // 4. Create the player object
       const newPlayer = {
         id: playerId,
+        matchId: matchToJoin.id,
         socket,
         name: name || socket.user?.username || 'Vue_Llama',
         x: spawn.x, y: 0, z: spawn.z, angle: spawn.angle,
@@ -117,6 +118,7 @@ export function initializeAlpacaRoadNamespace(io) {
       socket.emit('game:message', {
         type: 'joined',
         playerId,
+        matchId: matchToJoin.id,
         isHost: isHost,
         spawn: { x: spawn.x, z: spawn.z, angle: spawn.angle }
       });
@@ -139,6 +141,20 @@ export function initializeAlpacaRoadNamespace(io) {
       console.log(match.roomName)
     });
 
+    socket.on('levelUp', (data) => {
+      const matchId = playerToMatch.get(playerId);
+      if (!matchId) return;
+    
+      const match = matches.get(matchId);
+      if (!match) return;
+    
+      // Broadcast the new level stats to everyone ELSE in the room
+      socket.to(match.roomName).emit('game:message', {
+        type: 'levelUp',
+        data: data
+      });
+    });
+      
     socket.on('input', ({ x, y, z, angle }) => {
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
@@ -179,9 +195,54 @@ export function initializeAlpacaRoadNamespace(io) {
     });
 
     socket.on('disconnect', () => {
-      const matchId = playerToMatch.get(playerId);
-      const match = matchId ? matches.get(matchId) : null;
-      if (match) removePlayer(playerId, match);
+      // Find which match the disconnected player was in
+      const matchId = playerToMatch.get(playerId); 
+      if (!matchId) return;
+    
+      const match = matches.get(matchId);
+      if (!match) return;
+    
+      const disconnectedPlayer = match.players[playerId];
+      if (!disconnectedPlayer) return;
+    
+      // 1. Remove the player from the room state
+      delete match.players[playerId];
+      playerToMatch.delete(playerId);
+    
+      const remainingPlayerIds = Object.keys(match.players);
+    
+      // 2. Check if the room is now empty
+      if (remainingPlayerIds.length === 0) {
+        // Cleanup the room to prevent memory leaks
+        clearInterval(match.interval);
+        matches.delete(matchId);
+        console.log(`Room ${matchId} destroyed.`);
+        return;
+      } 
+    
+      // 3. HOST MIGRATION LOGIC
+      if (disconnectedPlayer.isHost) {
+        // Pick the first available remaining player to be the new host
+        const newHostId = remainingPlayerIds[0];
+        const newHostPlayer = match.players[newHostId];
+    
+        // Update their status on the server
+        newHostPlayer.isHost = true;
+    
+        // Send a direct message to the new host's socket using the reference we saved
+        // We wrap it in 'game:message' so your GameClient handles it
+        newHostPlayer.socket.emit('game:message', {
+          type: 'host_migrated'
+        });
+    
+        console.log(`Host left. Migrated host role to ${newHostPlayer.name} (${newHostId})`);
+      }
+    
+      // 4. Let everyone else know a player left (so you can remove their alpaca)
+      socket.to(match.roomName).emit('game:message', {
+        type: 'player_left',
+        playerId: playerId
+      });
     });
   });
 

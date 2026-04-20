@@ -170,6 +170,7 @@ export function initializeSpitRoyaleNamespace(io) {
       const spawn = getValidSpawn(matchToJoin.players);
       const newPlayer = {
         id: playerId,
+        matchId: matchToJoin.id,
         socket,
         userId: socket.user?.id ?? null,
         name: name || socket.user?.username || 'Vue_Llama',
@@ -191,6 +192,7 @@ export function initializeSpitRoyaleNamespace(io) {
       socket.emit('game:message', {
         type: 'joined',
         playerId,
+        matchId: matchToJoin.id,
         spawn: { x: spawn.x, z: spawn.z, angle: spawn.angle },
       });
     });
@@ -241,7 +243,7 @@ export function initializeSpitRoyaleNamespace(io) {
         point: match.players[ownerId]?.point ?? 0,
       });
 
-      if (!target.alive) checkWinCondition(match);
+      //if (!target.alive) checkWinCondition(match);
     });
 
     socket.on('disconnect', () => {
@@ -269,7 +271,7 @@ export function initializeSpitRoyaleNamespace(io) {
       return;
     }
 
-    checkWinCondition(match);
+    //checkWinCondition(match);
   }
 
   function gameLoop(match) {

@@ -52,6 +52,7 @@ const { collectRewards } = useCoinUI();
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
   cleanupAlpacaRoad()
 
+  gMinigame.value.mode = 3;
   await setupRoadScene(gScene.value);
   await loadAssets(gScene.value);
   await initPlayers(playerCount, tempAlpacas);
@@ -63,6 +64,7 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
 export async function initAlpacaRoadOnline(playerCount, tempAlpacas, matchId) {
   cleanupAlpacaRoad();
 
+  gMinigame.value.mode = 4;
   await setupRoadScene(gScene.value);
   await loadAssets(); // Removed gScene.value as your loadAssets doesn't accept args
   await initPlayers(playerCount, tempAlpacas);
@@ -70,15 +72,6 @@ export async function initAlpacaRoadOnline(playerCount, tempAlpacas, matchId) {
   initGameValues(playerCount);
   initClient(1, matchId);
   
-  onlineClient.onGameEvent = (msg) => {
-  // Check the type that the server attached to the payload
-  if (msg.type === 'spawnObstacle') {
-      console.log("Received obstacle from host:", msg.config);
-      createObstacle(msg.config);
-    }
-  };
-  console.log(gMinigame.value.players)
-  gMinigame.value.mode = 4;
   gMinigame.value.isActive = false;
 }
 
@@ -89,7 +82,6 @@ function initGameValues(playerCount) {
   initalPlayerCount = playerCount;
   gUI.cameraMode = 2;
 
-  gMinigame.value.mode = 3;
   gMinigame.value.isActive = true;
   gUI.lockCamera = true;
   gUI.DoF = false;
@@ -155,14 +147,9 @@ async function initPlayers(playerCount, tempAlpacas) {
     gScene.value.add(alpaca.model);
     alpaca.model.position.x += playerPositions[i];
 
-    gMinigame.value.players.push({
-      id: i + 1,
-      name: alpaca.name,
-      hp: CONST.HP,
-      point: 0
-    });
+    if (gMinigame.value.mode !== 4)
+      gMinigame.value.players.push({id: i + 1, name: alpaca.name, hp: CONST.HP, point: 0});
   }
-  console.log(gAlpacas)
 }
 
 function initScenery() {
@@ -193,11 +180,17 @@ function initScenery() {
   }
 }
 
-function initObstacles() {
+export function initObstacles() {
   const amount = 8;
+  const client = getActiveClient();
   for (let i = 0; i < amount; ++i) {
-    createObstacle();
+    const config = createObstacle();
     activeObstacles[i].position.z = startZ - (roadLength / amount * i);
+    config.z = activeObstacles[i].position.z
+    // Broadcast the exact spawn data to the other players
+    if (gMinigame.value.mode === 4 && client) {
+      client.emit('spawnObstacle', config);
+    }
   }
 }
 
@@ -238,7 +231,7 @@ export function updateAlpacaRoad(delta) {
   }
 }
 
-function spawnObstacles(delta) {
+export function spawnObstacles(delta) {
   if (!gMinigame.value.isActive || fullObstacle.length === 0) return;
 
   const client = getActiveClient();
@@ -261,7 +254,7 @@ function spawnObstacles(delta) {
   }
 }
 
-function createObstacle(config = null) {
+export function createObstacle(config = null) {
   // If no config is provided (local play), generate the random values
   if (!config) {
     const validLanes = getValidLanes();
@@ -309,7 +302,6 @@ function getValidLanes() {
       validLanes.push(i);
     }
   }
-  console.log(activePlayers.length)
   return validLanes;
 }
 
@@ -332,27 +324,50 @@ function updatePlayers(delta) {
   }
 }
 
+export function applyLevelUp(newLevel, newSpeed, newTimerMult) {
+  level = newLevel;
+  roadSpeed = newSpeed;
+  timerMultiplier = newTimerMult;
+
+  showLevelAnnouncement(level);
+  console.log("Synced Level:", level);
+  console.log("Synced Speed:", roadSpeed);
+  console.log("Synced Timer:", timerMultiplier);
+}
+
 function updateDifficulty() {
+  const client = getActiveClient();
+  const isMultiplayer = gMinigame.value.mode === 4;
+  const isHost = !isMultiplayer || (client && client.isHost);
+
+  // If you are a guest, do not calculate difficulty. Wait for the host's event.
+  if (!isHost) return;
+
   const pointsPerLevel = 4 + level;
   const avgPoints = totalPoints / initalPlayerCount;
   const newLevel = Math.floor(avgPoints / pointsPerLevel) + 1;
 
-
   if (newLevel > level) {
-    level = newLevel;
-
     const minSpeed = 25;
     const maxSpeed = 100;
     const factor = 0.1;
-    const difficultyFactor = 1 - Math.exp(-factor * level);
-    roadSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;
+    const difficultyFactor = 1 - Math.exp(-factor * newLevel);
+    
+    // Calculate the new values
+    const newSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;
+    const newTimerMult = Math.max(0.5, timerMultiplier - 0.05);
 
-    timerMultiplier = Math.max(0.5, timerMultiplier - 0.05);
+    // Apply locally for the Host (or local player)
+    applyLevelUp(newLevel, newSpeed, newTimerMult);
 
-    showLevelAnnouncement(level);
-    console.log("Level:", level);
-    console.log("Speed:", roadSpeed);
-    console.log("Timer:", timerMultiplier);
+    // Broadcast to the rest of the room if online
+    if (isMultiplayer && client) {
+      client.emit('levelUp', { 
+        level: newLevel, 
+        roadSpeed: newSpeed, 
+        timerMultiplier: newTimerMult 
+      });
+    }
   }
 }
 
@@ -564,4 +579,8 @@ export function getReady(){
     gMinigame.value.isReady = false
   const client = getActiveClient();
   client.emit('ready', ({ id: client.localPlayerId, ready: gMinigame.value.isReady }))
+}
+
+export function initInitalPlayerCount(PlayerCount){
+  initalPlayerCount = PlayerCount
 }
