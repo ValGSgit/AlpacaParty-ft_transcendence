@@ -1,6 +1,5 @@
-import { GameClient } from './GameClient.js';
+import { GameClient, setupCallbacks } from './GameClient.js';
 import { gPlayer, gScene, gUser } from '../core/globals.js';
-import { setupCallbacks } from './spitRoyal.js';
 import { removeObject } from '../core/removeObjects.js';
 
 export let onlineClient = null;

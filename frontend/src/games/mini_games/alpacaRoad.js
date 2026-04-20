@@ -11,7 +11,7 @@ import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
 import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
 import { adjustSunBox, setSunLight, setupLighting } from '../world/sceneBuilder.js';
-import { initClient } from './client.js';
+import { initClient, onlineClient } from './client.js';
 import { getActiveClient } from './GameClient.js';
 
 const roadLength = 700;
@@ -23,7 +23,7 @@ const startZ = roadLength + roadBack;
 let level;
 let alivePlayers;
 let initalPlayerCount;
-let activePlayers = [];
+export let activePlayers = [];
 const playerPositions = [2.5, -2.5, -7.5, 7.5];
 
 let obstacleTimer = 2;
@@ -52,6 +52,7 @@ const { collectRewards } = useCoinUI();
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
   cleanupAlpacaRoad()
 
+  gMinigame.value.mode = 3;
   await setupRoadScene(gScene.value);
   await loadAssets(gScene.value);
   await initPlayers(playerCount, tempAlpacas);
@@ -61,17 +62,17 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
 }
 
 export async function initAlpacaRoadOnline(playerCount, tempAlpacas, matchId) {
-  cleanupAlpacaRoad()
+  cleanupAlpacaRoad();
 
+  gMinigame.value.mode = 4;
   await setupRoadScene(gScene.value);
-  await loadAssets(gScene.value);
+  await loadAssets(); // Removed gScene.value as your loadAssets doesn't accept args
   await initPlayers(playerCount, tempAlpacas);
   initScenery();
-  initObstacles();
   initGameValues(playerCount);
   initClient(1, matchId);
-  gMinigame.value.mode = 4;
-  gMinigame.value.isActive = false
+  
+  gMinigame.value.isActive = false;
 }
 
 function initGameValues(playerCount) {
@@ -81,7 +82,6 @@ function initGameValues(playerCount) {
   initalPlayerCount = playerCount;
   gUI.cameraMode = 2;
 
-  gMinigame.value.mode = 3;
   gMinigame.value.isActive = true;
   gUI.lockCamera = true;
   gUI.DoF = false;
@@ -147,14 +147,9 @@ async function initPlayers(playerCount, tempAlpacas) {
     gScene.value.add(alpaca.model);
     alpaca.model.position.x += playerPositions[i];
 
-    gMinigame.value.players.push({
-      id: i + 1,
-      name: alpaca.name,
-      hp: CONST.HP,
-      point: 0
-    });
+    if (gMinigame.value.mode !== 4)
+      gMinigame.value.players.push({id: i + 1, name: alpaca.name, hp: CONST.HP, point: 0});
   }
-  console.log(gAlpacas)
 }
 
 function initScenery() {
@@ -185,11 +180,17 @@ function initScenery() {
   }
 }
 
-function initObstacles() {
+export function initObstacles() {
   const amount = 8;
+  const client = getActiveClient();
   for (let i = 0; i < amount; ++i) {
-    createObstacle();
+    const config = createObstacle();
     activeObstacles[i].position.z = startZ - (roadLength / amount * i);
+    config.z = activeObstacles[i].position.z
+    // Broadcast the exact spawn data to the other players
+    if (gMinigame.value.mode === 4 && client) {
+      client.emit('spawnObstacle', config);
+    }
   }
 }
 
@@ -225,51 +226,69 @@ export function updateAlpacaRoad(delta) {
   updateRoadScene(delta)
   updateDifficulty()
 
+  //alivePlayers update for multiplayer
   if (alivePlayers <= 0) {
     endMinigame();
   }
 }
 
-function spawnObstacles(delta) {
+export function spawnObstacles(delta) {
   if (!gMinigame.value.isActive || fullObstacle.length === 0) return;
+
+  const client = getActiveClient();
+  const isHost = gMinigame.value.mode !== 4 || (client && client.isHost);
+
+  if (!isHost) return; 
 
   obstacleTimer -= delta;
 
   if (obstacleTimer <= 0) {
     obstacleTimer = (getRandomTimer() / 2) * timerMultiplier;
-    createObstacle();
+    
+    // Create the obstacle and grab the generated config
+    const config = createObstacle();
+    
+    // Broadcast the exact spawn data to the other players
+    if (gMinigame.value.mode === 4 && client) {
+      client.emit('spawnObstacle', config);
+    }
   }
 }
 
-function createObstacle() {
-  const validLanes = getValidLanes();
-  const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
+export function createObstacle(config = null) {
+  // If no config is provided (local play), generate the random values
+  if (!config) {
+    const validLanes = getValidLanes();
+    const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
+    const isFull = pos >= 4;
+    const id = isFull ? getRandomID(fullObstacle) : getRandomID(singleObstacle);
+    const rotation = Math.random() > 0.5 ? Math.PI : 0;
+    
+    config = { pos, isFull, id, rotation, z: startZ };
+  }
 
   let obstacle;
-  let id = 0;
-  if (pos < 4) {
-    id = getRandomID(singleObstacle);
-    obstacle = singleObstacle[id].clone();
-    obstacle.position.x = playerPositions[pos];
+  if (!config.isFull) {
+    obstacle = singleObstacle[config.id].clone();
+    obstacle.position.x = playerPositions[config.pos];
     obstacle.userData.isFullWidth = false;
   } else {
-    id = getRandomID(fullObstacle);
-    obstacle = fullObstacle[id].clone();
+    obstacle = fullObstacle[config.id].clone();
     obstacle.userData.isFullWidth = true;
   }
+  
   attachCollider(obstacle);
-
-  if (Math.random() > 0.5) {
-    obstacle.rotation.y = Math.PI;
-  }
-
-  obstacle.position.z = startZ;
+  obstacle.rotation.y = config.rotation;
+  obstacle.position.z = config.z;
+  
   obstacle.pointGiven = false;
   obstacle.frustumCulled = false;
   obstacle.traverse(child => { if (child.isMesh) child.frustumCulled = false; });
 
   activeObstacles.push(obstacle);
   gScene.value.add(obstacle);
+  
+  return config; // Return the config in case we need to broadcast it
 }
 
 function getRandomID(array) {
@@ -306,27 +325,50 @@ function updatePlayers(delta) {
   }
 }
 
+export function applyLevelUp(newLevel, newSpeed, newTimerMult) {
+  level = newLevel;
+  roadSpeed = newSpeed;
+  timerMultiplier = newTimerMult;
+
+  showLevelAnnouncement(level);
+  console.log("Synced Level:", level);
+  console.log("Synced Speed:", roadSpeed);
+  console.log("Synced Timer:", timerMultiplier);
+}
+
 function updateDifficulty() {
+  const client = getActiveClient();
+  const isMultiplayer = gMinigame.value.mode === 4;
+  const isHost = !isMultiplayer || (client && client.isHost);
+
+  // If you are a guest, do not calculate difficulty. Wait for the host's event.
+  if (!isHost) return;
+
   const pointsPerLevel = 4 + level;
   const avgPoints = totalPoints / initalPlayerCount;
   const newLevel = Math.floor(avgPoints / pointsPerLevel) + 1;
 
-
   if (newLevel > level) {
-    level = newLevel;
-
     const minSpeed = 25;
     const maxSpeed = 100;
     const factor = 0.1;
-    const difficultyFactor = 1 - Math.exp(-factor * level);
-    roadSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;
+    const difficultyFactor = 1 - Math.exp(-factor * newLevel);
+    
+    // Calculate the new values
+    const newSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;
+    const newTimerMult = Math.max(0.5, timerMultiplier - 0.05);
 
-    timerMultiplier = Math.max(0.5, timerMultiplier - 0.05);
+    // Apply locally for the Host (or local player)
+    applyLevelUp(newLevel, newSpeed, newTimerMult);
 
-    showLevelAnnouncement(level);
-    console.log("Level:", level);
-    console.log("Speed:", roadSpeed);
-    console.log("Timer:", timerMultiplier);
+    // Broadcast to the rest of the room if online
+    if (isMultiplayer && client) {
+      client.emit('levelUp', { 
+        level: newLevel, 
+        roadSpeed: newSpeed, 
+        timerMultiplier: newTimerMult 
+      });
+    }
   }
 }
 
@@ -382,21 +424,41 @@ function awardPoints(obstacle) {
     const alpaca = activePlayers[i];
     if (!alpaca.isDead && !alpaca.isBeingHit) {
       if (obstacle.userData.isFullWidth) {
-        alpaca.point++;
+        if (gMinigame !== 4)
+          alpaca.point++;
         totalPoints++;
         spawnFloatingText(alpaca.model, '+1');
+        updatePointToServer(alpaca)
       } else {
         const distance = Math.abs(alpaca.model.position.x - obstacle.position.x);
         if (distance < 1) {
-          activePlayers[i].point++;
+          if (gMinigame !== 4)
+            activePlayers[i].point++;
           totalPoints += alivePlayers;
           spawnFloatingText(alpaca.model, '+1');
+          updatePointToServer(alpaca)
         }
       }
     }
   }
   console.log("Total:", totalPoints);
   obstacle.pointGiven = true;
+}
+
+function updatePointToServer(alpaca){
+  if (gMinigame.value.mode !== 4 || alpaca !== gPlayer.value)
+    return
+  const client = getActiveClient();
+  if (client)
+    client.emit('point', { ownerId: client.localPlayerId });
+}
+
+function updateHpToServer(alpaca){
+  if (gMinigame.value.mode !== 4 || alpaca !== gPlayer.value)
+    return
+  const client = getActiveClient();
+  if (client)
+    client.emit('hit', { targetId: client.localPlayerId });
 }
 
 function removeObstacle(obstacle, index) {
@@ -460,7 +522,9 @@ function checkAlpaca(alpaca) {
   const isColliding = checkCollisionWith(alpaca.model, activeObstacles);
   if (isColliding) {
     alpaca.isBeingHit = true;
-    alpaca.hp--;
+    if (gMinigame !== 4)
+      alpaca.hp--;
+    updateHpToServer(alpaca)
     spawnFloatingText(alpaca.model, '-💔', 'hearts');
     if (alpaca.hp === 0) {
       alpaca.isDead = true;
@@ -538,4 +602,8 @@ export function getReady(){
     gMinigame.value.isReady = false
   const client = getActiveClient();
   client.emit('ready', ({ id: client.localPlayerId, ready: gMinigame.value.isReady }))
+}
+
+export function initInitalPlayerCount(PlayerCount){
+  initalPlayerCount = PlayerCount
 }
