@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
-import { gMinigame, gScene } from '../core/globals';
+import { gMinigame, gScene, gPlayer } from '../core/globals';
 import { useFloatingText } from '../components/floatingText.js';
+import { activePlayers } from './alpacaRoad.js'
 
 /**
  * Active game client singleton — accessible from any module without window globals.
@@ -27,6 +28,7 @@ export class GameClient {
     this.inputInterval = null;
     this.namespace = namespace;
     this.tickRate = tickRate;
+    this.isHost = false;
 
     // Callbacks for the game mode to hook into
     this.onJoined = null;
@@ -74,6 +76,10 @@ export class GameClient {
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
       async function startCountdown() {
+/*         for (let i = 0; i < gMinigame.value.players.length - 1; i++) {
+          if (gMinigame.value.players[i] !== gPlayer.value)
+            activePlayers.push(gMinigame.value.players[i])
+        } */
         spawnFloatingText(gScene.value.floor, 'Get Ready!');
 
         await sleep(1000);
@@ -110,8 +116,13 @@ export class GameClient {
     switch (msg.type) {
       case 'joined':
         this.localPlayerId = msg.playerId;
+        this.isHost = msg.isHost || false;
         this.onJoined?.(this.localPlayerId, msg.spawn);
         this.#startInputLoop();
+        break;
+      case 'host_migrated':
+        this.isHost = true;
+        console.log("I am the new host!");
         break;
       case 'tick':
       case 'game_start':

@@ -11,7 +11,7 @@ import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
 import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
 import { adjustSunBox, setSunLight, setupLighting } from '../world/sceneBuilder.js';
-import { initClient } from './client.js';
+import { initClient, onlineClient } from './client.js';
 import { getActiveClient } from './GameClient.js';
 
 const roadLength = 700;
@@ -23,7 +23,7 @@ const startZ = roadLength + roadBack;
 let level;
 let alivePlayers;
 let initalPlayerCount;
-let activePlayers = [];
+export let activePlayers = [];
 const playerPositions = [2.5, -2.5, -7.5, 7.5];
 
 let obstacleTimer = 2;
@@ -61,17 +61,25 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
 }
 
 export async function initAlpacaRoadOnline(playerCount, tempAlpacas, matchId) {
-  cleanupAlpacaRoad()
+  cleanupAlpacaRoad();
 
   await setupRoadScene(gScene.value);
-  await loadAssets(gScene.value);
+  await loadAssets(); // Removed gScene.value as your loadAssets doesn't accept args
   await initPlayers(playerCount, tempAlpacas);
   initScenery();
-  initObstacles();
   initGameValues(playerCount);
   initClient(1, matchId);
+  
+  onlineClient.onGameEvent = (msg) => {
+  // Check the type that the server attached to the payload
+  if (msg.type === 'spawnObstacle') {
+      console.log("Received obstacle from host:", msg.config);
+      createObstacle(msg.config);
+    }
+  };
+  console.log(gMinigame.value.players)
   gMinigame.value.mode = 4;
-  gMinigame.value.isActive = false
+  gMinigame.value.isActive = false;
 }
 
 function initGameValues(playerCount) {
@@ -233,43 +241,60 @@ export function updateAlpacaRoad(delta) {
 function spawnObstacles(delta) {
   if (!gMinigame.value.isActive || fullObstacle.length === 0) return;
 
+  const client = getActiveClient();
+  const isHost = gMinigame.value.mode !== 4 || (client && client.isHost);
+
+  if (!isHost) return; 
+
   obstacleTimer -= delta;
 
   if (obstacleTimer <= 0) {
     obstacleTimer = (getRandomTimer() / 2) * timerMultiplier;
-    createObstacle();
+    
+    // Create the obstacle and grab the generated config
+    const config = createObstacle();
+    
+    // Broadcast the exact spawn data to the other players
+    if (gMinigame.value.mode === 4 && client) {
+      client.emit('spawnObstacle', config);
+    }
   }
 }
 
-function createObstacle() {
-  const validLanes = getValidLanes();
-  const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
+function createObstacle(config = null) {
+  // If no config is provided (local play), generate the random values
+  if (!config) {
+    const validLanes = getValidLanes();
+    const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
+    const isFull = pos >= 4;
+    const id = isFull ? getRandomID(fullObstacle) : getRandomID(singleObstacle);
+    const rotation = Math.random() > 0.5 ? Math.PI : 0;
+    
+    config = { pos, isFull, id, rotation, z: startZ };
+  }
 
   let obstacle;
-  let id = 0;
-  if (pos < 4) {
-    id = getRandomID(singleObstacle);
-    obstacle = singleObstacle[id].clone();
-    obstacle.position.x = playerPositions[pos];
+  if (!config.isFull) {
+    obstacle = singleObstacle[config.id].clone();
+    obstacle.position.x = playerPositions[config.pos];
     obstacle.userData.isFullWidth = false;
   } else {
-    id = getRandomID(fullObstacle);
-    obstacle = fullObstacle[id].clone();
+    obstacle = fullObstacle[config.id].clone();
     obstacle.userData.isFullWidth = true;
   }
+  
   attachCollider(obstacle);
-
-  if (Math.random() > 0.5) {
-    obstacle.rotation.y = Math.PI;
-  }
-
-  obstacle.position.z = startZ;
+  obstacle.rotation.y = config.rotation;
+  obstacle.position.z = config.z;
+  
   obstacle.pointGiven = false;
   obstacle.frustumCulled = false;
   obstacle.traverse(child => { if (child.isMesh) child.frustumCulled = false; });
 
   activeObstacles.push(obstacle);
   gScene.value.add(obstacle);
+  
+  return config; // Return the config in case we need to broadcast it
 }
 
 function getRandomID(array) {
@@ -284,6 +309,7 @@ function getValidLanes() {
       validLanes.push(i);
     }
   }
+  console.log(activePlayers.length)
   return validLanes;
 }
 
