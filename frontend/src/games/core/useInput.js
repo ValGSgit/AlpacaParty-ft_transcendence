@@ -119,13 +119,7 @@ export function useInput() {
   }
 
   const handleEscapeKey = () => {
-    if (gEditState.selected) {
-      if (gEditState.selected.userData.isNew)
-        closeMenus();
-      cancelPlacement();
-    } else {
-      closeMenus()
-    }
+    closeMenus()
   }
 
   //reset input so the keys dont stick (addictive)

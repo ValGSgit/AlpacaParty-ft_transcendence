@@ -7,10 +7,10 @@ export function useUIManager() {
   const { removeHighlight, cancelPlacement } = useEditMode()
 
   const closeMenus = () => {
+    if (gUI.editMode) closeEditMode();
     if (gUI.alpacaShop) closeAlpacaShop();
     if (gUI.itemShop) closeItemShop();
     if (gUI.lightMenu) closeLightMenu();
-    if (gUI.editMode) closeEditMode();
     if (gUI.shopMenu) closeShopMenu();
     if (gUI.gameMenu) closeGameMenu();
     if (gUI.farmMenu) closeFarmMenu();
