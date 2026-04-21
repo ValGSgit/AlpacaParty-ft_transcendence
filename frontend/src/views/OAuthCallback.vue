@@ -25,10 +25,8 @@ const authStore = useAuthStore()
 const error   = ref('')
 
 /**
- * Extract tokens from whichever delivery mechanism the backend used:
- *   1. postMessage (popup flow)  — handled by the login page's message listener
- *   2. URL fragment (#)          — primary redirect flow (tokens never hit the server)
- *   3. URL query params (?)      — legacy fallback
+ * Extract tokens from the URL fragment (#), which is set by the backend
+ * redirect after successful OAuth authentication.
  */
 function extractTokens() {
   // Try URL fragment first (most secure — fragments aren't sent to servers)

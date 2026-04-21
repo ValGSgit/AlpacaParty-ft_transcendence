@@ -102,7 +102,7 @@ export function alpacaHandling() {
 
                if (obj && obj.userData.networkId && obj.userData.networkId !== client.localPlayerId) {
                  // We hit a remote player! Tell the server.
-                 client.emit('spit_hit', { targetId: obj.userData.networkId });
+                 client.emit('spit_hit', { targetId: obj.userData.networkId, ownerId: client.localPlayerId });
                }
             }
           }

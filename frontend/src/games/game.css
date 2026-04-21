@@ -121,6 +121,11 @@ html {
   cursor: pointer;
 }
 
+/* Ready state (Green) */
+.shop-btn.is-ready {
+  background-color: #2ecc71; /* Green */
+}
+
 .hud-btn:hover,
 .stat-btn:hover,
 .close-btn:hover,

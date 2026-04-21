@@ -79,7 +79,6 @@ All team members communicated via a dedicated Discord server. Async discussions 
 | **Secret Management** | HashiCorp Vault | Production secrets (DB creds, API keys, OAuth secrets) fetched at startup; falls back to env vars in dev |
 | **Containerization** | Docker Compose | Single-command deployment with isolated services and reproducible environments |
 | **Testing** | Jest (backend, 13 test files), Vitest (frontend, 8+ files), Playwright (E2E, 14 specs) | Full testing pyramid coverage |
-| **AI** | Groq Llama 3 (help desk), Hugging Face FLUX.1-schnell (image generation) | Contextual help chat and AI-generated avatars/post images |
 | **API Docs** | Swagger UI (OpenAPI 3.0) | Interactive docs at `/api/docs`; all 70+ endpoints documented with schemas |
 
 ---
@@ -163,7 +162,6 @@ The PostgreSQL database contains 28 tables managed via Prisma ORM, organized aro
 | User Registration & Login | Email/password auth with hashed passwords (bcrypt), JWT access + refresh tokens | ValGSgit, DavidPoetsch |
 | OAuth 2.0 | Google and GitHub third-party login via Passport.js; automatic account linking | ValGSgit |
 | User Profiles | Editable profile: username, email, bio, avatar upload, status, XP/level display, online indicator | ValGSgit, fankahou |
-| AI Avatar & Image Generation | Generate avatar or post image via Hugging Face FLUX.1-schnell (costs 50 coins per generation) | ValGSgit |
 | Friends System | Send/accept/decline/cancel requests; view friends list with real-time online status; block/unblock | ValGSgit, fankahou |
 | Direct Messaging | Real-time 1-to-1 messaging via Socket.IO, unread counts, read receipts, persistent history | ValGSgit, LukasStefanek |
 | Group Chat Rooms | Create/join/leave rooms, role-based permissions (owner/admin/member) | ValGSgit, LukasStefanek |
@@ -181,7 +179,6 @@ The PostgreSQL database contains 28 tables managed via Prisma ORM, organized aro
 | Privacy Policy | Comprehensive GDPR-compliant privacy policy page | ValGSgit |
 | Terms of Service | Full terms of service with acceptable use policy | ValGSgit |
 | GDPR Data Management | Export personal data (JSON/CSV/XML), request account deletion, 30-day grace period | ValGSgit |
-| AI Help Desk | Groq Llama 3-powered contextual help chat | ValGSgit |
 | Settings Page | Profile editing, password change, privacy toggle, data export/import, account deletion | ValGSgit, fankahou |
 
 ---
@@ -249,9 +246,8 @@ The PostgreSQL database contains 28 tables managed via Prisma ORM, organized aro
 - **Authentication**: JWT access/refresh token system, bcrypt password hashing, OAuth integration (Google + GitHub via Passport.js)
 - **Security**: HashiCorp Vault integration for production secret management (dev fallback to env vars); ModSecurity WAF with OWASP CRS tuned for API endpoints
 - **Database**: Prisma ORM schema (28 tables), PostgreSQL adapter, JSONB columns for flexible game/farm data
-- **API**: All RESTful controllers (auth, users, chat, posts, game, organizations, notifications, uploads, help, admin, public API — 70+ endpoints total)
+- **API**: All RESTful controllers (auth, users, chat, posts, game, organizations, notifications, uploads, admin, public API — 70+ endpoints total)
 - **Services**: Gamification engine (XP with performance bonuses, level-up, 6+ achievements, daily challenges), notification service, data export service (JSON/CSV/XML), upload service, Spit Royale game namespace (1v1 matchmaking, survival bots, spectator, rematch)
-- **AI Integration**: Hugging Face FLUX.1-schnell for AI avatar and post image generation (coin-gated)
 - **Frontend**: Admin dashboard, Feed view, Profile editor, Settings page, Spit Royale game UI, notification bell, Security dashboard, Public Showcase, ApiDocs
 - **Compliance**: Privacy Policy, Terms of Service, GDPR export/delete functionality, data request admin workflow
 
@@ -335,7 +331,6 @@ See [.env.example](.env.example) for the full list. Key variables:
 | `VITE_API_URL` | Frontend API base path | `/api` |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth (optional) | — |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth (optional) | — |
-| `GROQ_API_KEY` | Groq API for AI help desk (optional) | — |
 | `API_KEYS` | Comma-separated public API keys | `change-me-to-a-secure-key` |
 
 ---
@@ -412,7 +407,6 @@ All AI-generated content was reviewed, tested, and adapted by team members. Ever
 - SSL uses a self-signed certificate — browsers will show a security warning in development; production requires a valid CA certificate
 - OAuth requires valid Google/GitHub API credentials to be configured in `.env`
 - Vault integration is optional in development (falls back to env vars); required in production
-- AI image generation (avatar/post image) requires a valid `HUGGINGFACE_API_KEY`
 - The Organizations module has full backend API support but no dedicated frontend route; organization management may be surfaced via the API directly or through future UI work
 - Multi-browser testing (Firefox, Safari, Edge) has not yet been formally verified
 

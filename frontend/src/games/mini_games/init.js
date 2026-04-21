@@ -6,14 +6,15 @@ import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/global
 import { saveGame } from '../core/saveLoadGame.js';
 import { useGameEngine } from '../core/useGameEngine.js';
 import { initWorld } from '../world/initWorld.js';
-import { initAlpacaRoad } from './alpacaRoad.js';
-import { cleanupClient, initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
+import { initAlpacaRoad, initAlpacaRoadOnline } from './alpacaRoad.js';
+import { initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
+import { cleanupClient } from './client.js';
 
 const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
 const tempAlpacas = []
 
-export async function changeGame(mode, playerCount) {
+export async function changeGame(mode, playerCount, matchId) {
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0)
     saveGame()
@@ -24,6 +25,7 @@ export async function changeGame(mode, playerCount) {
     playerCount = 1
   gUI.lockCamera = false
   gUI.gameMenu = false
+  gUI.lobbyMenu = false
   gUser.value.hp = CONST.HP
   gUser.value.point = 0
   gUser.value.name = gPlayer.value.name
@@ -47,10 +49,13 @@ export async function changeGame(mode, playerCount) {
       initSpitRoyalAI(playerCount, tempAlpacas);
       break;
     case 2:
-      initSpitRoyalOnline();
+      initSpitRoyalOnline(matchId);
       break;
     case 3:
       initAlpacaRoad(playerCount, tempAlpacas);
+      break;
+    case 4:
+      initAlpacaRoadOnline(playerCount, tempAlpacas, matchId);
       break;
     default:
       await returnFarm();

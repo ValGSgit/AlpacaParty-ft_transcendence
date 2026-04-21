@@ -3,12 +3,15 @@
  */
 import express from 'express';
 import {
-  getStats, listUsers, deleteUser, toggleAdmin,
+  getStats, getStatsHistory, listUsers, deleteUser, toggleAdmin,
   listDataRequests, processDataRequest,
 } from '../controllers/adminController.js';
 import { authenticate } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/admin.js';
 import rateLimit from 'express-rate-limit';
+import { body } from 'express-validator';
+import { idParamValidation } from '../validators/contentValidator.js';
+import { checkValidation } from '../validators/validatorUtils.js';
 
 const router = express.Router();
 router.use(authenticate, requireAdmin);
@@ -39,6 +42,56 @@ router.use(rateLimit({ windowMs: 60_000, max: 60 }));
  *       403: { description: Admin access required }
  */
 router.get('/stats', getStats);
+
+/**
+ * @openapi
+ * /admin/stats/history:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Time-series analytics for the last N days
+ *     description: |
+ *       Returns daily counts (signups, games, posts, messages) and top-N
+ *       breakdowns (players by ELO, post authors, organizations) intended to
+ *       power the admin analytics dashboard.
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema: { type: integer, minimum: 1, maximum: 365, default: 30 }
+ *     responses:
+ *       200:
+ *         description: Historical analytics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 range:
+ *                   type: object
+ *                   properties:
+ *                     start: { type: string, format: date-time }
+ *                     end: { type: string, format: date-time }
+ *                     days: { type: integer }
+ *                 series:
+ *                   type: object
+ *                   properties:
+ *                     signups:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           date: { type: string, example: "2026-04-17" }
+ *                           count: { type: integer }
+ *                     games:    { type: array, items: { type: object } }
+ *                     posts:    { type: array, items: { type: object } }
+ *                     messages: { type: array, items: { type: object } }
+ *                 top:
+ *                   type: object
+ *                   properties:
+ *                     players:       { type: array, items: { type: object } }
+ *                     postAuthors:   { type: array, items: { type: object } }
+ *                     organizations: { type: array, items: { type: object } }
+ */
+router.get('/stats/history', getStatsHistory);
 
 /**
  * @openapi
@@ -90,7 +143,7 @@ router.get('/users', listUsers);
  *       403: { description: Cannot delete another admin }
  *       404: { description: User not found }
  */
-router.delete('/users/:id', deleteUser);
+router.delete('/users/:id', idParamValidation(), checkValidation, deleteUser);
 
 /**
  * @openapi
@@ -114,7 +167,7 @@ router.delete('/users/:id', deleteUser);
  *                 user: { $ref: '#/components/schemas/User' }
  *       404: { description: User not found }
  */
-router.put('/users/:id/toggle-admin', toggleAdmin);
+router.put('/users/:id/toggle-admin', idParamValidation(), checkValidation, toggleAdmin);
 
 /**
  * @openapi
@@ -178,6 +231,15 @@ router.get('/data-requests', listDataRequests);
  *       400: { description: Invalid action }
  *       404: { description: Request not found }
  */
-router.post('/data-requests/:id/process', processDataRequest);
+router.post(
+  '/data-requests/:id/process',
+  idParamValidation(),
+  [
+    body('action').isIn(['approve', 'reject']).withMessage('action must be approve or reject'),
+    body('note').optional({ values: 'falsy' }).isString().isLength({ max: 500 }).withMessage('note must be 500 characters or fewer'),
+  ],
+  checkValidation,
+  processDataRequest,
+);
 
 export default router;
