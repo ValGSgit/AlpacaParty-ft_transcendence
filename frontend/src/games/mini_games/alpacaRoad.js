@@ -38,13 +38,15 @@ const singleObstacle = [];
 const activeObstacles = [];
 
 const buildingSelection = [];
-const activeBuildings = [];
 const buildingDepth = 60;
 const buildingOffset = -30;
 const roadScene = [];
 let assetsLoaded = false;
 
 let totalPoints = 0;
+
+const rScaleUp = new THREE.Vector3(1, 1, 1);
+const lScaleUp = new THREE.Vector3(-1, 1, 1);
 
 const { spawnFloatingText } = useFloatingText();
 const { collectRewards } = useCoinUI();
@@ -166,8 +168,8 @@ function initScenery() {
     const rBuild = buildingSelection[id].clone();
     rBuild.position.set(buildingOffset, 0, zPos);
     gScene.value.add(rBuild);
-    activeBuildings.push(rBuild);
-    rBuild.userData.targetScale = new THREE.Vector3(1, 1, 1);
+    roadScene.push(rBuild);
+    rBuild.userData.targetScale = rScaleUp;
 
     // Left
     id = getRandomID(buildingSelection);
@@ -175,8 +177,8 @@ function initScenery() {
     lBuild.scale.x = -1;
     lBuild.position.set(-buildingOffset, 0, zPos);
     gScene.value.add(lBuild);
-    activeBuildings.push(lBuild);
-    lBuild.userData.targetScale = new THREE.Vector3(-1, 1, 1);
+    roadScene.push(lBuild);
+    lBuild.userData.targetScale = lScaleUp;
   }
 }
 
@@ -207,6 +209,7 @@ function initRoadStripes() {
       const roadStripe = stripe.clone();
       roadStripe.position.z = startZ - (row * spacingZ);
       roadStripe.position.x = offsetX;
+      roadStripe.userData.targetScale = rScaleUp;
       roadScene.push(roadStripe);
       gScene.value.add(roadStripe);
       offsetX += 5;
@@ -458,22 +461,13 @@ function updateRoadScene(delta) {
     item.position.z -= movement;
     if (item.position.z < roadBack) {
       item.position.z = startZ;
+      item.scale.set(0.1, 0.1, 0.1);
     }
-  }
-
-  for (let i = 0; i < activeBuildings.length; i++) {
-    const building = activeBuildings[i];
-    building.position.z -= movement;
-
-    if (building.position.z < roadBack) {
-      building.position.z = startZ;
-      building.scale.set(0.1, 0.1, 0.1);
-    }
-    const target = building.userData.targetScale;
-    if (building.scale.distanceTo(target) < 0.01) {
-      building.scale.copy(building.userData.targetScale);
+    const target = item.userData.targetScale;
+    if (item.scale.distanceTo(target) < 0.01) {
+      item.scale.copy(item.userData.targetScale);
     } else {
-      building.scale.lerp(building.userData.targetScale, delta * 5);
+      item.scale.lerp(item.userData.targetScale, delta * 5);
     }
   }
 }
@@ -530,7 +524,7 @@ function endMinigame() {
     gMinigame.value.isGameOver = true;
     gMinigame.value.isActive = false;
     const playerPoints = activePlayers[0].point || 0;
-    const earnedCoins = Math.floor(playerPoints / 10);
+    const earnedCoins = Math.floor(playerPoints / 1); // TODO: change back to correct value
 
     console.log(`Minigame Over! Points: ${playerPoints}, Coins: ${earnedCoins}`);
 
@@ -554,11 +548,6 @@ export function cleanupAlpacaRoad() {
   activeObstacles.length = 0;
 
   roadScene.forEach(item => {
-    gScene.value.remove(item);
-  });
-  roadScene.length = 0;
-
-  activeBuildings.forEach(item => {
     gScene.value.remove(item);
   });
   roadScene.length = 0;
