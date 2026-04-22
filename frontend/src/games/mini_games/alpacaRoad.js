@@ -416,6 +416,7 @@ function awardPoints(obstacle) {
     if (!alpaca.isDead && !alpaca.isBeingHit) {
       if (obstacle.userData.isFullWidth) {
         if (gMinigame.value.mode !== 4)
+        if (gMinigame.value.mode !== 4)
           alpaca.point++;
       } else {
         const distance = Math.abs(alpaca.model.position.x - obstacle.position.x);
@@ -502,10 +503,11 @@ function checkAlpaca(alpaca) {
   if (isColliding) {
     alpaca.isBeingHit = true;
     if (gMinigame.value.mode !== 4)
+    if (gMinigame.value.mode !== 4)
       alpaca.hp--;
     updateHpToServer(alpaca)
     spawnFloatingText(alpaca.model, '-💔', 'hearts');
-    if (alpaca.hp === 0) {
+    if (alpaca.hp === 0 && gMinigame.value.mode !== 4) {
       alpaca.isDead = true;
       alivePlayers--;
     }
@@ -574,11 +576,10 @@ export function cleanupAlpacaRoad() {
   console.log("🧹 Minigame cleaned up.");
 }
 
-export function getReady() {
-  if (!gMinigame.value.isReady)
-    gMinigame.value.isReady = true
-  else
-    gMinigame.value.isReady = false
+export function getReady(){
+  if (gMinigame.value.isReady)
+    return
+  gMinigame.value.isReady = true
   const client = getActiveClient();
   client.emit('ready', ({ id: client.localPlayerId, ready: gMinigame.value.isReady }))
 }
@@ -586,4 +587,8 @@ export function getReady() {
 export function initInitalPlayerCount(PlayerCount) {
   initalPlayerCount = PlayerCount
   alivePlayers = PlayerCount
+}
+
+export function updateAlivePlayers(){
+  alivePlayers--
 }

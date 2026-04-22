@@ -1,5 +1,5 @@
 import { io } from 'socket.io-client';
-import { activePlayers, initObstacles, initInitalPlayerCount, createObstacle, applyLevelUp } from './alpacaRoad.js';
+import { activePlayers, initObstacles, initInitalPlayerCount, createObstacle, applyLevelUp, updateAlivePlayers } from './alpacaRoad.js';
 import { alpacaHandling } from '../components/alpacaHandling.js';
 import { createAlpaca } from '../core/createObjects.js';
 import { gMinigame, gPlayer, gScene, gUI, gUser, gCollidables } from '../core/globals.js';
@@ -201,6 +201,13 @@ export function setupCallbacks(client) {
       }
     }
 
+    if (msg.type === 'get_hit') {
+      if (remotePlayers[msg.targetId]) {
+        remotePlayers[msg.targetId].isBeingHit = true
+        remotePlayers[msg.targetId].hp = msg.health
+      }
+    }
+
     if (msg.type === 'player_hit') {
       let localPlayerId = activeClient.localPlayerId
       if (msg.targetId === localPlayerId) {
@@ -238,7 +245,8 @@ export function setupCallbacks(client) {
 
   // --- GAME OVER ---
   client.onGameOver = (msg) => {
-    gPlayer.value.isDead = 1;
+    if (gMinigame.value.mode !== 4) // this gets updated in state update for multiplayer
+      gPlayer.value.isDead = 1;
     gUser.value.isPlaying = false;
   };
 
@@ -247,10 +255,18 @@ export function setupCallbacks(client) {
     const serverPlayerIds = new Set(state.players.map(p => p.id));
 
     for (const p of state.players) {
-      if (p.id === activeClient.localPlayerId) continue; // Skip ourselves
-
+      if (p.id === activeClient.localPlayerId) // sync ourself
+      {
+        gPlayer.value.hp = p.health
+        gPlayer.value.point = p.point
+        if (gPlayer.value.hp <= 0 && gPlayer.value.isDead !== 1){
+          gPlayer.value.isDead = 1
+          if (gMinigame.value.mode === 4)
+            updateAlivePlayers()
+        }
+      }
       // --- REMOTE PLAYERS ---
-      if (!remotePlayers[p.id]) {
+      else if (!remotePlayers[p.id]) {
         remotePlayers[p.id] = "loading";
 
         createAlpaca().then((newAlpaca) => {
@@ -263,6 +279,7 @@ export function setupCallbacks(client) {
           newAlpaca.name = p.name
           remotePlayers[p.id] = newAlpaca;
           gMinigame.value.players.push({id: p.id, name: newAlpaca.name, hp: CONST.HP, point: 0});
+          console.log(newAlpaca.name, " joined multiplayer as:", p.id);
         });
 
       } else if (remotePlayers[p.id] !== "loading" && remotePlayers[p.id].isDead !== 1) {
@@ -277,9 +294,11 @@ export function setupCallbacks(client) {
         remotePlayers[p.id].model.position.set(p.x, p.y || 0, p.z);
         remotePlayers[p.id].point = p.point
         remotePlayers[p.id].hp = p.health
-        if (remotePlayers[p.id].hp === 0)
+        if (remotePlayers[p.id].hp <= 0 && remotePlayers[p.id].isDead !== 1)
         {
-          remotePlayers[p.id].isDead = 1
+            remotePlayers[p.id].isDead = 1
+            if (gMinigame.value.mode === 4)
+              updateAlivePlayers()
           removeFromArray(remotePlayers[p.id].model, gCollidables)
         }
         if (p.angle !== undefined) remotePlayers[p.id].model.rotation.y = p.angle;
