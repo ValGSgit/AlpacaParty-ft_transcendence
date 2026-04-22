@@ -412,19 +412,16 @@ function awardPoints(obstacle) {
       if (obstacle.userData.isFullWidth) {
         if (gMinigame.value.mode !== 4)
           alpaca.point++;
-        totalPoints++;
-        spawnFloatingText(alpaca.model, '+1');
-        updatePointToServer(alpaca)
       } else {
         const distance = Math.abs(alpaca.model.position.x - obstacle.position.x);
-        if (distance < 1) {
+        if (distance < 0.1) {
           if (gMinigame.value.mode !== 4)
-            activePlayers[i].point++;
-          totalPoints += alivePlayers;
-          spawnFloatingText(alpaca.model, '+1');
-          updatePointToServer(alpaca)
+            alpaca.point++;
         }
       }
+      spawnFloatingText(alpaca.model, '+1');
+      updatePointToServer(alpaca)
+      totalPoints++;
     }
   }
   console.log("Total:", totalPoints);
@@ -561,14 +558,14 @@ export function cleanupAlpacaRoad() {
       alpaca.isDead = false;
       alpaca.isBeingHit = false;
     }
-    setSunLight();
-    adjustSunBox();
   });
-
   activePlayers.length = 0;
+  setSunLight();
+  adjustSunBox();
 
   gUI.lockCamera = false;
   gUI.cameraMode = 1;
+  gMinigame.value.isGameOver = false;
   console.log("🧹 Minigame cleaned up.");
 }
 
