@@ -1,17 +1,17 @@
 import { useEditMode } from "../components/editMode";
+import { AlpacaRoadClient, SpitRoyaleClient } from '../mini_games/client.js';
 import { changeGame } from '../mini_games/init.js';
-import { gEngine, gUI, gMinigame } from "./globals";
-import { SpitRoyaleClient,  AlpacaRoadClient} from '../mini_games/client.js';
+import { gEngine, gMinigame, gUI } from "./globals";
 
 export function useUIManager() {
 
   const { removeHighlight, cancelPlacement } = useEditMode()
 
   const closeMenus = () => {
+    if (gUI.editMode) closeEditMode();
     if (gUI.alpacaShop) closeAlpacaShop();
     if (gUI.itemShop) closeItemShop();
     if (gUI.lightMenu) closeLightMenu();
-    if (gUI.editMode) closeEditMode();
     if (gUI.shopMenu) closeShopMenu();
     if (gUI.gameMenu) closeGameMenu();
     if (gUI.farmMenu) closeFarmMenu();
@@ -77,6 +77,7 @@ export function useUIManager() {
   }
 
   const openGameMenu = () => {
+    closeEditMode()
     if (gMinigame.value.mode)
       changeGame()
     else

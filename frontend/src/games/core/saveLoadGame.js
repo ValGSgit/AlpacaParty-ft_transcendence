@@ -1,6 +1,6 @@
 import api from '../../services/api.js'
 import { useAuthStore } from '../../stores/auth.js'
-import { gAlpacas, gItems, gUser, gPlayer, gMinigame, gDecorations } from './globals.js'
+import { gAlpacas, gDecorations, gItems, gMinigame, gPlayer, gUser } from './globals.js'
 
 
 export async function saveGame() {
@@ -31,34 +31,37 @@ export async function saveGame() {
       rotationOffset: alpaca.rotationOffset,
       age: alpaca.age,
       aliveTime: alpaca.aliveTime,
+      cost: alpaca.model.userData.cost,
       selected
     };
   });
 
-const getItemsData = () => {
-  const items = gItems.map(item => {
-    return {
-      path: item.path,
-      position: item.model.position.toArray(),
-      rotation: item.model.rotation.y,
-      scale: item.model.scale.toArray(),
-      name: item.model.name,
-      type: item.type
-    };
-  });
+  const getItemsData = () => {
+    const items = gItems.map(item => {
+      return {
+        path: item.path,
+        position: item.model.position.toArray(),
+        rotation: item.model.rotation.y,
+        scale: item.model.scale.toArray(),
+        name: item.model.name,
+        type: item.type,
+        cost: item.model.userData.cost
+      };
+    });
 
-  const decorations = gDecorations.map(item => {
-    return {
-      path: item.path,
-      position: item.model.position.toArray(),
-      rotation: item.model.rotation.y,
-      scale: item.model.scale.toArray(),
-      name: item.model.name,
-      type: item.type
-    };
-  });
-  return [...items, ...decorations];
-};
+    const decorations = gDecorations.map(item => {
+      return {
+        path: item.path,
+        position: item.model.position.toArray(),
+        rotation: item.model.rotation.y,
+        scale: item.model.scale.toArray(),
+        name: item.model.name,
+        type: item.type,
+        cost: item.model.userData.cost
+      };
+    });
+    return [...items, ...decorations];
+  };
 
   try {
     const itemsData = getItemsData();

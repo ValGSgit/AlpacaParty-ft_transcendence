@@ -236,7 +236,7 @@
           <div class="stat-row"><strong>Age:</strong> {{ gPlayer.age }}</div>
           <div class="stat-row">
             <strong>Color:</strong> 
-            <input type="color" v-model="gPlayer.color" @input="changeColor(gPlayer.color)" class="custom-picker" title="Change Alpaca Color" />
+            <input type="color" v-model="gPlayer.color" @change="changeColor(gPlayer.color)" class="custom-picker" title="Change Alpaca Color" />
           </div>
           <div class="stat-row">
             <strong>Speed:</strong> 
@@ -328,9 +328,8 @@ import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
-import { updateAlpacaRoad, getReady } from './mini_games/alpacaRoad.js'
+import { getReady, updateAlpacaRoad } from './mini_games/alpacaRoad.js'
 import { changeGame } from './mini_games/init.js'
-import { initUser } from './user/initUser.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
 
@@ -343,7 +342,7 @@ const { initInput, cleanupInput, updateInputState, resetInput} = useInput()
 const { setTimeOfDay, updateLighting, toggleLightCycle} = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openFarmMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu, openLobbyMenu, closeLobbyMenu } = useUIManager()
-const { init, cleanup, onResize, setDoF } = useGameEngine(gameContainer)
+const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize } = upgradeFarm()
 const { buyItem } = itemShop()
 const authStore = useAuthStore()
@@ -387,11 +386,10 @@ onMounted(async () => {
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
-    gUser.value = initUser()
 
     await initWorld(gScene.value, authStore.isAuthenticated)
     gameIsReady.value = true
-    stopMyWatcher = watchChanges(setDoF)
+    stopMyWatcher = watchChanges()
     gameLoop()
   }
   window.addEventListener('resize', onResize)
@@ -401,7 +399,7 @@ const gameLoop = () => {
   if (stats) stats.begin();
   resetInput()
   animationFrameId = requestAnimationFrame(gameLoop)
-  
+
   const delta = clock.getDelta()
   const player = gPlayer.value
 
@@ -430,8 +428,10 @@ const gameLoop = () => {
   }
   if (CONST.SBS_ENABLED)
     effect.render(gEngine.value.scene, gEngine.value.camera);
-  else if (gEngine.value.composer) {
-    gEngine.value.composer.render();
+  else if (gEngine.value?.renderer) {
+    gEngine.value.renderer.render(
+    gEngine.value.scene,
+    gEngine.value.camera)
   }
 
   if (stats) stats.end();

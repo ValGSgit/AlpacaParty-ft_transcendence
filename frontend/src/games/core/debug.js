@@ -1,4 +1,4 @@
-import { gAlpacas, gCollectables, gCollidables, gEditables, gItems, gUser } from "./globals";
+import { gAlpacas, gCollectables, gCollidables, gDecorations, gEditables, gItems, gUser } from "./globals";
 
 export function printDebug() {
   if (gAlpacas)
@@ -11,13 +11,18 @@ export function printDebug() {
     console.log("gCollidables.length = ", gCollidables.length)
   if (gEditables)
     console.log("gEditables.length = ", gEditables.length)
-  //resetValues()
+  if (gUser) {
+    console.log("gUser = ", gUser.value)
+  }
+  resetValues()
 }
 
+//clear all
 function resetValues() {
-  // clear all
-  gAlpacas.length = 0;
+  gAlpacas.length = 1;
+  gUser.value.coins = 0;
   gItems.length = 0;
+  gDecorations.length = 0;
   gCollectables.length = 0;
   gCollidables.length = 0;
   gEditables.length = 0;
