@@ -102,7 +102,7 @@ export function useUIManager() {
     gUI.lobbyMenu = true
     gUI.gameMenu = false
     gUI.isRoadGame = game
-    gMinigame.isReady = false
+    gMinigame.value.isReady = false
     gMinigame.value.lobby = [] // start fresh
     if (game === 0)
       onlineClient = new SpitRoyaleClient();

@@ -1,4 +1,4 @@
-import { gAlpacas, gCollectables, gCollidables, gEditables, gItems, gUser } from "./globals";
+import { gAlpacas, gCollectables, gCollidables, gEditables, gItems, gUser, gMinigame } from "./globals";
 
 export function printDebug() {
   if (gAlpacas)
@@ -11,6 +11,8 @@ export function printDebug() {
     console.log("gCollidables.length = ", gCollidables.length)
   if (gEditables)
     console.log("gEditables.length = ", gEditables.length)
+  if (gMinigame)
+    console.log("gMinigame = ", gMinigame.value)
   //resetValues()
 }
 

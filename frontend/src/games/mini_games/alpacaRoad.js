@@ -423,7 +423,7 @@ function awardPoints(obstacle) {
     const alpaca = activePlayers[i];
     if (!alpaca.isDead && !alpaca.isBeingHit) {
       if (obstacle.userData.isFullWidth) {
-        if (gMinigame !== 4)
+        if (gMinigame.value.mode !== 4)
           alpaca.point++;
         totalPoints++;
         spawnFloatingText(alpaca.model, '+1');
@@ -431,7 +431,7 @@ function awardPoints(obstacle) {
       } else {
         const distance = Math.abs(alpaca.model.position.x - obstacle.position.x);
         if (distance < 1) {
-          if (gMinigame !== 4)
+          if (gMinigame.value.mode !== 4)
             activePlayers[i].point++;
           totalPoints += alivePlayers;
           spawnFloatingText(alpaca.model, '+1');
@@ -521,11 +521,11 @@ function checkAlpaca(alpaca) {
   const isColliding = checkCollisionWith(alpaca.model, activeObstacles);
   if (isColliding) {
     alpaca.isBeingHit = true;
-    if (gMinigame !== 4)
+    if (gMinigame.value.mode !== 4)
       alpaca.hp--;
     updateHpToServer(alpaca)
     spawnFloatingText(alpaca.model, '-💔', 'hearts');
-    if (alpaca.hp === 0) {
+    if (alpaca.hp === 0 && gMinigame.value.mode !== 4) {
       alpaca.isDead = true;
       alivePlayers--;
     }
@@ -595,10 +595,9 @@ export function cleanupAlpacaRoad() {
 }
 
 export function getReady(){
-  if (!gMinigame.value.isReady)
-    gMinigame.value.isReady = true
-  else
-    gMinigame.value.isReady = false
+  if (gMinigame.value.isReady)
+    return
+  gMinigame.value.isReady = true
   const client = getActiveClient();
   client.emit('ready', ({ id: client.localPlayerId, ready: gMinigame.value.isReady }))
 }
@@ -606,4 +605,8 @@ export function getReady(){
 export function initInitalPlayerCount(PlayerCount){
   initalPlayerCount = PlayerCount
   alivePlayers = PlayerCount
+}
+
+export function updateAlivePlayers(){
+  alivePlayers--
 }
