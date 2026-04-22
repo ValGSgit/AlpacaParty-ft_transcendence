@@ -3,19 +3,19 @@
  * @owner fankahou, LukasStefanek
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import api from '../services/api.js'
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import api from "../services/api.js";
 
-export const useAuthStore = defineStore('auth', () => {
+export const useAuthStore = defineStore("auth", () => {
   // ── State ───────────────────────────────────────────────────
-  const user = ref(null)
-  const loading = ref(false)
-  const error = ref(null)
+  const user = ref(null);
+  const loading = ref(false);
+  const error = ref(null);
 
   // ── Getters ─────────────────────────────────────────────────
-  const isAuthenticated = computed(() => !!user.value)
-  const username = computed(() => user.value?.username ?? '')
+  const isAuthenticated = computed(() => !!user.value);
+  const username = computed(() => user.value?.username ?? "");
 
   // ── Actions ─────────────────────────────────────────────────
 
@@ -23,19 +23,23 @@ export const useAuthStore = defineStore('auth', () => {
    * Register a new account.
    */
   async function register({ username, email, password }) {
-    loading.value = true
-    error.value = null
+    loading.value = true;
+    error.value = null;
     try {
-      const { data } = await api.post('/auth/register', { username, email, password })
-      localStorage.setItem('accessToken', data.accessToken)
-      localStorage.setItem('refreshToken', data.refreshToken)
-      user.value = data.user
-      return data
+      const { data } = await api.post("/auth/register", {
+        username,
+        email,
+        password,
+      });
+      sessionStorage.setItem("accessToken", data.accessToken);
+      sessionStorage.setItem("refreshToken", data.refreshToken);
+      user.value = data.user;
+      return data;
     } catch (err) {
-      error.value = err.response?.data?.error?.message || 'Registration failed'
-      throw err
+      error.value = err.response?.data?.error?.message || "Registration failed";
+      throw err;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
   }
 
@@ -43,19 +47,19 @@ export const useAuthStore = defineStore('auth', () => {
    * Log in with username/email + password.
    */
   async function login({ username, password }) {
-    loading.value = true
-    error.value = null
+    loading.value = true;
+    error.value = null;
     try {
-      const { data } = await api.post('/auth/login', { username, password })
-      localStorage.setItem('accessToken', data.accessToken)
-      localStorage.setItem('refreshToken', data.refreshToken)
-      user.value = data.user
-      return data
+      const { data } = await api.post("/auth/login", { username, password });
+      sessionStorage.setItem("accessToken", data.accessToken);
+      sessionStorage.setItem("refreshToken", data.refreshToken);
+      user.value = data.user;
+      return data;
     } catch (err) {
-      error.value = err.response?.data?.error?.message || 'Login failed'
-      throw err
+      error.value = err.response?.data?.error?.message || "Login failed";
+      throw err;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
   }
 
@@ -64,13 +68,13 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function logout() {
     try {
-      await api.post('/auth/logout')
+      await api.post("/auth/logout");
     } catch {
       // Ignore errors on logout
     } finally {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
-      user.value = null
+      sessionStorage.removeItem("accessToken");
+      sessionStorage.removeItem("refreshToken");
+      user.value = null;
     }
   }
 
@@ -78,20 +82,20 @@ export const useAuthStore = defineStore('auth', () => {
    * Fetch the current user from /auth/me (used on app init to restore session).
    */
   async function fetchUser() {
-    const token = localStorage.getItem('accessToken')
-    if (!token) return
+    const token = sessionStorage.getItem("accessToken");
+    if (!token) return;
 
-    loading.value = true
+    loading.value = true;
     try {
-      const { data } = await api.get('/auth/me')
-      user.value = data.user
+      const { data } = await api.get("/auth/me");
+      user.value = data.user;
     } catch {
       // Token invalid / expired — clear
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
-      user.value = null
+      sessionStorage.removeItem("accessToken");
+      sessionStorage.removeItem("refreshToken");
+      user.value = null;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
   }
 
@@ -100,27 +104,27 @@ export const useAuthStore = defineStore('auth', () => {
    * Called by OAuthCallback.vue after the backend redirects back.
    */
   async function handleOAuthTokens({ accessToken, refreshToken }) {
-    localStorage.setItem('accessToken', accessToken)
-    if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
-    const { data } = await api.get('/auth/me')
-    user.value = data.user
+    sessionStorage.setItem("accessToken", accessToken);
+    if (refreshToken) sessionStorage.setItem("refreshToken", refreshToken);
+    const { data } = await api.get("/auth/me");
+    user.value = data.user;
   }
 
   /**
    * Update the current user's profile.
    */
   async function updateProfile(fields) {
-    loading.value = true
-    error.value = null
+    loading.value = true;
+    error.value = null;
     try {
-      const { data } = await api.put('/users/me', fields)
-      user.value = data.user
-      return data.user
+      const { data } = await api.put("/users/me", fields);
+      user.value = data.user;
+      return data.user;
     } catch (err) {
-      error.value = err.response?.data?.error?.message || 'Update failed'
-      throw err
+      error.value = err.response?.data?.error?.message || "Update failed";
+      throw err;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
   }
 
@@ -139,5 +143,5 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUser,
     handleOAuthTokens,
     updateProfile,
-  }
-})
+  };
+});
