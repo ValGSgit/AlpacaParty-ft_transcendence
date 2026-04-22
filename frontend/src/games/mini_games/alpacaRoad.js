@@ -54,7 +54,7 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
 
   gMinigame.value.mode = 3;
   await setupRoadScene(gScene.value);
-  await loadAssets(gScene.value);
+  await loadAssets();
   await initPlayers(playerCount, tempAlpacas);
   initScenery();
   initObstacles();
@@ -66,7 +66,7 @@ export async function initAlpacaRoadOnline(playerCount, tempAlpacas, matchId) {
 
   gMinigame.value.mode = 4;
   await setupRoadScene(gScene.value);
-  await loadAssets(); // Removed gScene.value as your loadAssets doesn't accept args
+  await loadAssets();
   await initPlayers(playerCount, tempAlpacas);
   initScenery();
   initGameValues(playerCount);
@@ -226,7 +226,6 @@ export function updateAlpacaRoad(delta) {
   updateRoadScene(delta)
   updateDifficulty()
 
-  //alivePlayers update for multiplayer
   if (alivePlayers <= 0) {
     endMinigame();
   }
@@ -606,4 +605,5 @@ export function getReady(){
 
 export function initInitalPlayerCount(PlayerCount){
   initalPlayerCount = PlayerCount
+  alivePlayers = PlayerCount
 }
