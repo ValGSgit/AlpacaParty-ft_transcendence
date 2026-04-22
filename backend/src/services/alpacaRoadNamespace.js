@@ -8,13 +8,13 @@ const playerPositions = [2.5, -2.5, -7.5, 7.5];
 function generateId() {
   return Math.random().toString(36).slice(2, 9);
 }
+// Keep track of ongoing matches
+const matches = new Map();
+const playerToMatch = new Map();
 
 export function initializeAlpacaRoadNamespace(io) {
   const namespace = io.of('/alpaca-road');
 
-  // Keep track of ongoing matches
-  const matches = new Map();
-  const playerToMatch = new Map();
 
   // --- HELPER: Random Non-Overlapping Spawn ---
   function getValidSpawn(players) {
@@ -39,7 +39,7 @@ export function initializeAlpacaRoadNamespace(io) {
 
       const allReady = Object.values(match.players).every(player => player.isReady === true);
       if (allReady && Object.keys(match.players).length > 1) { // Also check for minimum players
-        namespace.to(match.roomName).emit('game:start', { msg: "Everyone is ready! Starting..." });
+        namespace.to(match.id).emit('game:start', { msg: "Everyone is ready! Starting..." });
         match.state = 'playing';
       }
     });
@@ -66,6 +66,20 @@ export function initializeAlpacaRoadNamespace(io) {
     
     // 1. JOINING THE ARENA
     socket.on('join', ({ name, roomId } = {}) => {
+      // cleanup
+      if (playerToMatch.has(playerId)) {
+        const oldMatchId = playerToMatch.get(playerId);
+        const oldMatch = matches.get(oldMatchId);
+        if (oldMatch) {
+          delete oldMatch.players[playerId];
+          if (Object.keys(oldMatch.players).length === 0) {
+            clearInterval(oldMatch.interval);
+            matches.delete(oldMatchId);
+          }
+        }
+        playerToMatch.delete(playerId);
+      }
+
       if (playerToMatch.has(playerId)) return;
     
       let matchToJoin;
@@ -124,7 +138,7 @@ export function initializeAlpacaRoadNamespace(io) {
     
       matchToJoin.players[playerId] = newPlayer;
       playerToMatch.set(playerId, matchToJoin.id);
-      socket.join(matchToJoin.roomName);
+      socket.join(matchToJoin.id);
     
       // 5. Send the joined message back to the client, including the isHost flag
       socket.emit('game:message', {
@@ -145,7 +159,7 @@ export function initializeAlpacaRoadNamespace(io) {
       if (!match) return;
       // Broadcast the obstacle to everyone ELSE in the room
       // We wrap it in 'game:message' so your GameClient can catch it
-      socket.broadcast.to(match.roomName).emit('game:message', {
+      socket.broadcast.to(match.id).emit('game:message', {
         type: 'spawnObstacle',
         config: config
       });
@@ -159,7 +173,7 @@ export function initializeAlpacaRoadNamespace(io) {
       if (!match) return;
     
       // Broadcast the new level stats to everyone ELSE in the room
-      socket.to(match.roomName).emit('game:message', {
+      socket.to(match.id).emit('game:message', {
         type: 'levelUp',
         data: data
       });
@@ -182,7 +196,7 @@ export function initializeAlpacaRoadNamespace(io) {
     socket.on('spit', () => {
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
-      if (match) socket.broadcast.to(match.roomName).emit('game:message', { type: 'player_spit', playerId });
+      if (match) socket.broadcast.to(match.id).emit('game:message', { type: 'player_spit', playerId });
     });
 
     socket.on('point', ({ ownerId }) => {
@@ -192,7 +206,7 @@ export function initializeAlpacaRoadNamespace(io) {
 
       if (match.players[ownerId])
           match.players[ownerId].point++
-        namespace.to(match.roomName).emit('game:message', { type: 'get_point', ownerId, point: match.players[ownerId].point });
+        namespace.to(match.id).emit('game:message', { type: 'get_point', ownerId, point: match.players[ownerId].point });
     });
 
     socket.on('hit', ({ targetId }) => {
@@ -208,7 +222,7 @@ export function initializeAlpacaRoadNamespace(io) {
           target.alive = false;
           target.socket.emit('game:message', { type: 'game_over', reason: 'eliminated' });
         }
-        namespace.to(match.roomName).emit('game:message', { type: 'get_hit', targetId, health: target.health});
+        namespace.to(match.id).emit('game:message', { type: 'get_hit', targetId, health: target.health});
       }
     });
 
@@ -257,7 +271,7 @@ export function initializeAlpacaRoadNamespace(io) {
       }
     
       // 4. Let everyone else know a player left (so you can remove their alpaca)
-      socket.to(match.roomName).emit('game:message', {
+      socket.to(match.id).emit('game:message', {
         type: 'player_left',
         playerId: playerId
       });
@@ -267,7 +281,7 @@ export function initializeAlpacaRoadNamespace(io) {
   // --- HELPER: Remove Player Cleanly ---
   function removePlayer(pid, match) {
     const player = match.players[pid];
-    if (player) player.socket.leave(match.roomName);
+    if (player) player.socket.leave(match.id);
 
     delete match.players[pid];
     playerToMatch.delete(pid);
@@ -284,7 +298,7 @@ export function initializeAlpacaRoadNamespace(io) {
         id: p.id, name: p.name, x: p.x, y: p.y || 0, z: p.z, angle: p.angle, health: p.health, point: p.point, isReady: p.isReady
       }))
     };
-    namespace.to(match.roomName).emit('game:message', { type: 'tick', state });
+    namespace.to(match.id).emit('game:message', { type: 'tick', state });
   }
 }
 export default initializeAlpacaRoadNamespace;
