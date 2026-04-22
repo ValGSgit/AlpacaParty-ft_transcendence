@@ -15,7 +15,7 @@ export function useUIManager() {
     if (gUI.shopMenu) closeShopMenu();
     if (gUI.gameMenu) closeGameMenu();
     if (gUI.farmMenu) closeFarmMenu();
-    if (gUI.farmMenu) closeLobbyMenu();
+    if (gUI.lobbyMenu) closeLobbyMenu();
   }
 
   const openEditMode = () => {
