@@ -46,17 +46,24 @@ export function initializeAlpacaRoadNamespace(io) {
 
     // lobby
     socket.on('check-lobby', () => {
-        const lobbyList = Array.from(matches.values()).filter(m => Object.keys(m.players).length < MAX_PLAYERS).map(m => ({
-            matchid: m.id,
-            roomName: m.roomName,
-            state: m.state,
-            playerCount: Object.keys(m.players).length
-          }));
-        
-        // Send the whole list in one go
-        socket.emit('lobby:list', lobbyList);
+      try {
+          const lobbyList = Array.from(matches.values())
+              .filter(m => m.players && Object.keys(m.players).length < MAX_PLAYERS && m.state === 'waiting')
+              .map(m => ({
+                  matchid: m.id,
+                  roomName: m.roomName,
+                  state: m.state,
+                  playerCount: Object.keys(m.players).length
+              }));
+          
+          socket.emit('lobby:list', lobbyList);
+      } catch (error) {
+          console.error("Failed to generate lobby list:", error);
+          // Optionally notify the user
+          socket.emit('lobby:error', 'Could not retrieve matches.');
+      }
     });
-
+    
     // 1. JOINING THE ARENA
     socket.on('join', ({ name, roomId } = {}) => {
       if (playerToMatch.has(playerId)) return;
@@ -65,17 +72,23 @@ export function initializeAlpacaRoadNamespace(io) {
     
       // 1. Determine which room to join or create
       if (roomId && roomId !== -1) {
-        // Try to find the specific requested room
-        matchToJoin = Array.from(matches.values()).find(m => m.id === roomId);
+        // Try to find the specific requested room AND check if it's waiting
+        matchToJoin = Array.from(matches.values()).find(m => 
+          m.id === roomId && m.state === 'waiting'
+        );
+        
         if (!matchToJoin) {
-          console.log(`Room ${roomId} not found.`);
-          return; // You might want to emit an error to the client here
+          console.log(`Room ${roomId} not found or already in progress.`);
+          socket.emit('error', 'Room is unavailable or has already started.');
+          return;
         }
       } else {
-        // Find an open match, or null if all are full
-        matchToJoin = Array.from(matches.values()).find(m => Object.keys(m.players).length < MAX_PLAYERS);
+        // Find an open match that is specifically in the 'waiting' state
+        matchToJoin = Array.from(matches.values()).find(m => 
+          Object.keys(m.players).length < MAX_PLAYERS && m.state === 'waiting'
+        );
       }
-    
+        
       // 2. Create a new room if needed
       if (!matchToJoin || roomId === -1) {
         const matchId = generateId();
@@ -87,7 +100,6 @@ export function initializeAlpacaRoadNamespace(io) {
           interval: setInterval(() => gameLoop(matchToJoin), TICK_RATE)
         };
         matches.set(matchId, matchToJoin);
-        console.log("New roomId", matchId);
       }
     
       // 3. DEFINE THE HOST: If the room is currently empty, this player is the Host
@@ -131,14 +143,12 @@ export function initializeAlpacaRoadNamespace(io) {
     
       const match = matches.get(matchId);
       if (!match) return;
-      console.log(config)
       // Broadcast the obstacle to everyone ELSE in the room
       // We wrap it in 'game:message' so your GameClient can catch it
       socket.broadcast.to(match.roomName).emit('game:message', {
         type: 'spawnObstacle',
         config: config
       });
-      console.log(match.roomName)
     });
 
     socket.on('levelUp', (data) => {
