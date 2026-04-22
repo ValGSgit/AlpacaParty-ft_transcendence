@@ -123,7 +123,8 @@ html {
 
 /* Ready state (Green) */
 .shop-btn.is-ready {
-  background-color: #2ecc71; /* Green */
+  background-color: #2ecc71;
+  /* Green */
 }
 
 .hud-btn:hover,
@@ -753,4 +754,50 @@ input:checked+.slider:before {
 
 .animate-pulse {
   animation: hud-pop 0.2s ease-out;
+}
+
+/* ========================================= */
+/* Alpaca Road                               */
+/* ========================================= */
+
+.level-up-announcement {
+  position: fixed;
+  top: 25%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 5rem;
+  font-weight: bold;
+  color: #FFD700;
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+
+  animation: level-up-sequence 2s ease-out forwards;
+}
+
+@keyframes level-up-sequence {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%) scale(0.5);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+
+  25% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -80%) scale(1.5);
+  }
 }

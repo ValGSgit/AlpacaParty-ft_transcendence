@@ -376,29 +376,13 @@ function showLevelAnnouncement(level) {
   el.className = 'level-up-announcement';
   el.innerText = `LEVEL ${level}`;
 
-  // Basic styling (usually you'd put this in your CSS file)
-  Object.assign(el.style, {
-    position: 'absolute',
-    top: '25%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    fontSize: '5rem',
-    fontWeight: 'bold',
-    color: '#FFD700', // Gold
-    textShadow: '0 0 20px rgba(0,0,0,0.5)',
-    pointerEvents: 'none',
-    zIndex: '1000',
-    transition: 'all 0.5s ease-out'
-  });
-
   document.body.appendChild(el);
 
-  // Animation and Cleanup
   setTimeout(() => {
-    el.style.opacity = '0';
-    el.style.transform = 'translate(-50%, -70%) scale(1.5)';
-    setTimeout(() => el.remove(), 500);
-  }, 1000);
+    if (el.parentNode) {
+      el.remove();
+    }
+  }, 2000);
 }
 
 function updateObstacles(delta) {
@@ -570,6 +554,11 @@ export function cleanupAlpacaRoad() {
   activeObstacles.length = 0;
 
   roadScene.forEach(item => {
+    gScene.value.remove(item);
+  });
+  roadScene.length = 0;
+
+  activeBuildings.forEach(item => {
     gScene.value.remove(item);
   });
   roadScene.length = 0;
