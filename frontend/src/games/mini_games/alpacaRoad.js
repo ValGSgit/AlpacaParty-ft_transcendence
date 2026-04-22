@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as PRIMITIVES from '../assets/primitives.js';
 import { useCoinUI } from '../components/coins.js';
+import { editLight } from '../components/editLight.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca, createDecoration, createItem } from '../core/createObjects.js';
@@ -50,6 +51,7 @@ const lScaleUp = new THREE.Vector3(-1, 1, 1);
 
 const { spawnFloatingText } = useFloatingText();
 const { collectRewards } = useCoinUI();
+const { setTimeOfDay } = editLight();
 
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
   cleanupAlpacaRoad()
@@ -95,6 +97,9 @@ async function setupRoadScene(scene) {
   setupLighting(scene);
   setSunLight(25, 125, roadLength / 4, 0, 0, 200);
   adjustSunBox(200, 150, 1, 0, 0, 0);
+  setTimeOfDay('day');
+  gUI.isLightCycling = false;
+
   const road = PRIMITIVES.Box(30, 1, roadLength, '#666666')
   road.position.y = -road.geometry.parameters.height / 2;
   road.position.z += roadOffset;
