@@ -1,16 +1,12 @@
 import { io } from 'socket.io-client';
-import { activePlayers, initObstacles, initInitalPlayerCount, createObstacle, applyLevelUp, updateAlivePlayers } from './alpacaRoad.js';
 import { alpacaHandling } from '../components/alpacaHandling.js';
-import { createAlpaca } from '../core/createObjects.js';
-import { gMinigame, gPlayer, gScene, gUI, gUser, gCollidables } from '../core/globals.js';
-import { registerEntity } from '../core/registerEntity.js';
-import { getValidRandomPos } from '../utils/spawnRandomly.js';
-import { setupEnvironment } from '../world/sceneBuilder.js';
-import { changeFloorColor } from './utils.js';
-import { removeObject, removeFromArray } from '../core/removeObjects.js'
-import { remotePlayers, initClient } from './client.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
+import { createAlpaca } from '../core/createObjects.js';
+import { gCollidables, gMinigame, gPlayer, gScene, gUser } from '../core/globals.js';
+import { removeFromArray, removeObject } from '../core/removeObjects.js';
+import { activePlayers, applyLevelUp, createObstacle, initInitalPlayerCount, initObstacles } from './alpacaRoad.js';
+import { remotePlayers } from './client.js';
 
 /**
  * Active game client singleton — accessible from any module without window globals.
@@ -74,22 +70,22 @@ export class GameClient {
       auth: { token },
     });
 
-    
+
     this.socket.on('connect', () => {
       console.log(`[GameClient] Connected to ${this.namespace}`);
       this.socket.emit('join', { name: playerName, roomId: matchId });
     });
-    
+
     this.socket.on('game:message', (msg) => this.#handleMessage(msg));
-    
+
     this.socket.on('game:start', (data) => {
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
       async function startCountdown() {
         let i = 1 // playerCount
         for (const id in remotePlayers) {
-            activePlayers.push(remotePlayers[id]) // push other players
-            i++
+          activePlayers.push(remotePlayers[id]) // push other players
+          i++
         }
         initInitalPlayerCount(i);
         if (activeClient.isHost)
@@ -101,13 +97,13 @@ export class GameClient {
 
         spawnFloatingText(gScene.value.floor, '3');
         await sleep(1000);
-        
+
         spawnFloatingText(gScene.value.floor, '2');
         await sleep(1000);
-        
+
         spawnFloatingText(gScene.value.floor, '1');
         await sleep(1000);
-        
+
         spawnFloatingText(gScene.value.floor, 'Start!');
         gMinigame.value.isActive = true;
       }
@@ -201,13 +197,6 @@ export function setupCallbacks(client) {
       }
     }
 
-    if (msg.type === 'get_hit') {
-      if (remotePlayers[msg.targetId]) {
-        remotePlayers[msg.targetId].isBeingHit = true
-        remotePlayers[msg.targetId].hp = msg.health
-      }
-    }
-
     if (msg.type === 'player_hit') {
       let localPlayerId = activeClient.localPlayerId
       if (msg.targetId === localPlayerId) {
@@ -222,10 +211,8 @@ export function setupCallbacks(client) {
         }
         spawnFloatingText(gPlayer.value.model, '-💔', 'hearts');
       }
-      else
-      {
-        if (msg.ownerId === localPlayerId)
-        {
+      else {
+        if (msg.ownerId === localPlayerId) {
           gUser.value.point = msg.point
           gPlayer.value.point = msg.point
         }
@@ -245,8 +232,7 @@ export function setupCallbacks(client) {
 
   // --- GAME OVER ---
   client.onGameOver = (msg) => {
-    if (gMinigame.value.mode !== 4) // this gets updated in state update for multiplayer
-      gPlayer.value.isDead = 1;
+    gPlayer.value.isDead = 1;
     gUser.value.isPlaying = false;
   };
 
@@ -255,18 +241,10 @@ export function setupCallbacks(client) {
     const serverPlayerIds = new Set(state.players.map(p => p.id));
 
     for (const p of state.players) {
-      if (p.id === activeClient.localPlayerId) // sync ourself
-      {
-        gPlayer.value.hp = p.health
-        gPlayer.value.point = p.point
-        if (gPlayer.value.hp <= 0 && gPlayer.value.isDead !== 1){
-          gPlayer.value.isDead = 1
-          if (gMinigame.value.mode === 4)
-            updateAlivePlayers()
-        }
-      }
+      if (p.id === activeClient.localPlayerId) continue; // Skip ourselves
+
       // --- REMOTE PLAYERS ---
-      else if (!remotePlayers[p.id]) {
+      if (!remotePlayers[p.id]) {
         remotePlayers[p.id] = "loading";
 
         createAlpaca().then((newAlpaca) => {
@@ -278,8 +256,7 @@ export function setupCallbacks(client) {
           gScene.value.add(model);
           newAlpaca.name = p.name
           remotePlayers[p.id] = newAlpaca;
-          gMinigame.value.players.push({id: p.id, name: newAlpaca.name, hp: CONST.HP, point: 0});
-          console.log(newAlpaca.name, " joined multiplayer as:", p.id);
+          gMinigame.value.players.push({ id: p.id, name: newAlpaca.name, hp: CONST.HP, point: 0 });
         });
 
       } else if (remotePlayers[p.id] !== "loading" && remotePlayers[p.id].isDead !== 1) {
@@ -294,16 +271,13 @@ export function setupCallbacks(client) {
         remotePlayers[p.id].model.position.set(p.x, p.y || 0, p.z);
         remotePlayers[p.id].point = p.point
         remotePlayers[p.id].hp = p.health
-        if (remotePlayers[p.id].hp <= 0 && remotePlayers[p.id].isDead !== 1)
-        {
-            remotePlayers[p.id].isDead = 1
-            if (gMinigame.value.mode === 4)
-              updateAlivePlayers()
+        if (remotePlayers[p.id].hp === 0) {
+          remotePlayers[p.id].isDead = 1
           removeFromArray(remotePlayers[p.id].model, gCollidables)
         }
         if (p.angle !== undefined) remotePlayers[p.id].model.rotation.y = p.angle;
         const index = gMinigame.value.players.findIndex(player => player.id === p.id);
-        if (index !== -1){
+        if (index !== -1) {
           gMinigame.value.players[index].hp = p.health // update hp to see if alpaca isDead
           gMinigame.value.players[index].point = p.point
         }
@@ -315,7 +289,7 @@ export function setupCallbacks(client) {
   // --- JOINED: snap to spawn, start sending inputs ---
   client.onJoined = (playerId, spawn) => {
     console.log("Joined multiplayer as:", playerId);
-    gMinigame.value.players.push({id: playerId, name: gPlayer.value.name, hp: CONST.HP, point: 0});
+    gMinigame.value.players.push({ id: playerId, name: gUser.value.name, hp: CONST.HP, point: 0 });
     if (spawn) {
       gPlayer.value.model.position.set(spawn.x, 0, spawn.z);
       gPlayer.value.model.rotation.y = spawn.angle;
