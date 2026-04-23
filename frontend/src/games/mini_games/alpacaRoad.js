@@ -12,6 +12,7 @@ import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
 import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
 import { adjustSunBox, setSunLight, setupLighting } from '../world/sceneBuilder.js';
+import { makeAnnouncement } from './annoucement.js';
 import { initClient } from './client.js';
 import { getActiveClient } from './GameClient.js';
 
@@ -337,7 +338,7 @@ export function applyLevelUp(newLevel, newSpeed, newTimerMult) {
   roadSpeed = newSpeed;
   timerMultiplier = newTimerMult;
 
-  showLevelAnnouncement(level);
+  makeAnnouncement(`LEVEL ${level}`, 2000);
   console.log("Synced Level:", level);
   console.log("Synced Speed:", roadSpeed);
   console.log("Synced Timer:", timerMultiplier);
@@ -377,20 +378,6 @@ function updateDifficulty() {
       });
     }
   }
-}
-
-function showLevelAnnouncement(level) {
-  const el = document.createElement('div');
-  el.className = 'announcement';
-  el.innerText = `LEVEL ${level}`;
-
-  document.body.appendChild(el);
-
-  setTimeout(() => {
-    if (el.parentNode) {
-      el.remove();
-    }
-  }, 2000);
 }
 
 function updateObstacles(delta) {
@@ -586,9 +573,9 @@ export function getReady() {
   client.emit('ready', ({ id: client.localPlayerId, ready: gMinigame.value.isReady }))
 }
 
-export function initInitalPlayerCount(PlayerCount) {
-  initalPlayerCount = PlayerCount
-  alivePlayers = PlayerCount
+export function initInitalPlayerCount(playerCount) {
+  initalPlayerCount = playerCount
+  alivePlayers = playerCount
 }
 
 export function updateAlivePlayers() {

@@ -3,9 +3,10 @@ import { alpacaHandling } from '../components/alpacaHandling.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca } from '../core/createObjects.js';
-import { gCollidables, gMinigame, gPlayer, gScene, gUser } from '../core/globals.js';
+import { gCollidables, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
 import { removeFromArray, removeObject } from '../core/removeObjects.js';
 import { activePlayers, applyLevelUp, createObstacle, initInitalPlayerCount, initObstacles } from './alpacaRoad.js';
+import { makeAnnouncement } from './annoucement.js';
 import { remotePlayers } from './client.js';
 
 /**
@@ -82,32 +83,28 @@ export class GameClient {
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
       async function startCountdown() {
-        let i = 1 // playerCount
-        for (const id in remotePlayers) {
-          activePlayers.push(remotePlayers[id]) // push other players
-          i++
-        }
-        initInitalPlayerCount(i);
-        if (activeClient.isHost)
-          initObstacles();
-
-        spawnFloatingText(gScene.value.floor, 'Get Ready!');
-
+        gUI.countDown = true;
+        makeAnnouncement('Get Ready!', 1000);
         await sleep(1000);
-
-        spawnFloatingText(gScene.value.floor, '3');
+        makeAnnouncement('3', 1000);
         await sleep(1000);
-
-        spawnFloatingText(gScene.value.floor, '2');
+        makeAnnouncement('2', 1000);
         await sleep(1000);
-
-        spawnFloatingText(gScene.value.floor, '1');
+        makeAnnouncement('1', 1000);
         await sleep(1000);
+        makeAnnouncement('Start!', 1000);
+        gUI.countDown = false;
 
-        spawnFloatingText(gScene.value.floor, 'Start!');
         gMinigame.value.isActive = true;
       }
-
+      let i = 1 // playerCount
+      for (const id in remotePlayers) {
+        activePlayers.push(remotePlayers[id]) // push other players
+        i++
+      }
+      initInitalPlayerCount(i);
+      if (activeClient.isHost)
+        initObstacles();
       startCountdown();
     });
 

@@ -32,6 +32,7 @@ export const gUI = reactive({
   alpacaStats: false,
   isEditingName: false,
   isLightCycling: true,
+  countDown: false,
   lightMenu: false,
   gameMenu: false,
   farmMenu: false,

@@ -383,7 +383,6 @@ html {
   display: flex;
   align-items: center;
   margin-bottom: 0.5em;
-  /* Fixed typo from 0.5tem */
   gap: 8px;
 }
 

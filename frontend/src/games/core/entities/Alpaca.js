@@ -162,12 +162,6 @@ export class Alpaca {
         gMinigame.value.isActive = false
       }
     }
-    /*     else if (this.hp < 0)
-        {
-          this.hp = CONST.HP // resurrection
-          this.isDead = 0
-          //add itself again?
-        } */
     else
       this.isDead = -1 // dying
   }

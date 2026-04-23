@@ -130,7 +130,7 @@
       </div>
     </div>
 
-    <div v-if="gMinigame.mode === 4 && (!gMinigame.isReady || !gMinigame.isActive) && !gMinigame.isGameOver" class="modal-overlay">
+    <div v-if="gMinigame.mode === 4 && (!gMinigame.isReady || !gMinigame.isActive) && !gUI.countDown" class="modal-overlay">
       <div class="shop-title">Get Ready!
         <button class="shop-btn" :class="{ 'is-ready': gMinigame.isReady }" @click="getReady()" title="Ready">Ready</button>
         <button class="close-btn" @click="changeGame()" title="Close">✖️</button>
@@ -409,7 +409,6 @@ const gameLoop = () => {
       cameraUpdate(player)
     }
   }
-
   updateInputState()
   updateAlpacas(delta);
   updateCollectables(player, delta);
