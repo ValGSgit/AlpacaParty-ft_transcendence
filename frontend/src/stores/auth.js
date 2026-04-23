@@ -31,8 +31,6 @@ export const useAuthStore = defineStore("auth", () => {
         email,
         password,
       });
-      sessionStorage.setItem("accessToken", data.accessToken);
-      sessionStorage.setItem("refreshToken", data.refreshToken);
       user.value = data.user;
       return data;
     } catch (err) {
@@ -51,8 +49,6 @@ export const useAuthStore = defineStore("auth", () => {
     error.value = null;
     try {
       const { data } = await api.post("/auth/login", { username, password });
-      sessionStorage.setItem("accessToken", data.accessToken);
-      sessionStorage.setItem("refreshToken", data.refreshToken);
       user.value = data.user;
       return data;
     } catch (err) {
@@ -72,8 +68,6 @@ export const useAuthStore = defineStore("auth", () => {
     } catch {
       // Ignore errors on logout
     } finally {
-      sessionStorage.removeItem("accessToken");
-      sessionStorage.removeItem("refreshToken");
       user.value = null;
     }
   }
@@ -82,32 +76,15 @@ export const useAuthStore = defineStore("auth", () => {
    * Fetch the current user from /auth/me (used on app init to restore session).
    */
   async function fetchUser() {
-    const token = sessionStorage.getItem("accessToken");
-    if (!token) return;
-
     loading.value = true;
     try {
       const { data } = await api.get("/auth/me");
       user.value = data.user;
     } catch {
-      // Token invalid / expired — clear
-      sessionStorage.removeItem("accessToken");
-      sessionStorage.removeItem("refreshToken");
       user.value = null;
     } finally {
       loading.value = false;
     }
-  }
-
-  /**
-   * Handle tokens received after a successful OAuth redirect.
-   * Called by OAuthCallback.vue after the backend redirects back.
-   */
-  async function handleOAuthTokens({ accessToken, refreshToken }) {
-    sessionStorage.setItem("accessToken", accessToken);
-    if (refreshToken) sessionStorage.setItem("refreshToken", refreshToken);
-    const { data } = await api.get("/auth/me");
-    user.value = data.user;
   }
 
   /**
@@ -141,7 +118,6 @@ export const useAuthStore = defineStore("auth", () => {
     login,
     logout,
     fetchUser,
-    handleOAuthTokens,
     updateProfile,
   };
 });

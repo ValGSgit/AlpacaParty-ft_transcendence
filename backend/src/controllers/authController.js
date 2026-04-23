@@ -42,11 +42,9 @@ export const register = async (req, res, next) => {
     const accessToken = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
 
-    res.status(201).json({
-      user,
-      accessToken,
-      refreshToken,
-    });
+    res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
+    res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
+    res.status(201).json({ user });
   } catch (err) {
     next(err);
   }
@@ -80,11 +78,9 @@ export const login = async (req, res, next) => {
 
     const safeUser = shapeUserForClient(await User.findById(user.id));
 
-    res.json({
-      user: safeUser,
-      accessToken,
-      refreshToken,
-    });
+    res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
+    res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
+    res.json({ user: safeUser });
   } catch (err) {
     next(err);
   }
@@ -110,12 +106,12 @@ export const logout = async (req, res, next) => {
  */
 export const refresh = async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) throw new CustomError("refresh token is required", 400);
+    const refreshToken = req.cookies.refresh_token;
+    if (!refreshToken) throw new CustomError("refresh token is required", 401);
 
     const decoded = AuthService.verifyToken(refreshToken);
-    if (!decoded || decoded.type !== "refresh")
-      throw new CustomError("Invalid refresh token", 401);
+    if (!decoded)
+      throw new CustomError("Invalid or expired refresh token", 401);
 
     const user = await User.findById(decoded.id);
     if (!user) throw new CustomError("User not found", 401);
@@ -123,7 +119,13 @@ export const refresh = async (req, res, next) => {
     const accessToken = AuthService.generateAccessToken(user);
     const newRefreshToken = AuthService.generateRefreshToken(user);
 
-    res.json({ accessToken, refreshToken: newRefreshToken });
+    res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
+    res.cookie(
+      "refresh_token",
+      newRefreshToken,
+      config.jwt.cookieOptionsRefresh,
+    );
+    res.json({ message: "Token refreshed successfully" });
   } catch (err) {
     next(err);
   }
@@ -145,10 +147,10 @@ export const oauthCallback = (req, res) => {
   const { accessToken, refreshToken } = oauthTokensForUser(req.user);
   const frontendOrigin = config.frontendUrl;
 
-  const payload = encodeURIComponent(
-    JSON.stringify({ accessToken, refreshToken }),
-  );
+  const payload = encodeURIComponent(JSON.stringify({}));
   const callbackUrl = `${frontendOrigin}/oauth-callback#${payload}`;
 
+  res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
+  res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
   res.redirect(302, callbackUrl);
 };

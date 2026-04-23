@@ -21,6 +21,20 @@ const config = {
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+    cookieOptions: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 60 * 60 * 1000, // 1h
+      path: "/",
+    },
+    cookieOptionsRefresh: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, //7d
+      path: "/api/auth/refresh",
+    },
   },
 
   // PostgreSQL connection (Issue #7)
@@ -117,14 +131,8 @@ const config = {
     // so even when upload is allowed (see allowedMimeTypes), we never serve
     // it inline — uploadSecurity.js forces Content-Disposition: attachment
     // for any mime type not listed here.
-    imageMimeTypes: [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-    ],
+    imageMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
   },
-
 };
 
 export default config;

@@ -50,31 +50,28 @@ export class GameClient {
   check() {
     if (this.socket) this.destroy();
 
-    const token = localStorage.getItem('accessToken');
     this.socket = io(this.namespace, {
-      transports: ['websocket'],
-      auth: { token },
+      withCredentials: true,
+      transports: ["websocket"],
     });
-    this.socket.on('lobby:list', (matchToJoin) => {
+    this.socket.on("lobby:list", (matchToJoin) => {
       //console.log("matches: ", matchToJoin);
-      gMinigame.value.lobby = matchToJoin
+      gMinigame.value.lobby = matchToJoin;
     });
-    this.socket.emit('check-lobby');
+    this.socket.emit("check-lobby");
   }
 
   connect(playerName, matchId) {
     if (this.socket) this.destroy();
 
-    const token = localStorage.getItem('accessToken');
     this.socket = io(this.namespace, {
-      transports: ['websocket'],
-      auth: { token },
+      withCredentials: true,
+      transports: ["websocket"],
     });
 
-
-    this.socket.on('connect', () => {
+    this.socket.on("connect", () => {
       console.log(`[GameClient] Connected to ${this.namespace}`);
-      this.socket.emit('join', { name: playerName, roomId: matchId });
+      this.socket.emit("join", { name: playerName, roomId: matchId });
     });
 
     this.socket.on('game:message', (msg) => this.#handleMessage(msg));
@@ -108,11 +105,11 @@ export class GameClient {
       startCountdown();
     });
 
-    this.socket.on('connect_error', (err) => {
+    this.socket.on("connect_error", (err) => {
       console.error(`[GameClient] ${this.namespace} error:`, err.message);
     });
 
-    this.socket.on('disconnect', (reason) => {
+    this.socket.on("disconnect", (reason) => {
       console.log(`[GameClient] Disconnected from ${this.namespace}:`, reason);
       this.#cleanupInterval();
     });
@@ -122,23 +119,23 @@ export class GameClient {
 
   #handleMessage(msg) {
     switch (msg.type) {
-      case 'joined':
-        console.log("msg.matchId = ", msg.matchId)
+      case "joined":
+        console.log("msg.matchId = ", msg.matchId);
         this.matchId = msg.matchId;
         this.localPlayerId = msg.playerId;
         this.isHost = msg.isHost || false;
         this.onJoined?.(this.localPlayerId, msg.spawn);
         this.#startInputLoop();
         break;
-      case 'host_migrated':
+      case "host_migrated":
         this.isHost = true;
         console.log("I am the new host!");
         break;
-      case 'tick':
-      case 'game_start':
+      case "tick":
+      case "game_start":
         if (msg.state) this.onStateUpdate?.(msg.state);
         break;
-      case 'game_over':
+      case "game_over":
         this.onGameOver?.(msg);
         break;
       default:
@@ -159,7 +156,7 @@ export class GameClient {
     this.#cleanupInterval();
     this.inputInterval = setInterval(() => {
       if (this.socket?.connected) {
-        this.socket.emit('input', this.getInput());
+        this.socket.emit("input", this.getInput());
       }
     }, this.tickRate);
   }
@@ -174,7 +171,7 @@ export class GameClient {
   destroy() {
     this.#cleanupInterval();
     if (this.socket) {
-      this.socket.off('game:message');
+      this.socket.off("game:message");
       this.socket.disconnect();
       this.socket = null;
     }
@@ -183,11 +180,10 @@ export class GameClient {
   }
 }
 
-
 export function setupCallbacks(client) {
   // --- GAME-SPECIFIC EVENTS (player_spit, player_hit) ---
   client.onGameEvent = (msg) => {
-    if (msg.type === 'player_spit') {
+    if (msg.type === "player_spit") {
       if (remotePlayers[msg.playerId]) {
         const { makeSpit } = alpacaHandling();
         makeSpit(remotePlayers[msg.playerId]);
@@ -199,11 +195,11 @@ export function setupCallbacks(client) {
       if (msg.targetId === localPlayerId) {
         gUser.value.hp = msg.health;
         gPlayer.value.hp = msg.health;
-        gPlayer.value.isDead = -1
-        gMinigame.value.players[0].hp--
+        gPlayer.value.isDead = -1;
+        gMinigame.value.players[0].hp--;
         if (gUser.value.hp === 0) {
-          gPlayer.value.isDead = 1
-          gMinigame.value.isActive = false
+          gPlayer.value.isDead = 1;
+          gMinigame.value.isActive = false;
           gMinigame.value.isGameOver = true;
         }
         spawnFloatingText(gPlayer.value.model, '-💔', 'hearts');
@@ -213,17 +209,20 @@ export function setupCallbacks(client) {
           gUser.value.point = msg.point
           gPlayer.value.point = msg.point
         }
-        remotePlayers[msg.targetId].isDead = -1
-        spawnFloatingText(remotePlayers[msg.targetId].model, '-💔', 'hearts');
+        remotePlayers[msg.targetId].isDead = -1;
+        spawnFloatingText(remotePlayers[msg.targetId].model, "-💔", "hearts");
       }
     }
 
-    if (msg.type === 'spawnObstacle') {
+    if (msg.type === "spawnObstacle") {
       createObstacle(msg.config);
-    }
-    else if (msg.type === 'levelUp') {
+    } else if (msg.type === "levelUp") {
       // Guests receive the new stats and apply them instantly
-      applyLevelUp(msg.data.level, msg.data.roadSpeed, msg.data.timerMultiplier);
+      applyLevelUp(
+        msg.data.level,
+        msg.data.roadSpeed,
+        msg.data.timerMultiplier,
+      );
     }
   };
 
@@ -235,7 +234,7 @@ export function setupCallbacks(client) {
 
   // --- STATE UPDATES (remote player positions) ---
   client.onStateUpdate = (state) => {
-    const serverPlayerIds = new Set(state.players.map(p => p.id));
+    const serverPlayerIds = new Set(state.players.map((p) => p.id));
 
     for (const p of state.players) {
       if (p.id === activeClient.localPlayerId) continue; // Skip ourselves
@@ -251,20 +250,24 @@ export function setupCallbacks(client) {
           model.userData.networkId = p.id;
 
           gScene.value.add(model);
-          newAlpaca.name = p.name
+          newAlpaca.name = p.name;
           remotePlayers[p.id] = newAlpaca;
           gMinigame.value.players.push({ id: p.id, name: newAlpaca.name, hp: CONST.HP, point: 0 });
         });
-
-      } else if (remotePlayers[p.id] !== "loading" && remotePlayers[p.id].isDead !== 1) {
-        if (remotePlayers[p.id].model.position.x !== p.x || remotePlayers[p.id].model.position.z !== p.z || remotePlayers[p.id].model.rotation.y !== p.angle)
-          remotePlayers[p.id].isMoving = true
-        else
-          remotePlayers[p.id].isMoving = false
+      } else if (
+        remotePlayers[p.id] !== "loading" &&
+        remotePlayers[p.id].isDead !== 1
+      ) {
+        if (
+          remotePlayers[p.id].model.position.x !== p.x ||
+          remotePlayers[p.id].model.position.z !== p.z ||
+          remotePlayers[p.id].model.rotation.y !== p.angle
+        )
+          remotePlayers[p.id].isMoving = true;
+        else remotePlayers[p.id].isMoving = false;
         if (remotePlayers[p.id].model.position.y > 0)
-          remotePlayers[p.id].isJumping = true
-        else
-          remotePlayers[p.id].isJumping = false
+          remotePlayers[p.id].isJumping = true;
+        else remotePlayers[p.id].isJumping = false;
         remotePlayers[p.id].model.position.set(p.x, p.y || 0, p.z);
         remotePlayers[p.id].point = p.point
         remotePlayers[p.id].hp = p.health
@@ -280,7 +283,7 @@ export function setupCallbacks(client) {
         }
       }
     }
-    cleanUpDisconnectedPlayers(serverPlayerIds)
+    cleanUpDisconnectedPlayers(serverPlayerIds);
   };
 
   // --- JOINED: snap to spawn, start sending inputs ---
@@ -297,17 +300,15 @@ export function setupCallbacks(client) {
         x: gPlayer.value?.model.position.x || 0,
         y: gPlayer.value?.model.position.y || 0,
         z: gPlayer.value?.model.position.z || 0,
-        angle: gPlayer.value?.model.rotation.y || 0
+        angle: gPlayer.value?.model.rotation.y || 0,
       };
     };
   };
 }
 
-
 export function cleanUpDisconnectedPlayers(serverPlayerIds) {
   for (const id in remotePlayers) {
     if (!serverPlayerIds.has(id)) {
-
       const modelToRemove = remotePlayers[id].model;
       if (modelToRemove !== "loading" && modelToRemove) {
         gScene.value.remove(modelToRemove);
@@ -316,16 +317,17 @@ export function cleanUpDisconnectedPlayers(serverPlayerIds) {
           if (child.isMesh) {
             child.geometry.dispose();
             if (Array.isArray(child.material)) {
-              child.material.forEach(m => m.dispose());
+              child.material.forEach((m) => m.dispose());
             } else if (child.material) {
               child.material.dispose();
             }
           }
         });
       }
-      const index = gMinigame.value.players.findIndex(player => player.id === id);
-      if (index !== -1)
-        gMinigame.value.players.splice(index, 1);
+      const index = gMinigame.value.players.findIndex(
+        (player) => player.id === id,
+      );
+      if (index !== -1) gMinigame.value.players.splice(index, 1);
       delete remotePlayers[id];
     }
   }

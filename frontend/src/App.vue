@@ -203,13 +203,10 @@ function handleOutsideClick(e) {
 // Connect socket when authenticated
 watch(() => authStore.isAuthenticated, (isAuth) => {
   if (isAuth) {
-    const token = localStorage.getItem('accessToken')
-    if (token) {
-      const sock = connectSocket(token)
+      const sock = connectSocket()
       sock.on('notification', () => {
         unreadCount.value++
       })
-    }
     fetchUnreadCount()
   } else {
     disconnectSocket()

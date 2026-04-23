@@ -4,9 +4,9 @@
  * Handles real-time events: chat, notifications, game state, presence
  */
 
-import { io } from 'socket.io-client'
+import { io } from "socket.io-client";
 
-let socket = null
+let socket = null;
 
 /**
  * Derive the Socket.io server URL from the API base URL.
@@ -15,39 +15,39 @@ let socket = null
  * proxied by nginx to the backend.
  */
 function getSocketUrl() {
-  const apiUrl = import.meta.env.VITE_API_URL || '/api'
+  const apiUrl = import.meta.env.VITE_API_URL || "/api";
   // Same-origin (/api) — connect to current host
-  if (apiUrl.startsWith('/')) return undefined // io() with no arg = same origin
+  if (apiUrl.startsWith("/")) return undefined; // io() with no arg = same origin
   // Full URL — strip the /api suffix
   try {
-    const url = new URL(apiUrl)
-    return url.origin
+    const url = new URL(apiUrl);
+    return url.origin;
   } catch {
-    return undefined
+    return undefined;
   }
 }
 
-export function connectSocket(token) {
-  if (socket?.connected) return socket
-  const url = getSocketUrl()
+export function connectSocket() {
+  if (socket?.connected) return socket;
+  const url = getSocketUrl();
   socket = io(url, {
-    auth: { token },
+    withCredentials: true,
     autoConnect: true,
-    transports: ['websocket', 'polling'],
-    path: '/socket.io/',
-  })
-  return socket
+    transports: ["websocket", "polling"],
+    path: "/socket.io/",
+  });
+  return socket;
 }
 
 export function disconnectSocket() {
   if (socket) {
-    socket.disconnect()
-    socket = null
+    socket.disconnect();
+    socket = null;
   }
 }
 
 export function getSocket() {
-  return socket
+  return socket;
 }
 
-export { socket }
+export { socket };

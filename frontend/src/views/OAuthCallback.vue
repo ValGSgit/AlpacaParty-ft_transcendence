@@ -16,44 +16,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth.js'
+import { useRouter } from 'vue-router'
 
 const router  = useRouter()
-const route   = useRoute()
-const authStore = useAuthStore()
 const error   = ref('')
 
-/**
- * Extract tokens from the URL fragment (#), which is set by the backend
- * redirect after successful OAuth authentication.
- */
-function extractTokens() {
-  // Try URL fragment first (most secure — fragments aren't sent to servers)
-  const hash = window.location.hash.substring(1)
-  if (hash) {
-    try {
-      const data = JSON.parse(decodeURIComponent(hash))
-      if (data.accessToken) return data
-    } catch { /* not valid JSON, fall through */ }
-  }
-  return null
-}
-
 onMounted(async () => {
-  const tokens = extractTokens()
-
-  if (!tokens) {
-    error.value = 'OAuth login failed — no token received.'
-    setTimeout(() => router.push('/login'), 2500)
-    return
-  }
-
   // Clean the tokens from the URL so they aren't visible in browser history
   window.history.replaceState({}, '', window.location.pathname)
 
   try {
-    await authStore.handleOAuthTokens(tokens)
     router.push('/')
   } catch {
     error.value = 'OAuth login failed — please try again.'
