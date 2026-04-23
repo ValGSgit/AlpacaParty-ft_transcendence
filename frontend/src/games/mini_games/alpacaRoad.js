@@ -89,7 +89,6 @@ function initGameValues(playerCount) {
 
   gMinigame.value.isActive = true;
   gUI.lockCamera = true;
-  gUI.DoF = false;
   gUI.isLightCycling = false;
   assetsLoaded = true;
 }
@@ -99,7 +98,6 @@ async function setupRoadScene(scene) {
   setSunLight(25, 125, roadLength / 4, 0, 0, 200);
   adjustSunBox(200, 150, 1, 0, 0, 0);
   setTimeOfDay('day');
-  gUI.isLightCycling = false;
 
   const road = PRIMITIVES.Box(30, 1, roadLength, '#666666')
   road.position.y = -road.geometry.parameters.height / 2;
