@@ -10,7 +10,7 @@ export const gUser = ref({
   upgrades: 0,
   point: 0,
   hp: CONST.HP,
-  name: "TEST",
+  name: "Alpaca",
 })
 
 export const gMinigame = ref({

@@ -11,6 +11,7 @@ export function useUIManager() {
   const closeMenus = () => {
     if (gUI.editMode) closeEditMode();
     if (gUI.alpacaShop) closeAlpacaShop();
+    if (gUI.alpacaStats) closeAlpacaStats();
     if (gUI.itemShop) closeItemShop();
     if (gUI.lightMenu) closeLightMenu();
     if (gUI.shopMenu) closeShopMenu();
