@@ -109,7 +109,7 @@ export const refresh = async (req, res, next) => {
     const refreshToken = req.cookies.refresh_token;
     if (!refreshToken) throw new CustomError("refresh token is required", 401);
 
-    const decoded = AuthService.verifyToken(refreshToken);
+    const decoded = AuthService.verifyRefreshToken(refreshToken);
     if (!decoded)
       throw new CustomError("Invalid or expired refresh token", 401);
 

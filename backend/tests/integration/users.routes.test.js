@@ -79,7 +79,7 @@ describe("GET /api/users/me", () => {
   test("200 — returns current user", async () => {
     const res = await request
       .get("/api/users/me")
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Cookie", [`jwt_token=${validToken}`]);
 
     expect(res.status).toBe(200);
     expect(res.body.user.username).toBe("authed");
@@ -106,7 +106,7 @@ describe("PUT /api/users/me", () => {
 
     const res = await request
       .put("/api/users/me")
-      .set("Authorization", `Bearer ${validToken}`)
+      .set("Cookie", [`jwt_token=${validToken}`])
       .send(testUserUpdate);
 
     expect(res.status).toBe(200);
@@ -129,7 +129,7 @@ describe("PUT /api/users/me", () => {
 const updatePasswordRequest = async (newPw) => {
   return await request
     .put("/api/users/me/password")
-    .set("Authorization", `Bearer ${validToken}`)
+    .set("Cookie", [`jwt_token=${validToken}`])
     .send({
       currentPassword: "TestPassword1234",
       newPassword: newPw,
@@ -187,7 +187,7 @@ describe("GET /api/users", () => {
     const pageSize = 2;
     const res = await request
       .get(`/api/users?page=${page}&pageSize=${pageSize}`)
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Cookie", [`jwt_token=${validToken}`]);
 
     const users = res.body.users;
     expect(users.length).toBe(2);
@@ -201,7 +201,7 @@ describe("GET /api/users", () => {
     const pageSize = 3;
     const res = await request
       .get(`/api/users?page=${page}&pageSize=${pageSize}`)
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Cookie", [`jwt_token=${validToken}`]);
 
     const users = res.body.users;
     expect(users.length).toBe(3);
@@ -224,7 +224,7 @@ describe("GET /api/users/:id", () => {
   test("200 — get user 1", async () => {
     const res = await request
       .get(`/api/users/${createdUsers[0].id}`)
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Cookie", [`jwt_token=${validToken}`]);
 
     const user = res.body.user;
     expect(res.status).toBe(200);
@@ -235,7 +235,7 @@ describe("GET /api/users/:id", () => {
   test("200 — get user 2", async () => {
     const res = await request
       .get(`/api/users/${createdUsers[1].id}`)
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Cookie", [`jwt_token=${validToken}`]);
 
     const user = res.body.user;
     expect(res.status).toBe(200);

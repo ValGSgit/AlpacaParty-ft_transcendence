@@ -40,9 +40,13 @@ const AuthService = {
    * Generate a refresh token (long-lived).
    */
   generateRefreshToken(user) {
-    return jwt.sign({ id: user.id, type: "refresh" }, config.jwt.secret, {
-      expiresIn: config.jwt.refreshExpiresIn,
-    });
+    return jwt.sign(
+      { id: user.id, type: "refresh" },
+      config.jwt.refresh_secret,
+      {
+        expiresIn: config.jwt.refreshExpiresIn,
+      },
+    );
   },
 
   /**
@@ -52,6 +56,18 @@ const AuthService = {
   verifyToken(token) {
     try {
       return jwt.verify(token, config.jwt.secret);
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Verify and decode a refresh token.
+   * @returns {object|null} decoded payload or null if invalid.
+   */
+  verifyRefreshToken(token) {
+    try {
+      return jwt.verify(token, config.jwt.refresh_secret);
     } catch {
       return null;
     }

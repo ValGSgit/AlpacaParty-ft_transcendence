@@ -27,6 +27,9 @@ if [ -z "$IS_DEV" ]; then
   if [ -z "${JWT_SECRET:-}" ]; then
     echo "[vault-seed] ERROR: JWT_SECRET must be set before seeding" >&2; exit 1
   fi
+  if [ -z "${JWT_REFRESH_SECRET:-}" ]; then
+    echo "[vault-seed] ERROR: JWT_REFRESH_SECRET must be set before seeding" >&2; exit 1
+  fi
 fi
 
 echo "[vault-seed] Waiting for Vault to be ready..."
@@ -45,6 +48,7 @@ vault kv put secret/alpacaparty \
   db_password="${DB_PASSWORD}" \
   db_name="${DB_NAME:-alpacaparty}" \
   jwt_secret="${JWT_SECRET}" \
+  jwt_refresh_secret="${JWT_REFRESH_SECRET}" \
   api_keys="${API_KEYS:-change-me-to-a-secure-key}" \
   google_client_id="${GOOGLE_CLIENT_ID:-}" \
   google_client_secret="${GOOGLE_CLIENT_SECRET:-}" \

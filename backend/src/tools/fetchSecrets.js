@@ -9,6 +9,7 @@ const KEY_MAP = {
   db_user: "DB_USER",
   db_name: "DB_NAME",
   jwt_secret: "JWT_SECRET",
+  jwt_refresh_secret: "JWT_REFRESH_SECRET",
   api_keys: "API_KEYS",
   google_client_id: "GOOGLE_CLIENT_ID",
   google_client_secret: "GOOGLE_CLIENT_SECRET",
@@ -43,7 +44,9 @@ function vaultGet(url, token, caPath) {
 
     const req = https.request(options, (res) => {
       let body = "";
-      res.on("data", (chunk) => { body += chunk; });
+      res.on("data", (chunk) => {
+        body += chunk;
+      });
       res.on("end", () => {
         if (res.statusCode < 200 || res.statusCode >= 300) {
           reject(new Error(`Vault responded with ${res.statusCode}`));
@@ -70,7 +73,11 @@ async function getSecrets() {
   try {
     const VAULT_PATH = "secret/data/alpacaparty";
 
-    const json = await vaultGet(`${VAULT_ADDR}/v1/${VAULT_PATH}`, VAULT_TOKEN, caPath);
+    const json = await vaultGet(
+      `${VAULT_ADDR}/v1/${VAULT_PATH}`,
+      VAULT_TOKEN,
+      caPath,
+    );
     const rawSecrets = json.data.data || json.data;
 
     // Map Vault keys to their canonical uppercase env var names.
