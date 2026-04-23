@@ -106,12 +106,12 @@ export function useUIManager() {
   const openLobbyMenu = (game) => {
     gUI.lobbyMenu = true
     gUI.gameMenu = false
-    gUI.isRoadGame = game
+    gMinigame.value.mode = game;
     gMinigame.value.isReady = false
-    gMinigame.value.lobby = [] // start fresh
-    if (game === 0)
+    gMinigame.value.lobby = []
+    if (game === 2)
       onlineClient = new SpitRoyaleClient();
-    if (game === 1)
+    if (game === 4)
       onlineClient = new AlpacaRoadClient();
     if (onlineClient)
       onlineClient.check();

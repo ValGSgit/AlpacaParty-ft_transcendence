@@ -105,9 +105,9 @@
       <div class="shop-title">Select Game
         <div class="color-grid">
         <button class="shop-btn" @click="changeGame(1, playerCount)" title="Spit Royale with AI">Spit Royale</button>
-        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(0)" title="Spit Royale Online">Online Lobby</button>
+        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(2)" title="Spit Royale Online">Online Lobby</button>
         <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
-        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(1)" title="Alpaca Road Online">Online Lobby</button>
+        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(4)" title="Alpaca Road Online">Online Lobby</button>
       </div>
       <select v-model="playerCount" class="player-selector" title="Number of Players">
         <option :value="1">1 Player</option>
@@ -119,7 +119,7 @@
       </div>
     </div>
 
-    <div v-if="gUI.lobbyMenu && !gUI.isRoadGame" class="modal-overlay">
+    <div v-if="gUI.lobbyMenu && gMinigame.mode === 2" class="modal-overlay">
       <div class="shop-title">Spit Royale Lobby
         <button class="shop-btn" @click="changeGame(2, 1, -1)" title="Spit Royale Online">Create New Room</button>
         <button v-if="gMinigame.lobby.length > 0" class="shop-btn" @click="changeGame(2, 1)" title="Spit Royale Online">Join Random Room</button>
@@ -137,7 +137,7 @@
       </div>
     </div>
 
-    <div v-if="gUI.lobbyMenu && gUI.isRoadGame" class="modal-overlay">
+    <div v-if="gUI.lobbyMenu && gMinigame.mode === 4" class="modal-overlay">
       <div class="shop-title">Alpaca Road Lobby
         <button class="shop-btn" @click="changeGame(4, 1, -1)" title="Alpaca Road Online">Create New Room</button>
         <div v-for="game in gMinigame.lobby">
