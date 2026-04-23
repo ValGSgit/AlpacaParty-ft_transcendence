@@ -37,7 +37,6 @@ export function useCamera(camera, controls) {
   const handleAlpacaRoad = () => {
     const camera = gEngine.value.camera;
     camera.position.set(0, 15, -30);
-    //camera.lookAt(0, 0, 20);
 
     if (gEngine.value.controls) {
       gEngine.value.controls.target.set(0, 0, 20);
@@ -47,7 +46,8 @@ export function useCamera(camera, controls) {
 
   const handleOrbit = (player) => {
     offset.set(CONST.CAMERA_OFFSET.x, CONST.CAMERA_OFFSET.y, CONST.CAMERA_OFFSET.z)
-    currentPosition.copy(player.position).add(offset)
+    if (!gUI.editMode)
+      currentPosition.copy(player.position).add(offset)
 
     const t = 1.0 - Math.pow(CONST.CAMERA_LERP, CONST.CAMERA_LERP)
     controls.target.lerp(currentPosition, t)
@@ -92,28 +92,28 @@ export function useCamera(camera, controls) {
     controls.update()
   }
 
-const handleFirstPerson = (player) => {
+  const handleFirstPerson = (player) => {
     controls.minPolarAngle = 0; // unlock looking at the ceiling
     controls.maxPolarAngle = Math.PI;
 
     fpEyePosition.set(0, 8, -2); // alpaca rider view
-    
+
     // for AR glasses moving
     if (gEngine.value.spatialOffset) {
-        const spatial = gEngine.value.spatialOffset;
-        fpEyePosition.x += spatial.x;
-        fpEyePosition.y += spatial.y;
-        fpEyePosition.z += spatial.z;
+      const spatial = gEngine.value.spatialOffset;
+      fpEyePosition.x += spatial.x;
+      fpEyePosition.y += spatial.y;
+      fpEyePosition.z += spatial.z;
     }
-    
+
     camera.position.copy(fpEyePosition).applyQuaternion(player.quaternion).add(player.position);
     const finalRotation = player.quaternion.clone();
 
     // for AR glasses rotation
     if (gEngine.value.spatialRotation) {
-        const headRot = gEngine.value.spatialRotation.clone();
-        headRot.x = -headRot.x; 
-        finalRotation.multiply(headRot);
+      const headRot = gEngine.value.spatialRotation.clone();
+      headRot.x = -headRot.x;
+      finalRotation.multiply(headRot);
     }
 
     camera.quaternion.copy(finalRotation);
@@ -122,7 +122,7 @@ const handleFirstPerson = (player) => {
     const forward = new THREE.Vector3(0, 0, 10);
     forward.applyQuaternion(camera.quaternion);
     controls.target.copy(camera.position).add(forward);
-}
+  }
 
   return { updateCamera }
 }
