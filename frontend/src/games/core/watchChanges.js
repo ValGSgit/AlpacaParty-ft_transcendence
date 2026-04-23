@@ -11,7 +11,6 @@ export function watchChanges() {
       gPlayer,
     ],
     () => {
-      console.log("Saving game...");
       saveGame();
     })
 
