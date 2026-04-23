@@ -107,6 +107,8 @@ export function useInput() {
   }
 
   const onPointerDown = (e) => {
+    if ((gMinigame.value.mode === 1 || gMinigame.value.mode === 1) && gPlayer.value)
+      gPlayer.value.spit()
     keys.pointer = true
     // Select item in edit mode
     if (gUI.editMode || gEditState.selected) {

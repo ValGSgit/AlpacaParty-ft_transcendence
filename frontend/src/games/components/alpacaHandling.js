@@ -91,8 +91,8 @@ export function alpacaHandling() {
           if (gMinigame.value.mode !== 2) {
             // --- SINGLE PLAYER LOGIC ---
             const hitAlpaca = findAlpaca(hits[0].object);
+            if (hitAlpaca.hp > 0) spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
             if (hitAlpaca) hitAlpaca.beingHit(s.owner);
-            spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
           } else {
             // --- MULTIPLAYER LOGIC ---
             // Only the person who fired the laser is allowed to tell the server it hit!

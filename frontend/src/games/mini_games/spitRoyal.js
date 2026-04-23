@@ -10,8 +10,6 @@ import { remotePlayers, initClient } from './client.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
 
-const { spawnFloatingText } = useFloatingText();
-
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   gMinigame.value.mode = 1
   playerCount = 10 // total numbers of players
