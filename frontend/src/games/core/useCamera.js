@@ -131,7 +131,7 @@ export function changeCamera() {
   const engine = gEngine.value;
   if (!engine || !engine.camera || !engine.controls) return;
 
-  if (gUI.cameraMode === 0) {
+  if (gUI.cameraMode === 0 && !gUI.editMode) {
     gUI.cameraMode = 1;
   } else if (gUI.cameraMode === 1 && gEngine.value.spatialOffset) { // Jump to First Person only if AR data is present
     gUI.cameraMode = 3;
@@ -142,6 +142,5 @@ export function changeCamera() {
 }
 
 export function checkControlsEnabled() {
-  return !gEditState.selected;
   return !gUI.lockCamera && !gEditState.selected;
 }
