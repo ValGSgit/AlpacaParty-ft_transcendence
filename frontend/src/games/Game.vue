@@ -108,13 +108,13 @@
         <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(0)" title="Spit Royale Online">Online Lobby</button>
         <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
         <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(1)" title="Alpaca Road Online">Online Lobby</button>
-        <select v-model="playerCount" class="player-selector" title="Number of Players">
-          <option :value="1">1 Player</option>
-          <option :value="2">2 Players</option>
-          <option :value="3">3 Players</option>
-          <option :value="4">4 Players</option>
-        </select>
       </div>
+      <select v-model="playerCount" class="player-selector" title="Number of Players">
+        <option :value="1">1 Player</option>
+        <option :value="2">2 Players</option>
+        <option :value="3">3 Players</option>
+        <option :value="4">4 Players</option>
+      </select>
         <button class="close-btn" @click="closeGameMenu()" title="Close">✖️</button>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { MATERIALS as MATS } from '../config/materials.js';
-import { gAlpacas, gPlayer, gScene, gMinigame } from "../core/globals.js";
+import { gAlpacas, gPlayer, gScene, gMinigame, gUser } from "../core/globals.js";
 import { useUIManager } from '../core/useUIManager.js';
 import { getActiveClient } from '../mini_games/GameClient.js';
 import { useFloatingText } from '../components/floatingText.js';
@@ -93,6 +93,9 @@ export function alpacaHandling() {
             const hitAlpaca = findAlpaca(hits[0].object);
             if (hitAlpaca.hp > 0) spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
             if (hitAlpaca) hitAlpaca.beingHit(s.owner);
+            if (gMinigame.value.mode === 1 && gPlayer.value === hitAlpaca) // update heart UI
+              gMinigame.value.players[0].hp--
+            gMinigame.value.players[0].point = gUser.value.point
           } else {
             // --- MULTIPLAYER LOGIC ---
             // Only the person who fired the laser is allowed to tell the server it hit!
