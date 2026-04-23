@@ -381,7 +381,7 @@ function updateDifficulty() {
 
 function showLevelAnnouncement(level) {
   const el = document.createElement('div');
-  el.className = 'level-up-announcement';
+  el.className = 'announcement';
   el.innerText = `LEVEL ${level}`;
 
   document.body.appendChild(el);
@@ -416,18 +416,20 @@ function awardPoints(obstacle) {
     if (!alpaca.isDead && !alpaca.isBeingHit) {
       if (obstacle.userData.isFullWidth) {
         if (gMinigame.value.mode !== 4)
-        if (gMinigame.value.mode !== 4)
           alpaca.point++;
+        totalPoints++;
+        spawnFloatingText(alpaca.model, '+1');
+        updatePointToServer(alpaca)
       } else {
         const distance = Math.abs(alpaca.model.position.x - obstacle.position.x);
-        if (distance < 0.1) {
+        if (distance < 1) {
           if (gMinigame.value.mode !== 4)
-            alpaca.point++;
+            activePlayers[i].point++;
+          totalPoints++;
+          spawnFloatingText(alpaca.model, '+1');
+          updatePointToServer(alpaca)
         }
       }
-      spawnFloatingText(alpaca.model, '+1');
-      updatePointToServer(alpaca)
-      totalPoints++;
     }
   }
   console.log("Total:", totalPoints);
@@ -503,8 +505,8 @@ function checkAlpaca(alpaca) {
   if (isColliding) {
     alpaca.isBeingHit = true;
     if (gMinigame.value.mode !== 4)
-    if (gMinigame.value.mode !== 4)
-      alpaca.hp--;
+      if (gMinigame.value.mode !== 4)
+        alpaca.hp--;
     updateHpToServer(alpaca)
     spawnFloatingText(alpaca.model, '-💔', 'hearts');
     if (alpaca.hp === 0 && gMinigame.value.mode !== 4) {
@@ -576,7 +578,7 @@ export function cleanupAlpacaRoad() {
   console.log("🧹 Minigame cleaned up.");
 }
 
-export function getReady(){
+export function getReady() {
   if (gMinigame.value.isReady)
     return
   gMinigame.value.isReady = true
@@ -589,6 +591,6 @@ export function initInitalPlayerCount(PlayerCount) {
   alivePlayers = PlayerCount
 }
 
-export function updateAlivePlayers(){
+export function updateAlivePlayers() {
   alivePlayers--
 }

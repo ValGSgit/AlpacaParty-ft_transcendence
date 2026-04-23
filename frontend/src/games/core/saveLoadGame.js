@@ -10,12 +10,15 @@ export async function saveGame() {
     return
   }
 
-  if (gMinigame.value.mode)
-    return
-
   if (!gUser.value || !gPlayer.value) {
     return
   }
+
+  if (gMinigame.value.mode) {
+    saveMinigame();
+    return
+  }
+
 
   const saveAlpacas = gAlpacas.map(alpaca => {
     let selected = false
@@ -72,6 +75,17 @@ export async function saveGame() {
       upgrades: gUser.value.upgrades
     })
     console.log('✅ Farm stats synced to server')
+  } catch (error) {
+    console.error('Failed to sync farm stats:', error)
+  }
+}
+
+async function saveMinigame() {
+  try {
+    await api.put('/users/me/farmdata', {
+      coins: gUser.value.coins,
+    })
+    console.log('✅ Farm stats synced to server after minigame')
   } catch (error) {
     console.error('Failed to sync farm stats:', error)
   }
