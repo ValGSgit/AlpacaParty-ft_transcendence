@@ -131,13 +131,30 @@ export function changeCamera() {
   const engine = gEngine.value;
   if (!engine || !engine.camera || !engine.controls) return;
 
-  if (gUI.cameraMode === 0 && !gUI.editMode) {
+  if (gUI.editMode)
+    return;
+
+  if (gUI.cameraMode === 0) {
     gUI.cameraMode = 1;
   } else if (gUI.cameraMode === 1 && gEngine.value.spatialOffset) { // Jump to First Person only if AR data is present
     gUI.cameraMode = 3;
   } else {
     gUI.cameraMode = 0;
     isTransitioningToOrbit = true;
+  }
+}
+
+export function changeEditModeCamera() {
+  const engine = gEngine.value;
+  if (!engine || !engine.camera || !engine.controls) return;
+
+  if (gUI.editMode) {
+    gEditState.cameraMode = gUI.cameraMode;
+    gUI.cameraMode = 0;
+    if (gUI.cameraMode !== gEditState.cameraMode)
+      isTransitioningToOrbit = true;
+  } else {
+    gUI.cameraMode = gEditState.cameraMode;
   }
 }
 

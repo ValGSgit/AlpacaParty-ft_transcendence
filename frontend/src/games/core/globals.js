@@ -44,7 +44,8 @@ export const gUI = reactive({
 
 export const gEditState = shallowReactive({
   selected: null,
-  ghost: null
+  ghost: null,
+  cameraMode: 0,
 });
 
 export const gAlpacas = []

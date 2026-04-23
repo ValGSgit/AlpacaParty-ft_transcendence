@@ -1,8 +1,8 @@
 import { useEditMode } from "../components/editMode";
 import { AlpacaRoadClient, SpitRoyaleClient } from '../mini_games/client.js';
 import { changeGame } from '../mini_games/init.js';
-import { gEngine, gMinigame, gUI } from "./globals";
-import { changeCamera } from "./useCamera.js";
+import { gEditState, gEngine, gMinigame, gUI } from "./globals";
+import { changeEditModeCamera } from "./useCamera.js";
 
 export function useUIManager() {
 
@@ -20,15 +20,17 @@ export function useUIManager() {
   }
 
   const openEditMode = () => {
-    gUI.editMode = true
-    gEngine.value.controls.enabled = false
-    changeCamera()
+    gUI.editMode = true;
+    gEngine.value.controls.enabled = false;
+    gEditState.cameraMode = gUI.cameraMode;
+    changeEditModeCamera();
   }
 
   const closeEditMode = () => {
     removeHighlight()
     cancelPlacement()
     gUI.editMode = false
+    changeEditModeCamera();
     gEngine.value.controls.enabled = true
   }
 
