@@ -52,7 +52,8 @@ app.use(
   }),
 );
 
-// Rate limiting
+// Rate limiting — skip /api/health so monitoring probes and post-load
+// recovery checks are never throttled even under load-test pressure.
 app.use(
   "/api",
   rateLimit({
@@ -61,6 +62,7 @@ app.use(
     message: "Too many requests, please try again later.",
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => req.path === "/health" || req.path === "/api/health",
   }),
 );
 

@@ -1,47 +1,48 @@
-/**
- * Helmet / CSP configuration.
- *
- * In production we drop 'unsafe-eval' entirely and keep 'unsafe-inline' only
- * for styles (Vue scoped-style injection uses inline style blocks). Scripts
- * in prod are hash/nonce-free because the frontend is served as pre-built
- * bundles under 'self' — no third-party script tags.
- *
- * In dev we keep 'unsafe-inline' and 'unsafe-eval' on scriptSrc so Vite's
- * HMR client and source maps keep working.
- */
+// Helmet / CSP configuration.
+//
+// 'unsafe-eval' is never allowed — grep confirms no eval / new Function in
+// backend or frontend, and modern Vite + our Vue build do not require it.
+// 'unsafe-inline' on script-src is kept only to let Swagger UI bootstrap at
+// /api/docs; everything else loads as 'self' ESM bundles.
 const isProd = process.env.NODE_ENV === "production";
 
-export const getHelmetConfig = () => {
-  const scriptSrc = isProd
-    ? ["'self'"]
-    : ["'self'", "'unsafe-inline'", "'unsafe-eval'"];
-
-  return {
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc,
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: [
-          "'self'",
-          "data:",
-          "blob:",
-          "*.googleusercontent.com",
-          "*.githubusercontent.com",
-          "picsum.photos",
-          "*.picsum.photos",
-          "https://images.pexels.com",
-        ],
-        connectSrc: ["'self'", "wss:", "ws:", "https:"],
-        fontSrc: ["'self'", "data:"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'", "blob:"],
-        frameSrc: ["'none'"],
-        baseUri: ["'self'"],
-        formAction: ["'self'"],
-        frameAncestors: ["'none'"],
-      },
+export const getHelmetConfig = () => ({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'none'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        "https://*.googleusercontent.com",
+        "https://*.githubusercontent.com",
+        "https://picsum.photos",
+        "https://*.picsum.photos",
+        "https://images.pexels.com",
+      ],
+      connectSrc: [
+        "'self'",
+        "wss:",
+        ...(isProd ? [] : ["ws:"]),
+        "https://accounts.google.com",
+        "https://github.com",
+        "https://api.github.com",
+      ],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'", "blob:"],
+      frameSrc: ["'none'"],
+      workerSrc: ["'self'", "blob:"],
+      manifestSrc: ["'self'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'", "https://accounts.google.com", "https://github.com"],
+      frameAncestors: ["'none'"],
+      ...(isProd ? { upgradeInsecureRequests: [] } : {}),
     },
-  };
-};
+  },
+});
