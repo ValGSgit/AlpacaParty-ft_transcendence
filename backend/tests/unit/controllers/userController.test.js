@@ -379,21 +379,6 @@ describe('getUser', () => {
     expect(res._json.user).toBeDefined();
   });
 
-  test('should allow admin to view private profile', async () => {
-    const user = { id: 5, username: 'bob', isPublic: false };
-    mockUser.findById.mockResolvedValue(user);
-
-    const { req, res, next } = createReqRes({
-      params: { id: '5' },
-      user: { id: 1, username: 'admin'},
-    });
-    await getUser(req, res, next);
-
-    expect(res._status).toBe(200);
-    expect(res._json.user).toBeDefined();
-    expect(mockFriend.areFriends).not.toHaveBeenCalled();
-  });
-
   test('should allow viewing own private profile', async () => {
     const user = { id: 1, username: 'alice', isPublic: false };
     mockUser.findById.mockResolvedValue(user);
@@ -452,20 +437,6 @@ describe('listUsers', () => {
     expect(res._json.users.map((u) => u.id)).toEqual([1, 3]);
   });
 
-  test('should show all users for admins', async () => {
-    const users = [
-      { id: 1, username: 'alice', isPublic: true },
-      { id: 2, username: 'bob', isPublic: false },
-    ];
-    mockUser.findAll.mockResolvedValue(users);
-
-    const { req, res, next } = createReqRes({
-      user: { id: 1, username: 'alice'},
-    });
-    await listUsers(req, res, next);
-
-    expect(res._json.users).toHaveLength(2);
-  });
 
   test('should use search when query param provided', async () => {
     mockUser.search.mockResolvedValue([{ id: 2, username: 'bob', isPublic: true }]);

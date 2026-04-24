@@ -105,20 +105,6 @@ const mockPrisma = {
     count: jest.fn(),
   },
   gameStat: { findUnique: jest.fn(), findMany: jest.fn(), upsert: jest.fn() },
-  organization: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  },
-  organizationMember: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    upsert: jest.fn(),
-    deleteMany: jest.fn(),
-  },
   repost: { findMany: jest.fn() },
   achievement: {
     findUnique: jest.fn(),
