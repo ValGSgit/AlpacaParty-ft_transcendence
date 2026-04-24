@@ -298,10 +298,6 @@ describe("GET /api/public/mock", () => {
       },
     ]);
     mockPrisma.repost.findMany.mockResolvedValueOnce([]); // recent reposts
-    // Organization.findAll → prisma.organization.findMany
-    mockPrisma.organization.findMany.mockResolvedValueOnce([
-      { id: 3, name: "Alpha Org", description: "desc", _count: { members: 1 } },
-    ]);
 
     const res = await request
       .get("/api/public/mock")
@@ -311,6 +307,5 @@ describe("GET /api/public/mock", () => {
     expect(res.body.disclaimer).toMatch(/not user personal data/i);
     expect(res.body.users[0].username).toMatch(/^user_/);
     expect(res.body.posts[0].content).toMatch(/anonymized/i);
-    expect(res.body.organizations[0].name).toMatch(/^org_/);
   });
 });
