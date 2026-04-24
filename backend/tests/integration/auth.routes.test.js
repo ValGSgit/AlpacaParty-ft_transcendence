@@ -58,7 +58,6 @@ beforeEach(async () => {
   validToken = AuthService.generateAccessToken({
     id: user.id,
     username: user.username,
-    is_admin: false,
   });
 });
 

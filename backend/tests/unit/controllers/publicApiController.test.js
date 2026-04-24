@@ -18,24 +18,18 @@ const mockPost = {
   update: jest.fn(),
   delete: jest.fn(),
 };
-const mockOrganization = {
-  findAll: jest.fn(),
-  search: jest.fn(),
-};
 
 jest.unstable_mockModule('../../../src/models/User.js', () => ({ default: mockUser }));
 jest.unstable_mockModule('../../../src/models/Game.js', () => ({ default: mockGame }));
 jest.unstable_mockModule('../../../src/models/Post.js', () => ({ default: mockPost }));
-jest.unstable_mockModule('../../../src/models/Organization.js', () => ({ default: mockOrganization }));
 
 const {
   listUsers, getUser, getLeaderboard, getPosts,
-  createPost, updatePost, deletePost,
-  listOrganizations, getMockDataset,
+  createPost, updatePost, deletePost, getMockDataset,
 } = await import('../../../src/controllers/publicApiController.js');
 
 function createReqRes(overrides = {}) {
-  const req = { user: { id: 1, username: 'tester', isAdmin: false }, params: {}, query: {}, body: {}, ...overrides };
+  const req = { user: { id: 1, username: 'tester'}, params: {}, query: {}, body: {}, ...overrides };
   const res = {
     _status: 200, _json: null,
     status(code) { res._status = code; return res; },
@@ -343,49 +337,6 @@ describe('deletePost', () => {
   });
 });
 
-// ── listOrganizations ────────────────────────────────────────────────────────
-describe('listOrganizations', () => {
-  test('returns all organizations with defaults', async () => {
-    const orgs = [{ id: 1, name: 'Org1', description: 'desc' }];
-    mockOrganization.findAll.mockResolvedValue(orgs);
-    const { req, res, next } = createReqRes();
-    await listOrganizations(req, res, next);
-    expect(mockOrganization.findAll).toHaveBeenCalledWith({ limit: 20, offset: 0 });
-    expect(res._json.organizations).toEqual([{
-      id: 1,
-      name: 'Org1',
-      description: 'desc',
-      avatar: undefined,
-      memberCount: 0,
-      created_at: undefined,
-    }]);
-  });
-
-  test('uses search when provided', async () => {
-    mockOrganization.search.mockResolvedValue([{ id: 1, name: 'Alpaca' }]);
-    const { req, res, next } = createReqRes({ query: { search: 'alp', limit: '5' } });
-    await listOrganizations(req, res, next);
-    expect(mockOrganization.search).toHaveBeenCalledWith('alp', { limit: 5 });
-    expect(mockOrganization.findAll).not.toHaveBeenCalled();
-  });
-
-  test('applies anonymization', async () => {
-    mockOrganization.findAll.mockResolvedValue([{ id: 7, name: 'Secret Org', description: 'hidden' }]);
-    const { req, res, next } = createReqRes({ query: { anonymized: 'true' } });
-    await listOrganizations(req, res, next);
-    expect(res._json.organizations[0].name).toBe('org_7');
-    expect(res._json.organizations[0].description).toBe('Anonymized organization');
-  });
-
-  test('calls next on error', async () => {
-    const err = new Error('fail');
-    mockOrganization.findAll.mockRejectedValue(err);
-    const { req, res, next } = createReqRes();
-    await listOrganizations(req, res, next);
-    expect(next).toHaveBeenCalledWith(err);
-  });
-});
-
 // ── getMockDataset ───────────────────────────────────────────────────────────
 describe('getMockDataset', () => {
   test('returns combined anonymized data', async () => {
@@ -398,7 +349,6 @@ describe('getMockDataset', () => {
     mockPost.getFeed.mockResolvedValue([
       { id: 1, author_id: 1, author_username: 'alice', author_avatar: '/a.png', content: 'hello', created_at: '2024-01-01', likes_count: 3 },
     ]);
-    mockOrganization.findAll.mockResolvedValue([{ id: 1, name: 'Org1', description: 'desc' }]);
 
     const { req, res, next } = createReqRes();
     await getMockDataset(req, res, next);
@@ -407,7 +357,6 @@ describe('getMockDataset', () => {
     expect(res._json.leaderboard[0].username).toBe('user_0001');
     expect(res._json.leaderboard[0].avatar).toBe('/avatars/default.svg');
     expect(res._json.posts[0].content).toBe('[anonymized post content]');
-    expect(res._json.organizations[0].name).toBe('org_1');
     expect(res._json.disclaimer).toBe('Mock dataset is anonymized and is not user personal data.');
   });
 

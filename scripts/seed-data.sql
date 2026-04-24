@@ -19,7 +19,7 @@ DO $$ DECLARE pw_hash TEXT := '$2b$12$LJ3m4ys3LzQVKoEBOBMxnOxQzUKBCfJBQ3.DYcFqB.
 -- 1. USERS (200 users)
 -- ══════════════════════════════════════════════════════════════════════════
 
-INSERT INTO users (username, email, password_hash, avatar, bio, status, is_public, is_online, is_admin, xp, level, coins, upgrades, created_at)
+INSERT INTO users (username, email, password_hash, avatar, bio, status, is_public, is_online, xp, level, coins, upgrades, created_at)
 SELECT
   'user_' || i,
   'user_' || i || '@alpacaparty.test',
@@ -321,63 +321,6 @@ FROM (
 WHERE posts.id = sub.post_id;
 
 -- ══════════════════════════════════════════════════════════════════════════
--- 9. ORGANIZATIONS (20 organizations)
--- ══════════════════════════════════════════════════════════════════════════
-
-INSERT INTO organizations (name, description, avatar, owner_id, created_at, updated_at)
-SELECT
-  org_name,
-  org_desc,
-  '/avatars/default-org.svg',
-  owner,
-  NOW() - (interval '1 day' * (20 - i)),
-  NOW() - (interval '1 day' * (20 - i))
-FROM (VALUES
-  (1,  'Alpaca Legends',       'The legendary alpaca breeders',             1),
-  (2,  'Spit Masters',         'For serious Spit Royale competitors',       5),
-  (3,  'Casual Gamers',        'Just here to have fun',                    10),
-  (4,  'Night Owls',           'Late night gaming crew',                   15),
-  (5,  'Speed Demons',         'Fast-paced Spit Royale enthusiasts',       20),
-  (6,  'Farm Union',           'Alpaca farm optimization group',           25),
-  (7,  'Achievement Hunters',  'Complete every achievement together',      30),
-  (8,  'European Alliance',    'European time zone players',               35),
-  (9,  'Rookie Club',          'New players helping each other',           40),
-  (10, 'Elite Squad',          'Top-ranked players only',                  45),
-  (11, 'Meme Team',            'Fun and memes',                            50),
-  (12, 'Code Monkeys',         'Developers who play games',               55),
-  (13, 'AlpacaParty OGs',      'Original members of the platform',        60),
-  (14, 'The Strategists',      'Deep Spit Royale strategy discussions',    65),
-  (15, 'Weekend Warriors',     'Active on weekends',                       70),
-  (16, 'Coin Collectors',      'Maximizing coin earnings',                75),
-  (17, 'Level Grinders',       'XP farming strategies',                    80),
-  (18, 'Social Butterflies',   'Making friends across the platform',       85),
-  (19, 'Tournament Org',       'Organizing community tournaments',         90),
-  (20, 'Beta Testers',         'Testing new features before release',      95)
-) AS v(i, org_name, org_desc, owner)
-ON CONFLICT (name) DO NOTHING;
-
--- ── Organization Members (5-20 per org) ──────────────────────────────────
-
--- Owner as member
-INSERT INTO organization_members (org_id, user_id, role, joined_at)
-SELECT o.id, o.owner_id, 'owner', o.created_at
-FROM organizations o
-ON CONFLICT (org_id, user_id) DO NOTHING;
-
--- Additional members
-INSERT INTO organization_members (org_id, user_id, role, joined_at)
-SELECT
-  o.id,
-  ((o.id * 11 + m * 3) % 200) + 1,
-  CASE WHEN m <= 2 THEN 'admin' ELSE 'member' END,
-  o.created_at + (interval '1 hour' * m)
-FROM organizations o
-CROSS JOIN generate_series(1, 20) AS m
-WHERE ((o.id * 11 + m * 3) % 200) + 1 <> o.owner_id
-  AND m <= 5 + (o.id % 16)
-ON CONFLICT (org_id, user_id) DO NOTHING;
-
--- ══════════════════════════════════════════════════════════════════════════
 -- 10. GAMES (400 games with varied outcomes)
 -- ══════════════════════════════════════════════════════════════════════════
 
@@ -468,12 +411,6 @@ SELECT i, (SELECT id FROM achievements WHERE key = 'social_butter'), NOW() - (in
 FROM generate_series(1, 40) AS i
 ON CONFLICT (user_id, achievement_id) DO NOTHING;
 
--- org_founder for org owners
-INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
-SELECT DISTINCT o.owner_id, (SELECT id FROM achievements WHERE key = 'org_founder'), o.created_at
-FROM organizations o
-ON CONFLICT (user_id, achievement_id) DO NOTHING;
-
 -- level_10 for users who reached level 10
 INSERT INTO user_achievements (user_id, achievement_id, unlocked_at)
 SELECT id, (SELECT id FROM achievements WHERE key = 'level_10'), NOW() - interval '3 days'
@@ -533,7 +470,6 @@ SELECT
     WHEN 2 THEN 'post_like'
     WHEN 3 THEN 'achievement'
     WHEN 4 THEN 'game_invite'
-    WHEN 5 THEN 'org_invite'
     ELSE 'message'
   END,
   CASE (i % 7)
@@ -542,7 +478,6 @@ SELECT
     WHEN 2 THEN 'Post Liked'
     WHEN 3 THEN 'Achievement Unlocked!'
     WHEN 4 THEN 'Game Invitation'
-    WHEN 5 THEN 'Organization Invite'
     ELSE 'New Message'
   END,
   CASE (i % 7)
@@ -551,7 +486,6 @@ SELECT
     WHEN 2 THEN 'user_' || ((i * 7) % 200 + 1) || ' liked your post'
     WHEN 3 THEN 'You unlocked a new achievement!'
     WHEN 4 THEN 'user_' || ((i * 11) % 200 + 1) || ' invited you to play Spit Royale'
-    WHEN 5 THEN 'You have been invited to join an organization'
     ELSE 'You have a new message from user_' || ((i * 13) % 200 + 1)
   END,
   CASE WHEN i % 4 = 0 THEN FALSE ELSE TRUE END,      -- ~25% unread
@@ -561,7 +495,6 @@ SELECT
     WHEN 2 THEN 'post'
     WHEN 3 THEN 'achievement'
     WHEN 4 THEN 'game'
-    WHEN 5 THEN 'organization'
     ELSE 'message'
   END,
   i,
@@ -605,8 +538,6 @@ BEGIN
   RAISE NOTICE 'Chat Room Messages: %', (SELECT COUNT(*) FROM chat_room_messages);
   RAISE NOTICE 'Posts:              %', (SELECT COUNT(*) FROM posts);
   RAISE NOTICE 'Post Likes:         %', (SELECT COUNT(*) FROM post_likes);
-  RAISE NOTICE 'Organizations:      %', (SELECT COUNT(*) FROM organizations);
-  RAISE NOTICE 'Org Members:        %', (SELECT COUNT(*) FROM organization_members);
   RAISE NOTICE 'Games:              %', (SELECT COUNT(*) FROM games);
   RAISE NOTICE 'Game Stats:         %', (SELECT COUNT(*) FROM game_stats);
   RAISE NOTICE 'Achievements (u):   %', (SELECT COUNT(*) FROM user_achievements);

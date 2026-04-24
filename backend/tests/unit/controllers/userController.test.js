@@ -88,7 +88,7 @@ async function runUpdateValidation(req) {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function createReqRes(overrides = {}) {
   const req = {
-    user: { id: 1, username: 'alice', email: 'alice@test.com', isAdmin: false },
+    user: { id: 1, username: 'alice', email: 'alice@test.com'},
     params: {}, query: {}, body: {},
     ...overrides,
   };
@@ -356,7 +356,7 @@ describe('getUser', () => {
 
     const { req, res, next } = createReqRes({
       params: { id: '5' },
-      user: { id: 1, username: 'alice', isAdmin: false },
+      user: { id: 1, username: 'alice'},
     });
     await getUser(req, res, next);
 
@@ -371,7 +371,7 @@ describe('getUser', () => {
 
     const { req, res, next } = createReqRes({
       params: { id: '5' },
-      user: { id: 1, username: 'alice', isAdmin: false },
+      user: { id: 1, username: 'alice'},
     });
     await getUser(req, res, next);
 
@@ -385,7 +385,7 @@ describe('getUser', () => {
 
     const { req, res, next } = createReqRes({
       params: { id: '5' },
-      user: { id: 1, username: 'admin', isAdmin: true },
+      user: { id: 1, username: 'admin'},
     });
     await getUser(req, res, next);
 
@@ -400,7 +400,7 @@ describe('getUser', () => {
 
     const { req, res, next } = createReqRes({
       params: { id: '1' },
-      user: { id: 1, username: 'alice', isAdmin: false },
+      user: { id: 1, username: 'alice'},
     });
     await getUser(req, res, next);
 
@@ -443,7 +443,7 @@ describe('listUsers', () => {
     mockUser.findAll.mockResolvedValue(users);
 
     const { req, res, next } = createReqRes({
-      user: { id: 1, username: 'alice', isAdmin: false },
+      user: { id: 1, username: 'alice'},
     });
     await listUsers(req, res, next);
 
@@ -460,7 +460,7 @@ describe('listUsers', () => {
     mockUser.findAll.mockResolvedValue(users);
 
     const { req, res, next } = createReqRes({
-      user: { id: 1, username: 'alice', isAdmin: true },
+      user: { id: 1, username: 'alice'},
     });
     await listUsers(req, res, next);
 
@@ -472,7 +472,7 @@ describe('listUsers', () => {
 
     const { req, res, next } = createReqRes({
       query: { search: 'bob', limit: '10' },
-      user: { id: 1, username: 'alice', isAdmin: true },
+      user: { id: 1, username: 'alice'},
     });
     await listUsers(req, res, next);
 

@@ -31,7 +31,7 @@ const {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function createReqRes(overrides = {}) {
   const req = {
-    user: { id: 1, username: 'alice', isAdmin: false },
+    user: { id: 1, username: 'alice'},
     params: {}, query: {}, body: {},
     ...overrides,
   };
@@ -334,7 +334,7 @@ describe('deletePost', () => {
 
     const { req, res, next } = createReqRes({
       params: { id: '999' },
-      user: { id: 1, username: 'admin', isAdmin: true },
+      user: { id: 1, username: 'admin'},
     });
     await deletePost(req, res, next);
 
@@ -373,7 +373,7 @@ describe('likePost', () => {
 
     const { req, res, next } = createReqRes({
       params: { id: '10' },
-      user: { id: 1, username: 'alice', isAdmin: false },
+      user: { id: 1, username: 'alice'},
     });
     await likePost(req, res, next);
 

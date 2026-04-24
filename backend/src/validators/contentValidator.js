@@ -79,18 +79,6 @@ export const chatRoomCreateValidation = () => [
   optionalContentChain(body("description"), { max: 500, field: "description" }),
 ];
 
-// ── Organizations ─────────────────────────────────────────────────────────
-
-export const orgCreateValidation = () => [
-  contentChain(body("name"), { min: 1, max: 100, field: "name" }),
-  optionalContentChain(body("description"), { max: 1000, field: "description" }),
-];
-
-export const orgUpdateValidation = () => [
-  optionalContentChain(body("name"), { min: 1, max: 100, field: "name" }),
-  optionalContentChain(body("description"), { max: 1000, field: "description" }),
-];
-
 // ── Common path params ────────────────────────────────────────────────────
 
 export const idParamValidation = (name = "id") => [

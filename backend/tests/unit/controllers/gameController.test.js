@@ -24,7 +24,7 @@ const {
 } = await import('../../../src/controllers/gameController.js');
 
 function createReqRes(overrides = {}) {
-  const req = { user: { id: 1, username: 'tester', isAdmin: false }, params: {}, query: {}, body: {}, ...overrides };
+  const req = { user: { id: 1, username: 'tester'}, params: {}, query: {}, body: {}, ...overrides };
   const res = {
     _status: 200, _json: null,
     status(code) { res._status = code; return res; },

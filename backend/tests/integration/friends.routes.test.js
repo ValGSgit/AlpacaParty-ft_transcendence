@@ -40,7 +40,6 @@ async function setupUsers() {
   const validToken = AuthService.generateAccessToken({
     id: validUser.id,
     username: validUser.username,
-    is_admin: false,
   });
   validUser.token = validToken;
 

@@ -367,13 +367,11 @@ seed-example-reset:
 
 prod-seed-example:
 	$(DC_PROD) up -d backend
-	$(DC_PROD) exec backend npm install --no-audit --no-fund --loglevel=error
 	$(DC_PROD) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
 	$(DC_PROD) exec backend npm run seed:exampleData
 
 prod-seed-example-reset:
 	$(DC_PROD) up -d backend
-	$(DC_PROD) exec backend npm install --no-audit --no-fund --loglevel=error
 	$(DC_PROD) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
 	$(DC_PROD) exec backend npm run seed:exampleData:reset
 

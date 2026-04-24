@@ -110,20 +110,6 @@ describe('NotificationService.gameInvite', () => {
   });
 });
 
-describe('NotificationService.orgInvite', () => {
-  test('should create org_invite notification', async () => {
-    mockNotification.create.mockResolvedValue(fakeNotification);
-    await NotificationService.orgInvite(42, 'AlpacaCorp', 5);
-    expect(mockNotification.create).toHaveBeenCalledWith(expect.objectContaining({
-      userId: 42,
-      type: 'org_invite',
-      referenceType: 'organization',
-      referenceId: 5,
-      message: 'You were added to AlpacaCorp.',
-    }));
-  });
-});
-
 describe('NotificationService.achievementUnlocked', () => {
   test('should create achievement notification', async () => {
     mockNotification.create.mockResolvedValue(fakeNotification);

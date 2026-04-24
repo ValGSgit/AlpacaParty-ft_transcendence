@@ -27,7 +27,7 @@ describe("AuthService", () => {
   });
 
   describe("generateAccessToken / verifyToken", () => {
-    const fakeUser = { id: 1, username: "tester", isAdmin: false };
+    const fakeUser = { id: 1, username: "tester"};
 
     test("should generate a valid access token", () => {
       const token = AuthService.generateAccessToken(fakeUser);
@@ -37,7 +37,6 @@ describe("AuthService", () => {
       expect(decoded).toBeDefined();
       expect(decoded.id).toBe(fakeUser.id);
       expect(decoded.username).toBe(fakeUser.username);
-      expect(decoded.isAdmin).toBe(false);
     });
 
     test("should reject invalid token", () => {
@@ -67,53 +66,6 @@ describe("AuthService", () => {
       const token = AuthService.generateRefreshToken(fakeUser);
       const decoded = AuthService.verifyRefreshToken(token);
       expect(decoded.username).toBeUndefined();
-    });
-  });
-
-  describe("generateAccessToken — admin flag", () => {
-    const originalModUsers = process.env.MOD_USERS;
-
-    afterEach(() => {
-      if (originalModUsers === undefined) delete process.env.MOD_USERS;
-      else process.env.MOD_USERS = originalModUsers;
-    });
-
-    test("should embed isAdmin=true when username is in MOD_USERS", () => {
-      process.env.MOD_USERS = "admin,othermod";
-      const adminUser = { id: 7, username: "admin", isAdmin: false };
-      const token = AuthService.generateAccessToken(adminUser);
-      const decoded = AuthService.verifyToken(token);
-      expect(decoded.isAdmin).toBe(true);
-    });
-
-    test("should embed isAdmin=false when username is not in MOD_USERS", () => {
-      process.env.MOD_USERS = "someone_else";
-      const user = { id: 8, username: "admin", isAdmin: true };
-      const token = AuthService.generateAccessToken(user);
-      const decoded = AuthService.verifyToken(token);
-      expect(decoded.isAdmin).toBe(false);
-    });
-
-    test("access token should NOT have type field", () => {
-      const token = AuthService.generateAccessToken({
-        id: 1,
-        username: "u",
-        is_admin: false,
-      });
-      const decoded = AuthService.verifyToken(token);
-      expect(decoded.type).toBeUndefined();
-    });
-
-    test("decoded token should contain iat and exp", () => {
-      const token = AuthService.generateAccessToken({
-        id: 1,
-        username: "u",
-        is_admin: false,
-      });
-      const decoded = AuthService.verifyToken(token);
-      expect(typeof decoded.iat).toBe("number");
-      expect(typeof decoded.exp).toBe("number");
-      expect(decoded.exp).toBeGreaterThan(decoded.iat);
     });
   });
 
@@ -201,8 +153,7 @@ describe("AuthService", () => {
     test("access token should pass verification and have no type", () => {
       const access = AuthService.generateAccessToken({
         id: 1,
-        username: "u",
-        is_admin: false,
+        username: "u"
       });
       const decoded = AuthService.verifyToken(access);
       expect(decoded).not.toBeNull();
@@ -253,8 +204,7 @@ describe("AuthService", () => {
     test("access token exp should reflect config.jwt.expiresIn", () => {
       const token = AuthService.generateAccessToken({
         id: 1,
-        username: "u",
-        is_admin: false,
+        username: "u"
       });
       const decoded = AuthService.verifyToken(token);
 
@@ -276,8 +226,7 @@ describe("AuthService", () => {
     test("refresh token should live longer than access token", () => {
       const accessToken = AuthService.generateAccessToken({
         id: 1,
-        username: "u",
-        is_admin: false,
+        username: "u"
       });
       const refreshToken = AuthService.generateRefreshToken({ id: 1 });
       const accessDecoded = AuthService.verifyToken(accessToken);
@@ -291,14 +240,14 @@ describe("AuthService", () => {
 
   describe("access and refresh tokens are different", () => {
     test("tokens generated for same user should have different strings", () => {
-      const user = { id: 1, username: "u", is_admin: false };
+      const user = { id: 1, username: "u"};
       const access = AuthService.generateAccessToken(user);
       const refresh = AuthService.generateRefreshToken(user);
       expect(access).not.toBe(refresh);
     });
 
     test("two access tokens for same user should differ (iat varies)", () => {
-      const user = { id: 1, username: "u", is_admin: false };
+      const user = { id: 1, username: "u"};
       const token1 = AuthService.generateAccessToken(user);
       const token2 = AuthService.generateAccessToken(user);
       // They may be identical if generated in the same second, but payloads match
@@ -309,7 +258,7 @@ describe("AuthService", () => {
     });
 
     test("refresh token has type field, access token does not", () => {
-      const user = { id: 1, username: "u", is_admin: false };
+      const user = { id: 1, username: "u"};
       const access = AuthService.verifyToken(
         AuthService.generateAccessToken(user),
       );
@@ -319,14 +268,13 @@ describe("AuthService", () => {
       expect(access.type).toBeUndefined();
     });
 
-    test("refresh token does not contain username or is_admin", () => {
-      const user = { id: 1, username: "admin", is_admin: true };
+    test("refresh token does not contain username", () => {
+      const user = { id: 1, username: "admin"};
       const refresh = AuthService.verifyRefreshToken(
         AuthService.generateRefreshToken(user),
       );
       expect(refresh).toBeDefined();
       expect(refresh.username).toBeUndefined();
-      expect(refresh.is_admin).toBeUndefined();
       expect(refresh.type).toBeDefined();
     });
   });
