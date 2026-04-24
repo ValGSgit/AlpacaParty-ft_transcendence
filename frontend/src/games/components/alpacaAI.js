@@ -63,7 +63,7 @@ export function alpacaAI() {
   };
 
   const updateAI = (alpaca, delta) => {
-    if (gMinigame.value.mode > 1) // no AI update in minigames
+    if (gMinigame.value.mode > 1) // no AI update in multiplayer and alpacaRoad
       return
 
     switch (alpaca.ai.state) {
