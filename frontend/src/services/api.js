@@ -117,7 +117,7 @@ async function performRequest({
     console.log(`response: ${JSON.stringify(errorData)}`);
     if (response.status === 401 && retryOnAuth) {
       try {
-        const refreshResponse = await performRequest({
+        await performRequest({
           method: "POST",
           path: "/auth/refresh",
           data: {},

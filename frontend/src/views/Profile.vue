@@ -448,8 +448,8 @@ async function confirmDelete() {
   if (!window.confirm('Are you sure? This will permanently delete your account.')) return
   requestingData.value = true
   try {
-    await api.delete('/users/me')
     await authStore.logout()
+    await api.delete('/users/me')
     flash('Account deleted.')
     await router.push('/login')
   } catch (e) {
