@@ -52,7 +52,7 @@ describe('useAuthStore', () => {
   })
 
   describe('register', () => {
-    it('should register and store tokens', async () => {
+    it('should register and set authenticated user', async () => {
       const mockResponse = {
         data: {
           user: { id: 1, username: 'tester', email: 'test@test.com' },
@@ -71,8 +71,7 @@ describe('useAuthStore', () => {
       })
       expect(store.user).toEqual(mockResponse.data.user)
       expect(store.isAuthenticated).toBe(true)
-      expect(localStorage.setItem).toHaveBeenCalledWith('accessToken', 'access-123')
-      expect(localStorage.setItem).toHaveBeenCalledWith('refreshToken', 'refresh-456')
+      expect(localStorage.setItem).not.toHaveBeenCalled()
     })
 
     it('should set error on register failure', async () => {
@@ -186,7 +185,7 @@ describe('useAuthStore', () => {
   })
 
   describe('logout', () => {
-    it('should clear user and tokens', async () => {
+    it('should clear user state', async () => {
       store.user = { id: 1, username: 'tester' }
       api.post.mockResolvedValueOnce({})
 
@@ -194,24 +193,22 @@ describe('useAuthStore', () => {
 
       expect(store.user).toBeNull()
       expect(store.isAuthenticated).toBe(false)
-      expect(localStorage.removeItem).toHaveBeenCalledWith('accessToken')
-      expect(localStorage.removeItem).toHaveBeenCalledWith('refreshToken')
+      expect(localStorage.removeItem).not.toHaveBeenCalled()
     })
 
-    it('should clear tokens even if API call fails', async () => {
+    it('should clear user even if API call fails', async () => {
       store.user = { id: 1 }
       api.post.mockRejectedValueOnce(new Error('fail'))
 
       await store.logout()
 
       expect(store.user).toBeNull()
-      expect(localStorage.removeItem).toHaveBeenCalledWith('accessToken')
+      expect(localStorage.removeItem).not.toHaveBeenCalled()
     })
   })
 
   describe('fetchUser', () => {
-    it('should fetch and set user when token exists', async () => {
-      localStorage.getItem.mockReturnValueOnce('some-token')
+    it('should fetch and set user', async () => {
       api.get.mockResolvedValueOnce({ data: { user: { id: 1, username: 'me' } } })
 
       await store.fetchUser()
@@ -220,28 +217,26 @@ describe('useAuthStore', () => {
       expect(store.user).toEqual({ id: 1, username: 'me' })
     })
 
-    it('should not fetch when no token', async () => {
-      localStorage.getItem.mockReturnValueOnce(null)
+    it('should clear user when fetch fails', async () => {
+      store.user = { id: 1, username: 'stale' }
+      api.get.mockRejectedValueOnce(new Error('401'))
 
       await store.fetchUser()
 
-      expect(api.get).not.toHaveBeenCalled()
+      expect(api.get).toHaveBeenCalledWith('/auth/me')
       expect(store.user).toBeNull()
     })
 
-    it('should clear tokens on fetch error', async () => {
-      localStorage.getItem.mockReturnValueOnce('expired-token')
+    it('should not manipulate localStorage on fetch error', async () => {
       api.get.mockRejectedValueOnce(new Error('401'))
 
       await store.fetchUser()
 
       expect(store.user).toBeNull()
-      expect(localStorage.removeItem).toHaveBeenCalledWith('accessToken')
+      expect(localStorage.removeItem).not.toHaveBeenCalled()
     })
 
     it('should set loading state during fetchUser', async () => {
-      localStorage.getItem.mockReturnValueOnce('some-token')
-
       let resolvePromise
       api.get.mockReturnValueOnce(new Promise(r => { resolvePromise = r }))
 
