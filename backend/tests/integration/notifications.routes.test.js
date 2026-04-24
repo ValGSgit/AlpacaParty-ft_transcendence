@@ -79,14 +79,13 @@ describe("GET /api/notifications", () => {
   test("401 — requires auth", async () => {
     const res = await request.get("/api/notifications");
     expect(res.status).toBe(401);
-    expect(res.body.error.message).toMatch(/auth/i);
-    expect(res.body.error.message).toMatch(/required/i);
+    expect(res.body.error.message).toMatch(/no token/i);
   });
 
   test("200 — returns notifications and unread count", async () => {
     const res = await request
       .get("/api/notifications")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("notifications");
     expect(res.body).toHaveProperty("unreadCount");
@@ -96,7 +95,7 @@ describe("GET /api/notifications", () => {
   test("200 — with unreadOnly filter", async () => {
     const res = await request
       .get("/api/notifications?unreadOnly=true")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("notifications");
     expect(res.body.notifications).toHaveLength(3);
@@ -107,14 +106,14 @@ describe("PUT /api/notifications/:id/read", () => {
   test("404 — notification not found", async () => {
     const res = await request
       .put("/api/notifications/999/read")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(404);
   });
 
   test("200 — marks notification as read", async () => {
     const res = await request
       .put(`/api/notifications/${nots[0].id}/read`)
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body.notification.is_read).toBe(true);
   });
@@ -126,7 +125,7 @@ describe("PUT /api/notifications/read-all", () => {
     {
       const res = await request
         .get("/api/notifications?unreadOnly=true")
-        .set("Authorization", `Bearer ${validUser.token}`);
+        .set("Cookie", [`jwt_token=${validUser.token}`]);
       expect(res.status).toBe(200);
       expect(res.body.unreadCount).toBe(2);
       expect(res.body.notifications[0].is_read).toBe(false);
@@ -137,7 +136,7 @@ describe("PUT /api/notifications/read-all", () => {
     {
       const res = await request
         .put("/api/notifications/read-all")
-        .set("Authorization", `Bearer ${validUser.token}`);
+        .set("Cookie", [`jwt_token=${validUser.token}`]);
       expect(res.status).toBe(200);
       expect(res.body.message).toMatch(/read/i);
     }
@@ -146,7 +145,7 @@ describe("PUT /api/notifications/read-all", () => {
     {
       const res = await request
         .get("/api/notifications?unreadOnly=true")
-        .set("Authorization", `Bearer ${validUser.token}`);
+        .set("Cookie", [`jwt_token=${validUser.token}`]);
       expect(res.status).toBe(200);
       expect(res.body.unreadCount).toBe(0);
       expect(res.body.notifications.length).toBe(0);
@@ -158,14 +157,14 @@ describe("DELETE /api/notifications/:id", () => {
   test("404 — notification not found", async () => {
     const res = await request
       .delete("/api/notifications/999")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(404);
   });
 
   test("200 — deletes notification", async () => {
     const res = await request
       .delete(`/api/notifications/${nots[0].id}`)
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/deleted/i);
   });

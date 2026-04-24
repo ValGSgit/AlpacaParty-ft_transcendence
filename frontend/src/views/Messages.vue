@@ -344,7 +344,7 @@ function sendMessage() {
 
   if (!socket.connected) {
     msgError.value = 'Not connected. Reconnecting…'
-    connectSocket(localStorage.getItem('accessToken'))
+    connectSocket()
     return
   }
 
@@ -376,9 +376,7 @@ function scrollToBottom() {
 }
 
 function setupSocket() {
-  const token = localStorage.getItem('accessToken')
-  if (!token) return
-  connectSocket(token)
+  connectSocket()
 
   socket.on('connect', () => { msgError.value = null })
   socket.on('disconnect', () => {})

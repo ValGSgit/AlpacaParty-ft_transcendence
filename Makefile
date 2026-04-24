@@ -159,6 +159,9 @@ generate-secrets:
 	@JWT=$$(openssl rand -hex 40) && \
 	  sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$$JWT|" .env && \
 	  echo "$(GREEN)✓ JWT_SECRET randomised$(RESET)"
+	@JWT=$$(openssl rand -hex 40) && \
+	  sed -i "s|^JWT_REFRESH_SECRET=.*|JWT_REFRESH_SECRET=$$JWT|" .env && \
+	  echo "$(GREEN)✓ JWT_REFRESH_SECRET randomised$(RESET)"
 	@echo "$(GREEN)✓ DATABASE_URL synced with DB credentials$(RESET)"
 	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
 
