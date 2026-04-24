@@ -23,9 +23,13 @@ import {
   updatePost,
   deletePost,
 } from "../controllers/publicApiController.js";
-import { body } from "express-validator";
 import { idParamValidation } from "../validators/contentValidator.js";
 import { checkValidation } from "../validators/validatorUtils.js";
+import { limitValidation } from "#validators/limitValidator.js";
+import {
+  postCreateValidation,
+  postUpdateValidation,
+} from "#validators/publicApiValidator.js";
 
 const router = express.Router();
 
@@ -132,7 +136,7 @@ router.use(requireApiKey);
  *                       is_online: { type: boolean }
  *       401: { description: Missing or invalid X-API-Key }
  */
-router.get("/users", listUsers);
+router.get("/users", limitValidation(100), checkValidation, listUsers);
 
 /**
  * @openapi
@@ -197,7 +201,12 @@ router.get("/users/:id", idParamValidation(), checkValidation, getUser);
  *                       losses: { type: integer }
  *                       draws: { type: integer }
  */
-router.get("/leaderboard", getLeaderboard);
+router.get(
+  "/leaderboard",
+  limitValidation(100),
+  checkValidation,
+  getLeaderboard,
+);
 
 /**
  * @openapi
@@ -259,18 +268,8 @@ router.get("/leaderboard", getLeaderboard);
  *               properties:
  *                 post: { $ref: '#/components/schemas/Post' }
  */
-router.get("/posts", getPosts);
-router.post(
-  "/posts",
-  [
-    body("content").isString().trim().notEmpty().withMessage("content is required")
-      .isLength({ max: 2000 }).withMessage("content must be 2000 characters or fewer"),
-    body("imageUrl").optional({ values: "null" }).isString().isLength({ max: 2048 }).withMessage("invalid imageUrl"),
-    body("authorId").optional().isInt({ min: 1 }).withMessage("authorId must be a positive integer"),
-  ],
-  checkValidation,
-  createPost,
-);
+router.get("/posts", limitValidation(100), checkValidation, getPosts);
+router.post("/posts", postCreateValidation(), checkValidation, createPost);
 
 /**
  * @openapi
@@ -325,19 +324,8 @@ router.post(
  *                 message: { type: string }
  *       404: { description: Post not found }
  */
-router.put(
-  "/posts/:id",
-  idParamValidation(),
-  [
-    body("content").optional({ values: "falsy" }).isString().trim().notEmpty()
-      .isLength({ max: 2000 }).withMessage("content must be 2000 characters or fewer"),
-    body("imageUrl").optional({ values: "null" }).isString().isLength({ max: 2048 }).withMessage("invalid imageUrl"),
-  ],
-  checkValidation,
-  updatePost,
-);
+router.put("/posts/:id", postUpdateValidation(), checkValidation, updatePost);
 router.delete("/posts/:id", idParamValidation(), checkValidation, deletePost);
-
 
 /**
  * @openapi

@@ -35,7 +35,7 @@ const config = {
 
   jwt: {
     secret: process.env.JWT_SECRET,
-    refresh_secret: process.env.JWT_REFRESH_SECRET,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
     cookieOptions: {
@@ -52,6 +52,8 @@ const config = {
       maxAge: ms(process.env.JWT_REFRESH_EXPIRES_IN),
       path: "/api/auth/refresh",
     },
+    publicApiSecret: process.env.JWT_PUBLIC_API_SECRET,
+    publicApiExpiresIn: process.env.JWT_PUBLIC_API_EXPIRES_IN,
   },
 
   // PostgreSQL connection (Issue #7)
@@ -109,17 +111,6 @@ const config = {
     keyPath: process.env.SSL_KEY_PATH,
   },
 
-  // Secrets loaded from Vault (production) or env vars (development).
-  // apiKeys uses a getter so it always reads the current process.env value,
-  // which allows Vault to populate it after module load.
-  get apiKeys() {
-    return new Set(
-      (process.env.API_KEYS || "")
-        .split(",")
-        .map((k) => k.trim())
-        .filter(Boolean),
-    );
-  },
   get modUsers() {
     return (process.env.MOD_USERS || "")
       .split(",")

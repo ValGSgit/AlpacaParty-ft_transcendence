@@ -1,64 +1,33 @@
 /**
  * Public API Routes Integration Tests
  */
-import { jest, describe, test, expect, beforeEach } from "@jest/globals";
-import supertestC from "supertest";
-
-process.env.API_KEYS = "test-api-key";
-
-const mockPrisma = {
-  user: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-    count: jest.fn(),
-    upsert: jest.fn(),
-  },
-  post: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    deleteMany: jest.fn(),
-    count: jest.fn(),
-  },
-  postLike: {
-    findMany: jest.fn(),
-    create: jest.fn(),
-    deleteMany: jest.fn(),
-    count: jest.fn(),
-  },
-  gameStat: { findUnique: jest.fn(), findMany: jest.fn(), upsert: jest.fn() },
-  repost: { findMany: jest.fn() },
-  achievement: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    upsert: jest.fn(),
-  },
-  userAchievement: {
-    findMany: jest.fn(),
-    create: jest.fn(),
-    upsert: jest.fn(),
-  },
-  notification: {
-    create: jest.fn(),
-    findMany: jest.fn(),
-    updateMany: jest.fn(),
-    deleteMany: jest.fn(),
-    count: jest.fn(),
-    findUnique: jest.fn(),
-  },
-  $transaction: jest.fn(),
-  $queryRaw: jest.fn(),
-};
-jest.unstable_mockModule("#config/prisma.js", () => ({ default: mockPrisma }));
-
-const { createTestApp } = await import("../helpers/createApp.js");
+import {
+  describe,
+  test,
+  expect,
+  beforeEach,
+  afterAll,
+  beforeAll,
+} from "@jest/globals";
+import supertest from "supertest";
+import prisma from "#config/prisma.js";
+import AuthService from "#services/authService.js";
+import { createTestApp } from "../helpers/createApp.js";
+import { createTestUser } from "../helpers/createTestUser.js";
+import User from "#models/User.js";
+import { createTestUsers } from "../helpers/createTestUsers.js";
 
 let app;
 let request;
+let user;
+
+beforeAll(async () => {
+  await prisma.user.deleteMany({});
+  await prisma.userAuth.deleteMany({});
+  user = await createTestUser("TestUser");
+  user.apiKey = AuthService.generatePublicApiToken({ id: user.id });
+  await User.setApiKey(user.id, user.apiKey);
+});
 
 beforeEach(async () => {
   jest.clearAllMocks();
@@ -66,7 +35,14 @@ beforeEach(async () => {
     typeof fnOrOps === "function" ? fnOrOps(mockPrisma) : Promise.all(fnOrOps),
   );
   app = await createTestApp();
-  request = supertestC(app);
+  request = supertest(app);
+
+  await User.setApiKey(user.id, user.apiKey);
+});
+
+afterAll(async () => {
+  // Disconnect Prisma so Jest can exit properly
+  await prisma.$disconnect();
 });
 
 describe("GET /api/public", () => {
@@ -79,9 +55,121 @@ describe("GET /api/public", () => {
   test("200 — valid API key also returns docs", async () => {
     const res = await request
       .get("/api/public")
-      .set("X-API-Key", "test-api-key");
+      .set("X-API-Key", `${user.apiKey}`);
     expect(res.status).toBe(200);
     expect(res.body.name).toMatch(/Public API/i);
+  });
+});
+
+describe("api key authentication", () => {
+  test("401 — no api key", async () => {
+    const res = await request.get("/api/public/users");
+    expect(res.status).toBe(401);
+    expect(res.body.error.message).toMatch(/no api key/i);
+  });
+
+  test("401 — wrong api key", async () => {
+    const res = await request
+      .get("/api/public/users")
+      .set("X-API-Key", `${user.apiKey}_wong_key`);
+    expect(res.status).toBe(401);
+    expect(res.body.error.message).toMatch(/invalid/i);
+  });
+
+  test("401 — wrong api key", async () => {
+    await User.revokeApiKey(user.id);
+    const res = await request
+      .get("/api/public/users")
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(401);
+    expect(res.body.error.message).toMatch(/revoked/i);
+  });
+});
+
+describe("GET /api/public/users", () => {
+  beforeAll(async () => {
+    await createTestUsers(50);
+  });
+
+  test("200 — list users", async () => {
+    const res = await request
+      .get("/api/public/users")
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(20);
+  });
+
+  test("200 — list users with valid limit", async () => {
+    const res = await request
+      .get("/api/public/users?limit=10")
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(10);
+  });
+
+  test("200 — list users with filter", async () => {
+    const res = await request
+      .get(`/api/public/users?search=${user.username}`)
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(1);
+    expect(res.body.users[0].username).toBe(user.username);
+  });
+
+  test("400 — list users with invalid limit", async () => {
+    const res = await request
+      .get("/api/public/users?limit=200")
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/limit must be between/i);
+  });
+
+  test("200 — list users with valid offset", async () => {
+    let res = await request
+      .get(`/api/public/users?limit=2&offset=2`)
+      .set("X-API-Key", `${user.apiKey}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(2);
+    const user1 = res.body.users[0];
+
+    res = await request
+      .get(`/api/public/users?limit=2&offset=4`)
+      .set("X-API-Key", `${user.apiKey}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(2);
+    const user2 = res.body.users[0];
+
+    // user1 id is bigger because result is sorted by createdAt
+    // its the latest entered user in the database
+    expect(user1.id).toBe(user2.id + 2);
+  });
+});
+
+describe("GET /api/public/users:id", () => {
+  test("200 — get user by id", async () => {
+    const res = await request
+      .get(`/api/public/users/${user.id}`)
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(200);
+    expect(res.body.user.username).toBe(user.username);
+  });
+
+  test("400 — invalid id", async () => {
+    const res = await request
+      .get(`/api/public/users/-1`)
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/must be a positive/i);
+  });
+
+  test("404 — invalid user id", async () => {
+    const res = await request
+      .get(`/api/public/users/999`)
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(404);
+    expect(res.body.error.message).toMatch(/not found/i);
   });
 });
 
