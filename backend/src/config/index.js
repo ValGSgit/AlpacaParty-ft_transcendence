@@ -8,6 +8,7 @@
  */
 import dotenv from "dotenv";
 import { validateConfig } from "./validateConfig.js";
+import ms from "ms";
 
 dotenv.config({ path: "/run/secrets/.env" });
 
@@ -19,8 +20,23 @@ const config = {
 
   jwt: {
     secret: process.env.JWT_SECRET,
+    refresh_secret: process.env.JWT_REFRESH_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+    cookieOptions: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: ms(process.env.JWT_EXPIRES_IN),
+      path: "/",
+    },
+    cookieOptionsRefresh: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: ms(process.env.JWT_REFRESH_EXPIRES_IN),
+      path: "/api/auth/refresh",
+    },
   },
 
   // PostgreSQL connection (Issue #7)
@@ -117,14 +133,8 @@ const config = {
     // so even when upload is allowed (see allowedMimeTypes), we never serve
     // it inline — uploadSecurity.js forces Content-Disposition: attachment
     // for any mime type not listed here.
-    imageMimeTypes: [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-    ],
+    imageMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
   },
-
 };
 
 export default config;

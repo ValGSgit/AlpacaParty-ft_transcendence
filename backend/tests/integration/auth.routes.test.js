@@ -115,10 +115,15 @@ describe("POST /api/auth/register", () => {
       email: "new@example.com",
       password: "ValidPass1",
     });
-
     expect(res.status).toBe(201);
-    expect(res.body.accessToken).toBeDefined();
-    expect(res.body.refreshToken).toBeDefined();
+    cookies = res.headers["set-cookie"];
+    expect(cookies).toBeDefined();
+    expect(cookies).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/jwt_token=/),
+        expect.stringMatching(/refresh_token=/),
+      ]),
+    );
   });
 });
 
@@ -152,8 +157,15 @@ describe("POST /api/auth/login", () => {
       .post("/api/auth/login")
       .send({ username: "authed", password: "TestPassword1234" });
     expect(res.status).toBe(200);
-    expect(res.body.accessToken).toBeDefined();
     expect(res.body.user.isOnline).toBe(true);
+    cookies = res.headers["set-cookie"];
+    expect(cookies).toBeDefined();
+    expect(cookies).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/jwt_token=/),
+        expect.stringMatching(/refresh_token=/),
+      ]),
+    );
   });
 });
 
@@ -161,25 +173,35 @@ describe("POST /api/auth/refresh", () => {
   test("401 for invalid refresh token", async () => {
     const res = await request
       .post("/api/auth/refresh")
-      .send({ refreshToken: "bad-token" });
+      .set("Cookie", ["refresh_token=bad-token"]);
+
     expect(res.status).toBe(401);
   });
 
   test("200 for valid refresh token", async () => {
-    var refreshToken;
-    //login to get refresh token
+    let cookies;
+
+    // Login to get the refresh token
     {
       const res = await request
         .post("/api/auth/login")
         .send({ username: "authed", password: "TestPassword1234" });
+
       expect(res.status).toBe(200);
-      expect(res.body.refreshToken).toBeDefined();
-      refreshToken = res.body.refreshToken;
+      cookies = res.headers["set-cookie"];
+      expect(cookies).toBeDefined();
+      expect(cookies).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/jwt_token=/),
+          expect.stringMatching(/refresh_token=/),
+        ]),
+      );
     }
 
-    const res = await request.post("/api/auth/refresh").send({ refreshToken });
+    const res = await request.post("/api/auth/refresh").set("Cookie", cookies);
     expect(res.status).toBe(200);
-    expect(res.body.accessToken).toBeDefined();
+    cookies = res.headers["set-cookie"];
+    expect(cookies).toBeDefined();
   });
 });
 
@@ -187,14 +209,14 @@ describe("GET /api/auth/me", () => {
   test("401 without token", async () => {
     const res = await request.get("/api/auth/me");
     expect(res.status).toBe(401);
-    expect(res.body.error.message).toMatch(/authentication/i);
-    expect(res.body.error.message).toMatch(/required/i);
+    expect(res.body.error.message).toMatch(/no/i);
+    expect(res.body.error.message).toMatch(/token/i);
   });
 
   test("200 with valid token", async () => {
     const res = await request
       .get("/api/auth/me")
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Cookie", [`jwt_token=${validToken}`]);
     expect(res.status).toBe(200);
     expect(res.body.user.username).toBe("authed");
   });

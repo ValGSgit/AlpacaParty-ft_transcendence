@@ -1,9 +1,11 @@
-import api from '../../services/api.js'
-import { gUser } from '../core/globals.js'
+import api from '../../services/api.js';
+import { gUser } from '../core/globals.js';
 
 export async function loadGameData() {
   try {
     const { data } = await api.get('/users/me')
+    console.log("Data:", data);
+    gUser.value.name = data.user.username;
     gUser.value.coins = data.user.coins
     gUser.value.upgrades = data.user.upgrades
     return data.user

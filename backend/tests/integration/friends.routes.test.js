@@ -86,7 +86,7 @@ describe("GET /api/friends", () => {
   test("200 — returns friends list", async () => {
     const res = await request
       .get("/api/friends")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("friends");
     expect(res.body.friends.length).toBe(2);
@@ -102,7 +102,7 @@ describe("GET /api/friends/online", () => {
   test("200 — returns online friends", async () => {
     const res = await request
       .get("/api/friends/online")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body.friends).toHaveLength(1);
   });
@@ -116,7 +116,7 @@ describe("GET /api/friends/blocked", () => {
   test("200 — returns blocked list", async () => {
     const res = await request
       .get("/api/friends/blocked")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("blocked");
     expect(res.body.blocked).toHaveLength(1);
@@ -131,7 +131,7 @@ describe("GET /api/friends/requests", () => {
   test("200 — returns received and sent requests", async () => {
     const res = await request
       .get("/api/friends/requests")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("received");
     expect(res.body).toHaveProperty("sent");
@@ -143,7 +143,7 @@ describe("POST /api/friends/requests", () => {
   test("400 — missing userId", async () => {
     const res = await request
       .post("/api/friends/requests")
-      .set("Authorization", `Bearer ${validUser.token}`)
+      .set("Cookie", [`jwt_token=${validUser.token}`])
       .send({});
     expect(res.status).toBe(400);
     expect(res.body.error.fields).toHaveProperty("userId");
@@ -152,7 +152,7 @@ describe("POST /api/friends/requests", () => {
   test("400 — cannot friend yourself", async () => {
     const res = await request
       .post("/api/friends/requests")
-      .set("Authorization", `Bearer ${validUser.token}`)
+      .set("Cookie", [`jwt_token=${validUser.token}`])
       .send({ userId: validUser.id });
     expect(res.status).toBe(400);
     expect(res.body.error.message).toMatch(/yourself/i);
@@ -161,7 +161,7 @@ describe("POST /api/friends/requests", () => {
   test("404 — target user not found", async () => {
     const res = await request
       .post("/api/friends/requests")
-      .set("Authorization", `Bearer ${validUser.token}`)
+      .set("Cookie", [`jwt_token=${validUser.token}`])
       .send({ userId: 999999 });
     expect(res.status).toBe(404);
   });
@@ -169,7 +169,7 @@ describe("POST /api/friends/requests", () => {
   test("201 — sends friend request", async () => {
     const res = await request
       .post("/api/friends/requests")
-      .set("Authorization", `Bearer ${validUser.token}`)
+      .set("Cookie", [`jwt_token=${validUser.token}`])
       .send({ userId: friendRequest.id });
     expect(res.status).toBe(201);
     expect(res.body.request).toHaveProperty("senderId", validUser.id);
@@ -188,14 +188,14 @@ describe("PUT /api/friends/requests/:id/accept", () => {
   test("404 — request not found", async () => {
     const res = await request
       .put("/api/friends/requests/999/accept")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(404);
   });
 
   test("200 — accepts friend request", async () => {
     const res = await request
       .put(`/api/friends/requests/${friendRequestDbEntry.id}/accept`)
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
 
     expect(res.status).toBe(200);
     expect(res.body.request.status).toBe("accepted");
@@ -214,14 +214,14 @@ describe("PUT /api/friends/requests/:id/decline", () => {
   test("404 — request not found", async () => {
     const res = await request
       .put("/api/friends/requests/999/decline")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(404);
   });
 
   test("200 — declines friend request", async () => {
     const res = await request
       .put(`/api/friends/requests/${friendRequestDbEntry.id}/decline`)
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body.request.status).toBe("declined");
   });
@@ -231,19 +231,19 @@ describe("DELETE /api/friends/:id", () => {
   test("200 — removes friend", async () => {
     let res = await request
       .get("/api/friends")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body.friends.length).toBe(3);
 
     res = await request
       .delete(`/api/friends/${friendOffline.id}`)
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/removed/i);
 
     res = await request
       .get("/api/friends")
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body.friends.length).toBe(2);
   });
@@ -253,7 +253,7 @@ describe("POST /api/friends/block", () => {
   test("400 — missing userId", async () => {
     const res = await request
       .post("/api/friends/block")
-      .set("Authorization", `Bearer ${validUser.token}`)
+      .set("Cookie", [`jwt_token=${validUser.token}`])
       .send({});
     expect(res.status).toBe(400);
   });
@@ -261,7 +261,7 @@ describe("POST /api/friends/block", () => {
   test("200 — blocks user", async () => {
     const res = await request
       .post("/api/friends/block")
-      .set("Authorization", `Bearer ${validUser.token}`)
+      .set("Cookie", [`jwt_token=${validUser.token}`])
       .send({ userId: friendOffline.id });
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/blocked/i);
@@ -272,7 +272,7 @@ describe("DELETE /api/friends/block/:id", () => {
   test("200 — unblocks user", async () => {
     const res = await request
       .delete(`/api/friends/block/${friendOffline.id}`)
-      .set("Authorization", `Bearer ${validUser.token}`);
+      .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
     expect(res.body.message).toMatch(/unblocked/i);
   });

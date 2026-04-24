@@ -1,14 +1,23 @@
 import { reactive, ref, shallowReactive, shallowRef } from 'vue'
+import { CONST } from '../config/constants'
 
 export const gEngine = shallowRef(null)
 export const gScene = shallowRef(null)
 export const gPlayer = shallowRef(null)
-export const gUser = ref(null)
+
+export const gUser = ref({
+  coins: 999,
+  upgrades: 0,
+  point: 0,
+  hp: CONST.HP,
+  name: "Alpaca",
+})
 
 export const gMinigame = ref({
   isActive: false,
   isGameOver: false,
   isReady: false,
+  isOnline: false,
   mode: 0,
   players: [],
   aliveCount: 0,
@@ -23,9 +32,9 @@ export const gUI = reactive({
   alpacaStats: false,
   isEditingName: false,
   isLightCycling: true,
+  countDown: false,
   lightMenu: false,
   gameMenu: false,
-  isRoadGame: false,
   farmMenu: false,
   lobbyMenu: false,
   cameraMode: 0,
@@ -36,7 +45,8 @@ export const gUI = reactive({
 
 export const gEditState = shallowReactive({
   selected: null,
-  ghost: null
+  ghost: null,
+  cameraMode: 0,
 });
 
 export const gAlpacas = []
