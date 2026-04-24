@@ -8,6 +8,7 @@
  */
 import dotenv from "dotenv";
 import { validateConfig } from "./validateConfig.js";
+import ms from "ms";
 
 dotenv.config({ path: "/run/secrets/.env" });
 
@@ -26,14 +27,14 @@ const config = {
       httpOnly: true,
       secure: true,
       sameSite: "strict",
-      maxAge: 60 * 60 * 1000, // 1h
+      maxAge: ms(process.env.JWT_EXPIRES_IN),
       path: "/",
     },
     cookieOptionsRefresh: {
       httpOnly: true,
       secure: true,
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, //7d
+      maxAge: ms(process.env.JWT_REFRESH_EXPIRES_IN),
       path: "/api/auth/refresh",
     },
   },
