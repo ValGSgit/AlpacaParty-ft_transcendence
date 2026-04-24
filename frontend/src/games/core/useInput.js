@@ -10,7 +10,7 @@ import { useUIManager } from './useUIManager.js'
 
 // move it to outside of the function so it can be used in useEngine and other functions
 const keys = reactive({
-  w: false, a: false, s: false, d: false, space: false, pointer: false
+  w: false, a: false, s: false, d: false, f: false, space: false, pointer: false
 })
 
 const heldKeys = new Set();
@@ -33,18 +33,18 @@ export function useInput() {
 
   const onKeyDown = (e) => {
     switch (e.code) {
-      case 'KeyW': heldKeys.add(e.code); break // add it to the set so it doesnt fight with the controller
-      case 'KeyA': heldKeys.add(e.code); break
-      case 'KeyS': heldKeys.add(e.code); break
-      case 'KeyD': heldKeys.add(e.code); break
-      case 'Space': heldKeys.add(e.code); break
-      case 'KeyF': if (gPlayer.value) gPlayer.value.spit(); break
+      case 'KeyW': heldKeys.add(e.code); break;// add it to the set so it doesnt fight with the controller
+      case 'KeyA': heldKeys.add(e.code); break;
+      case 'KeyS': heldKeys.add(e.code); break;
+      case 'KeyD': heldKeys.add(e.code); break;
+      case 'Space': heldKeys.add(e.code); break;
+      case 'KeyF': if (!heldKeys.has(e.code)) { heldKeys.add(heldKeys.add(e.code)); keys.f = true }; break;
       case 'ShiftLeft': keys.shift = true; break;
-      case 'KeyP': printDebug(); break
-      case 'Escape': handleEscapeKey(); break
-      case 'KeyQ': keys.q = true; break
-      case 'KeyL': keys.l = true; break
-      case 'Enter': keys.enter = true; break
+      case 'KeyP': printDebug(); break;
+      case 'Escape': handleEscapeKey(); break;
+      case 'KeyQ': keys.q = true; break;
+      case 'KeyL': keys.l = true; break;
+      case 'Enter': keys.enter = true; break;
     }
   }
 
@@ -54,6 +54,7 @@ export function useInput() {
       case 'KeyA': heldKeys.delete(e.code); break
       case 'KeyS': heldKeys.delete(e.code); break
       case 'KeyD': heldKeys.delete(e.code); break
+      case 'KeyF': heldKeys.delete(e.code); break;
       case 'Space': heldKeys.delete(e.code); break
       case 'KeyQ': keys.q = false; break
       case 'KeyL': keys.l = false; break
@@ -148,7 +149,7 @@ export function useInput() {
       if (gp.axes[0] < -0.1) keys.a = true;
       if (gp.axes[0] > 0.1) keys.d = true;
       if (gp.buttons[0].pressed) keys.space = true;
-      if (gp.buttons[1].pressed && gPlayer.value) gPlayer.value.spit();
+      if (gp.buttons[1].pressed && gPlayer.value) keys.f = true;
     }
   }
 
