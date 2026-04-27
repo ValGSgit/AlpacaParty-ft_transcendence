@@ -21,6 +21,8 @@ export const gMinigame = ref({
   mode: 0,
   players: [],
   aliveCount: 0,
+  currentRoomName: null,
+  publicRooms: [],
   lobby: []
 })
 

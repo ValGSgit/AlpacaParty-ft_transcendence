@@ -13,8 +13,6 @@ import { usePhysics } from '../core/usePhysics.js';
 import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
 import { adjustSunBox, setSunLight, setupLighting } from '../world/sceneBuilder.js';
 import { makeAnnouncement } from './annoucement.js';
-import { initClient } from './client.js';
-import { getActiveClient } from './GameClient.js';
 
 const roadLength = 700;
 const roadBack = -25;
@@ -241,38 +239,19 @@ export function updateAlpacaRoad(delta) {
 export function spawnObstacles(delta) {
   if (!gMinigame.value.isActive || fullObstacle.length === 0) return;
 
-  const client = getActiveClient();
-  const isHost = gMinigame.value.mode !== 4 || (client && client.isHost);
-
-  if (!isHost) return;
-
   obstacleTimer -= delta;
 
   if (obstacleTimer <= 0) {
     obstacleTimer = (getRandomTimer() / 2) * timerMultiplier;
 
     // Create the obstacle and grab the generated config
-    const config = createObstacle();
+    createObstacle();
 
-    // Broadcast the exact spawn data to the other players
-    if (gMinigame.value.mode === 4 && client) {
-      client.emit('spawnObstacle', config);
     }
   }
 }
 
 export function createObstacle(config = null) {
-  // If no config is provided (local play), generate the random values
-  if (!config) {
-    const validLanes = getValidLanes();
-    const pos = validLanes[Math.floor(Math.random() * validLanes.length)];
-    const isFull = pos >= 4;
-    const id = isFull ? getRandomID(fullObstacle) : getRandomID(singleObstacle);
-    const rotation = Math.random() > 0.5 ? Math.PI : 0;
-
-    config = { pos, isFull, id, rotation, z: startZ };
-  }
-
   let obstacle;
   if (!config.isFull) {
     obstacle = singleObstacle[config.id].clone();

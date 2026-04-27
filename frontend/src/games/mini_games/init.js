@@ -7,7 +7,6 @@ import { saveGame } from '../core/saveLoadGame.js';
 import { useGameEngine } from '../core/useGameEngine.js';
 import { initWorld } from '../world/initWorld.js';
 import { initAlpacaRoad, initAlpacaRoadOnline } from './alpacaRoad.js';
-import { cleanupClient } from './client.js';
 import { initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
 
 const miniGameContainer = ref(null)
@@ -19,9 +18,6 @@ export async function changeGame(mode, playerCount, matchId) {
   if (gMinigame.value.mode === 0)
     saveGame()
   gMinigame.value.isOnline = gMinigame.value.mode === 2 || gMinigame.value.mode === 4;
-  // clean up all clients
-  cleanupClient()
-  // Reset state
   if (playerCount === undefined)
     playerCount = 1
   gUI.lockCamera = false

@@ -1,14 +1,10 @@
-import { alpacaHandling } from '../components/alpacaHandling.js';
+import { CONST } from '../config/constants.js';
 import { createAlpaca } from '../core/createObjects.js';
-import { gMinigame, gPlayer, gScene, gUI, gUser, gCollidables } from '../core/globals.js';
+import { gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
 import { getValidRandomPos } from '../utils/spawnRandomly.js';
 import { setupEnvironment } from '../world/sceneBuilder.js';
 import { changeFloorColor } from './utils.js';
-import { removeObject, removeFromArray } from '../core/removeObjects.js'
-import { remotePlayers, initClient } from './client.js';
-import { useFloatingText } from '../components/floatingText.js';
-import { CONST } from '../config/constants.js';
 
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   gMinigame.value.mode = 1
@@ -17,7 +13,7 @@ export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   changeFloorColor('#ff0000', '#550000')
   registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
   gScene.value.add(gPlayer.value.model)
-  gMinigame.value.players.push({id: 1, name: gPlayer.value.name, hp: CONST.HP, point: 0});
+  gMinigame.value.players.push({ id: 1, name: gPlayer.value.name, hp: CONST.HP, point: 0 });
   gUI.cameraMode = 1
   for (let i = 0; i < playerCount - 1; i++) {
     let alpaca

@@ -53,7 +53,7 @@
     <div 
       id="coin-hud" 
       v-if="gMinigame.mode === 0 || gMinigame.isGameOver" 
-      class="stat":class="{ 'overlay': gMinigame.isGameOver }">
+      class="stat" :class="{ 'overlay': gMinigame.isGameOver }">
       <span>💰 {{ gUser.coins }}</span>
     </div>
       <template v-if="gMinigame.mode === 1 || gMinigame.mode === 2">
@@ -107,7 +107,7 @@
         <button class="shop-btn" @click="changeGame(1, playerCount)" title="Spit Royale with AI">Spit Royale</button>
         <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(2)" title="Spit Royale Online">Online Lobby</button>
         <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
-        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(4)" title="Alpaca Road Online">Online Lobby</button>
+        <button class="shop-btn" @click="openLobbyMenu(4)" title="Alpaca Road Online">Online Lobby</button>
       </div>
       <select v-model="playerCount" class="player-selector" title="Number of Players">
         <option :value="1">1 Player</option>
@@ -165,7 +165,7 @@
           </div>
         </button>
 
-        <button class="itemshop-card"@click="increaseHerdSize()">
+        <button class="itemshop-card" @click="increaseHerdSize()">
           <span class="item-name">Increase Herd Size</span>
           <div class="icon-container">
             <span style="position: relative; bottom: 10px;">🦙</span>
