@@ -45,7 +45,6 @@ test.describe('Admin Dashboard', () => {
     expect(typeof stats.onlineUsers).toBe('number');
     expect(typeof stats.totalGames).toBe('number');
     expect(typeof stats.totalMessages).toBe('number');
-    expect(typeof stats.totalOrgs).toBe('number');
     expect(typeof stats.pendingRequests).toBe('number');
     expect(timestamp).toBeTruthy();
   });

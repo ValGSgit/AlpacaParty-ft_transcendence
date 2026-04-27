@@ -65,7 +65,6 @@ const authUser = {
   id: 1,
   username: "poster",
   email: "p@test.com",
-  isAdmin: false,
   isPublic: true,
 };
 
@@ -92,7 +91,6 @@ beforeEach(async () => {
   token = AuthService.generateAccessToken({
     id: 1,
     username: "poster",
-    isAdmin: false,
   });
 });
 

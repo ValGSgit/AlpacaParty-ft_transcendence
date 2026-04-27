@@ -9,7 +9,6 @@
  *   GET  /api/public/users/:id
  *   GET  /api/public/leaderboard
  *   GET  /api/public/posts
- *   GET  /api/public/organizations
  */
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -19,7 +18,6 @@ import {
   getUser,
   getLeaderboard,
   getPosts,
-  listOrganizations,
   getMockDataset,
   createPost,
   updatePost,
@@ -62,12 +60,6 @@ router.get("/", (_req, res) => {
         path: "/api/public/posts",
         description: "Public feed posts",
         params: "limit, offset, anonymized",
-      },
-      {
-        method: "GET",
-        path: "/api/public/organizations",
-        description: "List organizations",
-        params: "search, limit, offset",
       },
       {
         method: "GET",
@@ -346,41 +338,6 @@ router.put(
 );
 router.delete("/posts/:id", idParamValidation(), checkValidation, deletePost);
 
-/**
- * @openapi
- * /public/organizations:
- *   get:
- *     tags: [Public API]
- *     summary: List organizations (no owner ID or internal fields exposed)
- *     security:
- *       - ApiKeyAuth: []
- *     parameters:
- *       - in: query
- *         name: search
- *         schema: { type: string }
- *       - $ref: '#/components/parameters/limitParam'
- *       - $ref: '#/components/parameters/offsetParam'
- *       - $ref: '#/components/parameters/anonymizedParam'
- *     responses:
- *       200:
- *         description: Organizations
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 organizations:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id: { type: integer }
- *                       name: { type: string }
- *                       description: { type: string, nullable: true }
- *                       avatar: { type: string, nullable: true }
- *                       created_at: { type: string, format: date-time }
- */
-router.get("/organizations", listOrganizations);
 
 /**
  * @openapi
@@ -402,7 +359,6 @@ router.get("/organizations", listOrganizations);
  *                 users: { type: array }
  *                 leaderboard: { type: array }
  *                 posts: { type: array }
- *                 organizations: { type: array }
  *                 disclaimer: { type: string, example: "Mock dataset is anonymized and is not user personal data." }
  */
 router.get("/mock", getMockDataset);

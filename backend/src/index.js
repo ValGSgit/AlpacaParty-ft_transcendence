@@ -106,7 +106,6 @@ app.get("/", (_req, res) => {
       chat: "/api/chat",
       game: "/api/game",
       posts: "/api/posts",
-      organizations: "/api/organizations",
       notifications: "/api/notifications",
       uploads: "/api/uploads",
       admin: "/api/admin",

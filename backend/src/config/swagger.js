@@ -44,7 +44,6 @@ X-API-Key: ap_your_key_here
 | POST | /public/posts | Create a post (service-level) |
 | PUT | /public/posts/:id | Update a post (service-level) |
 | DELETE | /public/posts/:id | Delete a post (service-level) |
-| GET | /public/organizations | List organizations |
 | GET | /public/mock | Anonymized mock dataset |
 
 ## Rate limits
@@ -66,7 +65,6 @@ X-API-Key: ap_your_key_here
       { name: 'Chat',          description: 'Direct messages and group chat rooms' },
       { name: 'Game',          description: 'Stats, match history, leaderboard, alpaca farm, achievements' },
       { name: 'Notifications', description: 'In-app notification inbox' },
-      { name: 'Organizations', description: 'Create and manage organizations / teams' },
       { name: 'Uploads',       description: 'File upload and management (images, PDFs, CSV…)' },
       { name: 'Admin',         description: '🔐 Admin only — user management, site stats, GDPR processing' },
       { name: 'Public API',    description: '🔑 API-key auth — public data and service-level writes for external integrations. Generate a key at Profile → Settings → Public API Key.' },
@@ -115,7 +113,6 @@ X-API-Key: ap_your_key_here
             bio:         { type: 'string',  nullable: true, example: 'I love alpacas!' },
             status:      { type: 'string',  nullable: true, example: 'Playing Spit Royale' },
             is_public:   { type: 'boolean', example: true },
-            is_admin:    { type: 'boolean', example: false },
             is_online:   { type: 'boolean', example: true },
             api_key:     { type: 'string',  nullable: true, example: 'ap_a1b2c3...' },
             coins:       { type: 'integer', example: 250 },
@@ -208,24 +205,12 @@ X-API-Key: ap_your_key_here
             created_at:  { type: 'string',  format: 'date-time' },
           },
         },
-        // ─── Organizations ─────────────────────────────────────────
-        Organization: {
-          type: 'object',
-          properties: {
-            id:          { type: 'integer', example: 1 },
-            name:        { type: 'string',  example: 'AlpacaSquad' },
-            description: { type: 'string',  nullable: true, example: 'The best alpaca gamers' },
-            avatar:      { type: 'string',  nullable: true },
-            ownerId:     { type: 'integer', example: 42 },
-            created_at:  { type: 'string',  format: 'date-time' },
-          },
-        },
         // ─── Notifications ─────────────────────────────────────────
         Notification: {
           type: 'object',
           properties: {
             id:            { type: 'integer', example: 12 },
-            type:          { type: 'string',  enum: ['friend_request','friend_accepted','game_invite','org_invite','achievement','post_like','message','data_request'] },
+            type:          { type: 'string',  enum: ['friend_request','friend_accepted','game_invite','achievement','post_like','message','data_request'] },
             title:         { type: 'string',  example: 'New friend request' },
             message:       { type: 'string',  example: 'alpaca42 sent you a friend request' },
             isRead:        { type: 'boolean', example: false },

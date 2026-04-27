@@ -7,12 +7,11 @@
  *   GET    /api/public/users/:id      — get a public user profile
  *   GET    /api/public/leaderboard    — game leaderboard
  *   GET    /api/public/posts          — public feed
- *   GET    /api/public/organizations  — list organizations
  */
 import User from '../models/User.js';
 import Game from '../models/Game.js';
 import Post from '../models/Post.js';
-import Organization from '../models/Organization.js';
+// import Organization from '../models/Organization.js';
 
 const anonymizeName = (id) => `user_${String(id).padStart(4, '0')}`;
 const maskAvatar = '/avatars/default.svg';
@@ -181,35 +180,34 @@ export const deletePost = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-/** GET /api/public/organizations?search=&limit=20 */
-export const listOrganizations = async (req, res, next) => {
-  try {
-    const { search, limit = 20, offset = 0 } = req.query;
-    const anonymize = ['1', 'true', 'yes'].includes(String(req.query.anonymized || '').toLowerCase());
-    const orgs = search
-      ? await Organization.search(search, { limit: Number(limit) })
-      : await Organization.findAll({ limit: Number(limit), offset: Number(offset) });
-    // Explicit field selection — never expose ownerId or internal timestamps.
-    const shaped = orgs.map((org) => ({
-      id: org.id,
-      name: anonymize ? `org_${org.id}` : org.name,
-      description: anonymize ? 'Anonymized organization' : org.description,
-      avatar: anonymize ? maskAvatar : org.avatar,
-      memberCount: org.memberCount ?? 0,
-      created_at: org.createdAt ?? org.created_at,
-    }));
-    res.json({ organizations: shaped });
-  } catch (err) { next(err); }
-};
+// /** GET /api/public/organizations?search=&limit=20 */
+// export const listOrganizations = async (req, res, next) => {
+//   try {
+//     const { search, limit = 20, offset = 0 } = req.query;
+//     const anonymize = ['1', 'true', 'yes'].includes(String(req.query.anonymized || '').toLowerCase());
+//     const orgs = search
+//       ? await Organization.search(search, { limit: Number(limit) })
+//       : await Organization.findAll({ limit: Number(limit), offset: Number(offset) });
+//     // Explicit field selection — never expose ownerId or internal timestamps.
+//     const shaped = orgs.map((org) => ({
+//       id: org.id,
+//       name: anonymize ? `org_${org.id}` : org.name,
+//       description: anonymize ? 'Anonymized organization' : org.description,
+//       avatar: anonymize ? maskAvatar : org.avatar,
+//       memberCount: org.memberCount ?? 0,
+//       created_at: org.createdAt ?? org.created_at,
+//     }));
+//     res.json({ organizations: shaped });
+//   } catch (err) { next(err); }
+// };
 
 /** GET /api/public/mock */
 export const getMockDataset = async (req, res, next) => {
   try {
-    const [users, leaderboard, posts, organizations] = await Promise.all([
+    const [users, leaderboard, posts] = await Promise.all([
       User.findAll({ limit: 10, offset: 0 }),
       Game.getLeaderboard('spit_royale', { limit: 10, offset: 0, publicOnly: true }),
       Post.getFeed({ limit: 10, offset: 0 }),
-      Organization.findAll({ limit: 10, offset: 0 }),
     ]);
 
     res.json({
@@ -231,11 +229,6 @@ export const getMockDataset = async (req, res, next) => {
         content: '[anonymized post content]',
         created_at: p.created_at,
         likes_count: p.likes_count,
-      })),
-      organizations: organizations.map((org) => ({
-        id: org.id,
-        name: `org_${org.id}`,
-        description: 'Anonymized organization',
       })),
       disclaimer: 'Mock dataset is anonymized and is not user personal data.',
     });

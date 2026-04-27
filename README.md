@@ -91,9 +91,9 @@ The PostgreSQL database contains 28 tables managed via Prisma ORM, organized aro
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                          users                                │
+│                          users                               │
 │  id, username, email, password_hash, avatar, bio, status,    │
-│  is_admin, is_public, xp, level, coins, oauth_provider,     │
+│  is_public, xp, level, coins, oauth_provider,                │
 │  oauth_id, created_at, last_seen                             │
 └───────────┬──────────────────────────────────────────────────┘
             │

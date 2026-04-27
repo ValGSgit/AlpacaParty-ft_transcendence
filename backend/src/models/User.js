@@ -17,13 +17,12 @@ const SAFE_SELECT = {
   createdAt: true,
   updatedAt: true,
   userAuth:     { select: { oauthProvider: true } },
-  userSettings: { select: { isPublic: true, isAdmin: true } },
+  userSettings: { select: { isPublic: true } },
   alpacaFarm:   { select: { coins: true, alpacas: true, items: true, upgrades: true } },
 };
 
 /**
  * Flatten nested Prisma relations into a single object for API responses.
- * Exposes both camelCase (isAdmin) and snake_case (is_admin) for compatibility.
  */
 export function shapeUserForClient(u) {
   if (!u) return u;
@@ -35,8 +34,6 @@ export function shapeUserForClient(u) {
     bio: u.bio,
     status: u.status,
     is_public: u.userSettings?.isPublic ?? true,
-    is_admin: u.userSettings?.isAdmin ?? false,
-    isAdmin: u.userSettings?.isAdmin ?? false,
     is_online: u.isOnline,
     isOnline: u.isOnline,
     oauth_provider: u.userAuth?.oauthProvider ?? null,
@@ -130,7 +127,7 @@ const User = {
       include: {
         userAuth: true,
         userStats: true,
-        userSettings: { select: { userId: true, isPublic: true, isAdmin: true } },
+        userSettings: { select: { userId: true, isPublic: true} },
       },
     });
   },
