@@ -132,7 +132,7 @@
 
     <div v-if="gMinigame.mode === 4 && (!gMinigame.isReady || !gMinigame.isActive) && !gUI.countDown" class="modal-overlay">
       <div class="shop-title">Get Ready!
-        <button class="shop-btn" :class="{ 'is-ready': gMinigame.isReady }" @click="getReady()" title="Ready">Ready</button>
+        <button class="shop-btn" :class="{ 'is-ready': gMinigame.isReady }" @click="()" title="Ready">Ready</button>
         <button class="close-btn" @click="changeGame()" title="Close">✖️</button>
       </div>
     </div>

@@ -186,7 +186,6 @@ function initScenery() {
 
 export function initObstacles() {
   const amount = 8;
-  const client = getActiveClient();
   for (let i = 0; i < amount; ++i) {
     const config = createObstacle();
     activeObstacles[i].position.z = startZ - (roadLength / amount * i);
@@ -243,11 +242,7 @@ export function spawnObstacles(delta) {
 
   if (obstacleTimer <= 0) {
     obstacleTimer = (getRandomTimer() / 2) * timerMultiplier;
-
-    // Create the obstacle and grab the generated config
     createObstacle();
-
-    }
   }
 }
 
@@ -322,13 +317,6 @@ export function applyLevelUp(newLevel, newSpeed, newTimerMult) {
 }
 
 function updateDifficulty() {
-  const client = getActiveClient();
-  const isMultiplayer = gMinigame.value.mode === 4;
-  const isHost = !isMultiplayer || (client && client.isHost);
-
-  // If you are a guest, do not calculate difficulty. Wait for the host's event.
-  if (!isHost) return;
-
   const pointsPerLevel = 4 + level;
   const avgPoints = totalPoints / initalPlayerCount;
   const newLevel = Math.floor(avgPoints / pointsPerLevel) + 1;
@@ -345,15 +333,6 @@ function updateDifficulty() {
 
     // Apply locally for the Host (or local player)
     applyLevelUp(newLevel, newSpeed, newTimerMult);
-
-    // Broadcast to the rest of the room if online
-    if (isMultiplayer && client) {
-      client.emit('levelUp', {
-        level: newLevel,
-        roadSpeed: newSpeed,
-        timerMultiplier: newTimerMult
-      });
-    }
   }
 }
 
@@ -400,21 +379,21 @@ function awardPoints(obstacle) {
   obstacle.pointGiven = true;
 }
 
-function updatePointToServer(alpaca) {
-  if (gMinigame.value.mode !== 4 || alpaca !== gPlayer.value)
-    return
-  const client = getActiveClient();
-  if (client)
-    client.emit('point', { ownerId: client.localPlayerId });
-}
+// function updatePointToServer(alpaca) {
+//   if (gMinigame.value.mode !== 4 || alpaca !== gPlayer.value)
+//     return
+//   const client = getActiveClient();
+//   if (client)
+//     client.emit('point', { ownerId: client.localPlayerId });
+// }
 
-function updateHpToServer(alpaca) {
-  if (gMinigame.value.mode !== 4 || alpaca !== gPlayer.value)
-    return
-  const client = getActiveClient();
-  if (client)
-    client.emit('hit', { targetId: client.localPlayerId });
-}
+// function updateHpToServer(alpaca) {
+//   if (gMinigame.value.mode !== 4 || alpaca !== gPlayer.value)
+//     return
+//   const client = getActiveClient();
+//   if (client)
+//     client.emit('hit', { targetId: client.localPlayerId });
+// }
 
 function removeObstacle(obstacle, index) {
   gScene.value.remove(obstacle);
@@ -542,13 +521,13 @@ export function cleanupAlpacaRoad() {
   console.log("🧹 Minigame cleaned up.");
 }
 
-export function getReady() {
-  if (gMinigame.value.isReady)
-    return
-  gMinigame.value.isReady = true
-  const client = getActiveClient();
-  client.emit('ready', ({ id: client.localPlayerId, ready: gMinigame.value.isReady }))
-}
+// export function getReady() {
+//   if (gMinigame.value.isReady)
+//     return
+//   gMinigame.value.isReady = true
+//   const client = getActiveClient();
+//   client.emit('ready', ({ id: client.localPlayerId, ready: gMinigame.value.isReady }))
+// }
 
 export function initInitalPlayerCount(playerCount) {
   initalPlayerCount = playerCount

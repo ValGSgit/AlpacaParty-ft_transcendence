@@ -59,7 +59,6 @@ export class BaseMatch {
     }
   }
 
-
   // 6. A helper tool to shout to the whole room
   broadcast(eventName, data) {
     this.namespace.to(this.matchId).emit(eventName, data);

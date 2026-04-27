@@ -26,7 +26,6 @@ export async function changeGame(mode, playerCount, matchId) {
   gUser.value.hp = CONST.HP
   gUser.value.point = 0
   resetAlpaca(gPlayer.value)
-
   gMinigame.value.isGameOver = false;
   gMinigame.value.players = [];
   tempAlpacas.length = 0
