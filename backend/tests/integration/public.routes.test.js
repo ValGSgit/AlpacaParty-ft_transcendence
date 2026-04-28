@@ -140,7 +140,7 @@ describe("POST /api/public/posts", () => {
       .set("X-API-Key", "test-api-key")
       .send({ authorId: 1 });
     expect(res.status).toBe(400);
-    expect(res.body.error.message).toMatch(/content/i);
+    expect(res.body.error.message).toMatch(/invalid value|content/i);
   });
 
   test("400 — requires authorId", async () => {

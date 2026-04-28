@@ -6,19 +6,16 @@
  */
 import { jest, describe, test, expect, afterAll, beforeEach } from "@jest/globals";
 import { requireApiKey } from "../../../src/middleware/apiKey.js";
-
-jest.unstable_mockModule("#services/authService.js", () => ({
-  default: {
-    verifyToken: jest.fn(),
-  },
-}));
-
-const { default: AuthService } = await import("#services/authService.js");
+import AuthService from "../../../src/services/authService.js";
+import User from "../../../src/models/User.js";
 
 const originalApiKeys = process.env.API_KEYS;
-afterAll(async () => {
+afterAll(() => {
   process.env.API_KEYS = originalApiKeys;
 });
+
+const verifyTokenSpy = jest.spyOn(AuthService, "verifyToken");
+const findByApiKeySpy = jest.spyOn(User, "findByApiKey");
 
 function setKeys(keys) {
   process.env.API_KEYS = keys;
@@ -39,6 +36,8 @@ function mockRes() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  verifyTokenSpy.mockReturnValue(null);
+  findByApiKeySpy.mockResolvedValue(null);
 });
 
 describe("requireApiKey", () => {
@@ -213,7 +212,9 @@ describe("requireApiKey", () => {
 
   test("rejects malformed Bearer token", async () => {
     setKeys("valid-key");
-    AuthService.verifyToken.mockThrowError(new Error("Invalid token"));
+    AuthService.verifyToken.mockImplementation(() => {
+      throw new Error("Invalid token");
+    });
     
     const req = { headers: { authorization: "Bearer invalid-token" } };
     const res = mockRes();
@@ -273,7 +274,8 @@ describe("requireApiKey", () => {
 
   test("falls back to Bearer when API key is invalid", async () => {
     setKeys("valid-key");
-    jest.mocked(AuthService.verifyToken).mockReturnValue({ id: 42, type: "access" });
+    User.findByApiKey.mockResolvedValue(null);
+    AuthService.verifyToken.mockReturnValue({ id: 42, type: "access" });
     
     const req = {
       headers: {
