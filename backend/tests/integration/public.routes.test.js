@@ -2,7 +2,7 @@
  * Public API Routes Integration Tests
  */
 import { jest, describe, test, expect, beforeEach } from "@jest/globals";
-import supertest from "supertest";
+import supertestC from "supertest";
 
 process.env.API_KEYS = "test-api-key";
 
@@ -66,7 +66,7 @@ beforeEach(async () => {
     typeof fnOrOps === "function" ? fnOrOps(mockPrisma) : Promise.all(fnOrOps),
   );
   app = await createTestApp();
-  request = supertest(app);
+  request = supertestC(app);
 });
 
 describe("GET /api/public", () => {
