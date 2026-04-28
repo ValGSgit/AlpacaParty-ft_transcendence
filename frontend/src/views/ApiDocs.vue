@@ -190,34 +190,13 @@ const { users } = await res.json();</pre>
       </div>
 
       <div class="endpoint-group">
-        <h3>Organizations</h3>
-        <div class="endpoint-card">
-          <div class="endpoint-header">
-            <span class="method get">GET</span>
-            <code class="path">/api/public/organizations</code>
-          </div>
-          <p>List organizations. Owner ID and internal timestamps are never exposed in this endpoint.</p>
-          <div class="param-table-wrap">
-            <table class="param-table">
-              <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>search</code></td><td>string</td><td>—</td><td>Filter by organization name</td></tr>
-                <tr><td><code>limit</code></td><td>integer</td><td>20</td><td>Max results</td></tr>
-                <tr><td><code>offset</code></td><td>integer</td><td>0</td><td>Results to skip</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div class="endpoint-group">
         <h3>Mock Dataset</h3>
         <div class="endpoint-card">
           <div class="endpoint-header">
             <span class="method get">GET</span>
             <code class="path">/api/public/mock</code>
           </div>
-          <p>Returns a snapshot of real data with all usernames, avatars, and content fully anonymized. Safe to embed in demos or documentation. Includes users, leaderboard, posts, and organizations in one request.</p>
+          <p>Returns a snapshot of real data with all usernames, avatars, and content fully anonymized. Safe to embed in demos or documentation. Includes users, leaderboard, and posts in one request.</p>
         </div>
       </div>
     </section>

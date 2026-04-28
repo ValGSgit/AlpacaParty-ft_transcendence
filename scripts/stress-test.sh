@@ -186,7 +186,6 @@ extract_id() {
     printf "%s\n" "$body" | jq -r '
       .user.id //
       .post.id // .data.post.id //
-      .organization.id // .data.organization.id //
       .comment.id // .data.comment.id //
       .notification.id //
       .upload.id //
@@ -238,7 +237,7 @@ fi
 [ -n "$TOKEN2" ] && ok "Secondary user registered (ID: ${USER2_ID:-unknown})"
 
 # ── Pre-create test resources to get real IDs ─────────────────────────────────
-POST1_ID="" ORG1_ID="" NOTIF1_ID=""
+POST1_ID="" NOTIF1_ID=""
 if [ -n "$ACCESS_TOKEN" ]; then
   info "Creating test post..."
   POST_RESP=$(curl_post_auth "${BASE_URL}/api/posts" \
@@ -246,11 +245,6 @@ if [ -n "$ACCESS_TOKEN" ]; then
   POST1_ID=$(extract_id "$POST_RESP")
   [ -n "$POST1_ID" ] && ok "Test post created: $POST1_ID" || warn "Post creation returned: $(printf "%s\n" "$POST_RESP" | head -c 200)"
 
-  info "Creating test organization..."
-  ORG_RESP=$(curl_post_auth "${BASE_URL}/api/organizations" \
-    -d '{"name":"StressTestOrg","description":"Created by stress tester"}')
-  ORG1_ID=$(extract_id "$ORG_RESP")
-  [ -n "$ORG1_ID" ] && ok "Test org created: $ORG1_ID" || warn "Org creation returned: $(printf "%s\n" "$ORG_RESP" | head -c 200)"
 fi
 
 # =============================================================================
@@ -289,11 +283,6 @@ if [ -n "$ACCESS_TOKEN" ]; then
   # ── Notifications ──────────────────────────────────────────────────────────
   check_auth     "GET /api/notifications"                          "${BASE_URL}/api/notifications?unreadOnly=false&limit=30&offset=0"
 
-  # ── Organizations ──────────────────────────────────────────────────────────
-  check_auth     "GET /api/organizations"                          "${BASE_URL}/api/organizations"
-  check_auth     "GET /api/organizations/mine"                     "${BASE_URL}/api/organizations/mine"
-  check_auth_any "GET /api/organizations/:id"                      "${BASE_URL}/api/organizations/${ORG1_ID:-0}" 200 404
-
   # ── Game ───────────────────────────────────────────────────────────────────
   check_auth_any "GET /api/game/stats"                             "${BASE_URL}/api/game/stats?gameType=spit_royale" 200 404
   check_auth_any "GET /api/game/history"                           "${BASE_URL}/api/game/history?gameType=spit_royale&limit=20&offset=0" 200 404
@@ -317,7 +306,6 @@ if [ -n "$ACCESS_TOKEN" ]; then
   check_auth_any "GET /api/public/users/:id"                       "${BASE_URL}/api/public/users/${USER1_ID:-0}" 200 404
   check_auth     "GET /api/public/leaderboard"                     "${BASE_URL}/api/public/leaderboard?gameType=spit_royale"
   check_auth     "GET /api/public/posts"                           "${BASE_URL}/api/public/posts?limit=20&offset=0"
-  check_auth     "GET /api/public/organizations"                   "${BASE_URL}/api/public/organizations?search=&limit=20"
   check_auth_any "GET /api/public/mock"                            "${BASE_URL}/api/public/mock" 200 404
   # Confirm X-API-Key gate still rejects unauthenticated calls
   PUB_UNAUTH=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 \
@@ -364,7 +352,7 @@ header "6. Security Probes"
 # ── 6a. Unauthenticated access to protected endpoints ────────────────────────
 info "6a. Auth guard — protected endpoints must reject unauthenticated requests"
 for ep in "/api/users/me" "/api/posts" "/api/friends" "/api/notifications" \
-          "/api/organizations" "/api/game/stats" "/api/chat/conversations" \
+          "/api/game/stats" "/api/chat/conversations" \
           "/api/uploads"; do
   code=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 "${BASE_URL}${ep}" 2>/dev/null || echo "000")
   if [ "$code" -eq 401 ] || [ "$code" -eq 403 ]; then
@@ -401,36 +389,7 @@ tamper_probe "Truncated token"     "${ACCESS_TOKEN:0:20}"
 tamper_probe "None-alg token"      "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJhZG1pbiJ9."
 tamper_probe "Modified payload"    "$(echo -n "${ACCESS_TOKEN}" | sed 's/\.[^.]*\./\.AAAAAAAAAA\./1')"
 
-# ── 6c. IDOR — user2 accessing user1's resources ─────────────────────────────
-info "6c. IDOR probes — user2 accessing user1's private resources"
-if [ -n "$TOKEN2" ] && [ -n "$POST1_ID" ]; then
-  IDOR_CODE=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 \
-    -H "Authorization: Bearer ${TOKEN2}" \
-    -X DELETE "${BASE_URL}/api/posts/${POST1_ID}" 2>/dev/null || echo "000")
-  if [ "$IDOR_CODE" -eq 403 ] || [ "$IDOR_CODE" -eq 401 ]; then
-    ok "IDOR DELETE /api/posts/:id → $IDOR_CODE (access denied)"
-  elif [ "$IDOR_CODE" -eq 200 ] || [ "$IDOR_CODE" -eq 204 ]; then
-    fail "IDOR DELETE /api/posts/:id → $IDOR_CODE (user2 deleted user1's post!)"; FAILURES=$((FAILURES+1))
-    POST1_ID=""  # gone now
-  else
-    warn "IDOR DELETE /api/posts/:id → $IDOR_CODE"
-  fi
-  printf "idor_delete_post\t%s\n" "$IDOR_CODE" >> "$PROBES_FILE"
-fi
-if [ -n "$TOKEN2" ] && [ -n "$ORG1_ID" ]; then
-  IDOR_ORG=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 \
-    -H "Authorization: Bearer ${TOKEN2}" \
-    -X DELETE "${BASE_URL}/api/organizations/${ORG1_ID}" 2>/dev/null || echo "000")
-  if [ "$IDOR_ORG" -eq 403 ] || [ "$IDOR_ORG" -eq 401 ]; then
-    ok "IDOR DELETE /api/organizations/:id → $IDOR_ORG (access denied)"
-  elif [ "$IDOR_ORG" -eq 200 ] || [ "$IDOR_ORG" -eq 204 ]; then
-    fail "IDOR DELETE /api/organizations/:id → $IDOR_ORG (user2 deleted user1's org!)"; FAILURES=$((FAILURES+1))
-    ORG1_ID=""
-  else
-    warn "IDOR DELETE /api/organizations/:id → $IDOR_ORG"
-  fi
-  printf "idor_delete_org\t%s\n" "$IDOR_ORG" >> "$PROBES_FILE"
-fi
+# 6b was organization test
 
 # ── 6d. Injection & bad-input ─────────────────────────────────────────────────
 info "6d. Injection & bad-input probes"
@@ -545,7 +504,6 @@ ${BASE_URL}/api/health
 ${BASE_URL}/api/docs
 ${BASE_URL}/api/public/users?search=&limit=20&offset=0
 ${BASE_URL}/api/public/posts?limit=20&offset=0
-${BASE_URL}/api/public/organizations?search=&limit=20
 ${BASE_URL}/api/public/leaderboard?gameType=spit_royale
 ${BASE_URL}/
 EOF
@@ -606,8 +564,6 @@ ${BASE_URL}/api/chat/unread
 ${BASE_URL}/api/chat/rooms
 ${BASE_URL}/api/notifications?unreadOnly=false&limit=30&offset=0
 ${BASE_URL}/api/notifications?unreadOnly=true&limit=30&offset=0
-${BASE_URL}/api/organizations
-${BASE_URL}/api/organizations/mine
 ${BASE_URL}/api/game/stats?gameType=spit_royale
 ${BASE_URL}/api/game/history?gameType=spit_royale&limit=20&offset=0
 ${BASE_URL}/api/game/leaderboard?gameType=spit_royale&limit=20
@@ -620,7 +576,6 @@ EOF
   # Add ID-based endpoints if we have IDs
   [ -n "$POST1_ID" ] && printf "%s\n" "${BASE_URL}/api/posts/${POST1_ID}" >> "$SIEGE_AUTH_URLS"
   [ -n "$POST1_ID" ] && printf "%s\n" "${BASE_URL}/api/posts/${POST1_ID}/comments" >> "$SIEGE_AUTH_URLS"
-  [ -n "$ORG1_ID"  ] && printf "%s\n" "${BASE_URL}/api/organizations/${ORG1_ID}" >> "$SIEGE_AUTH_URLS"
   [ -n "$USER1_ID" ] && printf "%s\n" "${BASE_URL}/api/users/${USER1_ID}" >> "$SIEGE_AUTH_URLS"
   [ -n "$USER1_ID" ] && printf "%s\n" "${BASE_URL}/api/posts/user/${USER1_ID}" >> "$SIEGE_AUTH_URLS"
 
@@ -673,7 +628,6 @@ EOF
 ${BASE_URL}/api/posts GET
 ${BASE_URL}/api/notifications?unreadOnly=false&limit=10&offset=0 GET
 ${BASE_URL}/api/friends GET
-${BASE_URL}/api/organizations GET
 EOF
 
   # Add mutations with ID guards

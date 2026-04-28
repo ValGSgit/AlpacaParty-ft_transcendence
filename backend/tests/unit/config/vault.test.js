@@ -15,7 +15,14 @@
  *   - process.exit(1) on non-2xx Vault response, network error, bad JSON,
  *     and missing DATABASE_URL fields
  */
-import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
+import {
+  jest,
+  describe,
+  test,
+  expect,
+  beforeEach,
+  afterEach,
+} from "@jest/globals";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -29,8 +36,8 @@ const mockFs = {
 
 const mockHttpsRequest = jest.fn();
 
-jest.unstable_mockModule('fs', () => ({ default: mockFs, ...mockFs }));
-jest.unstable_mockModule('node:https', () => ({
+jest.unstable_mockModule("fs", () => ({ default: mockFs, ...mockFs }));
+jest.unstable_mockModule("node:https", () => ({
   default: { request: mockHttpsRequest },
   request: mockHttpsRequest,
 }));
@@ -39,18 +46,18 @@ jest.unstable_mockModule('node:https', () => ({
 
 /** Minimum env vars required for a successful run. */
 const BASE_ENV = {
-  VAULT_ADDR: 'https://vault.test:8200',
-  VAULT_TOKEN: 'test-token',
-  DB_HOST: 'db',
-  DB_PORT: '5432',
+  VAULT_ADDR: "https://vault.test:8200",
+  VAULT_TOKEN: "test-token",
+  DB_HOST: "db",
+  DB_PORT: "5432",
 };
 
 /** Vault secret payload that satisfies buildDatabaseUrl. */
 const FULL_SECRETS = {
-  db_user: 'alpaca',
-  db_password: 'pass123',
-  db_name: 'alpacadb',
-  jwt_secret: 'supersecret',
+  db_user: "alpaca",
+  db_password: "pass123",
+  db_name: "alpacadb",
+  jwt_secret: "supersecret",
 };
 
 // ── Mock helpers ──────────────────────────────────────────────────────────────
@@ -67,8 +74,8 @@ function mockVaultSuccess(data, { nested = true } = {}) {
     const mockRes = {
       statusCode: 200,
       on: jest.fn((event, handler) => {
-        if (event === 'data') handler(JSON.stringify(body));
-        if (event === 'end') handler();
+        if (event === "data") handler(JSON.stringify(body));
+        if (event === "end") handler();
       }),
     };
     cb(mockRes);
@@ -83,8 +90,8 @@ function mockVaultHttpError(statusCode) {
     const mockRes = {
       statusCode,
       on: jest.fn((event, handler) => {
-        if (event === 'data') handler('error body');
-        if (event === 'end') handler();
+        if (event === "data") handler("error body");
+        if (event === "end") handler();
       }),
     };
     cb(mockRes);
@@ -93,13 +100,17 @@ function mockVaultHttpError(statusCode) {
 }
 
 /** Simulate a network-level HTTPS error (e.g. ECONNREFUSED). */
-function mockVaultNetworkError(err = new Error('ECONNREFUSED')) {
+function mockVaultNetworkError(err = new Error("ECONNREFUSED")) {
   mockHttpsRequest.mockImplementation(() => {
     const handlers = {};
     return {
-      on: jest.fn((event, handler) => { handlers[event] = handler; }),
+      on: jest.fn((event, handler) => {
+        handlers[event] = handler;
+      }),
       // Emit the error as a microtask, after req.on('error', ...) is registered
-      end: jest.fn(() => { Promise.resolve().then(() => handlers.error?.(err)); }),
+      end: jest.fn(() => {
+        Promise.resolve().then(() => handlers.error?.(err));
+      }),
     };
   });
 }
@@ -111,8 +122,8 @@ function mockVaultBadJson() {
     const mockRes = {
       statusCode: 200,
       on: jest.fn((event, handler) => {
-        if (event === 'data') handler('{{{invalid json');
-        if (event === 'end') handler();
+        if (event === "data") handler("{{{invalid json");
+        if (event === "end") handler();
       }),
     };
     cb(mockRes);
@@ -125,7 +136,7 @@ function mockVaultBadJson() {
  * the async operations so getSecrets() completes before assertions run.
  */
 async function runFetchSecrets() {
-  await import('../../../src/tools/fetchSecrets.js');
+  await import("../../../src/tools/fetchSecrets.js");
   await new Promise((resolve) => setImmediate(resolve));
 }
 
@@ -142,12 +153,12 @@ beforeEach(() => {
 
   // Default filesystem state: nothing exists, cert read returns dummy buffer
   mockFs.existsSync.mockReturnValue(false);
-  mockFs.readFileSync.mockReturnValue(Buffer.from('mock-cert'));
+  mockFs.readFileSync.mockReturnValue(Buffer.from("mock-cert"));
 
   // Suppress console output and prevent process.exit from killing the runner
-  jest.spyOn(console, 'log').mockImplementation(() => {});
-  jest.spyOn(console, 'error').mockImplementation(() => {});
-  exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
+  jest.spyOn(console, "log").mockImplementation(() => {});
+  jest.spyOn(console, "error").mockImplementation(() => {});
+  exitSpy = jest.spyOn(process, "exit").mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -157,8 +168,8 @@ afterEach(() => {
 
 // ── Key mapping ───────────────────────────────────────────────────────────────
 
-describe('key mapping', () => {
-  test('maps snake_case vault keys to UPPER_CASE env var names', async () => {
+describe("key mapping", () => {
+  test("maps snake_case vault keys to UPPER_CASE env var names", async () => {
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
 
@@ -169,23 +180,23 @@ describe('key mapping', () => {
     expect(written).toContain('JWT_SECRET="supersecret"');
   });
 
-  test('passes unknown vault keys through unchanged', async () => {
-    mockVaultSuccess({ ...FULL_SECRETS, custom_setting: 'foo' });
+  test("passes unknown vault keys through unchanged", async () => {
+    mockVaultSuccess({ ...FULL_SECRETS, custom_setting: "foo" });
     await runFetchSecrets();
 
     const written = mockFs.writeFileSync.mock.calls[0][1];
     expect(written).toContain('custom_setting="foo"');
   });
 
-  test('maps all known vault keys to their env var names', async () => {
+  test("maps all known vault keys to their env var names", async () => {
     mockVaultSuccess({
       ...FULL_SECRETS,
-      api_keys: 'k1,k2',
-      google_client_id: 'gcid',
-      google_client_secret: 'gcsec',
-      github_client_id: 'ghid',
-      github_client_secret: 'ghsec',
-      mod_users: 'admin1,admin2',
+      api_keys: "k1,k2",
+      google_client_id: "gcid",
+      google_client_secret: "gcsec",
+      github_client_id: "ghid",
+      github_client_secret: "ghsec",
+      mod_users: "admin1,admin2",
     });
     await runFetchSecrets();
 
@@ -201,24 +212,28 @@ describe('key mapping', () => {
 
 // ── DATABASE_URL construction ─────────────────────────────────────────────────
 
-describe('buildDatabaseUrl', () => {
-  test('builds DATABASE_URL from mapped credentials and env vars', async () => {
+describe("buildDatabaseUrl", () => {
+  test("builds DATABASE_URL from mapped credentials and env vars", async () => {
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
 
     const written = mockFs.writeFileSync.mock.calls[0][1];
-    expect(written).toContain('DATABASE_URL="postgresql://alpaca:pass123@db:5432/alpacadb"');
+    expect(written).toContain(
+      'DATABASE_URL="postgresql://alpaca:pass123@db:5432/alpacadb"',
+    );
   });
 
-  test('URL-encodes special characters in DB_PASSWORD', async () => {
-    mockVaultSuccess({ ...FULL_SECRETS, db_password: 'p@ss w0rd!' });
+  test("URL-encodes special characters in DB_PASSWORD", async () => {
+    mockVaultSuccess({ ...FULL_SECRETS, db_password: "p@ss w0rd!" });
     await runFetchSecrets();
 
     const written = mockFs.writeFileSync.mock.calls[0][1];
-    expect(written).toContain('DATABASE_URL="postgresql://alpaca:p%40ss%20w0rd!@db:5432/alpacadb"');
+    expect(written).toContain(
+      'DATABASE_URL="postgresql://alpaca:p%40ss%20w0rd!@db:5432/alpacadb"',
+    );
   });
 
-  test('calls process.exit(1) and skips write when DB_USER is missing', async () => {
+  test("calls process.exit(1) and skips write when DB_USER is missing", async () => {
     const { db_user: _, ...noUser } = FULL_SECRETS;
     mockVaultSuccess(noUser);
     await runFetchSecrets();
@@ -227,7 +242,7 @@ describe('buildDatabaseUrl', () => {
     expect(mockFs.writeFileSync).not.toHaveBeenCalled();
   });
 
-  test('calls process.exit(1) and skips write when DB_PASSWORD is missing', async () => {
+  test("calls process.exit(1) and skips write when DB_PASSWORD is missing", async () => {
     const { db_password: _, ...noPass } = FULL_SECRETS;
     mockVaultSuccess(noPass);
     await runFetchSecrets();
@@ -236,7 +251,7 @@ describe('buildDatabaseUrl', () => {
     expect(mockFs.writeFileSync).not.toHaveBeenCalled();
   });
 
-  test('calls process.exit(1) when DB_HOST env var is absent', async () => {
+  test("calls process.exit(1) when DB_HOST env var is absent", async () => {
     delete process.env.DB_HOST;
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
@@ -244,7 +259,7 @@ describe('buildDatabaseUrl', () => {
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
-  test('calls process.exit(1) when DB_PORT env var is absent', async () => {
+  test("calls process.exit(1) when DB_PORT env var is absent", async () => {
     delete process.env.DB_PORT;
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
@@ -255,8 +270,8 @@ describe('buildDatabaseUrl', () => {
 
 // ── Vault response formats ────────────────────────────────────────────────────
 
-describe('Vault response formats', () => {
-  test('reads secrets from data.data path (KV v2)', async () => {
+describe("Vault response formats", () => {
+  test("reads secrets from data.data path (KV v2)", async () => {
     mockVaultSuccess(FULL_SECRETS, { nested: true });
     await runFetchSecrets();
 
@@ -264,7 +279,7 @@ describe('Vault response formats', () => {
     expect(exitSpy).not.toHaveBeenCalled();
   });
 
-  test('falls back to data path when data.data is absent (KV v1)', async () => {
+  test("falls back to data path when data.data is absent (KV v1)", async () => {
     mockVaultSuccess(FULL_SECRETS, { nested: false });
     await runFetchSecrets();
 
@@ -275,40 +290,40 @@ describe('Vault response formats', () => {
 
 // ── HTTPS request options ─────────────────────────────────────────────────────
 
-describe('HTTPS request options', () => {
-  test('sends GET to the correct Vault path with auth token', async () => {
+describe("HTTPS request options", () => {
+  test("sends GET to the correct Vault path with auth token", async () => {
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
 
     const [opts] = mockHttpsRequest.mock.calls[0];
-    expect(opts.hostname).toBe('vault.test');
+    expect(opts.hostname).toBe("vault.test");
     expect(opts.port).toBe(8200);
-    expect(opts.path).toContain('/v1/secret/data/alpacaparty');
-    expect(opts.method).toBe('GET');
-    expect(opts.headers['X-Vault-Token']).toBe('test-token');
+    expect(opts.path).toContain("/v1/secret/data/alpacaparty");
+    expect(opts.method).toBe("GET");
+    expect(opts.headers["X-Vault-Token"]).toBe("test-token");
   });
 
-  test('attaches CA cert when NODE_EXTRA_CA_CERTS file exists', async () => {
-    process.env.NODE_EXTRA_CA_CERTS = '/etc/ssl/vault-ca.pem';
+  test("attaches CA cert when NODE_EXTRA_CA_CERTS file exists", async () => {
+    process.env.NODE_EXTRA_CA_CERTS = "/etc/ssl/vault-ca.pem";
     mockFs.existsSync.mockReturnValue(true);
-    mockFs.readFileSync.mockReturnValue(Buffer.from('ca-pem-data'));
+    mockFs.readFileSync.mockReturnValue(Buffer.from("ca-pem-data"));
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
 
     const [opts] = mockHttpsRequest.mock.calls[0];
-    expect(mockFs.readFileSync).toHaveBeenCalledWith('/etc/ssl/vault-ca.pem');
-    expect(opts.ca).toEqual(Buffer.from('ca-pem-data'));
+    expect(mockFs.readFileSync).toHaveBeenCalledWith("/etc/ssl/vault-ca.pem");
+    expect(opts.ca).toEqual(Buffer.from("ca-pem-data"));
   });
 
-  test('falls back to default CA path when NODE_EXTRA_CA_CERTS is unset', async () => {
+  test("falls back to default CA path when NODE_EXTRA_CA_CERTS is unset", async () => {
     mockFs.existsSync.mockReturnValue(true);
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
 
-    expect(mockFs.existsSync).toHaveBeenCalledWith('/app/ssl/cert.pem');
+    expect(mockFs.existsSync).toHaveBeenCalledWith("/app/ssl/cert.pem");
   });
 
-  test('omits CA cert option when cert file does not exist', async () => {
+  test("omits CA cert option when cert file does not exist", async () => {
     mockFs.existsSync.mockReturnValue(false);
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
@@ -320,8 +335,8 @@ describe('HTTPS request options', () => {
 
 // ── Error handling ────────────────────────────────────────────────────────────
 
-describe('error handling', () => {
-  test('calls process.exit(1) on 403 from Vault', async () => {
+describe("error handling", () => {
+  test("calls process.exit(1) on 403 from Vault", async () => {
     mockVaultHttpError(403);
     await runFetchSecrets();
 
@@ -329,7 +344,7 @@ describe('error handling', () => {
     expect(mockFs.writeFileSync).not.toHaveBeenCalled();
   });
 
-  test('calls process.exit(1) on 404 from Vault', async () => {
+  test("calls process.exit(1) on 404 from Vault", async () => {
     mockVaultHttpError(404);
     await runFetchSecrets();
 
@@ -337,15 +352,15 @@ describe('error handling', () => {
     expect(mockFs.writeFileSync).not.toHaveBeenCalled();
   });
 
-  test('calls process.exit(1) on network error', async () => {
-    mockVaultNetworkError(new Error('ECONNREFUSED'));
+  test("calls process.exit(1) on network error", async () => {
+    mockVaultNetworkError(new Error("ECONNREFUSED"));
     await runFetchSecrets();
 
     expect(exitSpy).toHaveBeenCalledWith(1);
     expect(mockFs.writeFileSync).not.toHaveBeenCalled();
   });
 
-  test('calls process.exit(1) when Vault response is not valid JSON', async () => {
+  test("calls process.exit(1) when Vault response is not valid JSON", async () => {
     mockVaultBadJson();
     await runFetchSecrets();
 
@@ -356,34 +371,36 @@ describe('error handling', () => {
 
 // ── File output ───────────────────────────────────────────────────────────────
 
-describe('file output', () => {
-  test('writes secrets to /run/secrets/.env', async () => {
+describe("file output", () => {
+  test("writes secrets to /run/secrets/.env", async () => {
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
 
     expect(mockFs.writeFileSync).toHaveBeenCalledWith(
-      '/run/secrets/.env',
+      "/run/secrets/.env",
       expect.any(String),
     );
   });
 
-  test('sets file permissions to 0o600', async () => {
+  test("sets file permissions to 0o600", async () => {
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
 
-    expect(mockFs.chmodSync).toHaveBeenCalledWith('/run/secrets/.env', 0o600);
+    expect(mockFs.chmodSync).toHaveBeenCalledWith("/run/secrets/.env", 0o600);
   });
 
-  test('creates /run/secrets directory when it does not exist', async () => {
+  test("creates /run/secrets directory when it does not exist", async () => {
     // CA cert path returns true so the cert check doesn't interfere
-    mockFs.existsSync.mockImplementation((p) => p !== '/run/secrets');
+    mockFs.existsSync.mockImplementation((p) => p !== "/run/secrets");
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
 
-    expect(mockFs.mkdirSync).toHaveBeenCalledWith('/run/secrets', { recursive: true });
+    expect(mockFs.mkdirSync).toHaveBeenCalledWith("/run/secrets", {
+      recursive: true,
+    });
   });
 
-  test('skips directory creation when /run/secrets already exists', async () => {
+  test("skips directory creation when /run/secrets already exists", async () => {
     mockFs.existsSync.mockReturnValue(true);
     mockVaultSuccess(FULL_SECRETS);
     await runFetchSecrets();
@@ -396,7 +413,7 @@ describe('file output', () => {
     await runFetchSecrets();
 
     const written = mockFs.writeFileSync.mock.calls[0][1];
-    for (const line of written.split('\n')) {
+    for (const line of written.split("\n")) {
       expect(line).toMatch(/^[A-Za-z_]+=".+"$/);
     }
   });

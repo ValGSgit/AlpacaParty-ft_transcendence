@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { useFloatingText } from '../../components/floatingText';
-import { gCollectables, gPlayer, gUser } from '../globals';
+import { gCollectables, gEditState, gPlayer, gUser } from '../globals';
 import { removeObject } from '../removeObjects';
 
 const { spawnFloatingText } = useFloatingText();
@@ -42,7 +42,7 @@ export class Collectable {
     }
 
     const distance = this.model.position.distanceTo(gPlayer.value.model.position);
-    if (distance < 2.5) {
+    if (distance < 2.5 && gEditState.selected !== gPlayer.value.model) {
       gUser.value.coins += 1;
       spawnFloatingText(this.model, '+1', 'coins');
       this.destroy();

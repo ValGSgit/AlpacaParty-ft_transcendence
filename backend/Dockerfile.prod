@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Install deps before copying source — layer is only re-built when package*.json changes.
 COPY package*.json ./
-RUN npm install --no-audit --no-fund --loglevel=error
+RUN npm install --no-audit --no-fund --loglevel=error --omit=dev
 
 # Copy source (after install so code changes don't bust the npm cache layer).
 COPY . .
@@ -24,16 +24,12 @@ FROM node:24-alpine3.22
 
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-  adduser -S nodejs -u 1001
-
 # Copy only what the server needs to run — no devDeps, no build tooling, no test files.
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/src          ./src
-COPY --from=builder /app/prisma       ./prisma
-COPY --from=builder /app/prisma.config.js ./prisma.config.js
-COPY --from=builder /app/package.json ./package.json
+COPY --chown=node:node --from=builder /app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /app/src          ./src
+COPY --chown=node:node --from=builder /app/prisma       ./prisma
+COPY --chown=node:node --from=builder /app/prisma.config.js ./prisma.config.js
+COPY --chown=node:node --from=builder /app/package.json ./package.json
 
 COPY --chmod=755 tools/docker-entrypoint-prod.sh /usr/local/bin/docker-entrypoint-prod.sh
 COPY --chmod=755 tools/load-secrets.sh /usr/local/bin/load-secrets.sh
@@ -42,15 +38,13 @@ RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint-prod.sh \
 
 # Create uploads directories with correct ownership
 RUN mkdir -p /app/uploads && \
-  chown -R nodejs:nodejs /app/uploads
+  chown -R node:node /app/uploads
 
 # Runtime secret file is written by entrypoint as non-root user.
 RUN mkdir -p /run/secrets && \
-  chown -R nodejs:nodejs /run/secrets
+  chown -R node:node /run/secrets
 
-RUN chown -R nodejs:nodejs /app/node_modules /app
-
-USER nodejs
+USER node
 
 EXPOSE 3000
 

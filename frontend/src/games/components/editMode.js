@@ -14,12 +14,12 @@ const pointer = new THREE.Vector2()
 const raycaster = new THREE.Raycaster()
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 const worldPoint = new THREE.Vector3()
+let hoveredItem = null
 const { closeMenus } = useUIManager()
 
 export function useEditMode() {
   const { checkCollision, } = usePhysics()
   const { storePos, restorePos } = usePos()
-  let hoveredItem = null
 
   const updateRaycaster = (e) => {
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()

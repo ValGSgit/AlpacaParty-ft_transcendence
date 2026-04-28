@@ -338,29 +338,10 @@ jobs:
         env:
           SEED_USERS: "50"
           SEED_POSTS: "100"
-          SEED_ORGS: "5"
           SEED_DM_MESSAGES: "200"
           SEED_ROOMS: "5"
           SEED_ROOM_MESSAGES: "200"
           SEED_NOTIFICATIONS: "100"
-
-      - name: Ensure seeded admin account has admin role
-        run: |
-          docker compose exec -T postgres psql -U alpacaparty -d alpacaparty \
-            -c "INSERT INTO user_settings (\"userId\", is_admin) \
-                SELECT id, TRUE FROM \"user\" WHERE email = 'live_admin@alpacaparty.test' \
-                ON CONFLICT (\"userId\") DO UPDATE SET is_admin = EXCLUDED.is_admin;"
-          is_admin=$(docker compose exec -T postgres psql -U alpacaparty -d alpacaparty -tA \
-            -c "SELECT COALESCE(us.is_admin::text, 'false') \
-                FROM user_settings us \
-                JOIN \"user\" u ON u.id = us.\"userId\" \
-                WHERE u.email = 'live_admin@alpacaparty.test' \
-                LIMIT 1;")
-          if [ "$is_admin" != "true" ]; then
-            echo "live_admin@alpacaparty.test is not admin after seeding"
-            exit 1
-          fi
-          echo "Verified live_admin@alpacaparty.test has admin access"
 
       # -- Run tests ------------------------------------------------
       - name: Sanity check public API key before Playwright

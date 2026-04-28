@@ -20,11 +20,12 @@ function calcElo(playerElo, avgOpponentElo, result) {
   return Math.round(playerElo + ELO_K * (score - expected));
 }
 
+const matches = new Map();
+const playerToMatch = new Map();
+
 export function initializeSpitRoyaleNamespace(io) {
   const namespace = io.of('/spit-royale');
 
-  const matches = new Map();
-  const playerToMatch = new Map();
 
   function getValidSpawn(players) {
     for (let attempts = 0; attempts < 50; attempts++) {
@@ -86,7 +87,7 @@ export function initializeSpitRoyaleNamespace(io) {
     if (match.interval) clearInterval(match.interval);
 
     const winner = winnerPlayerId ? match.players[winnerPlayerId] : null;
-    namespace.to(match.roomName).emit('game:message', {
+    namespace.to(match.id).emit('game:message', {
       type: 'match_over',
       reason,
       winnerId: winnerPlayerId || null,
@@ -137,6 +138,19 @@ export function initializeSpitRoyaleNamespace(io) {
 
     // 1. JOINING THE ARENA
     socket.on('join', ({ name, roomId } = {}) => {
+      // cleanup
+      if (playerToMatch.has(playerId)) {
+        const oldMatchId = playerToMatch.get(playerId);
+        const oldMatch = matches.get(oldMatchId);
+        if (oldMatch) {
+          delete oldMatch.players[playerId];
+          if (Object.keys(oldMatch.players).length === 0) {
+            clearInterval(oldMatch.interval);
+            matches.delete(oldMatchId);
+          }
+        }
+        playerToMatch.delete(playerId);
+      }
       if (playerToMatch.has(playerId)) return;
 
       // Only join an open, not-yet-ended match.
@@ -170,6 +184,7 @@ export function initializeSpitRoyaleNamespace(io) {
       const spawn = getValidSpawn(matchToJoin.players);
       const newPlayer = {
         id: playerId,
+        matchId: matchToJoin.id,
         socket,
         userId: socket.user?.id ?? null,
         name: name || socket.user?.username || 'Vue_Llama',
@@ -186,11 +201,12 @@ export function initializeSpitRoyaleNamespace(io) {
         name: newPlayer.name,
       });
       playerToMatch.set(playerId, matchToJoin.id);
-      socket.join(matchToJoin.roomName);
+      socket.join(matchToJoin.id);
 
       socket.emit('game:message', {
         type: 'joined',
         playerId,
+        matchId: matchToJoin.id,
         spawn: { x: spawn.x, z: spawn.z, angle: spawn.angle },
       });
     });
@@ -213,7 +229,7 @@ export function initializeSpitRoyaleNamespace(io) {
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
       if (match && !match.ended) {
-        socket.broadcast.to(match.roomName).emit('game:message', { type: 'player_spit', playerId });
+        socket.broadcast.to(match.id).emit('game:message', { type: 'player_spit', playerId });
       }
     });
 
@@ -233,7 +249,7 @@ export function initializeSpitRoyaleNamespace(io) {
         target.socket.emit('game:message', { type: 'game_over', reason: 'eliminated' });
       }
 
-      namespace.to(match.roomName).emit('game:message', {
+      namespace.to(match.id).emit('game:message', {
         type: 'player_hit',
         targetId,
         health: target.health,
@@ -241,7 +257,7 @@ export function initializeSpitRoyaleNamespace(io) {
         point: match.players[ownerId]?.point ?? 0,
       });
 
-      if (!target.alive) checkWinCondition(match);
+      //if (!target.alive) checkWinCondition(match);
     });
 
     socket.on('disconnect', () => {
@@ -255,7 +271,7 @@ export function initializeSpitRoyaleNamespace(io) {
     const player = match.players[pid];
     if (!player) return;
 
-    player.socket.leave(match.roomName);
+    player.socket.leave(match.id);
     // Mark as eliminated on disconnect so the win-check can finalize properly.
     player.alive = false;
     delete match.players[pid];
@@ -269,7 +285,7 @@ export function initializeSpitRoyaleNamespace(io) {
       return;
     }
 
-    checkWinCondition(match);
+    //checkWinCondition(match);
   }
 
   function gameLoop(match) {
@@ -280,7 +296,7 @@ export function initializeSpitRoyaleNamespace(io) {
         angle: p.angle, health: p.health, point: p.point,
       })),
     };
-    namespace.to(match.roomName).emit('game:message', { type: 'tick', state });
+    namespace.to(match.id).emit('game:message', { type: 'tick', state });
   }
 }
 export default initializeSpitRoyaleNamespace;

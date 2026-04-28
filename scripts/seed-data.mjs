@@ -72,7 +72,7 @@ async function main() {
     const tables = [
       'users', 'friend_requests', 'friends', 'blocked_users', 'messages',
       'chat_rooms', 'chat_room_members', 'chat_room_messages', 'posts',
-      'post_likes', 'organizations', 'organization_members', 'games',
+      'post_likes', 'games',
       'game_stats', 'user_achievements', 'daily_challenges', 'notifications',
       'alpaca_farms'
     ];

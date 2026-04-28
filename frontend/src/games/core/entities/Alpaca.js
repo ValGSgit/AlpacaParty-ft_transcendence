@@ -117,7 +117,9 @@ export class Alpaca {
   checkAge(delta) {
     this.aliveTime += delta;
     const yearsPassed = Math.floor(this.aliveTime / CONST.SECONDS_PER_INGAME_YEAR);
-    this.age = this.baseAge + yearsPassed;
+    if (this.age < this.baseAge + yearsPassed) {
+      this.age = this.baseAge + yearsPassed;
+    }
   }
 
   spit() {
@@ -160,12 +162,6 @@ export class Alpaca {
         gMinigame.value.isActive = false
       }
     }
-    /*     else if (this.hp < 0)
-        {
-          this.hp = CONST.HP // resurrection
-          this.isDead = 0
-          //add itself again?
-        } */
     else
       this.isDead = -1 // dying
   }
