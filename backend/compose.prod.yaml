@@ -53,12 +53,12 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --no-check-certificate --quiet --tries=1 --spider https://localhost:3000/api/health || exit 1",
+          "curl --insecure --fail --silent --connect-timeout 5 --max-time 10 https://localhost:3000/api/health || exit 1",
         ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
     restart: always
     networks:
       - alpacaparty_net
