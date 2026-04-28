@@ -1,4 +1,4 @@
-import { AlpacaRoadMatch } from './AlpacaRoadMatch.js';
+import { AlpacaRoadMatch } from "./AlpacaRoadMatch.js";
 
 export class MatchManager {
   constructor(ioNamespace) {
@@ -9,7 +9,7 @@ export class MatchManager {
     this.setupListeners();
   }
 
-  // 📢 THE MEGAPHONE: This sends the menu to everyone
+  // This sends the menu to everyone
   broadcastPublicRooms() {
     const publicRooms = [];
 
@@ -31,11 +31,15 @@ export class MatchManager {
   setupListeners() {
     this.io.on('connection', (socket) => {
 
+      console.log("🔥 BACKEND: A player walked into the MatchManager! ID:", socket.id);
+
       // Send the list to the new player immediately
       this.broadcastPublicRooms();
 
       // 1. PLAYER CLICKS "CREATE MY ROOM"
       socket.on('create_room', ({ name }) => {
+        console.log(`🔥 BACKEND: Received create_room request from ${name}`);
+
         const roomId = Math.random().toString(36).substr(2, 9); // Hidden ID
         const roomName = `${name}'s Room`; // Display Name
 

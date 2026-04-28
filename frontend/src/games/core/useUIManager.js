@@ -1,6 +1,4 @@
 import { useEditMode } from "../components/editMode";
-import { AlpacaRoadMatch } from "../mini_games/AlpacaRoadMatch.js";
-import { AlpacaRoadClient, SpitRoyaleClient } from '../mini_games/client.js';
 import { changeGame } from '../mini_games/init.js';
 import { gEditState, gMinigame, gUI } from "./globals";
 import { changeEditModeCamera } from "./useCamera.js";
@@ -105,23 +103,13 @@ export function useUIManager() {
     gUI.lobbyMenu = true
     gUI.gameMenu = false
     gMinigame.value.mode = game;
-    gMinigame.value.isReady = false
     gMinigame.value.lobby = []
-    if (game === 4)
-    {
-      match = new AlpacaRoadMatch();
-      match.
-    }
-  
   }
 
   const closeLobbyMenu = () => {
     gUI.lobbyMenu = false
     gUI.gameMenu = true
-    if (onlineClient)
-      onlineClient.destroy();
   }
-
 
   return {
     closeMenus,

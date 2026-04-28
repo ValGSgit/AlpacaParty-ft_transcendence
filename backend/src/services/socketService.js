@@ -12,16 +12,16 @@
  *   room:{id}         — group chat room
  *   game:{id}         — game session room
  */
+import cookieParser from "cookie-parser";
 import { Server } from "socket.io";
-import User from "../models/User.js";
-import Message from "../models/Message.js";
 import ChatRoom from "../models/ChatRoom.js";
 import Game from "../models/Game.js";
+import Message from "../models/Message.js";
+import User from "../models/User.js";
+import { MatchManager } from "./MatchManager.js";
 import NotificationService from "./notificationService.js";
-import cookieParser from "cookie-parser";
-import { initializeSpitRoyaleNamespace } from "./spitRoyaleNamespace.js";
-import { initializeAlpacaRoadNamespace } from "./alpacaRoadNamespace.js";
 import { socketAuthMiddleware } from "./socketAuth.js";
+import { initializeSpitRoyaleNamespace } from "./spitRoyaleNamespace.js";
 
 /**
  * Compute Elo delta. Simple 32-K factor implementation.
@@ -45,7 +45,9 @@ export function initializeSocket(httpServer, corsOrigins) {
   // Share io with NotificationService so it can push real-time notifications
   NotificationService.setIo(io);
   initializeSpitRoyaleNamespace(io);
-  initializeAlpacaRoadNamespace(io);
+  const alpacaRoadNamespace = io.of('/alpaca-road');
+  const manager = new MatchManager(alpacaRoadNamespace);
+  //initializeAlpacaRoadNamespace(io);
 
   // ── Auth middleware ──────────────────────────────────────────
   io.engine.use(cookieParser());
@@ -125,7 +127,7 @@ export function initializeSocket(httpServer, corsOrigins) {
 
         // Notification (non-blocking)
         NotificationService.newMessage(receiverId, user.username).catch(
-          () => {},
+          () => { },
         );
 
         ack?.({ ok: true, message: shaped });
@@ -135,7 +137,7 @@ export function initializeSocket(httpServer, corsOrigins) {
     });
 
     socket.on("dm:read", async ({ senderId }) => {
-      await Message.markAsRead(user.id, senderId).catch(() => {});
+      await Message.markAsRead(user.id, senderId).catch(() => { });
     });
 
     // ── Group Chat Rooms ─────────────────────────────────────

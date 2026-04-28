@@ -1,6 +1,4 @@
-// server/games/AlpacaRoadMatch.js
-
-import { BaseMatch } from "./BaseMatch";
+import { BaseMatch } from "./BaseMatch.js";
 
 export class AlpacaRoadMatch extends BaseMatch {
   constructor(id, namespace, roomName, onStateChange) {
