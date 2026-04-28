@@ -9,40 +9,32 @@ export class MatchManager {
     this.setupListeners();
   }
 
-  // This sends the menu to everyone
   broadcastPublicRooms() {
     const publicRooms = [];
 
     for (const match of this.matches.values()) {
-      // Only show rooms that haven't started and aren't full
       if (match.status === 'LOBBY' && match.players.size < 4) {
         publicRooms.push({
-          id: match.matchId,         // Hidden internal ID
-          name: match.roomName,      // "Alex's Room"
+          id: match.matchId,
+          name: match.roomName,
           playerCount: match.players.size
         });
       }
     }
-
-    // Broadcast to EVERYONE connected to the namespace
     this.io.emit('available_rooms', publicRooms);
   }
 
   setupListeners() {
     this.io.on('connection', (socket) => {
-
-      console.log("🔥 BACKEND: A player walked into the MatchManager! ID:", socket.id);
-
-      // Send the list to the new player immediately
+      console.log("BACKEND: A player walked into the MatchManager! ID:", socket.id);
       this.broadcastPublicRooms();
 
       socket.on('create_room', ({ name }) => {
-        console.log(`🔥 BACKEND: Received create_room request from ${name}`);
+        console.log(`BACKEND: Received create_room request from ${name}`);
 
-        const roomId = Math.random().toString(36); // Hidden ID
-        const roomName = `${name}'s Room`; // Display Name
+        const roomId = Math.random().toString(36);
+        const roomName = `${name}'s Room`;
 
-        // Pass a callback so the Match can tell us when it starts playing
         const match = new AlpacaRoadMatch(roomId, this.io, roomName, () => {
           this.broadcastPublicRooms();
         });
@@ -60,14 +52,12 @@ export class MatchManager {
       });
 
       socket.on('join_room', ({ name, roomId }) => {
-        console.log("MM: join_room");
         const match = this.matches.get(roomId);
 
         if (match && match.status === 'LOBBY' && match.players.size < 4) {
           match.addPlayer(socket, name);
           this.playerToMatch.set(socket.id, roomId);
 
-          console.log("MM: join_success");
           socket.emit('join_success', { roomId: roomId, roomName: match.roomName });
 
           // Update the public menu (e.g., changes from 1/4 to 2/4 players)
@@ -80,8 +70,19 @@ export class MatchManager {
         if (matchId) this.matches.get(matchId).toggleReady(socket.id, isReady);
       });
 
+      socket.on('player_hit', () => {
+        const matchId = this.playerToMatch.get(socket.id);
+        if (matchId) {
+          const match = this.matches.get(matchId);
+          // Route the damage report to the specific match
+          if (match && typeof match.handlePlayerHit === 'function') {
+            match.handlePlayerHit(socket.id);
+          }
+        }
+      });
+
       socket.on('disconnect', () => {
-        console.log(`🔥 BACKEND: Receive disconnect request`);
+        console.log('BACKEND: Receive disconnect request');
         const matchId = this.playerToMatch.get(socket.id);
         if (matchId) {
           const match = this.matches.get(matchId);
@@ -92,7 +93,6 @@ export class MatchManager {
             match.stop();
             this.matches.delete(matchId);
           }
-          // Update the public menu because someone left!
           this.broadcastPublicRooms();
         }
       });

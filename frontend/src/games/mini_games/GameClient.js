@@ -6,6 +6,7 @@ export class GameClient {
   constructor() {
     this.socket = null;
     this.serverObstacles = [];
+    this.roadSpeed = 0;
   }
 
   connect() {
@@ -47,6 +48,12 @@ export class GameClient {
     if (this.socket) this.socket.emit('ready_toggle', { isReady: isReadyStatus });
   }
 
+  sendHit() {
+    if (this.socket) {
+      this.socket.emit('player_hit');
+    }
+  }
+
   setupListeners() {
     this.socket.on('available_rooms', (roomList) => {
       console.log("Game Client available rooms:", roomList)
@@ -67,14 +74,13 @@ export class GameClient {
     this.socket.on('game_start', () => {
       console.log("GC: game_start");
       gMinigame.value.isActive = true;
-
-      // 2. Now transition the UI and build the 3D scene
       changeGame(gMinigame.value.mode, 1);
     });
 
     this.socket.on('tick', (snapshot) => {
       this.serverObstacles = snapshot.obstacles;
       gMinigame.value.players = snapshot.players;
+      this.roadSpeed = snapshot.roadSpeed;
     });
   }
 }

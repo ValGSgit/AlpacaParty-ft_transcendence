@@ -4,48 +4,116 @@ export class AlpacaRoadMatch extends BaseMatch {
   constructor(id, namespace, roomName, onStateChange) {
     super(id, namespace, roomName, onStateChange); // Load the BaseMatch template
     this.obstacles = [];
-    this.roadSpeed = 25;
-    this.spawnTimer = 2.0;
-    this.tickRate = 33;
+    this.tickRate = 5; // TODO: Change
   }
 
-  // Override the start function
   start() {
     this.status = 'PLAYING';
-    this.broadcast('game_start', { message: "Get Ready!" });
 
-    // Start the motor! Call this.update() 30 times a second
+    this.level = 1;
+    this.totalPoints = 0;
+    this.roadSpeed = 25;
+    this.timerMultiplier = 1.0;
+    this.spawnTimer = 2.0;
+    this.obstacles = [];
+    this.initObstacles();
+
+    this.broadcast('game_start', { message: "Get Ready!" });
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
+  }
+
+  handlePlayerHit(socketId) {
+    const player = this.players.get(socketId);
+    if (player && player.hp > 0 && !player.isDead) {
+      player.hp--;
+      if (player.hp <= 0) {
+        player.isDead = true;
+      }
+      this.syncLobby();
+    }
+  }
+
+  updateDifficulty() {
+    const pointsPerLevel = 4 + this.level;
+    const newLevel = Math.floor(this.totalPoints / pointsPerLevel) + 1;
+
+    if (newLevel > this.level) {
+      this.level = newLevel;
+      const minSpeed = 25;
+      const maxSpeed = 100;
+      const factor = 0.1;
+      const difficultyFactor = 1 - Math.exp(-factor * this.level);
+
+      this.roadSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;
+      this.timerMultiplier = Math.max(0.5, this.timerMultiplier - 0.05);
+    }
   }
 
   update() {
     const tick = this.tickRate / 1000;
+    let pointGained = false;
 
-    // 1. Move Obstacles
+    // Move Obstacles and check for points
     this.obstacles.forEach(obs => {
       obs.z -= this.roadSpeed * tick;
-    });
 
-    // 2. Delete old obstacles that passed the camera
+      // If it passed the player, award a point!
+      if (obs.z < -0.25 && !obs.pointGiven) {
+        obs.pointGiven = true;
+        this.totalPoints++;
+        pointGained = true;
+
+        // Give points to all players who are still alive
+        for (const [id, player] of this.players) {
+          if (!player.isDead) player.points++;
+        }
+      }
+    })
+
+    if (pointGained) this.updateDifficulty();
+
+    // Delete old obstacles
     this.obstacles = this.obstacles.filter(obs => obs.z > -50);
 
-    // 3. Spawn new obstacles
+    // Spawn new obstacles
     this.spawnTimer -= tick;
     if (this.spawnTimer <= 0) {
-      this.obstacles.push({
-        id: Math.random().toString(36).substr(2, 9), // Generate unique ID
-        lane: Math.floor(Math.random() * 4),         // Pick lane 0, 1, 2, or 3
-        z: 700,                                      // Start far away
-        isFull: Math.random() > 0.8                  // 20% chance for full barricade
-      });
-      this.spawnTimer = 1.5; // Wait 1.5 seconds before spawning the next one
+      this.createObstacle();
+      this.spawnTimer = (1.0 + Math.random() * 2.0) * this.timerMultiplier;
     }
 
-    // 4. Send the "Snapshot" to everyone's screen
+    const playersArr = Array.from(this.players.values()).map(p => ({
+      id: p.id,
+      hp: p.hp,
+      point: p.points,
+      isDead: p.isDead
+    }));
+
     this.broadcast('tick', {
       obstacles: this.obstacles,
-      roadSpeed: this.roadSpeed,
-      players: Array.from(this.players.values())
+      players: playersArr,
+      roadSpeed: this.roadSpeed
     });
   }
+
+  initObstacles() {
+    const amount = 8;
+    const roadLength = 700;
+    for (let i = 0; i < amount; ++i) {
+      this.createObstacle(roadLength / 3 + ((roadLength / 2) / amount * i));
+    }
+  }
+
+  //needs fixes - lane should be chosen of active players
+  createObstacle(pos = 700) {
+    this.obstacles.push({
+      id: Math.random().toString(36),
+      typeId: Math.floor(Math.random() * 2),
+      lane: Math.floor(Math.random() * 4),
+      z: pos,
+      isFull: Math.random() > 0.8,
+      pointGiven: false
+    });
+  }
+
 }

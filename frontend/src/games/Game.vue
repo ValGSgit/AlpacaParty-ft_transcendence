@@ -402,7 +402,9 @@ const gameLoop = () => {
   updateLighting(delta);
 
   if (gMinigame.value.isActive && gMinigame.value.mode > 2)
+  {
     updateAlpacaRoad(delta)
+  }
 
   if (gEngine.value?.controls) {
     gEngine.value.controls.enabled = checkControlsEnabled();
