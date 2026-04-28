@@ -4,6 +4,30 @@ export function uniqueId(prefix = 'e2e') {
   return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 }
 
+function getSetCookieHeaders(res) {
+  if (typeof res.headersArray === 'function') {
+    return res
+      .headersArray()
+      .filter((header) => header.name.toLowerCase() === 'set-cookie')
+      .map((header) => header.value);
+  }
+
+  const header = res.headers()['set-cookie'];
+  if (!header) return [];
+  return Array.isArray(header) ? header : [header];
+}
+
+function getCookieValue(setCookieHeaders, cookieName) {
+  for (const header of setCookieHeaders) {
+    const match = header.match(new RegExp(`(?:^|;\\s*)${cookieName}=([^;]+)`));
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return undefined;
+}
+
 export async function registerViaApi(request, { username, email, password = 'E2ePass123!' }) {
   const res = await request.post('/api/auth/register', {
     data: { username, email, password },
@@ -11,11 +35,12 @@ export async function registerViaApi(request, { username, email, password = 'E2e
 
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
+  const setCookieHeaders = getSetCookieHeaders(res);
 
   return {
     user: body.user,
-    accessToken: body.accessToken,
-    refreshToken: body.refreshToken,
+    accessToken: body.accessToken ?? getCookieValue(setCookieHeaders, 'jwt_token'),
+    refreshToken: body.refreshToken ?? getCookieValue(setCookieHeaders, 'refresh_token'),
     password,
     username,
     email,
@@ -32,8 +57,13 @@ export async function createUser(request, prefix = 'user') {
 
 export function authHeaders(token) {
   return {
-    Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
+    Cookie: `jwt_token=${token}`,
+  };
+}
+
+export function refreshHeaders(token) {
+  return {
+    Cookie: `refresh_token=${token}`,
   };
 }
 
@@ -46,7 +76,14 @@ export async function loginViaApi(request, usernameOrEmail, password) {
   });
 
   expect(res.ok()).toBeTruthy();
-  return res.json();
+  const body = await res.json();
+  const setCookieHeaders = getSetCookieHeaders(res);
+
+  return {
+    ...body,
+    accessToken: body.accessToken ?? getCookieValue(setCookieHeaders, 'jwt_token'),
+    refreshToken: body.refreshToken ?? getCookieValue(setCookieHeaders, 'refresh_token'),
+  };
 }
 
 export async function requestFriendship(request, token, userId) {
@@ -61,7 +98,7 @@ export async function requestFriendship(request, token, userId) {
 
 export async function acceptFirstPending(request, token) {
   const pending = await request.get('/api/friends/requests', {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(token),
   });
   expect(pending.ok()).toBeTruthy();
 
@@ -70,7 +107,7 @@ export async function acceptFirstPending(request, token) {
   expect(reqId).toBeTruthy();
 
   const accepted = await request.put(`/api/friends/requests/${reqId}/accept`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(token),
   });
   expect(accepted.ok()).toBeTruthy();
 
