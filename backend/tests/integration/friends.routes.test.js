@@ -172,7 +172,7 @@ describe("POST /api/friends/requests", () => {
       .send({ userId: friendRequest.id });
     expect(res.status).toBe(200);
     expect(res.body.autoAccepted).toBe(true);
-    expect(res.body.request).toHaveProperty("senderId", validUser.id);
+    expect(res.body.request).toHaveProperty("senderId", friendRequest.id);
   });
 });
 
