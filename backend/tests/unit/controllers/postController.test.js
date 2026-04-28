@@ -45,7 +45,8 @@ function createReqRes(overrides = {}) {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  Object.values(mockPost).forEach((fn) => fn.mockReset());
+  mockNotificationService.postLiked.mockReset().mockResolvedValue(true);
 });
 
 // ── getFeed ──────────────────────────────────────────────────────────────────
