@@ -170,7 +170,8 @@ describe("POST /api/friends/requests", () => {
       .post("/api/friends/requests")
       .set("Cookie", [`jwt_token=${validUser.token}`])
       .send({ userId: friendRequest.id });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
+    expect(res.body.autoAccepted).toBe(true);
     expect(res.body.request).toHaveProperty("senderId", validUser.id);
   });
 });

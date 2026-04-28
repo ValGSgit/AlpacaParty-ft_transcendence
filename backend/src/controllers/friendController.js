@@ -46,6 +46,9 @@ export const sendRequest = async (req, res, next) => {
         },
       });
     }
+    if (Number(userId) === req.user.id) {
+      return res.status(400).json({ error: { message: 'Cannot friend yourself' } });
+    }
     const target = await User.findById(userId);
     if (!target) return res.status(404).json({ error: { message: 'User not found' } });
 
