@@ -6,7 +6,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     this.obstacles = [];
     this.roadSpeed = 25;
     this.spawnTimer = 2.0;
-    this.tickRate = 33; // Run loop every 33 milliseconds
+    this.tickRate = 33;
   }
 
   // Override the start function
@@ -18,20 +18,19 @@ export class AlpacaRoadMatch extends BaseMatch {
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
 
-  // THE BOSS LOGIC LOOP
   update() {
-    const dt = this.tickRate / 1000; // Time since last frame (0.033 seconds)
+    const tick = this.tickRate / 1000;
 
     // 1. Move Obstacles
     this.obstacles.forEach(obs => {
-      obs.z -= this.roadSpeed * dt;
+      obs.z -= this.roadSpeed * tick;
     });
 
     // 2. Delete old obstacles that passed the camera
     this.obstacles = this.obstacles.filter(obs => obs.z > -50);
 
     // 3. Spawn new obstacles
-    this.spawnTimer -= dt;
+    this.spawnTimer -= tick;
     if (this.spawnTimer <= 0) {
       this.obstacles.push({
         id: Math.random().toString(36).substr(2, 9), // Generate unique ID

@@ -1,6 +1,7 @@
 // client/GameClient.js
 import { io } from 'socket.io-client';
 import { gMinigame } from '../core/globals';
+import { changeGame } from './init';
 export class GameClient {
   constructor() {
     this.socket = null;
@@ -10,19 +11,14 @@ export class GameClient {
   connect() {
     if (this.socket) return;
 
-    // FIX: Just use the namespace. Socket.io will automatically figure out 
-    // to use https://localhost:8443 based on your browser URL!
     this.socket = io('/alpaca-road', { transports: ['websocket'], withCredentials: true });
 
-    // --- CLIENT TRIPWIRES ---
     this.socket.on('connect', () => {
       console.log("✅ FRONTEND: Connected to Server successfully! ID:", this.socket.id);
     });
-
     this.socket.on('connect_error', (err) => {
       console.error("❌ FRONTEND: Socket Connection FAILED!", err.message);
     });
-    // ------------------------
 
     this.setupListeners();
   }
@@ -32,13 +28,13 @@ export class GameClient {
       this.socket.disconnect();
       this.socket = null;
       this.serverObstacles = [];
-      console.log("🔌 Disconnected from server and wiped local data.");
+      console.log("Disconnected from server and wiped local data.");
     }
   }
 
   createRoom(playerName) {
     if (this.socket) {
-      console.log("Game Client:", playerName)
+      console.log("GC create_room:", playerName)
       this.socket.emit('create_room', { name: playerName });
     }
   }
@@ -58,16 +54,22 @@ export class GameClient {
     });
 
     this.socket.on('join_success', (data) => {
-      console.log("GC: joined succesfully");
+      console.log("GC: join_success");
       gMinigame.value.currentRoomName = data.roomName;
+      console.log(gMinigame.value.currentRoomName);
     });
 
     this.socket.on('lobby_update', (playerList) => {
+      console.log("GC: lobby_update");
       gMinigame.value.players = playerList;
     });
 
     this.socket.on('game_start', () => {
+      console.log("GC: game_start");
       gMinigame.value.isActive = true;
+
+      // 2. Now transition the UI and build the 3D scene
+      changeGame(gMinigame.value.mode, 1);
     });
 
     this.socket.on('tick', (snapshot) => {

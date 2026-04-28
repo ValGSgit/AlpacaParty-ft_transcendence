@@ -54,8 +54,7 @@ export class BaseMatch {
 
     if (allReady && this.status === 'LOBBY') {
       this.start();
-      // Tell the Manager to remove this room from the public menu
-      if (this.onStateChange) this.onStateChange();
+      //if (this.onStateChange) this.onStateChange();
     }
   }
 

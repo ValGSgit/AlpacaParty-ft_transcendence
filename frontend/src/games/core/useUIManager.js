@@ -108,7 +108,7 @@ export function useUIManager() {
 
   const closeLobbyMenu = () => {
     gUI.lobbyMenu = false
-    gUI.gameMenu = true
+    //gUI.gameMenu = true
   }
 
   return {

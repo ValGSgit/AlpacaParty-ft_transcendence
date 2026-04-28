@@ -12,7 +12,9 @@ import { attachCollider } from '../core/useCollider.js';
 import { usePhysics } from '../core/usePhysics.js';
 import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
 import { adjustSunBox, setSunLight, setupLighting } from '../world/sceneBuilder.js';
-import { makeAnnouncement } from './annoucement.js';
+import { makeAnnouncement, playCountDown } from './annoucement.js';
+import { activeClient } from './GameClient.js';
+
 
 const roadLength = 700;
 const roadBack = -25;
@@ -55,7 +57,6 @@ const { setTimeOfDay } = editLight();
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
   cleanupAlpacaRoad()
 
-  gMinigame.value.mode = 3;
   await setupRoadScene(gScene.value);
   await loadAssets();
   await initPlayers(playerCount, tempAlpacas);
@@ -64,18 +65,19 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
   initGameValues(playerCount);
 }
 
-export async function initAlpacaRoadOnline(playerCount, tempAlpacas, matchId) {
-  cleanupAlpacaRoad();
+export async function initAlpacaRoadOnline(playerCount, tempAlpacas) {
+  //cleanupAlpacaRoad();
+  console.log("init alpacaroad online");
 
-  gMinigame.value.mode = 4;
   await setupRoadScene(gScene.value);
   await loadAssets();
   await initPlayers(playerCount, tempAlpacas);
   initScenery();
   initGameValues(playerCount);
-  initClient(1, matchId);
-
-  gMinigame.value.isActive = false;
+  playCountDown(3);
+  /*   setTimeout(() => {
+      gMinigame.value.isActive = true;
+    }, 4000); */
 }
 
 function initGameValues(playerCount) {
@@ -85,7 +87,6 @@ function initGameValues(playerCount) {
   initalPlayerCount = playerCount;
   gUI.cameraMode = 2;
 
-  gMinigame.value.isActive = true;
   gUI.lockCamera = true;
   gUI.isLightCycling = false;
   assetsLoaded = true;
@@ -187,13 +188,8 @@ function initScenery() {
 export function initObstacles() {
   const amount = 8;
   for (let i = 0; i < amount; ++i) {
-    const config = createObstacle();
+    createObstacle();
     activeObstacles[i].position.z = startZ - (roadLength / amount * i);
-    config.z = activeObstacles[i].position.z
-    // Broadcast the exact spawn data to the other players
-    if (gMinigame.value.mode === 4 && client) {
-      client.emit('spawnObstacle', config);
-    }
   }
 }
 
@@ -222,13 +218,22 @@ function initRoadStripes() {
 
 
 export function updateAlpacaRoad(delta) {
-  if (!assetsLoaded) return;
+  if (!assetsLoaded || !gMinigame.value.isActive) return;
 
-  spawnObstacles(delta)
-  updateObstacles(delta)
-  updatePlayers(delta)
-  updateRoadScene(delta)
-  updateDifficulty()
+  if (gMinigame.value.mode === 4) {
+    // ONLINE
+    syncServerState();
+    updateRoadScene(delta);
+    syncPlayersFromServer(delta);
+  }
+  else {
+    // OFFLINE
+    spawnObstacles(delta)
+    updateObstacles(delta)
+    updatePlayers(delta)
+    updateRoadScene(delta)
+    updateDifficulty()
+  }
 
   if (alivePlayers <= 0) {
     endMinigame();
@@ -246,7 +251,7 @@ export function spawnObstacles(delta) {
   }
 }
 
-export function createObstacle(config = null) {
+export function createObstacle() {
   let obstacle;
   if (!config.isFull) {
     obstacle = singleObstacle[config.id].clone();
@@ -267,8 +272,6 @@ export function createObstacle(config = null) {
 
   activeObstacles.push(obstacle);
   gScene.value.add(obstacle);
-
-  return config; // Return the config in case we need to broadcast it
 }
 
 function getRandomID(array) {
@@ -379,22 +382,6 @@ function awardPoints(obstacle) {
   obstacle.pointGiven = true;
 }
 
-// function updatePointToServer(alpaca) {
-//   if (gMinigame.value.mode !== 4 || alpaca !== gPlayer.value)
-//     return
-//   const client = getActiveClient();
-//   if (client)
-//     client.emit('point', { ownerId: client.localPlayerId });
-// }
-
-// function updateHpToServer(alpaca) {
-//   if (gMinigame.value.mode !== 4 || alpaca !== gPlayer.value)
-//     return
-//   const client = getActiveClient();
-//   if (client)
-//     client.emit('hit', { targetId: client.localPlayerId });
-// }
-
 function removeObstacle(obstacle, index) {
   gScene.value.remove(obstacle);
   activeObstacles.splice(index, 1);
@@ -470,8 +457,6 @@ function endMinigame() {
     }
   }
   if (aliveAlpacas <= 0) {
-    gMinigame.value.isGameOver = true;
-    gMinigame.value.isActive = false;
     const playerPoints = activePlayers[0].point || 0;
     const earnedCoins = Math.floor(playerPoints / 1); // TODO: change back to correct value
 
@@ -487,8 +472,6 @@ function endMinigame() {
 
 export function cleanupAlpacaRoad() {
   assetsLoaded = false;
-  gMinigame.value.isActive = false;
-  gUI.DoF = false;
   gUI.isLightCycling = true;
 
   activeObstacles.forEach(obj => {
@@ -517,17 +500,9 @@ export function cleanupAlpacaRoad() {
 
   gUI.lockCamera = false;
   gUI.cameraMode = 1;
-  gMinigame.value.isGameOver = false;
+
   console.log("🧹 Minigame cleaned up.");
 }
-
-// export function getReady() {
-//   if (gMinigame.value.isReady)
-//     return
-//   gMinigame.value.isReady = true
-//   const client = getActiveClient();
-//   client.emit('ready', ({ id: client.localPlayerId, ready: gMinigame.value.isReady }))
-// }
 
 export function initInitalPlayerCount(playerCount) {
   initalPlayerCount = playerCount
@@ -536,4 +511,95 @@ export function initInitalPlayerCount(playerCount) {
 
 export function updateAlivePlayers() {
   alivePlayers--
+}
+
+// --- ONLINE SYNC LOGIC ---
+
+export function syncServerState() {
+  console.log("sync server");
+  const serverObsList = activeClient.serverObstacles;
+  if (!serverObsList) return;
+
+  const serverIds = new Set(serverObsList.map(o => o.id));
+
+  // 1. CLEANUP: Delete meshes that the server has removed
+  for (let i = activeObstacles.length - 1; i >= 0; i--) {
+    const localMesh = activeObstacles[i];
+    if (!serverIds.has(localMesh.userData.serverId)) {
+      removeObstacle(localMesh, i);
+    }
+  }
+
+  // 2. ADD & MOVE: Force meshes to match server positions
+  serverObsList.forEach(serverObs => {
+    let localMesh = activeObstacles.find(m => m.userData.serverId === serverObs.id);
+
+    if (!localMesh) {
+      localMesh = createObstacleFromBackend(serverObs);
+      localMesh.userData.serverId = serverObs.id;
+      activeObstacles.push(localMesh);
+      gScene.value.add(localMesh);
+    }
+
+    localMesh.position.z = serverObs.z;
+  });
+}
+
+function createObstacleFromBackend(serverObs) {
+  let obstacle;
+
+  // Create the specific mesh the server requested
+  if (!serverObs.isFull) {
+    obstacle = singleObstacle[serverObs.typeId].clone();
+    obstacle.position.x = playerPositions[serverObs.lane];
+    obstacle.userData.isFullWidth = false;
+  } else {
+    obstacle = fullObstacle[serverObs.typeId].clone();
+    obstacle.userData.isFullWidth = true;
+  }
+
+  attachCollider(obstacle);
+  obstacle.rotation.y = serverObs.rotation || 0;
+  obstacle.position.z = serverObs.z;
+
+  obstacle.frustumCulled = false;
+  obstacle.traverse(child => { if (child.isMesh) child.frustumCulled = false; });
+
+  return obstacle;
+}
+
+function syncPlayersFromServer(delta) {
+  // Use the players array sent by the server via GameClient
+  const serverPlayers = gMinigame.value.players;
+  if (!serverPlayers) return;
+
+  for (let i = 0; i < activePlayers.length; i++) {
+    const localAlpaca = activePlayers[i];
+    const serverData = serverPlayers.find(p => p.id === (i + 1));
+
+    if (serverData) {
+      // If the server says they took damage and we aren't spinning yet, start spinning!
+      if (serverData.hp < localAlpaca.hp && !localAlpaca.isBeingHit) {
+        localAlpaca.isBeingHit = true;
+        spawnFloatingText(localAlpaca.model, '-💔', 'hearts');
+      }
+
+      // Update local values to match server
+      localAlpaca.hp = serverData.hp;
+      localAlpaca.point = serverData.point;
+      localAlpaca.isDead = serverData.isDead;
+    }
+
+    // Handle the spin animation locally so it looks smooth
+    if (localAlpaca.isBeingHit) {
+      spinAlpacaUp(localAlpaca, delta);
+    }
+
+    // Slide dead players back down the road
+    if (localAlpaca.isDead && localAlpaca.isBeingHit) {
+      if (localAlpaca.model.position.z > roadBack) {
+        localAlpaca.model.position.z -= (roadSpeed * delta);
+      }
+    }
+  }
 }

@@ -3,7 +3,7 @@
     <div v-if="!gMinigame.currentRoomName" class="shop-title">
       Alpaca Road Lobby
       <button class="shop-btn" @click="handleCreateRoom" title="Create New Room">
-        Create My Room
+        Create New Room
       </button>
       <div v-for="room in gMinigame.publicRooms" :key="room.id">
         <button class="shop-btn" @click="handleJoinRoom(room.id)">
@@ -33,15 +33,12 @@ import { activeClient } from '../mini_games/GameClient.js';
 const { closeLobbyMenu } = useUIManager()
 
 onMounted(() => {
-  console.log("Connecting active client...");
   activeClient.connect();
-  console.log(activeClient);
 });
 
 onUnmounted(() => {
   console.log("unmounted");
-  // If we close the menu completely and the game hasn't started, disconnect.
-  if (!gMinigame.value.isActive) {
+  if (!gMinigame.value.isActive && !gMinigame.value.isReady) {
     activeClient.disconnect();
     gMinigame.value.currentRoomName = null;
     gMinigame.value.isReady = false;
@@ -49,10 +46,9 @@ onUnmounted(() => {
 });
 
 const handleCreateRoom = () => {
-  console.log("create!");
+  console.log("handle create!");
   const name = gUser.value.name || "Vue_Alpaca";
   activeClient.createRoom(name);
-  activeClient.joinRoom(name);
 };
 
 const handleJoinRoom = (roomId) => {
