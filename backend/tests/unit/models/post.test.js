@@ -92,4 +92,178 @@ describe('Post.getFeed', () => {
     expect(results[0].user_liked).toBe(true);
     expect(results[0].author_username).toBe('alice');
   });
+
+  test('returns posts without viewer info when viewerId is null', async () => {
+    mockPrisma.post.findMany.mockResolvedValue([mockPost]);
+    mockPrisma.repost.findMany.mockResolvedValue([]);
+
+    const results = await Post.getFeed({ viewerId: null });
+    expect(results).toHaveLength(1);
+    expect(results[0].user_liked).toBe(false);
+    expect(mockPrisma.postLike.findMany).not.toHaveBeenCalled();
+  });
+
+  test('includes reposts with metadata', async () => {
+    const repostedPost = { ...mockPost, id: 2 };
+    const repostData = {
+      id: 100,
+      postId: 2,
+      authorId: 99,
+      comment: 'Great post!',
+      createdAt: new Date(),
+      post: repostedPost,
+      author: { username: 'bob', avatar: '/avatars/bob.jpg' },
+    };
+    mockPrisma.post.findMany.mockResolvedValue([mockPost]);
+    mockPrisma.postLike.findMany.mockResolvedValue([]);
+    mockPrisma.repost.findMany.mockResolvedValue([]);
+    mockPrisma.repost.findMany.mockResolvedValueOnce([repostData]);
+
+    const results = await Post.getFeed({ viewerId: 99, limit: 10 });
+    expect(results[0]._repostBy).toBe('bob');
+    expect(results[0]._repostComment).toBe('Great post!');
+  });
+});
+
+describe('Post.update', () => {
+  test('updates content field', async () => {
+    const updated = { ...mockPost, content: 'Updated content' };
+    mockPrisma.post.update.mockResolvedValue(updated);
+    const result = await Post.update(1, 42, { content: 'Updated content' });
+    expect(result.content).toBe('Updated content');
+  });
+
+  test('updates isPublic with both snake_case and camelCase', async () => {
+    const updated = { ...mockPost, isPublic: false };
+    mockPrisma.post.update.mockResolvedValue(updated);
+    await Post.update(1, 42, { is_public: false });
+    expect(mockPrisma.post.update).toHaveBeenCalled();
+  });
+
+  test('returns existing post when no updates provided', async () => {
+    mockPrisma.post.findUnique.mockResolvedValue(mockPost);
+    const result = await Post.update(1, 42, {});
+    expect(result).toEqual(mockPost);
+  });
+
+  test('returns null on update failure', async () => {
+    mockPrisma.post.update.mockRejectedValue(new Error('Unauthorized'));
+    const result = await Post.update(1, 42, { content: 'New' });
+    expect(result).toBeNull();
+  });
+
+  test('handles imageUrl field', async () => {
+    const updated = { ...mockPost, imageUrl: '/new-image.jpg' };
+    mockPrisma.post.update.mockResolvedValue(updated);
+    await Post.update(1, 42, { imageUrl: '/new-image.jpg' });
+    expect(mockPrisma.post.update).toHaveBeenCalled();
+  });
+});
+
+describe('Post.delete', () => {
+  test('returns true when post is deleted', async () => {
+    mockPrisma.post.deleteMany.mockResolvedValue({ count: 1 });
+    const result = await Post.delete(1, 42);
+    expect(result).toBe(true);
+  });
+
+  test('returns false when post not found', async () => {
+    mockPrisma.post.deleteMany.mockResolvedValue({ count: 0 });
+    const result = await Post.delete(999, 42);
+    expect(result).toBe(false);
+  });
+});
+
+describe('Post.like', () => {
+  test('increments likes when not already liked', async () => {
+    mockPrisma.postLike.create.mockResolvedValue({});
+    mockPrisma.post.update.mockResolvedValue({});
+    await Post.like(1, 42);
+    expect(mockPrisma.postLike.create).toHaveBeenCalled();
+    expect(mockPrisma.post.update).toHaveBeenCalled();
+  });
+
+  test('handles duplicate like with P2002 error code', async () => {
+    const error = new Error('Unique constraint');
+    error.code = 'P2002';
+    mockPrisma.postLike.create.mockRejectedValue(error);
+    mockPrisma.post.update.mockResolvedValue({});
+    
+    // Should not throw and should still update post
+    await Post.like(1, 42);
+    expect(mockPrisma.post.update).toHaveBeenCalled();
+  });
+});
+
+describe('Post.unlike', () => {
+  test('decrements likes when post was liked', async () => {
+    mockPrisma.postLike.deleteMany.mockResolvedValue({ count: 1 });
+    mockPrisma.post.update.mockResolvedValue({});
+    await Post.unlike(1, 42);
+    expect(mockPrisma.post.update).toHaveBeenCalled();
+  });
+
+  test('does not update post when like not found', async () => {
+    mockPrisma.postLike.deleteMany.mockResolvedValue({ count: 0 });
+    await Post.unlike(1, 42);
+    expect(mockPrisma.post.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('Post.repost', () => {
+  test('creates repost successfully', async () => {
+    const repostData = { id: 1, postId: 1, authorId: 42, comment: 'Great!', createdAt: new Date(), author: { username: 'alice', avatar: '/a.jpg' } };
+    mockPrisma.repost.create.mockResolvedValue(repostData);
+    mockPrisma.post.update.mockResolvedValue({});
+    
+    const result = await Post.repost(1, 42, 'Great!');
+    expect(result.author_username).toBe('alice');
+    expect(result.comment).toBe('Great!');
+  });
+
+  test('returns null when already reposted (P2002 error)', async () => {
+    const error = new Error('Unique constraint');
+    error.code = 'P2002';
+    mockPrisma.repost.create.mockRejectedValue(error);
+    
+    const result = await Post.repost(1, 42);
+    expect(result).toBeNull();
+  });
+
+  test('throws other errors', async () => {
+    mockPrisma.repost.create.mockRejectedValue(new Error('Database error'));
+    
+    await expect(Post.repost(1, 42)).rejects.toThrow('Database error');
+  });
+});
+
+describe('Post.unrepost', () => {
+  test('deletes repost and decrements count', async () => {
+    mockPrisma.repost.deleteMany.mockResolvedValue({ count: 1 });
+    mockPrisma.post.update.mockResolvedValue({});
+    
+    await Post.unrepost(1, 42);
+    expect(mockPrisma.post.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: { repostsCount: { decrement: 1 } }
+    }));
+  });
+});
+
+describe('Post.getByUser', () => {
+  test('returns user posts ordered by creation date', async () => {
+    mockPrisma.post.findMany.mockResolvedValue([mockPost]);
+    const result = await Post.getByUser(42);
+    expect(result).toHaveLength(1);
+    expect(mockPrisma.post.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { authorId: 42 }
+    }));
+  });
+});
+
+describe('Post.count', () => {
+  test('returns total post count', async () => {
+    mockPrisma.post.count.mockResolvedValue(42);
+    const result = await Post.count();
+    expect(result).toBe(42);
+  });
 });

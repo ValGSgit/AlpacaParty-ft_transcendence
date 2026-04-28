@@ -4,14 +4,20 @@
  * config.apiKeys is a getter that reads process.env.API_KEYS on each access,
  * so tests just set the env var before calling the middleware.
  */
-import { jest, describe, test, expect, afterAll } from "@jest/globals";
+import { jest, describe, test, expect, afterAll, beforeEach } from "@jest/globals";
 import { requireApiKey } from "../../../src/middleware/apiKey.js";
-import prisma from "#config/prisma.js";
+
+jest.unstable_mockModule("#services/authService.js", () => ({
+  default: {
+    verifyToken: jest.fn(),
+  },
+}));
+
+const { default: AuthService } = await import("#services/authService.js");
 
 const originalApiKeys = process.env.API_KEYS;
 afterAll(async () => {
   process.env.API_KEYS = originalApiKeys;
-  await prisma.$disconnect();
 });
 
 function setKeys(keys) {
@@ -30,6 +36,10 @@ function mockRes() {
   };
   return res;
 }
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 describe("requireApiKey", () => {
   test("rejects request with no API key header", async () => {
@@ -156,5 +166,127 @@ describe("requireApiKey", () => {
     const req3 = { headers: { "x-api-key": "key2" } };
     await requireApiKey(req3, mockRes(), next);
     expect(next).toHaveBeenCalledTimes(2);
+  });
+
+  // Bearer token fallback tests
+  test("accepts valid Bearer token when no API key provided", async () => {
+    setKeys("valid-key");
+    AuthService.verifyToken.mockReturnValue({ id: 99, type: "access" });
+    
+    const req = { headers: { authorization: "Bearer valid-jwt-token" } };
+    const res = mockRes();
+    const next = jest.fn();
+    
+    await requireApiKey(req, res, next);
+    
+    expect(next).toHaveBeenCalled();
+    expect(req.apiKeyUserId).toBe(99);
+    expect(req.isServerKey).toBe(false);
+  });
+
+  test("sets Bearer token user as scoped to their own ID", async () => {
+    setKeys("");
+    AuthService.verifyToken.mockReturnValue({ id: 42, type: "access" });
+    
+    const req = { headers: { authorization: "Bearer some-token" } };
+    const res = mockRes();
+    const next = jest.fn();
+    
+    await requireApiKey(req, res, next);
+    
+    expect(req.apiKeyUserId).toBe(42);
+  });
+
+  test("rejects refresh token via Bearer token", async () => {
+    setKeys("valid-key");
+    AuthService.verifyToken.mockReturnValue({ id: 99, type: "refresh" });
+    
+    const req = { headers: { authorization: "Bearer refresh-token" } };
+    const res = mockRes();
+    const next = jest.fn();
+    
+    await requireApiKey(req, res, next);
+    
+    expect(res.statusCode).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test("rejects malformed Bearer token", async () => {
+    setKeys("valid-key");
+    AuthService.verifyToken.mockThrowError(new Error("Invalid token"));
+    
+    const req = { headers: { authorization: "Bearer invalid-token" } };
+    const res = mockRes();
+    const next = jest.fn();
+    
+    await requireApiKey(req, res, next);
+    
+    expect(res.statusCode).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test("rejects Bearer without token part", async () => {
+    setKeys("valid-key");
+    
+    const req = { headers: { authorization: "Bearer" } };
+    const res = mockRes();
+    const next = jest.fn();
+    
+    await requireApiKey(req, res, next);
+    
+    expect(res.statusCode).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test("rejects invalid authorization scheme", async () => {
+    setKeys("valid-key");
+    
+    const req = { headers: { authorization: "Basic dGVzdDp0ZXN0" } };
+    const res = mockRes();
+    const next = jest.fn();
+    
+    await requireApiKey(req, res, next);
+    
+    expect(res.statusCode).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test("prefers valid API key over Bearer token", async () => {
+    setKeys("server-key-123");
+    
+    const req = {
+      headers: {
+        "x-api-key": "server-key-123",
+        authorization: "Bearer some-token",
+      },
+    };
+    const res = mockRes();
+    const next = jest.fn();
+    
+    await requireApiKey(req, res, next);
+    
+    expect(next).toHaveBeenCalled();
+    expect(req.isServerKey).toBe(true);
+    // Should not check Bearer token when API key is valid
+    expect(AuthService.verifyToken).not.toHaveBeenCalled();
+  });
+
+  test("falls back to Bearer when API key is invalid", async () => {
+    setKeys("valid-key");
+    jest.mocked(AuthService.verifyToken).mockReturnValue({ id: 42, type: "access" });
+    
+    const req = {
+      headers: {
+        "x-api-key": "wrong-key",
+        authorization: "Bearer valid-token",
+      },
+    };
+    const res = mockRes();
+    const next = jest.fn();
+    
+    await requireApiKey(req, res, next);
+    
+    expect(next).toHaveBeenCalled();
+    expect(req.apiKeyUserId).toBe(42);
   });
 });
