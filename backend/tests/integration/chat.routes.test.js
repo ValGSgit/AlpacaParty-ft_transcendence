@@ -9,7 +9,7 @@ import {
   afterAll,
   beforeAll,
 } from "@jest/globals";
-import supertest from "supertest";
+import supertestC from "supertest";
 import prisma from "#config/prisma.js";
 import AuthService from "#services/authService.js";
 import { createTestApp } from "../helpers/createApp.js";
@@ -99,7 +99,7 @@ async function setupChatRooms() {
 
 beforeEach(async () => {
   app = await createTestApp();
-  request = supertest(app);
+  request = supertestC(app);
 });
 
 afterAll(async () => {

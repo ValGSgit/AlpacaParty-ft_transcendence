@@ -2,7 +2,7 @@
  * Post Routes Integration Tests
  */
 import { jest, describe, test, expect, beforeEach } from "@jest/globals";
-import supertest from "supertest";
+import supertestC from "supertest";
 
 // ── Mock prisma ──
 const mockPrisma = {
@@ -87,7 +87,7 @@ beforeEach(async () => {
     typeof fnOrOps === "function" ? fnOrOps(mockPrisma) : Promise.all(fnOrOps),
   );
   app = await createTestApp();
-  request = supertest(app);
+  request = supertestC(app);
   token = AuthService.generateAccessToken({
     id: 1,
     username: "poster",
