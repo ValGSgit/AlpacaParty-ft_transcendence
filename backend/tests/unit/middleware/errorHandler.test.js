@@ -1,8 +1,10 @@
 /**
  * Error Handler Middleware Unit Tests
  */
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect, beforeEach } from '@jest/globals';
+import { jest } from '@jest/globals';
 import { notFoundHandler, errorHandler } from '../../../src/middleware/errorHandler.js';
+import { Prisma } from '@prisma/client';
 
 describe('errorHandler middleware', () => {
   describe('notFoundHandler', () => {
@@ -222,6 +224,62 @@ describe('errorHandler middleware', () => {
       expect(res._json).toHaveProperty('error');
       expect(res._json.error).toHaveProperty('message');
       expect(typeof res._json.error.message).toBe('string');
+    });
+
+    test('should handle Prisma P2000 error (value too long)', () => {
+      const err = new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed',
+        { code: 'P2000', meta: {} },
+        '',
+      );
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(400);
+      expect(res._json.error.message).toMatch(/value is too long/i);
+    });
+
+    test('should handle Prisma P2002 error (unique constraint)', () => {
+      const err = new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed',
+        { code: 'P2002', meta: {} },
+        '',
+      );
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(409);
+      expect(res._json.error.message).toMatch(/unique constraint/i);
+    });
+
+    test('should handle Prisma P2025 error (record not found)', () => {
+      const err = new Prisma.PrismaClientKnownRequestError(
+        'Record not found',
+        { code: 'P2025', meta: {} },
+        '',
+      );
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(404);
+      expect(res._json.error.message).toMatch(/not found/i);
+    });
+
+    test('should handle unknown Prisma error code', () => {
+      const err = new Prisma.PrismaClientKnownRequestError(
+        'Unknown error',
+        { code: 'P9999', meta: {} },
+        '',
+      );
+      const res = createRes();
+
+      errorHandler(err, {}, res, () => {});
+
+      expect(res._status).toBe(404);
+      expect(res._json.error.message).toMatch(/unknown prisma error/i);
     });
   });
 });

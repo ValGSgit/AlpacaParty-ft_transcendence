@@ -1,14 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { authHeaders } from './helpers/api.js';
+import { authHeaders, loginViaApi } from './helpers/api.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 async function loginAsSeeded(request, email, password = 'LiveSeed123!') {
-  const res = await request.post('/api/auth/login', {
-    data: { username: email, password },
-  });
-  expect(res.ok()).toBeTruthy();
-  const body = await res.json();
+  const body = await loginViaApi(request, email, password);
   return { token: body.accessToken, user: body.user };
 }
 

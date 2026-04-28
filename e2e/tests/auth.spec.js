@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createUser, loginViaApi, uniqueId } from './helpers/api.js';
+import { authHeaders, createUser, loginViaApi, refreshHeaders, uniqueId } from './helpers/api.js';
 
 test.describe('Auth API + Session Workflow', () => {
   test('register, login (username/email), me, refresh', async ({ request }) => {
@@ -14,7 +14,7 @@ test.describe('Auth API + Session Workflow', () => {
     expect(loginByEmail.user.email).toBe(created.email);
 
     const meRes = await request.get('/api/auth/me', {
-      headers: { Authorization: `Bearer ${loginByEmail.accessToken}` },
+      headers: authHeaders(loginByEmail.accessToken),
     });
     expect(meRes.ok()).toBeTruthy();
 
@@ -22,13 +22,13 @@ test.describe('Auth API + Session Workflow', () => {
     expect(meBody.user.id).toBe(created.user.id);
 
     const refreshRes = await request.post('/api/auth/refresh', {
-      data: { refreshToken: loginByEmail.refreshToken },
+      headers: refreshHeaders(loginByEmail.refreshToken),
     });
     expect(refreshRes.ok()).toBeTruthy();
 
-    const refreshBody = await refreshRes.json();
-    expect(refreshBody.accessToken).toBeTruthy();
-    expect(refreshBody.refreshToken).toBeTruthy();
+    const refreshCookies = refreshRes.headers()['set-cookie'] ?? '';
+    expect(refreshCookies).toContain('jwt_token=');
+    expect(refreshCookies).toContain('refresh_token=');
   });
 
   test('duplicate username/email is rejected', async ({ request }) => {
