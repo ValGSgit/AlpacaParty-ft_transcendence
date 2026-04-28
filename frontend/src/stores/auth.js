@@ -6,6 +6,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "../services/api.js";
+import { disconnectSocket } from "../services/socket.js";
 
 export const useAuthStore = defineStore("auth", () => {
   // ── State ───────────────────────────────────────────────────
@@ -26,11 +27,15 @@ export const useAuthStore = defineStore("auth", () => {
     loading.value = true;
     error.value = null;
     try {
-      const { data } = await api.post("/auth/register", {
-        username,
-        email,
-        password,
-      });
+      const { data } = await api.post(
+        "/auth/register",
+        {
+          username,
+          email,
+          password,
+        },
+        { retryOnAuth: false },
+      );
       user.value = data.user;
       return data;
     } catch (err) {
@@ -48,7 +53,11 @@ export const useAuthStore = defineStore("auth", () => {
     loading.value = true;
     error.value = null;
     try {
-      const { data } = await api.post("/auth/login", { username, password });
+      const { data } = await api.post(
+        "/auth/login",
+        { username, password },
+        { retryOnAuth: false },
+      );
       user.value = data.user;
       return data;
     } catch (err) {
@@ -64,6 +73,7 @@ export const useAuthStore = defineStore("auth", () => {
    */
   async function logout() {
     try {
+      disconnectSocket();
       await api.post("/auth/logout");
     } catch {
       // Ignore errors on logout

@@ -53,7 +53,7 @@
       <h3>3.3 Game &amp; Social Data</h3>
       <p>
         We store game progress (coins, farm state, achievements), friend lists, chat
-        messages, posts, and organisation memberships so you can access them across sessions.
+        messages, and posts so you can access them across sessions.
       </p>
       <h3>3.4 Technical Data</h3>
       <p>
@@ -82,7 +82,7 @@
             <td>Performance of a contract — Art. 6(1)(b)</td>
           </tr>
           <tr>
-            <td>Enable social features (friends, messaging, posts, organisations)</td>
+            <td>Enable social features (friends, messaging, posts)</td>
             <td>Performance of a contract — Art. 6(1)(b)</td>
           </tr>
           <tr>
@@ -112,7 +112,7 @@
         Data is shared only in the following limited circumstances:
       </p>
       <ul>
-        <li>With other users, to the extent you make information public (profile, posts, organisations).</li>
+        <li>With other users, to the extent you make information public (profile, posts).</li>
         <li>With third-party OAuth providers (Google, GitHub) when you choose to sign in via them.</li>
         <li>When required by law or to protect the rights, safety, or property of AlpacaParty and its users.</li>
       </ul>

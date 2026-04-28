@@ -1,5 +1,5 @@
 <!--
-  Messages View — DM conversations and group chat rooms
+  Messages View — DM conversations
   @owner ValGSgit
 -->
 <template>
@@ -11,7 +11,6 @@
           DMs
           <span v-if="totalUnread" class="tab-badge">{{ totalUnread }}</span>
         </button>
-        <button :class="['stab', { active: sideTab === 'rooms' }]" @click="sideTab = 'rooms'">Rooms</button>
       </div>
 
       <!-- DMs panel -->
@@ -83,52 +82,13 @@
           </ul>
         </template>
       </div>
-
-      <!-- Rooms panel -->
-      <div v-if="sideTab === 'rooms'" class="sidebar-panel">
-        <button class="btn-sm btn-primary create-room-btn" @click="showCreateRoom = !showCreateRoom">
-          + New Room
-        </button>
-
-        <!-- Create room form -->
-        <div v-if="showCreateRoom" class="new-room-form">
-          <input v-model="newRoomName" type="text" placeholder="Room name" class="sidebar-input" />
-          <div class="section-label">Add members (optional)</div>
-          <ul class="member-select-list">
-            <li v-for="f in friends" :key="f.id" class="member-select-item">
-              <label>
-                <input type="checkbox" :value="f.id" v-model="selectedMembers" />
-                <img :src="f.avatar || '/avatars/default.svg'" class="mini-avatar-sm" alt="" />
-                {{ f.username }}
-              </label>
-            </li>
-            <li v-if="!friends.length" class="empty small">No friends to add</li>
-          </ul>
-          <button class="btn-sm btn-primary" @click="createRoom" :disabled="!newRoomName.trim()">Create</button>
-        </div>
-
-        <ul class="conv-list">
-          <li
-            v-for="r in rooms"
-            :key="r.id"
-            :class="['conv-item', { active: selected?.type === 'room' && selected.id === r.id }]"
-            @click="selectRoom(r)"
-          >
-            <div class="room-icon">#</div>
-            <div class="conv-info">
-              <span class="conv-name">{{ r.name }}</span>
-            </div>
-          </li>
-        </ul>
-        <p v-if="!rooms.length && !loading" class="empty small">No rooms yet.</p>
-      </div>
     </aside>
 
     <!-- Chat area -->
     <main class="chat-area">
       <div v-if="!selected" class="no-selection">
-        <p>Select a conversation or room to start chatting.</p>
-        <p class="hint">Click a friend on the left to start a DM, or join a room.</p>
+        <p>Select a conversation to start chatting.</p>
+        <p class="hint">Click a friend on the left to start a DM.</p>
       </div>
       <template v-else>
         <header class="chat-header">
@@ -143,34 +103,7 @@
               {{ selected.type === 'dm' ? selected.username : `# ${selected.name}` }}
             </span>
           </div>
-          <div v-if="selected.type === 'room'" class="room-actions">
-            <button
-              v-if="selected.owner_id === currentUserId"
-              class="btn-sm btn-secondary"
-              @click="showAddMember = !showAddMember"
-            >+ Member</button>
-            <button class="btn-sm" @click="leaveRoom">Leave</button>
-            <button
-              class="btn-sm btn-danger"
-              @click="deleteRoom"
-              v-if="selected.owner_id === currentUserId"
-            >Delete</button>
-          </div>
         </header>
-
-        <!-- Add member panel (room owner only) -->
-        <div v-if="showAddMember && selected.type === 'room'" class="add-member-panel">
-          <p class="section-label">Add a friend to this room:</p>
-          <ul class="member-select-list horizontal">
-            <li v-for="f in friends" :key="f.id" class="member-select-item">
-              <button class="btn-sm btn-secondary" @click="addMemberToRoom(f)">
-                <img :src="f.avatar || '/avatars/default.svg'" class="mini-avatar-sm" alt="" />
-                {{ f.username }}
-              </button>
-            </li>
-            <li v-if="!friends.length" class="empty small">No friends to add</li>
-          </ul>
-        </div>
 
         <div v-if="msgError" class="error-banner">{{ msgError }}</div>
 
@@ -204,7 +137,6 @@ const currentUserId = computed(() => authStore.user?.id)
 
 const sideTab = ref('dms')
 const conversations = ref([])
-const rooms = ref([])
 const friends = ref([])
 const recommendedUsers = ref([])
 const selected = ref(null)
@@ -254,13 +186,6 @@ async function fetchConversations() {
   } finally {
     loading.value = false
   }
-}
-
-async function fetchRooms() {
-  try {
-    const { data } = await api.get('/chat/rooms')
-    rooms.value = data.rooms || []
-  } catch {}
 }
 
 async function fetchFriends() {
@@ -317,27 +242,6 @@ async function loadDmMessages(userId) {
   }
 }
 
-async function selectRoom(r) {
-  selected.value = { type: 'room', ...r }
-  showAddMember.value = false
-  await loadRoomMessages(r.id)
-}
-
-async function loadRoomMessages(roomId) {
-  loadingMessages.value = true
-  msgError.value = null
-  try {
-    const { data } = await api.get(`/chat/rooms/${roomId}/messages`)
-    messages.value = data.messages || []
-    await nextTick()
-    scrollToBottom()
-  } catch (e) {
-    msgError.value = e.response?.data?.error?.message || 'Failed to load messages'
-  } finally {
-    loadingMessages.value = false
-  }
-}
-
 function sendMessage() {
   const content = newMessage.value.trim()
   if (!content || !selected.value) return
@@ -352,14 +256,6 @@ function sendMessage() {
 
   if (selected.value.type === 'dm') {
     socket.emit('dm:send', { receiverId: selected.value.id, content }, (ack) => {
-      if (ack?.error) {
-        msgError.value = ack.error
-      } else if (ack?.message) {
-        scrollToBottom()
-      }
-    })
-  } else {
-    socket.emit('room:send', { roomId: selected.value.id, content }, (ack) => {
       if (ack?.error) {
         msgError.value = ack.error
       } else if (ack?.message) {
@@ -395,79 +291,10 @@ function setupSocket() {
     }
     fetchConversations()
   })
-
-  socket.on('room:message', (data) => {
-    const message = data.id ? data : data.message
-    if (selected.value?.type === 'room' && message.room_id === selected.value.id) {
-      if (!messages.value.some(m => m.id === message.id)) {
-        messages.value.push(message)
-        scrollToBottom()
-      }
-    }
-  })
-}
-
-async function createRoom() {
-  if (!newRoomName.value.trim()) return
-  try {
-    const { data } = await api.post('/chat/rooms', { name: newRoomName.value.trim() })
-    const roomId = data.room?.id
-    // Add selected members
-    if (roomId && selectedMembers.value.length) {
-      await Promise.allSettled(
-        selectedMembers.value.map(uid => api.post(`/chat/rooms/${roomId}/members`, { userId: uid }))
-      )
-    }
-    newRoomName.value = ''
-    selectedMembers.value = []
-    showCreateRoom.value = false
-    await fetchRooms()
-    if (roomId) {
-      const room = rooms.value.find(r => r.id === roomId)
-      if (room) selectRoom(room)
-    }
-  } catch (e) {
-    msgError.value = e.response?.data?.error?.message || 'Failed to create room'
-  }
-}
-
-async function addMemberToRoom(friend) {
-  if (!selected.value) return
-  try {
-    await api.post(`/chat/rooms/${selected.value.id}/members`, { userId: friend.id })
-    showAddMember.value = false
-    msgError.value = null
-  } catch (e) {
-    msgError.value = e.response?.data?.error?.message || 'Failed to add member'
-  }
-}
-
-async function leaveRoom() {
-  if (!selected.value) return
-  try {
-    await api.delete(`/chat/rooms/${selected.value.id}/members/${currentUserId.value}`)
-    selected.value = null
-    messages.value = []
-    await fetchRooms()
-  } catch (e) {
-    msgError.value = e.response?.data?.error?.message || 'Failed to leave room'
-  }
-}
-
-async function deleteRoom() {
-  if (!selected.value) return
-  try {
-    await api.delete(`/chat/rooms/${selected.value.id}`)
-    selected.value = null
-    messages.value = []
-    await fetchRooms()
-  } catch (e) {
-    msgError.value = e.response?.data?.error?.message || 'Failed to delete room'
-  }
 }
 
 onMounted(async () => {
-  await Promise.all([fetchConversations(), fetchRooms(), fetchFriends()])
+  await Promise.all([fetchConversations(), fetchFriends()])
   await fetchRecommended()
   setupSocket()
 })
@@ -478,7 +305,6 @@ onUnmounted(() => {
     socket.off('disconnect')
     socket.off('connect_error')
     socket.off('dm:message')
-    socket.off('room:message')
   }
   disconnectSocket()
 })
@@ -593,22 +419,11 @@ onUnmounted(() => {
 }
 .online-dot.online { background: var(--success, #00ff88); }
 
-.room-icon { width: 34px; height: 34px; border-radius: 8px; background: var(--bg-tertiary, #1a1a2a); display: grid; place-items: center; color: var(--primary, #00f0ff); font-weight: 700; flex-shrink: 0; }
-
 .conv-info { flex: 1; overflow: hidden; }
 .conv-name { display: block; font-weight: 500; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .conv-preview { display: block; font-size: 0.78rem; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .unread-badge { background: var(--primary, #00f0ff); color: #0a0a0f; border-radius: 10px; font-size: 0.7rem; padding: 1px 6px; font-weight: 700; white-space: nowrap; }
-
-.create-room-btn { margin: 0.6rem; align-self: flex-start; }
-
-.new-room-form {
-  padding: 0 0.6rem 0.6rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
 
 .member-select-list {
   list-style: none;
@@ -660,20 +475,6 @@ onUnmounted(() => {
 .chat-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
 .chat-title { font-weight: 600; color: var(--primary, #00f0ff); }
 
-.room-actions { display: flex; gap: 0.4rem; }
-
-.add-member-panel {
-  padding: 0.5rem 1rem;
-  background: var(--bg-secondary, #12121a);
-  border-bottom: 1px solid var(--border-color, #2a2a3a);
-}
-.member-select-list.horizontal {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  max-height: none;
-  overflow: visible;
-}
 
 .messages-list {
   flex: 1;

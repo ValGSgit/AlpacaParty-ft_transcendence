@@ -84,8 +84,7 @@ describe("authenticate middleware", () => {
   test("should reject if user not found in DB", async () => {
     const token = AuthService.generateAccessToken({
       id: 999,
-      username: "ghost",
-      isAdmin: false,
+      username: "ghost"
     });
     mockUserFindById.mockResolvedValueOnce(null);
 
@@ -106,7 +105,6 @@ describe("authenticate middleware", () => {
     const token = AuthService.generateAccessToken({
       id: 1,
       username: "tester",
-      isAdmin: false,
     });
     mockUserFindById.mockResolvedValueOnce(fakeUser);
 
@@ -123,7 +121,6 @@ describe("authenticate middleware", () => {
     const token = AuthService.generateAccessToken({
       id: 1,
       username: "tester",
-      isAdmin: false,
     });
     mockUserFindById.mockRejectedValueOnce(new Error("DB down"));
 
@@ -140,12 +137,10 @@ describe("authenticate middleware", () => {
       id: 2,
       username: "admin",
       email: "admin@test.com",
-      isAdmin: true,
     };
     const token = AuthService.generateAccessToken({
       id: 2,
       username: "admin",
-      isAdmin: true,
     });
     mockUserFindById.mockResolvedValueOnce(adminUser);
 
@@ -163,7 +158,7 @@ describe("authenticate middleware", () => {
   test("should reject expired token", async () => {
     // Create a token that expired 1 hour ago
     const expiredToken = jwt.sign(
-      { id: 1, username: "tester", isAdmin: false },
+      { id: 1, username: "tester"},
       config.jwt.secret,
       { expiresIn: "-1h" },
     );
@@ -182,7 +177,7 @@ describe("authenticate middleware", () => {
   test("should reject token missing id field", async () => {
     // Token with no id in payload
     const tokenNoId = jwt.sign(
-      { username: "tester", isAdmin: false },
+      { username: "tester"},
       config.jwt.secret,
       { expiresIn: "1h" },
     );
@@ -206,12 +201,10 @@ describe("authenticate middleware", () => {
     const token1 = AuthService.generateAccessToken({
       id: 1,
       username: "user1",
-      isAdmin: false,
     });
     const token2 = AuthService.generateAccessToken({
       id: 2,
       username: "user2",
-      isAdmin: false,
     });
 
     mockUserFindById.mockResolvedValueOnce(user1).mockResolvedValueOnce(user2);
@@ -272,7 +265,6 @@ describe("optionalAuth middleware", () => {
     const token = AuthService.generateAccessToken({
       id: 1,
       username: "tester",
-      isAdmin: false,
     });
     mockUserFindById.mockResolvedValueOnce(fakeUser);
 
@@ -309,7 +301,6 @@ describe("optionalAuth middleware", () => {
     const token = AuthService.generateAccessToken({
       id: 1,
       username: "u",
-      isAdmin: false,
     });
     mockUserFindById.mockRejectedValueOnce(new Error("DB failure"));
 
@@ -335,7 +326,7 @@ describe("optionalAuth middleware", () => {
 
   test("should proceed without user when token is expired", async () => {
     const expiredToken = jwt.sign(
-      { id: 1, username: "tester", isAdmin: false },
+      { id: 1, username: "tester"},
       config.jwt.secret,
       { expiresIn: "-1h" },
     );
@@ -358,7 +349,6 @@ describe("optionalAuth middleware", () => {
     const token1 = AuthService.generateAccessToken({
       id: 1,
       username: "user1",
-      isAdmin: false,
     });
 
     mockUserFindById.mockResolvedValueOnce(user1);

@@ -31,7 +31,6 @@ const fakeUser = {
   bio: null,
   status: "online",
   isOnline: true,
-  isAdmin: false,
   lastSeen: null,
   createdAt: new Date().toISOString(),
 };

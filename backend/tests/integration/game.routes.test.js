@@ -52,7 +52,6 @@ const authUser = {
   id: 1,
   username: "gamer",
   email: "g@test.com",
-  isAdmin: false,
 };
 
 beforeEach(async () => {
@@ -65,7 +64,6 @@ beforeEach(async () => {
   token = AuthService.generateAccessToken({
     id: 1,
     username: "gamer",
-    isAdmin: false,
   });
 });
 

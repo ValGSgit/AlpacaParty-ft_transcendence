@@ -89,6 +89,8 @@ describe('Register.vue', () => {
       username: 'newuser',
       email: 'new@test.com',
       password: 'ValidPass1',
+    }, {
+      retryOnAuth: false,
     })
   })
 

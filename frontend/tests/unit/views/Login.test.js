@@ -73,6 +73,8 @@ describe('Login.vue', () => {
     expect(api.post).toHaveBeenCalledWith('/auth/login', {
       username: 'testuser',
       password: 'TestPass1',
+    }, {
+      retryOnAuth: false,
     })
   })
 

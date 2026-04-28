@@ -24,7 +24,7 @@ Pass with 14
 ### 🟢 Major: Allow users to interact with other users. The minimum requirements are:
 
 - [ ] A basic chat system (send/receive messages between users).
-- [ ] A profile system (view user information).
+- [x] A profile system (view user information).
 - [ ] A friends system (add/remove friends, see friends list).
 
 ### 🟢 Major: A public API to interact with the database with a secured API key, rate limiting, documentation, and at least 5 endpoints:
@@ -45,14 +45,14 @@ Pass with 14
 
 ### 🟡 Minor: Custom-made design system with reusable components
 
-- [ ] propercolor palette
-- [ ] typography
-- [ ] icons
+- [x] propercolor palette
+- [x] typography
+- [x] icons
 - [ ] minimum: 10 reusable components
 
 ### 🟡❓Minor: Implement advanced search functionality with:
 
-- [ ] filters
+- [x] filters
 - [ ] sorting
 - [ ] pagination
 
@@ -72,9 +72,9 @@ Pass with 14
 ### 🟡 Minor: Support for additional browsers.
 
 - [x] Full compatibility with at least 2 additional browsers (Firefox, Safari, Edge, etc.).
-- [ ] Test and fix all features in each browser.
+- [x] Test and fix all features in each browser.
 - [ ] Document any browser-specific limitations.
-- [ ] Consistent UI/UX across all supported browsers.
+- [x] Consistent UI/UX across all supported browsers.
 
 ---
 
@@ -82,7 +82,7 @@ Pass with 14
 
 ### 🟢 Major: Standard user management and authentication.
 
-- [ ] Users can update their profile information.
+- [x] Users can update their profile information.
 - [ ] Users can upload an avatar (with a default avatar if none provided).
 - [ ] Users can add other users as friends and see their online status.
 - [ ] Users have a profile page displaying their information.
@@ -96,14 +96,14 @@ Pass with 14
 
 ### 🟡 Minor: Implement remote authentication with OAuth 2.0 (Google, GitHub, 42, etc.).
 
+- [x] done
+
 ### 🟢❓Major: An organization system:
 
 - [ ] Create, edit, and delete organizations.
 - [ ] Add users to organizations.
 - [ ] Remove users from organizations.
 - [ ] View organizations and allow users to perform specific actions within an organization (minimum: create, read, update).
-
-### 🟡 ❌Minor: User activity analytics and insights dashboard.
 
 ---
 
@@ -113,9 +113,9 @@ Pass with 14
 
 - [ ] The game can be real-time multiplayer (e.g., Pong, Chess, Tic-Tac-Toe, Card
       games, etc.).
-- [ ] Players must be able to play live matches.
-- [ ] The game must have clear rules and win/loss conditions.
-- [ ] The game can be 2D or 3D.
+- [x] Players must be able to play live matches.
+- [x] The game must have clear rules and win/loss conditions.
+- [x] The game can be 2D or 3D.
 
 ### 🟢 Major: Remote players — Enable two players on separate computers to play the same game in real-time.
 
@@ -125,8 +125,8 @@ Pass with 14
 
 ### 🟢 Major: Multiplayer game (more than two players).
 
-- [ ] Support for three or more players simultaneously.
-- [ ] Fair gameplay mechanics for all participants.
+- [x] Support for three or more players simultaneously.
+- [x] Fair gameplay mechanics for all participants.
 - [ ] Proper synchronization across all clients.
 
 ### 🟢 ❌Major: Add another game with user history and matchmaking.???

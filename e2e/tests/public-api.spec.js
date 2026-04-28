@@ -55,22 +55,6 @@ test.describe('Public API Showcase', () => {
     expect(post.author_username || post.authorUsername || post.author).toBeTruthy();
   });
 
-  test('GET /api/public/organizations returns orgs with memberCount', async ({ request }) => {
-    const res = await request.get('/api/public/organizations', {
-      headers: apiKeyHeaders(),
-    });
-    expect(res.ok()).toBeTruthy();
-
-    const body = await res.json();
-    expect(Array.isArray(body.organizations)).toBeTruthy();
-    expect(body.organizations.length).toBeGreaterThan(0);
-
-    const org = body.organizations[0];
-    expect(org.id).toBeTruthy();
-    expect(org.name).toBeTruthy();
-    expect(typeof (org.memberCount ?? org.member_count ?? org._count?.members)).toBe('number');
-  });
-
   test('GET /api/public/leaderboard returns leaderboard data', async ({ request }) => {
     const res = await request.get('/api/public/leaderboard', {
       headers: apiKeyHeaders(),
@@ -146,23 +130,4 @@ test.describe('Public API Showcase', () => {
     expect(body.posts.length).toBeLessThanOrEqual(2);
   });
 
-  test('organizations search works', async ({ request }) => {
-    // Get first org name from the list, then search for it
-    const listRes = await request.get('/api/public/organizations?limit=1', {
-      headers: apiKeyHeaders(),
-    });
-    expect(listRes.ok()).toBeTruthy();
-    const listBody = await listRes.json();
-
-    if (listBody.organizations.length > 0) {
-      const orgName = listBody.organizations[0].name;
-      const searchRes = await request.get(
-        `/api/public/organizations?search=${encodeURIComponent(orgName)}`,
-        { headers: apiKeyHeaders() },
-      );
-      expect(searchRes.ok()).toBeTruthy();
-      const searchBody = await searchRes.json();
-      expect(searchBody.organizations.length).toBeGreaterThan(0);
-    }
-  });
 });
