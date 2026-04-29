@@ -20,6 +20,19 @@ const Friend = {
   async sendRequest(senderId, receiverId) {
     if (senderId === receiverId)
       throw Object.assign(new Error("Cannot friend yourself"), { status: 400 });
+
+    const reverseRequest = await prisma.friendRequest.findFirst({
+      where: {
+        senderId: Number(receiverId),
+        receiverId: Number(senderId),
+        status: "pending",
+      },
+    });
+    if (reverseRequest) {
+      const request = await this.acceptRequest(reverseRequest.id, senderId);
+      return { request, autoAccepted: true };
+    }
+
     return prisma.friendRequest.upsert({
       where: {
         senderId_receiverId: {

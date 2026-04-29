@@ -24,6 +24,9 @@ FROM node:24-alpine3.22
 
 WORKDIR /app
 
+# Healthcheck uses curl, so it must exist in the runtime image.
+RUN apk add --no-cache curl
+
 # Copy only what the server needs to run — no devDeps, no build tooling, no test files.
 COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/src          ./src

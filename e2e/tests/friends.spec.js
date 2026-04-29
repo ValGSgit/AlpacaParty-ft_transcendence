@@ -1,20 +1,50 @@
 import { test, expect } from '@playwright/test';
-import { authHeaders, createUser, requestFriendship, acceptFirstPending } from './helpers/api.js';
+import { acceptFirstPending, authHeaders, createUser, loginViaApi, requestFriendship } from './helpers/api.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 async function loginAsSeeded(request, email, password = 'LiveSeed123!') {
-  const res = await request.post('/api/auth/login', {
-    data: { username: email, password },
-  });
-  expect(res.ok()).toBeTruthy();
-  const body = await res.json();
+  const body = await loginViaApi(request, email, password);
   return { token: body.accessToken, user: body.user };
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 test.describe('Friend System', () => {
+  test('reverse friend request auto-accepts', async ({ request }) => {
+    const userA = await createUser(request, 'mutual_a');
+    const userB = await createUser(request, 'mutual_b');
+
+    const firstRequest = await requestFriendship(request, userA.accessToken, userB.user.id);
+    expect(firstRequest.request.status).toBe('pending');
+
+    const secondRequest = await requestFriendship(request, userB.accessToken, userA.user.id);
+    expect(secondRequest.autoAccepted).toBe(true);
+    expect(secondRequest.request.status).toBe('accepted');
+
+    const friendsA = await request.get('/api/friends', {
+      headers: authHeaders(userA.accessToken),
+    });
+    expect(friendsA.ok()).toBeTruthy();
+    const friendsABody = await friendsA.json();
+    expect(friendsABody.friends.some((f) => f.id === userB.user.id)).toBeTruthy();
+
+    const friendsB = await request.get('/api/friends', {
+      headers: authHeaders(userB.accessToken),
+    });
+    expect(friendsB.ok()).toBeTruthy();
+    const friendsBBody = await friendsB.json();
+    expect(friendsBBody.friends.some((f) => f.id === userA.user.id)).toBeTruthy();
+
+    const requestsA = await request.get('/api/friends/requests', {
+      headers: authHeaders(userA.accessToken),
+    });
+    expect(requestsA.ok()).toBeTruthy();
+    const requestsABody = await requestsA.json();
+    expect(requestsABody.received.some((r) => r.senderId === userB.user.id)).toBeFalsy();
+    expect(requestsABody.sent.some((r) => r.receiverId === userB.user.id)).toBeFalsy();
+  });
+
   test('send friend request, accept, and list friends', async ({ request }) => {
     // Use two fresh users to avoid conflicts with existing friendships
     const userA = await createUser(request, 'friend_a');
@@ -112,6 +142,16 @@ test.describe('Friend System', () => {
     const userA = await createUser(request, 'block_a');
     const userB = await createUser(request, 'block_b');
 
+    await requestFriendship(request, userA.accessToken, userB.user.id);
+    await acceptFirstPending(request, userB.accessToken);
+
+    const friendsBeforeBlock = await request.get('/api/friends', {
+      headers: authHeaders(userA.accessToken),
+    });
+    expect(friendsBeforeBlock.ok()).toBeTruthy();
+    const friendsBeforeBody = await friendsBeforeBlock.json();
+    expect(friendsBeforeBody.friends.some((f) => f.id === userB.user.id)).toBeTruthy();
+
     // A blocks B
     const blockRes = await request.post('/api/friends/block', {
       headers: authHeaders(userA.accessToken),
@@ -128,6 +168,13 @@ test.describe('Friend System', () => {
     const blocked = blockedBody.blocked ?? blockedBody.users ?? blockedBody;
     expect(Array.isArray(blocked)).toBeTruthy();
     expect(blocked.some((u) => u.id === userB.user.id)).toBeTruthy();
+
+    const friendsAfterBlock = await request.get('/api/friends', {
+      headers: authHeaders(userA.accessToken),
+    });
+    expect(friendsAfterBlock.ok()).toBeTruthy();
+    const friendsAfterBody = await friendsAfterBlock.json();
+    expect(friendsAfterBody.friends.some((f) => f.id === userB.user.id)).toBeFalsy();
 
     // A unblocks B
     const unblockRes = await request.delete(`/api/friends/block/${userB.user.id}`, {

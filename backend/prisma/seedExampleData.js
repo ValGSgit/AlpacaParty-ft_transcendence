@@ -173,18 +173,6 @@ async function seedUsers(passwordHash) {
     });
   }
 
-  const admins = await prisma.user.findMany({
-    where: { email: "live_admin@alpacaparty.test" },
-    select: { id: true },
-  });
-
-  const adminIds = admins.map((a) => a.id);
-  if (adminIds.length > 0) {
-    await prisma.userSettings.updateMany({
-      where: { userId: { in: adminIds } },
-    }); 
-  }
-
   await prisma.gameStat.createMany({
     data: [
       ...users.map((u) => ({
@@ -395,7 +383,7 @@ async function main() {
   console.log("[seed-live] Config:", cfg);
 
   if (shouldReset) {
-    console.log("[seed-live] Reset enabled: clearing non-admin data first");
+    console.log("[seed-live] Reset enabled: clearing seeded data first");
     await hardReset();
   }
 
@@ -407,7 +395,6 @@ async function main() {
   await Promise.all([
     seedPostsAndLikes(userIds),
     seedMessages(friendPairs),
-    seedRooms(userIds),
     seedNotifications(userIds),
     seedAchievements(userIds),
   ]);
@@ -435,7 +422,7 @@ async function main() {
     `[seed-live] users=${usersCount}, posts=${postsCount}, dms=${dmCount}, rooms=${roomsCount}, roomMessages=${roomMsgCount}, notifications=${notifCount}, achievements=${achievementCount}`,
   );
   console.log(`[seed-live] Shared password for seeded users: ${seedPassword}`);
-  console.log("[seed-live] Demo accounts: live_admin, live_demo, live_mod");
+  console.log("[seed-live] Seeded accounts: live_admin, live_demo, live_mod");
 }
 
 main()

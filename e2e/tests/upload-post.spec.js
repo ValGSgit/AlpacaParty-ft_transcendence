@@ -16,7 +16,7 @@ test.describe('Posts, Likes and Uploads Workflow', () => {
     expect(post.id).toBeTruthy();
 
     const feed = await request.get('/api/posts', {
-      headers: { Authorization: `Bearer ${viewer.accessToken}` },
+      headers: authHeaders(viewer.accessToken),
     });
     expect(feed.ok()).toBeTruthy();
 
@@ -24,12 +24,12 @@ test.describe('Posts, Likes and Uploads Workflow', () => {
     expect(feedBody.posts.some((p) => p.id === post.id)).toBeTruthy();
 
     const like = await request.post(`/api/posts/${post.id}/like`, {
-      headers: { Authorization: `Bearer ${viewer.accessToken}` },
+      headers: authHeaders(viewer.accessToken),
     });
     expect(like.ok()).toBeTruthy();
 
     const unlike = await request.delete(`/api/posts/${post.id}/like`, {
-      headers: { Authorization: `Bearer ${viewer.accessToken}` },
+      headers: authHeaders(viewer.accessToken),
     });
     expect(unlike.ok()).toBeTruthy();
 
@@ -40,7 +40,7 @@ test.describe('Posts, Likes and Uploads Workflow', () => {
     expect(update.ok()).toBeTruthy();
 
     const del = await request.delete(`/api/posts/${post.id}`, {
-      headers: { Authorization: `Bearer ${author.accessToken}` },
+      headers: authHeaders(author.accessToken),
     });
     expect(del.ok()).toBeTruthy();
   });
@@ -49,7 +49,7 @@ test.describe('Posts, Likes and Uploads Workflow', () => {
     const user = await createUser(request, 'upload');
 
     const upload = await request.post('/api/uploads', {
-      headers: { Authorization: `Bearer ${user.accessToken}` },
+      headers: authHeaders(user.accessToken),
       multipart: {
         files: {
           name: 'e2e-note.txt',
@@ -64,7 +64,7 @@ test.describe('Posts, Likes and Uploads Workflow', () => {
     expect(uploaded.files.length).toBeGreaterThan(0);
 
     const list = await request.get('/api/uploads', {
-      headers: { Authorization: `Bearer ${user.accessToken}` },
+      headers: authHeaders(user.accessToken),
     });
     expect(list.ok()).toBeTruthy();
 
@@ -75,7 +75,7 @@ test.describe('Posts, Likes and Uploads Workflow', () => {
     expect(fileId).toBeTruthy();
 
     const del = await request.delete(`/api/uploads/${fileId}`, {
-      headers: { Authorization: `Bearer ${user.accessToken}` },
+      headers: authHeaders(user.accessToken),
     });
     expect(del.ok()).toBeTruthy();
   });

@@ -9,7 +9,7 @@ import {
   afterAll,
   beforeAll,
 } from "@jest/globals";
-import supertest from "supertest";
+import supertestC from "supertest";
 import prisma from "#config/prisma.js";
 import AuthService from "#services/authService.js";
 import { createTestApp } from "../helpers/createApp.js";
@@ -69,7 +69,7 @@ async function setupFriends() {
 
 beforeEach(async () => {
   app = await createTestApp();
-  request = supertest(app);
+  request = supertestC(app);
 });
 
 afterAll(async () => {
@@ -170,8 +170,9 @@ describe("POST /api/friends/requests", () => {
       .post("/api/friends/requests")
       .set("Cookie", [`jwt_token=${validUser.token}`])
       .send({ userId: friendRequest.id });
-    expect(res.status).toBe(201);
-    expect(res.body.request).toHaveProperty("senderId", validUser.id);
+    expect(res.status).toBe(200);
+    expect(res.body.autoAccepted).toBe(true);
+    expect(res.body.request).toHaveProperty("senderId", friendRequest.id);
   });
 });
 
