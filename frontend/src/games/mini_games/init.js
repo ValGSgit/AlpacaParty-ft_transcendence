@@ -18,14 +18,12 @@ export async function changeGame(mode, playerCount = 1) {
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0) saveGame();
 
-  gMinigame.value.isGameOver = false;
-  gMinigame.value.isActive = false;
+  resetMinigame();
 
   gMinigame.value.isOnline = (gMinigame.value.mode === 2 || gMinigame.value.mode === 4);
   gUser.value.hp = CONST.HP
   gUser.value.point = 0
   resetAlpaca(gPlayer.value)
-  gMinigame.value.players = [];
   tempAlpacas.length = 0
   for (let i = 1; i < gAlpacas.length; ++i) {
     if (gAlpacas[i] !== gPlayer.value) {
@@ -36,7 +34,6 @@ export async function changeGame(mode, playerCount = 1) {
   clearScene(gScene.value)
   clearCoins()
   resetGArrays()
-
   initGameMode(mode, playerCount, tempAlpacas);
 }
 
@@ -47,12 +44,14 @@ async function returnFarm() {
     activeClient.disconnect();
   }
 
-  gMinigame.value.isActive = false;
-  gMinigame.value.isGameOver = false;
+  resetMinigame();
   gMinigame.value.mode = 0;
-  gPlayer.value = null
-  gUI.cameraMode = 0
+
+  gUI.lobbyMenu = false;
   gUI.lockCamera = false;
+  gUI.cameraMode = 0
+
+  gPlayer.value = null
   await initWorld(gScene.value, authStore.isAuthenticated)
   saveGame()
 }
@@ -63,6 +62,15 @@ function resetAlpaca(alpaca,) {
   alpaca.isDead = 0
   alpaca.model.position.set(0, 0, 0)
   alpaca.model.rotation.y = 0
+}
+
+function resetMinigame() {
+  gMinigame.value.isOnline = false;
+  gMinigame.value.isReady = false;
+  gMinigame.value.isActive = false;
+  gMinigame.value.isGameOver = false;
+  gMinigame.value.currentRoomName = null;
+  gMinigame.value.players = [];
 }
 
 async function initGameMode(mode, playerCount, tempAlpacas) {
