@@ -14,14 +14,8 @@ export class GameClient {
     if (this.socket) return;
 
     this.socket = io('/alpaca-road', { transports: ['websocket'], withCredentials: true });
-
-    this.socket.on('connect', () => {
-      console.log("✅ FRONTEND: Connected to Server successfully! ID:", this.socket.id);
-    });
-    this.socket.on('connect_error', (err) => {
-      console.error("❌ FRONTEND: Socket Connection FAILED!", err.message);
-    });
-
+    this.socket.on('connect', () => { console.log("✅ FRONTEND: Connected to Server successfully! ID:", this.socket.id); });
+    this.socket.on('connect_error', (err) => { console.error("❌ FRONTEND: Socket Connection FAILED!", err.message); });
     this.setupListeners();
   }
 
@@ -34,15 +28,15 @@ export class GameClient {
     }
   }
 
-  createRoom(playerName) {
+  createRoom(playerName, color) {
     if (this.socket) {
       console.log("GC create_room:", playerName)
-      this.socket.emit('create_room', { name: playerName });
+      this.socket.emit('create_room', { name: playerName, color: color });
     }
   }
 
-  joinRoom(playerName, roomId) {
-    if (this.socket) this.socket.emit('join_room', { name: playerName, roomId: roomId });
+  joinRoom(playerName, roomId, color) {
+    if (this.socket) this.socket.emit('join_room', { name: playerName, roomId: roomId, color: color });
   }
 
   sendReady(isReadyStatus) {

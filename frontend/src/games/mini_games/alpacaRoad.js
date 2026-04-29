@@ -176,6 +176,10 @@ function syncPlayersFromServer(delta) {
         const index = activePlayers.findIndex(p => p.socketId === sPlayer.id);
         if (index !== -1) {
           newAlpaca.socketId = sPlayer.id;
+          if (sPlayer.color) {
+            newAlpaca.setColor(sPlayer.color);
+          }
+
           gScene.value.add(newAlpaca.model);
           registerEntity(newAlpaca, 'alpaca');
           activePlayers[index] = newAlpaca;

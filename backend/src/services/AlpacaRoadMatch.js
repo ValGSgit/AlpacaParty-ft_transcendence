@@ -2,7 +2,7 @@ import { BaseMatch } from "./BaseMatch.js";
 
 export class AlpacaRoadMatch extends BaseMatch {
   constructor(id, namespace, roomName, onStateChange) {
-    super(id, namespace, roomName, onStateChange); 
+    super(id, namespace, roomName, onStateChange);
     this.obstacles = [];
     this.tickRate = 33;
     this.isPlaying = false;
@@ -16,8 +16,8 @@ export class AlpacaRoadMatch extends BaseMatch {
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
 
-  addPlayer(socket, name) {
-    super.addPlayer(socket, name);
+  addPlayer(socket, name, color) {
+    super.addPlayer(socket, name, color);
     const player = this.players.get(socket.id);
 
     let assignedLane = 0;
@@ -98,7 +98,8 @@ export class AlpacaRoadMatch extends BaseMatch {
       hp: p.hp,
       point: p.points,
       isDead: p.isDead,
-      lane: p.lane // FIX 1: Send the lane to the client!
+      lane: p.lane,
+      color: p.color,
     }));
 
     // FIX 2: Check if everyone is dead!
@@ -127,8 +128,8 @@ export class AlpacaRoadMatch extends BaseMatch {
   createObstacle(pos = 700) {
     // Collect active lanes to target players dynamically
     const activeLanes = Array.from(this.players.values()).filter(p => !p.isDead).map(p => p.lane);
-    const targetLane = activeLanes.length > 0 
-      ? activeLanes[Math.floor(Math.random() * activeLanes.length)] 
+    const targetLane = activeLanes.length > 0
+      ? activeLanes[Math.floor(Math.random() * activeLanes.length)]
       : Math.floor(Math.random() * 4);
 
     this.obstacles.push({

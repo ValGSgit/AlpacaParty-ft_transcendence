@@ -26,21 +26,19 @@ export class MatchManager {
 
   setupListeners() {
     this.io.on('connection', (socket) => {
-      console.log("BACKEND: A player walked into the MatchManager! ID:", socket.id);
       this.broadcastPublicRooms();
 
-      socket.on('create_room', ({ name }) => {
+      socket.on('create_room', ({ name, color }) => {
         console.log(`BACKEND: Received create_room request from ${name}`);
 
         const roomId = Math.random().toString(36);
         const roomName = `${name}'s Room`;
-
         const match = new AlpacaRoadMatch(roomId, this.io, roomName, () => {
           this.broadcastPublicRooms();
         });
 
         this.matches.set(roomId, match);
-        match.addPlayer(socket, name);
+        match.addPlayer(socket, name, color);
         this.playerToMatch.set(socket.id, roomId);
 
         // Tell the creator they successfully joined their own room
@@ -51,11 +49,11 @@ export class MatchManager {
         this.broadcastPublicRooms();
       });
 
-      socket.on('join_room', ({ name, roomId }) => {
+      socket.on('join_room', ({ name, roomId, color }) => {
         const match = this.matches.get(roomId);
 
         if (match && match.status === 'LOBBY' && match.players.size < 4) {
-          match.addPlayer(socket, name);
+          match.addPlayer(socket, name, color);
           this.playerToMatch.set(socket.id, roomId);
 
           socket.emit('join_success', { roomId: roomId, roomName: match.roomName });

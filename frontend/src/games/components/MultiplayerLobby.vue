@@ -26,7 +26,7 @@
 
 <script setup>
 import { onMounted, onUnmounted } from 'vue';
-import { gMinigame, gUser } from '../core/globals.js';
+import { gMinigame, gPlayer, gUser } from '../core/globals.js';
 import { useUIManager } from '../core/useUIManager.js';
 import { activeClient } from '../mini_games/GameClient.js';
 
@@ -48,13 +48,15 @@ onUnmounted(() => {
 const handleCreateRoom = () => {
   console.log("handle create!");
   const name = gUser.value.name || "Vue_Alpaca";
-  activeClient.createRoom(name);
+  const color = gPlayer.value?.color || "#ffffff";
+  activeClient.createRoom(name, color);
 };
 
 const handleJoinRoom = (roomId) => {
   console.log("join!");
   const name = gUser.value.name || "Vue_Alpaca";
-  activeClient.joinRoom(name, roomId);
+  const color = gPlayer.value?.color || "#ffffff";
+  activeClient.joinRoom(name, roomId, color);
 };
 
 const toggleReady = () => {
@@ -71,7 +73,7 @@ const leaveRoom = () => {
 
   setTimeout(() => {
     activeClient.connect();
-  }, 100);
+  }, 50);
 };
 
 </script>
