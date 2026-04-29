@@ -24,7 +24,8 @@ export class AlpacaRoadMatch extends BaseMatch {
     const takenLanes = Array.from(this.players.values()).map(p => p.lane);
     while (takenLanes.includes(assignedLane)) assignedLane++;
 
-    player.lane = assignedLane; // Assign unique lane
+    player.lane = assignedLane;
+    player.isJumping = false;
     this.syncLobby();
   }
 
@@ -37,12 +38,25 @@ export class AlpacaRoadMatch extends BaseMatch {
 
   handlePlayerHit(socketId) {
     const player = this.players.get(socketId);
+    player.isHit = true;
     if (player && player.hp > 0 && !player.isDead) {
       player.hp--;
       if (player.hp <= 0) {
         player.isDead = true;
       }
       this.syncLobby();
+    }
+  }
+
+  handlePlayerJump(socketId) {
+    const player = this.players.get(socketId);
+    if (player && !player.isDead && !player.isJumping) {
+      player.isJumping = true;
+      setTimeout(() => {
+        if (this.players.has(socketId)) {
+          this.players.get(socketId).isJumping = false;
+        }
+      }, 600);
     }
   }
 
@@ -76,7 +90,11 @@ export class AlpacaRoadMatch extends BaseMatch {
           pointGained = true;
 
           for (const [id, player] of this.players) {
-            if (!player.isDead) player.points++;
+            if (!player.isDead && !player.isHit) {
+              if (obs.isFull || player.lane === obs.lane) {
+                player.points++;
+              }
+            }
           }
         }
       })
@@ -98,11 +116,12 @@ export class AlpacaRoadMatch extends BaseMatch {
       hp: p.hp,
       point: p.points,
       isDead: p.isDead,
+      isHit: p.isHit,
+      isJumping: p.isJumping,
       lane: p.lane,
-      color: p.color,
+      color: p.color
     }));
 
-    // FIX 2: Check if everyone is dead!
     const allDead = playersArr.length > 0 && playersArr.every(p => p.isDead === true);
     if (allDead && this.isPlaying) {
       this.isPlaying = false;
@@ -126,7 +145,6 @@ export class AlpacaRoadMatch extends BaseMatch {
   }
 
   createObstacle(pos = 700) {
-    // Collect active lanes to target players dynamically
     const activeLanes = Array.from(this.players.values()).filter(p => !p.isDead).map(p => p.lane);
     const targetLane = activeLanes.length > 0
       ? activeLanes[Math.floor(Math.random() * activeLanes.length)]

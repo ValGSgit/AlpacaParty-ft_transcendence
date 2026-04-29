@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import { gMinigame, gUI } from '../core/globals';
 import { playCountDown } from './annoucement';
 import { changeGame } from './init';
+
 export class GameClient {
   constructor() {
     this.socket = null;
@@ -49,6 +50,12 @@ export class GameClient {
     }
   }
 
+  sendJump() {
+    if (this.socket) {
+      this.socket.emit('player_jump');
+    }
+  }
+
   setupListeners() {
     this.socket.on('available_rooms', (roomList) => {
       console.log("Game Client available rooms:", roomList)
@@ -89,8 +96,8 @@ export class GameClient {
 
     this.socket.on('game_over', () => {
       console.log("GC: game_over");
-      gMinigame.value.isActive = false;
       gMinigame.value.isGameOver = true; // Trigger Vue UI
+      //gMinigame.value.isActive = false;
     });
 
   }

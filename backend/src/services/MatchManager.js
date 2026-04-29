@@ -72,9 +72,20 @@ export class MatchManager {
         const matchId = this.playerToMatch.get(socket.id);
         if (matchId) {
           const match = this.matches.get(matchId);
-          // Route the damage report to the specific match
           if (match && typeof match.handlePlayerHit === 'function') {
             match.handlePlayerHit(socket.id);
+          }
+        }
+      });
+
+      socket.on('player_jump', () => {
+        const matchId = this.playerToMatch.get(socket.id);
+        if (matchId) {
+          const match = this.matches.get(matchId);
+
+          // Route it to the AlpacaRoadMatch logic
+          if (match && typeof match.handlePlayerJump === 'function') {
+            match.handlePlayerJump(socket.id);
           }
         }
       });

@@ -107,9 +107,9 @@ export function updateAlpacaRoad(delta) {
   if (!assetsLoaded) return;
 
   if (gMinigame.value.isOnline) {
-    // -> ONLINE LOGIC
+    // ONLINE LOGIC
     if (gMinigame.value.isGameOver) {
-      endMinigame(); // Process rewards if server said Game Over
+      endMinigame();
       return;
     }
     syncServerState();
@@ -117,9 +117,10 @@ export function updateAlpacaRoad(delta) {
     if (gMinigame.value.isActive) {
       updateRoadScene(delta);
       checkLocalCollisions();
+      checkLocalJump();
     }
   } else {
-    // -> OFFLINE LOGIC
+    // OFFLINE LOGIC
     if (!gMinigame.value.isActive) return;
     spawnObstacles(delta)
     updateObstacles(delta)
@@ -135,11 +136,11 @@ export function updateAlpacaRoad(delta) {
 // =========================================================
 
 export function syncServerState() {
-  const serverObsList = activeClient.serverObstacles;
-  if (!serverObsList) return;
+  const serverObstacles = activeClient.serverObstacles;
+  if (!serverObstacles) return;
 
   roadSpeed = activeClient.roadSpeed;
-  const serverIds = new Set(serverObsList.map(o => o.id));
+  const serverIds = new Set(serverObstacles.map(o => o.id));
 
   for (let i = activeObstacles.length - 1; i >= 0; i--) {
     const localMesh = activeObstacles[i];
@@ -148,7 +149,7 @@ export function syncServerState() {
     }
   }
 
-  serverObsList.forEach(serverObs => {
+  serverObstacles.forEach(serverObs => {
     let localMesh = activeObstacles.find(m => m.userData.serverId === serverObs.id);
     if (!localMesh) {
       localMesh = createObstacleFromBackend(serverObs);
@@ -179,7 +180,6 @@ function syncPlayersFromServer(delta) {
           if (sPlayer.color) {
             newAlpaca.setColor(sPlayer.color);
           }
-
           gScene.value.add(newAlpaca.model);
           registerEntity(newAlpaca, 'alpaca');
           activePlayers[index] = newAlpaca;
@@ -210,6 +210,16 @@ function syncPlayersFromServer(delta) {
         localAlpaca.model.position.x = playerPositions[serverData.lane];
       }
 
+      // JUMP
+      if (localAlpaca.socketId !== activeClient.socket.id) {
+        if (serverData.isJumping && !localAlpaca.isJumping) {
+          localAlpaca.isJumping = true;
+        } else if (!serverData.isJumping) {
+          localAlpaca.isJumping = false;
+        }
+      }
+
+      // HP && HIT
       if (serverData.hp < localAlpaca.hp && !localAlpaca.isBeingHit) {
         localAlpaca.isBeingHit = true;
         spawnFloatingText(localAlpaca.model, '-💔', 'hearts');
@@ -217,14 +227,15 @@ function syncPlayersFromServer(delta) {
       if (serverData.point > localAlpaca.point) {
         spawnFloatingText(localAlpaca.model, '+1');
       }
-
       localAlpaca.hp = serverData.hp;
       localAlpaca.point = serverData.point;
       localAlpaca.isDead = serverData.isDead;
     }
 
+    // SPIN
     if (localAlpaca.isBeingHit) spinAlpacaUp(localAlpaca, delta);
 
+    // DIE
     if (localAlpaca.isDead && localAlpaca.isBeingHit) {
       if (localAlpaca.model.position.z > roadBack) {
         localAlpaca.model.position.z -= (roadSpeed * delta);
@@ -245,6 +256,18 @@ function checkLocalCollisions() {
     localAlpaca.hp--;
     spawnFloatingText(localAlpaca.model, '-💔', 'hearts');
     activeClient.sendHit();
+  }
+}
+
+function checkLocalJump() {
+  const localAlpaca = activePlayers.find(p => p.socketId === activeClient.socket.id);
+  if (localAlpaca) {
+    if (localAlpaca.isJumping && !localAlpaca.lastSentJump) {
+      activeClient.sendJump();
+      localAlpaca.lastSentJump = true;
+    } else if (!localAlpaca.isJumping) {
+      localAlpaca.lastSentJump = false;
+    }
   }
 }
 
@@ -422,6 +445,8 @@ function endMinigame() {
 
   if (hasAwardedRewards) return;
   hasAwardedRewards = true;
+
+  gMinigame.value.isActive = false;
 
   // Accurately find the local player to calculate rewards
   let playerPoints = 0;
