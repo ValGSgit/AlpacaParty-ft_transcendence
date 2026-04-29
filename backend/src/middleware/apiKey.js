@@ -14,9 +14,9 @@ export const requireApiKey = async (req, res, next) => {
     if (!apiKey) throw new CustomError("No api key provided", 401);
     const decoded = AuthService.verifyPublicApiToken(apiKey);
     if (!decoded) throw new CustomError("Invalid or expired api key", 401);
-    const user = await User.findByApiKey(apiKey);
-    if (!user) throw new CustomError("Invalid or revoked api key", 401);
-    req.user = user;
+    const userId = await User.findByApiKey(apiKey);
+    if (!userId) throw new CustomError("Invalid or revoked api key", 401);
+    req.userId = userId;
     next();
   } catch (err) {
     next(err);

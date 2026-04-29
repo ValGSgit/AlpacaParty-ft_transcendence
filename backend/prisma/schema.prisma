@@ -97,7 +97,6 @@ model UserStats {
 
 model UserSettings {
   isPublic Boolean? @default(true) @map("is_public")
-  isAdmin  Boolean? @default(false) @map("is_admin")
 
   // Relations
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)

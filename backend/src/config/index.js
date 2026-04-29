@@ -80,6 +80,11 @@ const config = {
     max: 1000,
   },
 
+  rateLimitPublicApi: {
+    windowMs: 60 * 1000, // 1 minutes
+    max: 30,
+  },
+
   password: {
     minLength: 8,
     requireUppercase: true,

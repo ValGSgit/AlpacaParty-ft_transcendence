@@ -1,7 +1,7 @@
 /**
  * User Routes Integration Tests
  */
-import supertestC from "supertest";
+import supertest from "supertest";
 import prisma from "#config/prisma.js";
 import AuthService from "#services/authService.js";
 import { createTestApp } from "../helpers/createApp.js";
@@ -24,7 +24,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   app = await createTestApp();
-  request = supertestC(app);
+  request = supertest(app);
 
   // Create the actual record in the test DB
   await prisma.user.deleteMany({
@@ -278,7 +278,6 @@ describe("DELETE /api/users/me/api-key", () => {
       .delete(`/api/users/me/api-key`)
       .set("Cookie", [`jwt_token=${validToken}`]);
 
-    console.log(res.body);
     expect(res.status).toBe(200);
 
     key = await User.getApiKey(user.id);

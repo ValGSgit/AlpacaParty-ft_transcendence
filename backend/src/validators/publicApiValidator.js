@@ -1,41 +1,28 @@
 import { body } from "express-validator";
 import { idParamValidation } from "./contentValidator.js";
 
-export const postCreateValidation = () => [
+const sharedPostValidations = [
   body("content")
-    .isString()
     .trim()
     .notEmpty()
     .withMessage("content is required")
     .isLength({ max: 2000 })
     .withMessage("content must be 2000 characters or fewer"),
+
   body("imageUrl")
-    .optional({ values: "null" })
+    .optional({ values: "falsy" })
     .isString()
+    .withMessage("imageUrl must be a string")
+    .trim()
+    .isURL()
+    .withMessage("imageUrl must be a valid URL format")
     .isLength({ max: 2048 })
-    .withMessage("invalid imageUrl"),
-  body("authorId")
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage("authorId must be a positive integer"),
+    .withMessage("imageUrl must be 2048 characters or fewer"),
 ];
+
+export const postCreateValidation = () => [...sharedPostValidations];
 
 export const postUpdateValidation = () => [
   idParamValidation(),
-  body("content")
-    .isString()
-    .trim()
-    .notEmpty()
-    .withMessage("content is required")
-    .isLength({ max: 2000 })
-    .withMessage("content must be 2000 characters or fewer"),
-  body("imageUrl")
-    .optional({ values: "null" })
-    .isString()
-    .isLength({ max: 2048 })
-    .withMessage("invalid imageUrl"),
-  body("authorId")
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage("authorId must be a positive integer"),
+  ...sharedPostValidations,
 ];
