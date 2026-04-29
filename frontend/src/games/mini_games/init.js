@@ -7,6 +7,7 @@ import { saveGame } from '../core/saveLoadGame.js';
 import { useGameEngine } from '../core/useGameEngine.js';
 import { initWorld } from '../world/initWorld.js';
 import { initAlpacaRoad, initAlpacaRoadOnline } from './alpacaRoad.js';
+import { activeClient } from './GameClient.js';
 import { initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
 
 const miniGameContainer = ref(null)
@@ -15,8 +16,7 @@ const tempAlpacas = []
 
 export async function changeGame(mode, playerCount = 1) {
   if (!gPlayer.value || !gUser.value) return;
-  if (gMinigame.value.mode === 0)
-    saveGame()
+  if (gMinigame.value.mode === 0) saveGame();
 
   gMinigame.value.isGameOver = false;
   gMinigame.value.isActive = false;
@@ -42,6 +42,11 @@ export async function changeGame(mode, playerCount = 1) {
 
 async function returnFarm() {
   const authStore = useAuthStore()
+
+  if (gMinigame.value.isOnline) {
+    activeClient.disconnect();
+  }
+
   gMinigame.value.isActive = false;
   gMinigame.value.isGameOver = false;
   gMinigame.value.mode = 0;

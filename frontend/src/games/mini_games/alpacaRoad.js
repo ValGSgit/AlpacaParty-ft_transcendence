@@ -18,7 +18,7 @@ import { activeClient } from './GameClient.js';
 const roadLength = 700;
 const roadBack = -25;
 const roadOffset = roadLength / 2 + roadBack;
-let roadSpeed = 25;
+let roadSpeed;
 const startZ = roadLength + roadBack;
 
 let level;
@@ -43,6 +43,8 @@ const roadScene = [];
 let assetsLoaded = false;
 let totalPoints = 0;
 
+let hasAwardedRewards = false;
+
 const { spawnFloatingText } = useFloatingText();
 const { collectRewards } = useCoinUI();
 const { setTimeOfDay } = editLight();
@@ -54,6 +56,7 @@ const { setTimeOfDay } = editLight();
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
   cleanupAlpacaRoad()
   gMinigame.value.mode = 3;
+  hasAwardedRewards = false;
 
   await setupRoadScene(gScene.value);
   await loadAssets();
@@ -67,6 +70,7 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
 export async function initAlpacaRoadOnline(playerCount, tempAlpacas) {
   cleanupAlpacaRoad();
   gMinigame.value.mode = 4;
+  hasAwardedRewards = false;
 
   await setupRoadScene(gScene.value);
   await loadAssets();
@@ -77,6 +81,8 @@ export async function initAlpacaRoadOnline(playerCount, tempAlpacas) {
   gScene.value.add(gPlayer.value.model);
   activePlayers.push(gPlayer.value);
 
+  registerEntity(gPlayer.value, 'alpaca');
+
   initScenery();
   initGameValues(1);
 }
@@ -86,6 +92,7 @@ function initGameValues(playerCount) {
   totalPoints = 0;
   alivePlayers = playerCount;
   initalPlayerCount = playerCount;
+  roadSpeed = 25;
   gUI.cameraMode = 2;
   gUI.lockCamera = true;
   gUI.isLightCycling = false;
@@ -150,6 +157,7 @@ export function syncServerState() {
       gScene.value.add(localMesh);
     }
     localMesh.position.z = serverObs.z;
+    localMesh.updateMatrixWorld(true);
   });
 }
 
@@ -169,6 +177,7 @@ function syncPlayersFromServer(delta) {
         if (index !== -1) {
           newAlpaca.socketId = sPlayer.id;
           gScene.value.add(newAlpaca.model);
+          registerEntity(newAlpaca, 'alpaca');
           activePlayers[index] = newAlpaca;
         }
       });
@@ -229,6 +238,8 @@ function checkLocalCollisions() {
 
   if (checkCollisionWith(localAlpaca.model, activeObstacles)) {
     localAlpaca.isBeingHit = true;
+    localAlpaca.hp--;
+    spawnFloatingText(localAlpaca.model, '-💔', 'hearts');
     activeClient.sendHit();
   }
 }
@@ -276,7 +287,11 @@ export function createObstacle() {
 
   if (!isFull) {
     obstacle = singleObstacle[getRandomID(singleObstacle)].clone();
-    obstacle.position.x = playerPositions[getRandomID(getValidLanes())];
+
+    const valid = getValidLanes();
+    const targetLane = valid.length > 0 ? valid[getRandomID(valid)] : 0;
+
+    obstacle.position.x = playerPositions[targetLane];
     obstacle.userData.isFullWidth = false;
   } else {
     obstacle = fullObstacle[getRandomID(fullObstacle)].clone();
@@ -399,8 +414,10 @@ function awardPoints(obstacle) {
 }
 
 function endMinigame() {
-  if (gMinigame.value.isGameOver && !gMinigame.value.isOnline) return;
   gMinigame.value.isGameOver = true;
+
+  if (hasAwardedRewards) return;
+  hasAwardedRewards = true;
 
   // Accurately find the local player to calculate rewards
   let playerPoints = 0;
@@ -544,7 +561,7 @@ async function initPlayers(playerCount, tempAlpacas) {
   for (let i = 0; i < activePlayers.length; i++) {
     const alpaca = activePlayers[i];
     gScene.value.add(alpaca.model);
-    alpaca.model.position.x += playerPositions[i];
+    alpaca.model.position.x = playerPositions[i];
     if (gMinigame.value.mode !== 4) {
       gMinigame.value.players.push({ id: i + 1, name: alpaca.name, hp: CONST.HP, point: 0 });
     }

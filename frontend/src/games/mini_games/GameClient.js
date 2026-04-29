@@ -95,7 +95,7 @@ export class GameClient {
 
     this.socket.on('game_over', () => {
       console.log("GC: game_over");
-      gMinigame.value.isActive = false; // Freeze the 3D scene
+      gMinigame.value.isActive = false;
       gMinigame.value.isGameOver = true; // Trigger Vue UI
     });
 

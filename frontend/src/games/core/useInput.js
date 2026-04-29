@@ -75,7 +75,7 @@ export function useInput() {
 
   const onDoubleClick = (e) => {
     // disable double click in mini games
-    if (gMinigame.value.isActive)
+    if (gMinigame.value.isActive || gMinigame.value.mode)
       return
 
     console.log("double Click!");
