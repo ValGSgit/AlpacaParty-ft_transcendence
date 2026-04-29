@@ -2,24 +2,37 @@ import { BaseMatch } from "./BaseMatch.js";
 
 export class AlpacaRoadMatch extends BaseMatch {
   constructor(id, namespace, roomName, onStateChange) {
-    super(id, namespace, roomName, onStateChange); // Load the BaseMatch template
+    super(id, namespace, roomName, onStateChange); 
     this.obstacles = [];
-    this.tickRate = 5; // TODO: Change
+    this.tickRate = 33;
+    this.isPlaying = false;
+
+    this.level = 1;
+    this.totalPoints = 0;
+    this.roadSpeed = 0;
+    this.timerMultiplier = 1.0;
+    this.spawnTimer = 2.0;
+    this.initObstacles();
+    this.heartbeat = setInterval(() => this.update(), this.tickRate);
+  }
+
+  addPlayer(socket, name) {
+    super.addPlayer(socket, name);
+    const player = this.players.get(socket.id);
+
+    let assignedLane = 0;
+    const takenLanes = Array.from(this.players.values()).map(p => p.lane);
+    while (takenLanes.includes(assignedLane)) assignedLane++;
+
+    player.lane = assignedLane; // Assign unique lane
+    this.syncLobby();
   }
 
   start() {
     this.status = 'PLAYING';
-
-    this.level = 1;
-    this.totalPoints = 0;
+    this.isPlaying = true;
     this.roadSpeed = 25;
-    this.timerMultiplier = 1.0;
-    this.spawnTimer = 2.0;
-    this.obstacles = [];
-    this.initObstacles();
-
     this.broadcast('game_start', { message: "Get Ready!" });
-    this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
 
   handlePlayerHit(socketId) {
@@ -53,41 +66,48 @@ export class AlpacaRoadMatch extends BaseMatch {
     const tick = this.tickRate / 1000;
     let pointGained = false;
 
-    // Move Obstacles and check for points
-    this.obstacles.forEach(obs => {
-      obs.z -= this.roadSpeed * tick;
+    if (this.isPlaying) {
+      this.obstacles.forEach(obs => {
+        obs.z -= this.roadSpeed * tick;
 
-      // If it passed the player, award a point!
-      if (obs.z < -0.25 && !obs.pointGiven) {
-        obs.pointGiven = true;
-        this.totalPoints++;
-        pointGained = true;
+        if (obs.z < -0.25 && !obs.pointGiven) {
+          obs.pointGiven = true;
+          this.totalPoints++;
+          pointGained = true;
 
-        // Give points to all players who are still alive
-        for (const [id, player] of this.players) {
-          if (!player.isDead) player.points++;
+          for (const [id, player] of this.players) {
+            if (!player.isDead) player.points++;
+          }
         }
+      })
+
+      if (pointGained) this.updateDifficulty();
+
+      this.obstacles = this.obstacles.filter(obs => obs.z > -50);
+
+      this.spawnTimer -= tick;
+      if (this.spawnTimer <= 0) {
+        this.createObstacle();
+        this.spawnTimer = (1.0 + Math.random() * 2.0) * this.timerMultiplier;
       }
-    })
-
-    if (pointGained) this.updateDifficulty();
-
-    // Delete old obstacles
-    this.obstacles = this.obstacles.filter(obs => obs.z > -50);
-
-    // Spawn new obstacles
-    this.spawnTimer -= tick;
-    if (this.spawnTimer <= 0) {
-      this.createObstacle();
-      this.spawnTimer = (1.0 + Math.random() * 2.0) * this.timerMultiplier;
     }
 
     const playersArr = Array.from(this.players.values()).map(p => ({
       id: p.id,
+      name: p.name,
       hp: p.hp,
       point: p.points,
-      isDead: p.isDead
+      isDead: p.isDead,
+      lane: p.lane // FIX 1: Send the lane to the client!
     }));
+
+    // FIX 2: Check if everyone is dead!
+    const allDead = playersArr.length > 0 && playersArr.every(p => p.isDead === true);
+    if (allDead && this.isPlaying) {
+      this.isPlaying = false;
+      this.broadcast('game_over'); // Tell clients to show the Game Over screen
+      setTimeout(() => this.stop(), 2000); // Shut down the server loop
+    }
 
     this.broadcast('tick', {
       obstacles: this.obstacles,
@@ -104,16 +124,20 @@ export class AlpacaRoadMatch extends BaseMatch {
     }
   }
 
-  //needs fixes - lane should be chosen of active players
   createObstacle(pos = 700) {
+    // Collect active lanes to target players dynamically
+    const activeLanes = Array.from(this.players.values()).filter(p => !p.isDead).map(p => p.lane);
+    const targetLane = activeLanes.length > 0 
+      ? activeLanes[Math.floor(Math.random() * activeLanes.length)] 
+      : Math.floor(Math.random() * 4);
+
     this.obstacles.push({
       id: Math.random().toString(36),
       typeId: Math.floor(Math.random() * 2),
-      lane: Math.floor(Math.random() * 4),
+      lane: targetLane,
       z: pos,
       isFull: Math.random() > 0.8,
       pointGiven: false
     });
   }
-
 }

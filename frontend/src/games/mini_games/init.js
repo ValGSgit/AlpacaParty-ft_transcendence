@@ -17,6 +17,10 @@ export async function changeGame(mode, playerCount = 1) {
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0)
     saveGame()
+
+  gMinigame.value.isGameOver = false;
+  gMinigame.value.isActive = false;
+
   gMinigame.value.isOnline = (gMinigame.value.mode === 2 || gMinigame.value.mode === 4);
   gUser.value.hp = CONST.HP
   gUser.value.point = 0
@@ -39,9 +43,11 @@ export async function changeGame(mode, playerCount = 1) {
 async function returnFarm() {
   const authStore = useAuthStore()
   gMinigame.value.isActive = false;
+  gMinigame.value.isGameOver = false;
   gMinigame.value.mode = 0;
   gPlayer.value = null
   gUI.cameraMode = 0
+  gUI.lockCamera = false;
   await initWorld(gScene.value, authStore.isAuthenticated)
   saveGame()
 }

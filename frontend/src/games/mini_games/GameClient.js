@@ -1,6 +1,7 @@
 // client/GameClient.js
 import { io } from 'socket.io-client';
-import { gMinigame } from '../core/globals';
+import { gMinigame, gUI } from '../core/globals';
+import { playCountDown } from './annoucement';
 import { changeGame } from './init';
 export class GameClient {
   constructor() {
@@ -62,6 +63,11 @@ export class GameClient {
 
     this.socket.on('join_success', (data) => {
       console.log("GC: join_success");
+      this.serverObstacles = [];
+
+      changeGame(gMinigame.value.mode, 1);
+
+      gUI.lobbyMenu = true;
       gMinigame.value.currentRoomName = data.roomName;
       console.log(gMinigame.value.currentRoomName);
     });
@@ -74,7 +80,11 @@ export class GameClient {
     this.socket.on('game_start', () => {
       console.log("GC: game_start");
       gMinigame.value.isActive = true;
-      changeGame(gMinigame.value.mode, 1);
+      gUI.lobbyMenu = false;
+      playCountDown(3);
+      setTimeout(() => {
+        gMinigame.value.isActive = true;
+      }, 4000);
     });
 
     this.socket.on('tick', (snapshot) => {
@@ -82,6 +92,13 @@ export class GameClient {
       gMinigame.value.players = snapshot.players;
       this.roadSpeed = snapshot.roadSpeed;
     });
+
+    this.socket.on('game_over', () => {
+      console.log("GC: game_over");
+      gMinigame.value.isActive = false; // Freeze the 3D scene
+      gMinigame.value.isGameOver = true; // Trigger Vue UI
+    });
+
   }
 }
 

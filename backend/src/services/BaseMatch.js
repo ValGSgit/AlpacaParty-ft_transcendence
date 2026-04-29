@@ -11,13 +11,14 @@ export class BaseMatch {
   }
 
   // Add a player when they join
-  addPlayer(socket, name) {
+  addPlayer(socket, name, color) {
     const player = {
       id: socket.id,
       name: name || 'Vue_Alpaca',
       isReady: false,
       hp: 3,
-      points: 0
+      points: 0,
+      color: color || "0x000000"
     };
 
     this.players.set(socket.id, player);
