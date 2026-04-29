@@ -670,11 +670,3 @@ function getValidLanes() {
   return validLanes;
 }
 
-export function initInitalPlayerCount(playerCount) {
-  initalPlayerCount = playerCount;
-  alivePlayers = playerCount;
-}
-
-export function updateAlivePlayers() {
-  alivePlayers--;
-}

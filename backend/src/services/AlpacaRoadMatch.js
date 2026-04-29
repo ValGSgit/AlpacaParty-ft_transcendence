@@ -118,6 +118,7 @@ export class AlpacaRoadMatch extends BaseMatch {
       isDead: p.isDead,
       isHit: p.isHit,
       isJumping: p.isJumping,
+      isReady: p.isReady,
       lane: p.lane,
       color: p.color
     }));
