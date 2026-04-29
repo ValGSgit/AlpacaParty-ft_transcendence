@@ -9,8 +9,23 @@
 import dotenv from "dotenv";
 import { validateConfig } from "./validateConfig.js";
 import ms from "ms";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config({ path: "/run/secrets/.env" });
+// Load env vars in both Docker and local dev.
+// - Docker: secrets mounted at /run/secrets/.env
+// - Local: project root .env (one level above /backend)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const localEnvPath = path.resolve(__dirname, "../../../.env");
+if (fs.existsSync("/run/secrets/.env")) {
+  dotenv.config({ path: "/run/secrets/.env" });
+} else if (fs.existsSync(localEnvPath)) {
+  dotenv.config({ path: localEnvPath });
+} else {
+  dotenv.config();
+}
 
 const config = {
   port: parseInt(process.env.API_PORT, 10), // needed fallback for testing
