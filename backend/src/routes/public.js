@@ -7,7 +7,6 @@
  * Endpoints:
  *   GET  /api/public/users
  *   GET  /api/public/users/:id
- *   GET  /api/public/leaderboard
  *   GET  /api/public/posts
  */
 import express from "express";
@@ -16,16 +15,19 @@ import { requireApiKey } from "../middleware/apiKey.js";
 import {
   listUsers,
   getUser,
-  getLeaderboard,
   getPosts,
-  getMockDataset,
   createPost,
   updatePost,
   deletePost,
 } from "../controllers/publicApiController.js";
-import { body } from "express-validator";
 import { idParamValidation } from "../validators/contentValidator.js";
 import { checkValidation } from "../validators/validatorUtils.js";
+import { limitValidation } from "#validators/limitValidator.js";
+import {
+  postCreateValidation,
+  postUpdateValidation,
+} from "#validators/publicApiValidator.js";
+import config from "#config/index.js";
 
 const router = express.Router();
 
@@ -87,15 +89,24 @@ router.get("/", (_req, res) => {
   });
 });
 
-// Rate limit + API key required for all data endpoints
+router.use(requireApiKey);
+
+/**
+ * Rate Limit
+ * need authentication first to get ratelimits per user
+ */
 router.use(
   rateLimit({
-    windowMs: 60_000,
-    max: 30,
-    message: "Public API rate limit exceeded",
+    windowMs: config.rateLimitPublicApi.windowMs,
+    max: config.rateLimitPublicApi.max,
+    message: { error: "Public API rate limit exceeded" },
+
+    // create reate limit per user
+    keyGenerator: (req) => {
+      return req.userId;
+    },
   }),
 );
-router.use(requireApiKey);
 
 /**
  * @openapi
@@ -132,7 +143,7 @@ router.use(requireApiKey);
  *                       is_online: { type: boolean }
  *       401: { description: Missing or invalid X-API-Key }
  */
-router.get("/users", listUsers);
+router.get("/users", limitValidation(100), checkValidation, listUsers);
 
 /**
  * @openapi
@@ -161,43 +172,6 @@ router.get("/users", listUsers);
  *       404: { description: User not found or profile is private }
  */
 router.get("/users/:id", idParamValidation(), checkValidation, getUser);
-
-/**
- * @openapi
- * /public/leaderboard:
- *   get:
- *     tags: [Public API]
- *     summary: Game leaderboard (public profiles only)
- *     security:
- *       - ApiKeyAuth: []
- *     parameters:
- *       - in: query
- *         name: gameType
- *         schema: { type: string, default: spit_royale }
- *       - $ref: '#/components/parameters/limitParam'
- *       - $ref: '#/components/parameters/offsetParam'
- *       - $ref: '#/components/parameters/anonymizedParam'
- *     responses:
- *       200:
- *         description: Leaderboard
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 leaderboard:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       userId: { type: integer }
- *                       username: { type: string }
- *                       elo: { type: integer }
- *                       wins: { type: integer }
- *                       losses: { type: integer }
- *                       draws: { type: integer }
- */
-router.get("/leaderboard", getLeaderboard);
 
 /**
  * @openapi
@@ -259,18 +233,8 @@ router.get("/leaderboard", getLeaderboard);
  *               properties:
  *                 post: { $ref: '#/components/schemas/Post' }
  */
-router.get("/posts", getPosts);
-router.post(
-  "/posts",
-  [
-    body("content").isString().trim().notEmpty().withMessage("content is required")
-      .isLength({ max: 2000 }).withMessage("content must be 2000 characters or fewer"),
-    body("imageUrl").optional({ values: "null" }).isString().isLength({ max: 2048 }).withMessage("invalid imageUrl"),
-    body("authorId").optional().isInt({ min: 1 }).withMessage("authorId must be a positive integer"),
-  ],
-  checkValidation,
-  createPost,
-);
+router.get("/posts", limitValidation(100), checkValidation, getPosts);
+router.post("/posts", postCreateValidation(), checkValidation, createPost);
 
 /**
  * @openapi
@@ -325,42 +289,7 @@ router.post(
  *                 message: { type: string }
  *       404: { description: Post not found }
  */
-router.put(
-  "/posts/:id",
-  idParamValidation(),
-  [
-    body("content").optional({ values: "falsy" }).isString().trim().notEmpty()
-      .isLength({ max: 2000 }).withMessage("content must be 2000 characters or fewer"),
-    body("imageUrl").optional({ values: "null" }).isString().isLength({ max: 2048 }).withMessage("invalid imageUrl"),
-  ],
-  checkValidation,
-  updatePost,
-);
+router.put("/posts/:id", postUpdateValidation(), checkValidation, updatePost);
 router.delete("/posts/:id", idParamValidation(), checkValidation, deletePost);
-
-
-/**
- * @openapi
- * /public/mock:
- *   get:
- *     tags: [Public API]
- *     summary: Fully anonymized mock dataset for integration testing
- *     description: Returns a snapshot of real data with all usernames, avatars, and content replaced by placeholder values. Safe to embed in demos or documentation.
- *     security:
- *       - ApiKeyAuth: []
- *     responses:
- *       200:
- *         description: Mock dataset
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 users: { type: array }
- *                 leaderboard: { type: array }
- *                 posts: { type: array }
- *                 disclaimer: { type: string, example: "Mock dataset is anonymized and is not user personal data." }
- */
-router.get("/mock", getMockDataset);
 
 export default router;

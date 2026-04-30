@@ -22,6 +22,12 @@ const mockPrisma = {
     upsert: jest.fn(),
     update: jest.fn(),
   },
+  publicApi: {
+    findUnique: jest.fn(),
+    deleteMany: jest.fn(),
+    upsert: jest.fn(),
+    update: jest.fn(),
+  },
   alpacaFarm: {
     upsert: jest.fn(),
   },
@@ -415,42 +421,38 @@ describe("User.deleteById", () => {
 
 describe("User API Key methods", () => {
   test("getApiKey should return key from settings", async () => {
-    mockPrisma.userSettings.findUnique.mockResolvedValue({ apiKey: "key123" });
+    mockPrisma.publicApi.findUnique.mockResolvedValue({ apiKey: "key123" });
     const result = await User.getApiKey(1);
     expect(result).toBe("key123");
   });
 
   test("getApiKey should return null when not set", async () => {
-    mockPrisma.userSettings.findUnique.mockResolvedValue(null);
+    mockPrisma.publicApi.findUnique.mockResolvedValue(null);
     const result = await User.getApiKey(1);
     expect(result).toBeNull();
   });
 
   test("setApiKey should upsert key", async () => {
-    mockPrisma.userSettings.upsert.mockResolvedValue({});
+    mockPrisma.publicApi.upsert.mockResolvedValue({});
     const result = await User.setApiKey(1, "newkey");
     expect(result).toBe("newkey");
-    expect(mockPrisma.userSettings.upsert).toHaveBeenCalled();
+    expect(mockPrisma.publicApi.upsert).toHaveBeenCalled();
   });
 
   test("revokeApiKey should set key to null", async () => {
-    mockPrisma.userSettings.update.mockResolvedValue({});
+    mockPrisma.publicApi.update.mockResolvedValue({});
     await User.revokeApiKey(1);
-    expect(mockPrisma.userSettings.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { apiKey: null },
-      }),
-    );
+    expect(mockPrisma.publicApi.deleteMany).toHaveBeenCalled();
   });
 
   test("findByApiKey should return userId", async () => {
-    mockPrisma.userSettings.findUnique.mockResolvedValue({ userId: 42 });
+    mockPrisma.publicApi.findUnique.mockResolvedValue({ userId: 42 });
     const result = await User.findByApiKey("key123");
     expect(result).toBe(42);
   });
 
   test("findByApiKey should return null when key not found", async () => {
-    mockPrisma.userSettings.findUnique.mockResolvedValue(null);
+    mockPrisma.publicApi.findUnique.mockResolvedValue(null);
     const result = await User.findByApiKey("invalid");
     expect(result).toBeNull();
   });
@@ -469,7 +471,9 @@ describe("User API Key methods", () => {
 describe("User.getFullExport", () => {
   test("should export all user data", async () => {
     mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
-    mockPrisma.friend.findMany.mockResolvedValue([{ friend: { id: 2, username: "friend1" } }]);
+    mockPrisma.friend.findMany.mockResolvedValue([
+      { friend: { id: 2, username: "friend1" } },
+    ]);
     mockPrisma.message.findMany.mockResolvedValue([{ id: 1, content: "hi" }]);
     mockPrisma.game.findMany.mockResolvedValue([{ id: 1, player1Id: 1 }]);
     mockPrisma.post.findMany.mockResolvedValue([{ id: 1, content: "post" }]);
