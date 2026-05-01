@@ -47,6 +47,7 @@ jobs:
       NODE_ENV: test
       JWT_SECRET: ci-test-secret-do-not-use-in-prod
       JWT_REFRESH_SECRET: ci-e2e-secret-change-in-prod
+      JWT_PUBLIC_API_SECRET: ci-test-public-key
       JWT_EXPIRES_IN: 1h
       JWT_REFRESH_EXPIRES_IN: 7d
       DATABASE_URL: postgresql://alpacaparty:alpacaparty@127.0.0.1:5432/alpacaparty?schema=public
@@ -197,6 +198,7 @@ jobs:
       JWT_EXPIRES_IN: 1h
       JWT_REFRESH_EXPIRES_IN: 7d
       JWT_REFRESH_SECRET: ci-e2e-secret-change-in-prod
+      JWT_PUBLIC_API_SECRET: ci-test-public-key
       VAULT_DEV_TOKEN: root
       API_KEYS: ci-e2e-api-key
       GOOGLE_CLIENT_ID: ""
