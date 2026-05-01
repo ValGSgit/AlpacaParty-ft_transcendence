@@ -88,7 +88,7 @@ export const useAuthStore = defineStore("auth", () => {
   async function fetchUser() {
     loading.value = true;
     try {
-      const { data } = await api.get("/auth/me");
+      const { data } = await api.get("/auth/me", { retryOnAuth: false });
       user.value = data.user;
     } catch {
       user.value = null;

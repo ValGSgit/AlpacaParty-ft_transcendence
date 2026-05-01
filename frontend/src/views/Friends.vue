@@ -197,6 +197,7 @@ async function fetchFriends() {
   try {
     const { data } = await api.get('/friends')
     friends.value = data.friends
+    syncRequestedIds()
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Failed to load friends'
   } finally {
@@ -211,6 +212,7 @@ async function fetchRequests() {
     const { data } = await api.get('/friends/requests')
     received.value = data.received
     sent.value = data.sent
+    syncRequestedIds()
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Failed to load requests'
   } finally {
@@ -229,6 +231,13 @@ async function fetchBlocked() {
   } finally {
     loading.value = false
   }
+}
+
+function syncRequestedIds() {
+  const nextIds = new Set()
+  for (const friend of friends.value) nextIds.add(Number(friend.id))
+  for (const request of sent.value) nextIds.add(Number(request.receiverId))
+  requestedIds.value = nextIds
 }
 
 async function sendRequest() {
@@ -265,7 +274,7 @@ async function sendRequestToUser(userId) {
   }
   try {
     await api.post('/friends/requests', { userId })
-    requestedIds.value = new Set([...requestedIds.value, userId])
+    requestedIds.value = new Set([...requestedIds.value, Number(userId)])
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Failed to send request'
   }

@@ -75,8 +75,8 @@ app.use(cookieParser());
 const passport = initializePassport();
 app.use(passport.initialize());
 
-// todo maybe remove from here and aus api/upload routes ?
-// uploads
+// This should happen here to ensure all routes, including static file serving, are protected by the upload security check.
+//  It will allow or deny access to the uploads directory based on the request's authentication and authorization status.
 app.use("/uploads", uploadSecurityCheck, express.static(config.uploads.dir));
 
 // Dev request logging

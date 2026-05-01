@@ -21,29 +21,54 @@ const Friend = {
     if (senderId === receiverId)
       throw Object.assign(new Error("Cannot friend yourself"), { status: 400 });
 
-    const reverseRequest = await prisma.friendRequest.findFirst({
+    const sender = Number(senderId);
+    const receiver = Number(receiverId);
+
+    const alreadyFriends = await this.areFriends(sender, receiver);
+    if (alreadyFriends)
+      throw Object.assign(new Error("You are already friends"), { status: 409 });
+
+    const existing = await prisma.friendRequest.findFirst({
       where: {
-        senderId: Number(receiverId),
-        receiverId: Number(senderId),
-        status: "pending",
+        OR: [
+          { senderId: sender, receiverId: receiver },
+          { senderId: receiver, receiverId: sender },
+        ],
       },
+      orderBy: { createdAt: "desc" },
     });
-    if (reverseRequest) {
-      const request = await this.acceptRequest(reverseRequest.id, senderId);
+
+    if (existing?.status === "pending") {
+      if (existing.senderId === sender && existing.receiverId === receiver) {
+        return { request: existing, alreadyPending: true };
+      }
+
+      const request = await this.acceptRequest(existing.id, sender);
       return { request, autoAccepted: true };
+    }
+
+    if (existing?.status === "declined") {
+      return prisma.friendRequest.update({
+        where: { id: existing.id },
+        data: {
+          senderId: sender,
+          receiverId: receiver,
+          status: "pending",
+        },
+      });
     }
 
     return prisma.friendRequest.upsert({
       where: {
         senderId_receiverId: {
-          senderId: Number(senderId),
-          receiverId: Number(receiverId),
+          senderId: sender,
+          receiverId: receiver,
         },
       },
       update: { status: "pending" },
       create: {
-        senderId: Number(senderId),
-        receiverId: Number(receiverId),
+        senderId: sender,
+        receiverId: receiver,
         status: "pending",
       },
     });

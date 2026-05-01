@@ -118,8 +118,8 @@
         </div>
 
         <form class="message-form" @submit.prevent="sendMessage">
-          <input v-model="newMessage" type="text" placeholder="Type a message…" autocomplete="off" />
-          <button type="submit" class="btn-primary" :disabled="!newMessage.trim()">Send</button>
+          <input v-model="newMessage" type="text" placeholder="Type a message…" autocomplete="off" maxlength="2000" />
+          <button type="submit" class="btn-primary" :disabled="!newMessage.trim() || newMessage.trim().length > 2000">Send</button>
         </form>
       </template>
     </main>
@@ -245,6 +245,10 @@ async function loadDmMessages(userId) {
 function sendMessage() {
   const content = newMessage.value.trim()
   if (!content || !selected.value) return
+  if (content.length > 2000) {
+    msgError.value = 'Messages must be 2000 characters or fewer'
+    return
+  }
 
   if (!socket.connected) {
     msgError.value = 'Not connected. Reconnecting…'

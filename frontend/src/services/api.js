@@ -114,7 +114,6 @@ async function performRequest({
 
     const errorData = await parseResponse(response).catch(() => null);
 
-    console.log(`response: ${JSON.stringify(errorData)}`);
     if (response.status === 401 && retryOnAuth) {
       try {
         await performRequest({
@@ -124,7 +123,6 @@ async function performRequest({
           retryOnAuth: false,
         });
 
-        console.log("Refresh successful! Retrying original request...");
         return await performRequest({
           method,
           path,
@@ -134,9 +132,7 @@ async function performRequest({
           timeout,
           retryOnAuth: false,
         });
-      } catch {
-        console.error(`Refresh failed. User must log in again.`);
-      }
+      } catch {}
     }
 
     throw new HttpError(
