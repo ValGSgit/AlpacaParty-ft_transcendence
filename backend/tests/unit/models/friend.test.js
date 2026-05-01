@@ -21,6 +21,7 @@ const mockPrisma = {
   },
   blockedUser: {
     upsert: jest.fn(),
+    findFirst: jest.fn(),
     findMany: jest.fn(),
     deleteMany: jest.fn(),
   },
