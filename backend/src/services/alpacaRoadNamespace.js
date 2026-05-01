@@ -18,15 +18,16 @@ export function initializeAlpacaRoadNamespace(io) {
 
   // --- HELPER: Random Non-Overlapping Spawn ---
   function getValidSpawn(players) {
-    const existingPlayers = Object.values(players).length
-    const x = playerPositions[existingPlayers]
+    const existingPlayers = Object.values(players).length;
+    const idx = Math.min(existingPlayers, playerPositions.length - 1);
+    const x = playerPositions[idx] ?? playerPositions[playerPositions.length - 1];
     return { x, z: 0, angle: 0 };
   }
 
   namespace.use(socketAuthMiddleware());
 
   namespace.on('connection', (socket) => {
-    const playerId = `u${socket.user?.id || generateId()}`;
+    const playerId = `p${socket.id}`;
 
     // ready
     socket.on('ready', ({ id, ready } = {}) => {

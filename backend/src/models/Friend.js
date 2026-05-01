@@ -17,12 +17,39 @@ function shapeFriend(u) {
 }
 
 const Friend = {
+  async isBlockedBetween(userA, userB) {
+    const a = Number(userA);
+    const b = Number(userB);
+    const found = await prisma.blockedUser.findFirst({
+      where: {
+        OR: [
+          { userId: a, blockedUserId: b },
+          { userId: b, blockedUserId: a },
+        ],
+      },
+    });
+    return !!found;
+  },
   async sendRequest(senderId, receiverId) {
     if (senderId === receiverId)
       throw Object.assign(new Error("Cannot friend yourself"), { status: 400 });
 
     const sender = Number(senderId);
     const receiver = Number(receiverId);
+
+    // Prevent sending requests when either user has blocked the other.
+    const blocked = await prisma.blockedUser.findFirst({
+      where: {
+        OR: [
+          { userId: receiver, blockedUserId: sender }, // receiver blocked sender
+          { userId: sender, blockedUserId: receiver }, // sender blocked receiver
+        ],
+      },
+    });
+    if (blocked) {
+      // If receiver blocked sender, return 403. If sender blocked receiver, reject as well.
+      throw Object.assign(new Error('Cannot send friend request due to block'), { status: 403 });
+    }
 
     const alreadyFriends = await this.areFriends(sender, receiver);
     if (alreadyFriends)

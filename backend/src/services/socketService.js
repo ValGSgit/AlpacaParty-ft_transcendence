@@ -14,6 +14,7 @@
  */
 import { Server } from "socket.io";
 import User from "../models/User.js";
+import Friend from "../models/Friend.js";
 import Message from "../models/Message.js";
 import ChatRoom from "../models/ChatRoom.js";
 import Game from "../models/Game.js";
@@ -97,6 +98,9 @@ export function initializeSocket(httpServer, corsOrigins) {
         if (!content?.trim()) return ack?.({ error: "Empty message" });
         if (Number(receiverId) === user.id)
           return ack?.({ error: "Cannot send a message to yourself" });
+        // Prevent sending messages when either user has blocked the other.
+        const blocked = await Friend.isBlockedBetween(user.id, Number(receiverId));
+        if (blocked) return ack?.({ error: "Cannot send message: blocked or you have blocked this user" });
         const msg = await Message.create({
           senderId: user.id,
           receiverId,

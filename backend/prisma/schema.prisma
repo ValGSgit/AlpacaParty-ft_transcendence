@@ -75,7 +75,7 @@ model UserAuth {
 
 model PublicApi {
   id     Int    @id @default(autoincrement())
-  apiKey String @unique @map("api_key") @db.VarChar(255)
+  apiKey String @unique @map("api_key") @db.Text
 
   // Relations
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
