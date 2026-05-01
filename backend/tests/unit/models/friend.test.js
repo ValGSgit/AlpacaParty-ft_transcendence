@@ -42,7 +42,13 @@ describe('sendRequest', () => {
     mockPrisma.friendRequest.upsert.mockResolvedValue(request);
     const result = await Friend.sendRequest(1, 2);
     expect(mockPrisma.friendRequest.findFirst).toHaveBeenCalledWith({
-      where: { senderId: 2, receiverId: 1, status: 'pending' },
+      where: {
+        OR: [
+          { senderId: 1, receiverId: 2 },
+          { senderId: 2, receiverId: 1 },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
     });
     expect(mockPrisma.friendRequest.upsert).toHaveBeenCalledWith({
       where: { senderId_receiverId: { senderId: 1, receiverId: 2 } },

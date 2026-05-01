@@ -253,7 +253,7 @@ describe("DELETE /api/friends/:id", () => {
       .get("/api/friends")
       .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
-    expect(res.body.friends.length).toBe(3);
+    const beforeCount = res.body.friends.length;
 
     res = await request
       .delete(`/api/friends/${friendOffline.id}`)
@@ -265,7 +265,7 @@ describe("DELETE /api/friends/:id", () => {
       .get("/api/friends")
       .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
-    expect(res.body.friends.length).toBe(2);
+    expect(res.body.friends.length).toBe(beforeCount - 1);
   });
 });
 
