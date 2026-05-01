@@ -90,7 +90,7 @@ router.use(authenticate);
  */
 router.get("/me", getMe);
 router.get("/me/farmdata", getFarmData);
-router.put("/me", userUpdateValidation(), updateMe);
+router.put("/me", userUpdateValidation(), checkValidation, updateMe);
 router.put("/me/farmdata", updateFarmData);
 router.delete("/me", deleteMe);
 
@@ -122,7 +122,12 @@ router.delete("/me", deleteMe);
  *       400: { description: Validation error or same password }
  *       401: { description: Current password is wrong }
  */
-router.put("/me/password", userPasswordValidation(), changePassword);
+router.put(
+  "/me/password",
+  userPasswordValidation(),
+  checkValidation,
+  changePassword,
+);
 
 /**
  * @openapi

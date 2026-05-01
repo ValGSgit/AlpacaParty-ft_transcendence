@@ -20,7 +20,8 @@ export const validateConfig = () => {
 
   // JWT
   requireConfig(config.jwt.secret, "JWT_SECRET");
-  requireConfig(config.jwt.refresh_secret, "JWT_REFRESH_SECRET");
+  requireConfig(config.jwt.refreshSecret, "JWT_REFRESH_SECRET");
+  requireConfig(config.jwt.publicApiSecret, "JWT_PUBLIC_API_SECRET");
   requireConfig(config.jwt.expiresIn, "JWT_EXPIRES_IN");
   requireConfig(config.jwt.refreshExpiresIn, "JWT_REFRESH_EXPIRES_IN");
 

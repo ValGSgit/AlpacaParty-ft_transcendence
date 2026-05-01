@@ -49,28 +49,24 @@ const Post = {
     return post ? shapePost(post) : null;
   },
 
-  async update(id, authorId, fields) {
+  async update(id, fields) {
     const data = {};
     if (fields.content !== undefined) data.content = fields.content;
-    if (fields.image_url !== undefined) data.imageUrl = fields.image_url;
     if (fields.imageUrl !== undefined) data.imageUrl = fields.imageUrl;
-    if (fields.is_public !== undefined) data.isPublic = fields.is_public;
     if (fields.isPublic !== undefined) data.isPublic = fields.isPublic;
     if (Object.keys(data).length === 0) return this.findById(id);
 
-    const post = await prisma.post
-      .update({
-        where: { id: Number(id), authorId: Number(authorId) },
-        data,
-        include: { author: AUTHOR_SELECT },
-      })
-      .catch(() => null);
+    const post = await prisma.post.update({
+      where: { id: Number(id) },
+      data,
+      include: { author: AUTHOR_SELECT },
+    });
     return post ? shapePost(post) : null;
   },
 
-  async delete(id, authorId) {
+  async delete(postId) {
     const { count } = await prisma.post.deleteMany({
-      where: { id: Number(id), authorId: Number(authorId) },
+      where: { id: Number(postId) },
     });
     return count > 0;
   },
@@ -89,10 +85,16 @@ const Post = {
         skip: off,
       }),
       vid
-        ? prisma.postLike.findMany({ where: { userId: vid }, select: { postId: true } })
+        ? prisma.postLike.findMany({
+            where: { userId: vid },
+            select: { postId: true },
+          })
         : Promise.resolve([]),
       vid
-        ? prisma.repost.findMany({ where: { authorId: vid }, select: { postId: true } })
+        ? prisma.repost.findMany({
+            where: { authorId: vid },
+            select: { postId: true },
+          })
         : Promise.resolve([]),
       // Fetch recent reposts of public posts by public authors only
       prisma.repost.findMany({
@@ -102,13 +104,16 @@ const Post = {
             author: { userSettings: { isPublic: true } },
           },
         },
-        include: { post: { include: { author: AUTHOR_SELECT } }, author: AUTHOR_SELECT },
-        orderBy: { createdAt: 'desc' },
+        include: {
+          post: { include: { author: AUTHOR_SELECT } },
+          author: AUTHOR_SELECT,
+        },
+        orderBy: { createdAt: "desc" },
         take: lim,
       }),
     ]);
 
-    const likedIds    = new Set(liked.map((l) => l.postId));
+    const likedIds = new Set(liked.map((l) => l.postId));
     const repostedIds = new Set(viewerReposts.map((r) => r.postId));
 
     // Shape original posts
@@ -182,7 +187,11 @@ const Post = {
     try {
       repost = await prisma.$transaction(async (tx) => {
         const r = await tx.repost.create({
-          data: { postId: Number(postId), authorId: Number(authorId), comment: comment ?? null },
+          data: {
+            postId: Number(postId),
+            authorId: Number(authorId),
+            comment: comment ?? null,
+          },
           include: { author: AUTHOR_SELECT },
         });
         await tx.post.update({
@@ -192,7 +201,7 @@ const Post = {
         return r;
       });
     } catch (e) {
-      if (e.code === 'P2002') return null; // already reposted
+      if (e.code === "P2002") return null; // already reposted
       throw e;
     }
     if (!repost) return null;
