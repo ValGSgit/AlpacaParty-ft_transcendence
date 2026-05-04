@@ -9,10 +9,9 @@ export class AlpacaRoadMatch extends BaseMatch {
 
     this.level = 1;
     this.totalPoints = 0;
-    this.roadSpeed = 0;
+    this.roadSpeed = 25;
     this.timerMultiplier = 1.0;
     this.spawnTimer = 2.0;
-    this.initObstacles();
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
 
@@ -33,13 +32,21 @@ export class AlpacaRoadMatch extends BaseMatch {
     this.status = 'PLAYING';
     this.isPlaying = true;
     this.roadSpeed = 25;
+    this.initObstacles();
     this.broadcast('game_start', { message: "Get Ready!" });
+  }
+
+  stop() {
+    super.stop();
+    this.isPlaying = false;
+    this.obstacles = [];
+    this.roadSpeed = 0;
   }
 
   handlePlayerHit(socketId) {
     const player = this.players.get(socketId);
-    player.isHit = true;
-    if (player && player.hp > 0 && !player.isDead) {
+    if (player && player.hp > 0 && !player.isDead && !player.isHit) {
+      player.isHit = true;
       player.hp--;
       if (player.hp <= 0) {
         player.isDead = true;
@@ -48,6 +55,15 @@ export class AlpacaRoadMatch extends BaseMatch {
     }
   }
 
+  handlePlayerHitComplete(socketId) {
+    const player = this.players.get(socketId);
+    if (player && player.isHit) {
+      player.isHit = false;
+      this.syncLobby();
+    }
+  }
+
+  //CHECK
   handlePlayerJump(socketId) {
     const player = this.players.get(socketId);
     if (player && !player.isDead && !player.isJumping) {
@@ -56,7 +72,7 @@ export class AlpacaRoadMatch extends BaseMatch {
         if (this.players.has(socketId)) {
           this.players.get(socketId).isJumping = false;
         }
-      }, 600);
+      }, 1500);
     }
   }
 
@@ -73,6 +89,13 @@ export class AlpacaRoadMatch extends BaseMatch {
 
       this.roadSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;
       this.timerMultiplier = Math.max(0.5, this.timerMultiplier - 0.05);
+
+      //CHECK
+      this.broadcast('level_up', {
+        level: this.level,
+        roadSpeed: this.roadSpeed,
+        timerMultiplier: this.timerMultiplier
+      });
     }
   }
 
@@ -83,18 +106,21 @@ export class AlpacaRoadMatch extends BaseMatch {
     if (this.isPlaying) {
       this.obstacles.forEach(obs => {
         obs.z -= this.roadSpeed * tick;
-
         if (obs.z < -0.25 && !obs.pointGiven) {
           obs.pointGiven = true;
-          this.totalPoints++;
-          pointGained = true;
+          let awardedPoint = false;
 
           for (const [id, player] of this.players) {
             if (!player.isDead && !player.isHit) {
               if (obs.isFull || player.lane === obs.lane) {
+                obs.pointGiven = true;
                 player.points++;
               }
             }
+          }
+          if (awardedPoint) {
+            this.totalPoints++;
+            pointGained = true;
           }
         }
       })
@@ -126,7 +152,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     const allDead = playersArr.length > 0 && playersArr.every(p => p.isDead === true);
     if (allDead && this.isPlaying) {
       this.isPlaying = false;
-      this.broadcast('game_over'); // Tell clients to show the Game Over screen
+      this.broadcast('game_over');
       setTimeout(() => this.stop(), 2000); // Shut down the server loop
     }
 
@@ -138,6 +164,7 @@ export class AlpacaRoadMatch extends BaseMatch {
   }
 
   initObstacles() {
+    console.log("INIT");
     const amount = 8;
     const roadLength = 700;
     for (let i = 0; i < amount; ++i) {
@@ -147,13 +174,15 @@ export class AlpacaRoadMatch extends BaseMatch {
 
   createObstacle(pos = 700) {
     const activeLanes = Array.from(this.players.values()).filter(p => !p.isDead).map(p => p.lane);
+    console.log("active: ", activeLanes);
     const targetLane = activeLanes.length > 0
       ? activeLanes[Math.floor(Math.random() * activeLanes.length)]
       : Math.floor(Math.random() * 4);
+    console.log("target: ", targetLane);
 
     this.obstacles.push({
       id: Math.random().toString(36),
-      typeId: Math.floor(Math.random() * 2),
+      typeId: 0, //Math.floor(Math.random() * 2),
       lane: targetLane,
       z: pos,
       isFull: Math.random() > 0.8,

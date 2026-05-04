@@ -1,4 +1,3 @@
-// client/GameClient.js
 import { io } from 'socket.io-client';
 import { gMinigame, gUI } from '../core/globals';
 import { playCountDown } from './annoucement';
@@ -8,7 +7,7 @@ export class GameClient {
   constructor() {
     this.socket = null;
     this.serverObstacles = [];
-    this.roadSpeed = 0;
+    this.roadSpeed = 25;
   }
 
   connect() {
@@ -50,6 +49,12 @@ export class GameClient {
     }
   }
 
+  sendHitComplete() {
+    if (this.socket) {
+      this.socket.emit('player_hit_complete');
+    }
+  }
+
   sendJump() {
     if (this.socket) {
       this.socket.emit('player_jump');
@@ -88,6 +93,10 @@ export class GameClient {
       }, 4000);
     });
 
+    this.socket.on('level_up', (data) => {
+      applyLevelUp(data.level, data.roadSpeed, data.timerMultiplier);
+    })
+
     this.socket.on('tick', (snapshot) => {
       this.serverObstacles = snapshot.obstacles;
       gMinigame.value.players = snapshot.players;
@@ -97,7 +106,6 @@ export class GameClient {
     this.socket.on('game_over', () => {
       console.log("GC: game_over");
       gMinigame.value.isGameOver = true;
-      //gMinigame.value.isActive = false;
     });
 
   }

@@ -106,8 +106,8 @@ function initGameValues(playerCount) {
 export function updateAlpacaRoad(delta) {
   if (!assetsLoaded) return;
 
-  if (gMinigame.value.isOnline) {
-    // ONLINE LOGIC
+
+  if (gMinigame.value.isOnline) { // ONLINE
     if (gMinigame.value.isGameOver) {
       endMinigame();
       return;
@@ -119,8 +119,7 @@ export function updateAlpacaRoad(delta) {
       checkLocalCollisions();
       checkLocalJump();
     }
-  } else {
-    // OFFLINE LOGIC
+  } else { //OFFLINE
     if (!gMinigame.value.isActive) return;
     spawnObstacles(delta)
     updateObstacles(delta)
@@ -408,17 +407,6 @@ function checkAlpaca(alpaca) {
   }
 }
 
-// =========================================================
-// 5. SHARED UTILS (Online & Offline)
-// =========================================================
-
-export function applyLevelUp(newLevel, newSpeed, newTimerMult) {
-  level = newLevel;
-  roadSpeed = newSpeed;
-  timerMultiplier = newTimerMult;
-  makeAnnouncement(`LEVEL ${level}`, 2000);
-}
-
 function awardPoints(obstacle) {
   for (let i = 0; i < activePlayers.length; i++) {
     const alpaca = activePlayers[i];
@@ -438,6 +426,17 @@ function awardPoints(obstacle) {
     }
   }
   obstacle.pointGiven = true;
+}
+
+// =========================================================
+// 5. SHARED UTILS (Online & Offline)
+// =========================================================
+
+function applyLevelUp(newLevel, newSpeed, newTimerMult) {
+  level = newLevel;
+  roadSpeed = newSpeed;
+  timerMultiplier = newTimerMult;
+  makeAnnouncement(`LEVEL ${level}`, 2000);
 }
 
 function endMinigame() {
@@ -504,40 +503,11 @@ function spinAlpacaUp(alpaca, delta) {
     alpaca.model.rotation.x = 0;
     alpaca.model.position.y = 0;
     alpaca.isBeingHit = false;
-  }
-}
-
-export function cleanupAlpacaRoad() {
-  assetsLoaded = false;
-  gUI.isLightCycling = true;
-
-  activeObstacles.forEach(obj => {
-    gScene.value.remove(obj);
-    removeObject(obj);
-  });
-  activeObstacles.length = 0;
-
-  roadScene.forEach(item => gScene.value.remove(item));
-  roadScene.length = 0;
-
-  activePlayers.forEach(alpaca => {
-    if (alpaca !== gPlayer.value) {
-      gScene.value.remove(alpaca.model);
-    } else {
-      alpaca.model.position.set(0, 0, 0);
-      alpaca.model.rotation.set(0, 0, 0);
-      alpaca.isDead = false;
-      alpaca.isBeingHit = false;
+    if (gMinigame.value.isOnline && alpaca.socketId === activeClient.socket.id) {
+      activeClient.sendHitComplete();
     }
-  });
-  activePlayers.length = 0;
-  setSunLight();
-  adjustSunBox();
 
-  gUI.lockCamera = false;
-  gUI.cameraMode = 1;
-  gMinigame.value.isGameOver = false;
-  console.log("🧹 Minigame cleaned up.");
+  }
 }
 
 async function setupRoadScene(scene) {
@@ -629,6 +599,7 @@ function initScenery() {
 }
 
 function initObstacles() {
+  console.log("road init!");
   const amount = 8;
   for (let i = 0; i < amount; ++i) {
     createObstacle();
@@ -670,3 +641,35 @@ function getValidLanes() {
   return validLanes;
 }
 
+function cleanupAlpacaRoad() {
+  assetsLoaded = false;
+  gUI.isLightCycling = true;
+
+  activeObstacles.forEach(obj => {
+    gScene.value.remove(obj);
+    removeObject(obj);
+  });
+  activeObstacles.length = 0;
+
+  roadScene.forEach(item => gScene.value.remove(item));
+  roadScene.length = 0;
+
+  activePlayers.forEach(alpaca => {
+    if (alpaca !== gPlayer.value) {
+      gScene.value.remove(alpaca.model);
+    } else {
+      alpaca.model.position.set(0, 0, 0);
+      alpaca.model.rotation.set(0, 0, 0);
+      alpaca.isDead = false;
+      alpaca.isBeingHit = false;
+    }
+  });
+  activePlayers.length = 0;
+  setSunLight();
+  adjustSunBox();
+
+  gUI.lockCamera = false;
+  gUI.cameraMode = 1;
+  gMinigame.value.isGameOver = false;
+  console.log("🧹 Minigame cleaned up.");
+}

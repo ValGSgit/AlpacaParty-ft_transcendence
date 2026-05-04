@@ -40,12 +40,7 @@ export class MatchManager {
         this.matches.set(roomId, match);
         match.addPlayer(socket, name, color);
         this.playerToMatch.set(socket.id, roomId);
-
-        // Tell the creator they successfully joined their own room
-        console.log("MM: join_success");
         socket.emit('join_success', { roomId: roomId, roomName: roomName });
-
-        // Update the public menu for everyone else!
         this.broadcastPublicRooms();
       });
 
@@ -55,10 +50,7 @@ export class MatchManager {
         if (match && match.status === 'LOBBY' && match.players.size < 4) {
           match.addPlayer(socket, name, color);
           this.playerToMatch.set(socket.id, roomId);
-
           socket.emit('join_success', { roomId: roomId, roomName: match.roomName });
-
-          // Update the public menu (e.g., changes from 1/4 to 2/4 players)
           this.broadcastPublicRooms();
         }
       });
@@ -78,12 +70,21 @@ export class MatchManager {
         }
       });
 
+      socket.on('player_hit_complete', () => {
+        const matchId = this.playerToMatch.get(socket.id);
+        if (matchId) {
+          const match = this.matches.get(matchId);
+          if (match && typeof match.handlePlayerHitComplete === 'function') {
+            match.handlePlayerHitComplete(socket.id);
+          }
+        }
+      })
+
+
       socket.on('player_jump', () => {
         const matchId = this.playerToMatch.get(socket.id);
         if (matchId) {
           const match = this.matches.get(matchId);
-
-          // Route it to the AlpacaRoadMatch logic
           if (match && typeof match.handlePlayerJump === 'function') {
             match.handlePlayerJump(socket.id);
           }
