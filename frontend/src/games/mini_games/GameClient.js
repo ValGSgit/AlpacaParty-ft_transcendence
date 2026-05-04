@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 import { gMinigame, gUI } from '../core/globals';
-import { playCountDown } from './annoucement';
+import { makeAnnouncement, playCountDown } from './annoucement';
 import { changeGame } from './init';
 
 export class GameClient {
@@ -30,7 +30,6 @@ export class GameClient {
 
   createRoom(playerName, color) {
     if (this.socket) {
-      console.log("GC create_room:", playerName)
       this.socket.emit('create_room', { name: playerName, color: color });
     }
   }
@@ -63,38 +62,31 @@ export class GameClient {
 
   setupListeners() {
     this.socket.on('available_rooms', (roomList) => {
-      console.log("Game Client available rooms:", roomList)
       gMinigame.value.publicRooms = roomList;
     });
 
     this.socket.on('join_success', (data) => {
-      console.log("GC: join_success");
       this.serverObstacles = [];
-
       changeGame(gMinigame.value.mode, 1);
-
       gUI.lobbyMenu = true;
       gMinigame.value.currentRoomName = data.roomName;
-      console.log(gMinigame.value.currentRoomName);
     });
 
     this.socket.on('lobby_update', (playerList) => {
-      console.log("GC: lobby_update");
       gMinigame.value.players = playerList;
     });
 
     this.socket.on('game_start', () => {
-      console.log("GC: game_start");
       gMinigame.value.isActive = true;
       gUI.lobbyMenu = false;
       playCountDown(3);
-      setTimeout(() => {
-        gMinigame.value.isActive = true;
-      }, 4000);
+      // setTimeout(() => {
+      //   gMinigame.value.isActive = true;
+      // }, 4000);
     });
 
     this.socket.on('level_up', (data) => {
-      applyLevelUp(data.level, data.roadSpeed, data.timerMultiplier);
+      makeAnnouncement(`LEVEL ${data.level}`, 2000);
     })
 
     this.socket.on('tick', (snapshot) => {
@@ -104,7 +96,6 @@ export class GameClient {
     });
 
     this.socket.on('game_over', () => {
-      console.log("GC: game_over");
       gMinigame.value.isGameOver = true;
     });
 

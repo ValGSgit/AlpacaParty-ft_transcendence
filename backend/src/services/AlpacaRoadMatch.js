@@ -33,7 +33,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     this.isPlaying = true;
     this.roadSpeed = 25;
     this.initObstacles();
-    this.broadcast('game_start', { message: "Get Ready!" });
+    this.broadcast('game_start');
   }
 
   stop() {
@@ -150,10 +150,14 @@ export class AlpacaRoadMatch extends BaseMatch {
     }));
 
     const allDead = playersArr.length > 0 && playersArr.every(p => p.isDead === true);
-    if (allDead && this.isPlaying) {
-      this.isPlaying = false;
-      this.broadcast('game_over');
-      setTimeout(() => this.stop(), 2000); // Shut down the server loop
+    if (allDead && this.status !== 'GAME_OVER') {
+
+      this.status === 'GAME_OVER';
+      setTimeout(() => {
+        this.isPlaying = false;
+        this.broadcast('game_over');
+        this.stop()
+      }, 2000); // Shut down the server loop
     }
 
     this.broadcast('tick', {
@@ -164,7 +168,6 @@ export class AlpacaRoadMatch extends BaseMatch {
   }
 
   initObstacles() {
-    console.log("INIT");
     const amount = 8;
     const roadLength = 700;
     for (let i = 0; i < amount; ++i) {
@@ -174,11 +177,9 @@ export class AlpacaRoadMatch extends BaseMatch {
 
   createObstacle(pos = 700) {
     const activeLanes = Array.from(this.players.values()).filter(p => !p.isDead).map(p => p.lane);
-    console.log("active: ", activeLanes);
     const targetLane = activeLanes.length > 0
       ? activeLanes[Math.floor(Math.random() * activeLanes.length)]
       : Math.floor(Math.random() * 4);
-    console.log("target: ", targetLane);
 
     this.obstacles.push({
       id: Math.random().toString(36),

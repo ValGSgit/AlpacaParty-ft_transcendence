@@ -447,11 +447,10 @@ function endMinigame() {
 
   gMinigame.value.isActive = false;
 
-  // Accurately find the local player to calculate rewards
   let playerPoints = 0;
   if (gMinigame.value.isOnline) {
     const local = activePlayers.find(p => p.socketId === activeClient.socket.id);
-    if (local) playerPoints = local.point;
+    if (local) playerPoints = local.point || 0;
   } else {
     playerPoints = activePlayers[0].point || 0;
   }
