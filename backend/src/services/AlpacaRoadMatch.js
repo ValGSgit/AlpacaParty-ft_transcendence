@@ -9,7 +9,7 @@ export class AlpacaRoadMatch extends BaseMatch {
 
     this.level = 1;
     this.totalPoints = 0;
-    this.roadSpeed = 25;
+    this.roadSpeed = 0;
     this.timerMultiplier = 1.0;
     this.spawnTimer = 2.0;
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
@@ -29,11 +29,14 @@ export class AlpacaRoadMatch extends BaseMatch {
   }
 
   start() {
-    this.status = 'PLAYING';
-    this.isPlaying = true;
-    this.roadSpeed = 25;
+    this.status = 'COUNTDOWN';
     this.initObstacles();
     this.broadcast('game_start');
+    setTimeout(() => {
+      this.status = 'PLAYING';
+      this.isPlaying = true;
+      this.roadSpeed = 25;
+    }, 4000)
   }
 
   stop() {
@@ -72,7 +75,7 @@ export class AlpacaRoadMatch extends BaseMatch {
         if (this.players.has(socketId)) {
           this.players.get(socketId).isJumping = false;
         }
-      }, 1500);
+      }, 800);
     }
   }
 
@@ -151,13 +154,13 @@ export class AlpacaRoadMatch extends BaseMatch {
 
     const allDead = playersArr.length > 0 && playersArr.every(p => p.isDead === true);
     if (allDead && this.status !== 'GAME_OVER') {
-
       this.status === 'GAME_OVER';
+
       setTimeout(() => {
         this.isPlaying = false;
         this.broadcast('game_over');
         this.stop()
-      }, 2000); // Shut down the server loop
+      }, 1500);
     }
 
     this.broadcast('tick', {
@@ -171,7 +174,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     const amount = 8;
     const roadLength = 700;
     for (let i = 0; i < amount; ++i) {
-      this.createObstacle(roadLength / 3 + ((roadLength / 2) / amount * i));
+      this.createObstacle(75 + (roadLength / amount) * i);
     }
   }
 
