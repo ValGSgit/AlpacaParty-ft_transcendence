@@ -92,7 +92,7 @@ function initGameValues(playerCount) {
   totalPoints = 0;
   alivePlayers = playerCount;
   initalPlayerCount = playerCount;
-  roadSpeed = 25;
+  roadSpeed = 30;
   gUI.cameraMode = 2;
   gUI.lockCamera = true;
   gUI.isLightCycling = false;
@@ -363,7 +363,7 @@ function updateDifficulty() {
   if (newLevel > level) {
     const minSpeed = 25;
     const maxSpeed = 100;
-    const factor = 0.1;
+    const factor = 0.08;
     const difficultyFactor = 1 - Math.exp(-factor * newLevel);
 
     const newSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;

@@ -80,7 +80,6 @@ export class MatchManager {
         }
       })
 
-
       socket.on('player_jump', () => {
         const matchId = this.playerToMatch.get(socket.id);
         if (matchId) {

@@ -35,7 +35,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     setTimeout(() => {
       this.status = 'PLAYING';
       this.isPlaying = true;
-      this.roadSpeed = 25;
+      this.roadSpeed = 30;
     }, 4000)
   }
 
@@ -85,19 +85,17 @@ export class AlpacaRoadMatch extends BaseMatch {
 
     if (newLevel > this.level) {
       this.level = newLevel;
-      const minSpeed = 25;
+      const minSpeed = 30;
       const maxSpeed = 100;
-      const factor = 0.1;
+      const factor = 0.08;
       const difficultyFactor = 1 - Math.exp(-factor * this.level);
 
       this.roadSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;
       this.timerMultiplier = Math.max(0.5, this.timerMultiplier - 0.05);
+      console.log(`${this.level}: Speed: ${this.roadSpeed}, TimerMult: ${this.timerMultiplier}`, newLevel);
 
-      //CHECK
       this.broadcast('level_up', {
         level: this.level,
-        roadSpeed: this.roadSpeed,
-        timerMultiplier: this.timerMultiplier
       });
     }
   }
@@ -118,6 +116,7 @@ export class AlpacaRoadMatch extends BaseMatch {
               if (obs.isFull || player.lane === obs.lane) {
                 obs.pointGiven = true;
                 player.points++;
+                awardedPoint = true;
               }
             }
           }
@@ -186,10 +185,10 @@ export class AlpacaRoadMatch extends BaseMatch {
 
     this.obstacles.push({
       id: Math.random().toString(36),
-      typeId: 0, //Math.floor(Math.random() * 2),
+      typeId: Math.floor(Math.random() * 2),
       lane: targetLane,
       z: pos,
-      isFull: Math.random() > 0.8,
+      isFull: Math.random() > 0.6,
       pointGiven: false
     });
   }

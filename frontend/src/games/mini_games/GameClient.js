@@ -7,7 +7,7 @@ export class GameClient {
   constructor() {
     this.socket = null;
     this.serverObstacles = [];
-    this.roadSpeed = 25;
+    this.roadSpeed = 0;
   }
 
   connect() {
@@ -80,9 +80,6 @@ export class GameClient {
       gMinigame.value.isActive = true;
       gUI.lobbyMenu = false;
       playCountDown(3);
-      // setTimeout(() => {
-      //   gMinigame.value.isActive = true;
-      // }, 4000);
     });
 
     this.socket.on('level_up', (data) => {
