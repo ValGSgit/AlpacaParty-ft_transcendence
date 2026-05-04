@@ -70,10 +70,9 @@ const leaveRoom = () => {
   activeClient.disconnect(); 
   gMinigame.value.currentRoomName = null;
   gMinigame.value.isReady = false;
-
   setTimeout(() => {
     activeClient.connect();
-  }, 50);
+  }, 25);
 };
 
 </script>
