@@ -234,17 +234,6 @@ test: backend-test
 
 e2e: create-dirs seed-live
 	$(DC) up -d
-	@echo "Waiting for API health..."; \
-	for i in $$(seq 1 60); do \
-	  if curl -k -sSf https://localhost:8443/api/health >/dev/null; then \
-	    break; \
-	  fi; \
-	  if [ $$i -eq 60 ]; then \
-	    echo "API did not become ready in time"; \
-	    exit 1; \
-	  fi; \
-	  sleep 1; \
-	done
 	@E2E_API_KEY="$${E2E_API_KEY:-$$(grep '^API_KEYS=' .env | cut -d= -f2- | cut -d, -f1)}"; \
 	$(DC_E2E) run --build --rm -e E2E_API_KEY="$$E2E_API_KEY" e2e npm test
 

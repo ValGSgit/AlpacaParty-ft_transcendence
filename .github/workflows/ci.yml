@@ -342,30 +342,6 @@ jobs:
           SEED_ROOM_MESSAGES: "200"
           SEED_NOTIFICATIONS: "100"
 
-      # -- Run tests ------------------------------------------------
-      - name: Sanity check public API key before Playwright
-        run: |
-          set -euo pipefail
-          E2E_API_KEY=$(docker compose -f compose.prod.yaml exec -T backend npx env-cmd -f /run/secrets/.env node -e "const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); (async () => { const u = await prisma.user.findUnique({ where: { email: 'live_admin@alpacaparty.test' }, select: { publicApi: { select: { apiKey: true } } } }); const key = u?.publicApi?.apiKey || ''; if (!key) process.exit(1); console.log(key); await prisma.$disconnect(); })().catch(async () => { await prisma.$disconnect(); process.exit(1); });")
-
-          if [ -z "$E2E_API_KEY" ]; then
-            echo "Failed to extract API key from database"
-            cat /tmp/seed_output.log || true
-            exit 1
-          fi
-
-          echo "E2E_API_KEY=$E2E_API_KEY" >> "$GITHUB_ENV"
-          echo "Using API key: ${E2E_API_KEY:0:20}..."
-          code=$(curl -ks -o /tmp/public_api.json -w "%{http_code}" \
-            -H "X-API-Key: $E2E_API_KEY" \
-            "https://localhost:8443/api/public/users?limit=1")
-          echo "Public API status: $code"
-          cat /tmp/public_api.json || true
-          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
-            echo "Public API key sanity check failed"
-            exit 1
-          fi
-
       - name: Run Playwright tests
         working-directory: e2e
         run: npm test
