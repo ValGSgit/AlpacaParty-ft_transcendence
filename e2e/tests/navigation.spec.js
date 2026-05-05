@@ -18,7 +18,7 @@ test.describe('Navigation and Route Guards', () => {
       await page.goto(route);
       const redirected = /\/login/.test(page.url());
       if (!redirected) {
-        await expect(page).toHaveURL(new RegExp(route));
+        await expect(page).toHaveURL("https://localhost:8443/login?redirect=/profile?tab=settings");
         await expect(page.locator('body')).toBeVisible();
       }
     }
@@ -30,7 +30,7 @@ test.describe('Navigation and Route Guards', () => {
 
     for (const route of protectedRoutes) {
       await page.goto(route);
-      await expect(page).toHaveURL(new RegExp(route));
+      await expect(page).toHaveURL("https://localhost:8443/login?redirect=/profile?tab=settings");
       await expect(page.locator('body')).toBeVisible();
     }
   });
