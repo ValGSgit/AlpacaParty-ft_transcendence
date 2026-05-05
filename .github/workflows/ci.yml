@@ -350,8 +350,7 @@ jobs:
       # -- Run tests ------------------------------------------------
       - name: Sanity check public API key before Playwright
         run: |
-          # Generate a valid JWT token using the same secret as the backend
-          TOKEN=$(node -e "const jwt = require('jsonwebtoken'); console.log(jwt.sign({ id: 1 }, '${{ env.JWT_PUBLIC_API_SECRET }}'))")
+          TOKEN=$(docker compose exec -T backend node -e "const jwt = require('jsonwebtoken'); console.log(jwt.sign({ id: 1 }, '${{ env.JWT_PUBLIC_API_SECRET }}'))")
           
           code=$(curl -ks -o /tmp/public_api.json -w "%{http_code}" \
             -H "X-API-Key: $TOKEN" \
