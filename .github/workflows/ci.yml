@@ -307,7 +307,7 @@ jobs:
             sleep 5
           done
           echo "Backend did not become healthy in time"
-          docker compose logs
+          docker compose -f compose.prod.yaml logs
           exit 1
 
       - name: Sync database schema
@@ -315,7 +315,7 @@ jobs:
           set -e
           for attempt in 1 2 3; do
             echo "Prisma db push attempt ${attempt}/3"
-            if docker compose -f compose.prod.yaml exec -T backend npx prisma db push; then
+            if docker compose -f compose.prod.yaml exec -T backend npx env-cmd -f /run/secrets/.env npx prisma db push; then
               exit 0
             fi
             if [ "$attempt" -lt 3 ]; then
@@ -327,13 +327,13 @@ jobs:
           exit 1
 
       - name: Generate Prisma client
-        run: docker compose -f compose.prod.yaml exec -T backend npx prisma generate
+        run: docker compose -f compose.prod.yaml exec -T backend npx env-cmd -f /run/secrets/.env npx prisma generate
 
       # -- Seed data for E2E tests ----------------------------------
       - name: Seed live data for E2E tests
         run: |
           set -euo pipefail
-          docker compose -f compose.prod.yaml exec -T backend npm run seed:live | tee /tmp/seed_output.log
+          docker compose -f compose.prod.yaml exec -T backend npx env-cmd -f /run/secrets/.env npm run seed:live | tee /tmp/seed_output.log
         env:
           SEED_USERS: "50"
           SEED_POSTS: "100"
@@ -346,7 +346,7 @@ jobs:
       - name: Sanity check public API key before Playwright
         run: |
           set -euo pipefail
-          E2E_API_KEY=$(docker compose -f compose.prod.yaml exec -T backend node -e "const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); (async () => { const u = await prisma.user.findUnique({ where: { email: 'live_admin@alpacaparty.test' }, select: { publicApi: { select: { apiKey: true } } } }); const key = u?.publicApi?.apiKey || ''; if (!key) process.exit(1); console.log(key); await prisma.$disconnect(); })().catch(async () => { await prisma.$disconnect(); process.exit(1); });")
+          E2E_API_KEY=$(docker compose -f compose.prod.yaml exec -T backend npx env-cmd -f /run/secrets/.env node -e "const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); (async () => { const u = await prisma.user.findUnique({ where: { email: 'live_admin@alpacaparty.test' }, select: { publicApi: { select: { apiKey: true } } } }); const key = u?.publicApi?.apiKey || ''; if (!key) process.exit(1); console.log(key); await prisma.$disconnect(); })().catch(async () => { await prisma.$disconnect(); process.exit(1); });")
 
           if [ -z "$E2E_API_KEY" ]; then
             echo "Failed to extract API key from database"
