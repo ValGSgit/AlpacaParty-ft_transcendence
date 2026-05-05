@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 // Secrets are injected via env-cmd from /run/secrets/.env (written by fetchSecrets.js at entrypoint time).
 let prisma;
@@ -416,6 +417,23 @@ async function main() {
     prisma.notification.count(),
     prisma.achievement.count(),
   ]);
+
+  // Generate API key for live_admin (first fixed user) for E2E testing
+  const liveAdmin = users[0]; // live_admin is the first fixed user
+  if (liveAdmin && liveAdmin.email === "live_admin@alpacaparty.test") {
+    const publicApiSecret = process.env.JWT_PUBLIC_API_SECRET;
+    if (publicApiSecret) {
+      const apiKey = jwt.sign({ id: liveAdmin.id }, publicApiSecret, {
+        expiresIn: "30d",
+      });
+      await prisma.publicApi.upsert({
+        where: { userId: liveAdmin.id },
+        update: { apiKey },
+        create: { userId: liveAdmin.id, apiKey },
+      });
+      console.log(`[seed-live] Generated API key for live_admin: ${apiKey}`);
+    }
+  }
 
   console.log("[seed-live] Done");
   console.log(

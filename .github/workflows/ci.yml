@@ -338,7 +338,7 @@ jobs:
 
       # -- Seed data for E2E tests ----------------------------------
       - name: Seed live data for E2E tests
-        run: docker compose exec -T backend npm run seed:live
+        run: docker compose exec -T backend npm run seed:live > /tmp/seed_output.log 2>&1 || true
         env:
           SEED_USERS: "50"
           SEED_POSTS: "100"
@@ -350,10 +350,17 @@ jobs:
       # -- Run tests ------------------------------------------------
       - name: Sanity check public API key before Playwright
         run: |
-          TOKEN=$(docker compose exec -T backend node -e "const jwt = require('jsonwebtoken'); console.log(jwt.sign({ id: 1 }, '${{ env.JWT_PUBLIC_API_SECRET }}'))")
+          E2E_API_KEY=$(grep "Generated API key for live_admin:" /tmp/seed_output.log | sed 's/.*Generated API key for live_admin: //')
           
+          if [ -z "$E2E_API_KEY" ]; then
+            echo "Failed to extract API key from seed output"
+            cat /tmp/seed_output.log || true
+            exit 1
+          fi
+          
+          echo "Using API key: ${E2E_API_KEY:0:20}..."
           code=$(curl -ks -o /tmp/public_api.json -w "%{http_code}" \
-            -H "X-API-Key: $TOKEN" \
+            -H "X-API-Key: $E2E_API_KEY" \
             "https://localhost:8443/api/public/users?limit=1")
           echo "Public API status: $code"
           cat /tmp/public_api.json || true
