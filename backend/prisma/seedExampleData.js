@@ -151,7 +151,7 @@ async function seedUsers(passwordHash) {
       where: { email: userData.email },
       update: userData,
       create: userData,
-      select: { id: true, username: true },
+      select: { id: true, username: true, email: true },
     });
     users.push(user);
 
