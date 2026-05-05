@@ -8,6 +8,10 @@ import { io } from "socket.io-client";
 
 let socket = null;
 
+function isSocketAlive(instance) {
+  return !!instance && !instance.disconnected;
+}
+
 /**
  * Derive the Socket.io server URL from the API base URL.
  * When running behind nginx (same origin), we connect to '/' so
@@ -28,7 +32,7 @@ function getSocketUrl() {
 }
 
 export function connectSocket() {
-  if (socket?.connected) return socket;
+  if (isSocketAlive(socket)) return socket;
   const url = getSocketUrl();
   socket = io(url, {
     withCredentials: true,
@@ -48,6 +52,10 @@ export function disconnectSocket() {
 
 export function getSocket() {
   return socket;
+}
+
+export function isSocketConnected() {
+  return socket?.connected === true;
 }
 
 export { socket };

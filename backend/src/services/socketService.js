@@ -78,19 +78,25 @@ export function initializeSocket(httpServer, corsOrigins) {
 
   // ── Connection handler ───────────────────────────────────────
   io.on("connection", async (socket) => {
-    const { user } = socket;
+    try {
+      const { user } = socket;
 
-    // Join personal room
-    socket.join(`user:${user.id}`);
-    await markOnline(user.id, socket.id);
+      // Join personal room
+      socket.join(`user:${user.id}`);
+      await markOnline(user.id, socket.id);
 
-    // Join all group chat rooms the user belongs to
-    const rooms = await ChatRoom.getUserRooms(user.id);
-    for (const room of rooms) {
-      socket.join(`room:${room.id}`);
+      // Join all group chat rooms the user belongs to
+      const rooms = await ChatRoom.getUserRooms(user.id);
+      for (const room of rooms) {
+        socket.join(`room:${room.id}`);
+      }
+
+      console.log(`[socket] ${user.username} connected (${socket.id})`);
+    } catch (err) {
+      console.error("[socket] connection setup failed:", err.message);
+      socket.disconnect(true);
+      return;
     }
-
-    console.log(`[socket] ${user.username} connected (${socket.id})`);
 
     // ── Direct Messages ──────────────────────────────────────
     socket.on("dm:send", async ({ receiverId, content }, ack) => {
