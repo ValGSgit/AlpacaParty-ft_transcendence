@@ -48,27 +48,23 @@ onUnmounted(() => {
 });
 
 const handleCreateRoom = () => {
-  console.log("handle create!");
   const name = gUser.value.name || "Vue_Alpaca";
   const color = gPlayer.value?.color || "#ffffff";
   activeClient.createRoom(name, color);
 };
 
 const handleJoinRoom = (roomId) => {
-  console.log("join!");
   const name = gUser.value.name || "Vue_Alpaca";
   const color = gPlayer.value?.color || "#ffffff";
   activeClient.joinRoom(name, roomId, color);
 };
 
 const toggleReady = () => {
-  console.log("ready toggle!");
   gMinigame.value.isReady = !gMinigame.value.isReady;
   activeClient.sendReady(gMinigame.value.isReady);
 };
 
 const leaveRoom = () => {
-  console.log("leave!");
   activeClient.disconnect(); 
   gMinigame.value.currentRoomName = null;
   gMinigame.value.isReady = false;
