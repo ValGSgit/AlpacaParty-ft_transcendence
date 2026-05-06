@@ -388,7 +388,6 @@ const gameLoop = () => {
   const delta = clock.getDelta()
   const player = gPlayer.value
 
-
   if (player) {
     if (cameraUpdate) {
       cameraUpdate(player)

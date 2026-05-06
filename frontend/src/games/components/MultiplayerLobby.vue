@@ -29,6 +29,7 @@ import { onMounted, onUnmounted } from 'vue';
 import { gMinigame, gPlayer, gUser } from '../core/globals.js';
 import { useUIManager } from '../core/useUIManager.js';
 import { activeClient } from '../mini_games/GameClient.js';
+import { changeGame } from '../mini_games/init.js';
 
 const { closeLobbyMenu } = useUIManager()
 
@@ -42,6 +43,7 @@ onUnmounted(() => {
     activeClient.disconnect();
     gMinigame.value.currentRoomName = null;
     gMinigame.value.isReady = false;
+    changeGame();
   }
 });
 
