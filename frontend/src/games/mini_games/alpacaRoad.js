@@ -67,7 +67,7 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
   gMinigame.value.isActive = true;
 }
 
-export async function initAlpacaRoadOnline(playerCount, tempAlpacas) {
+export async function initAlpacaRoadOnline() {
   cleanupAlpacaRoad();
   gMinigame.value.mode = 4;
   hasAwardedRewards = false;
@@ -76,11 +76,10 @@ export async function initAlpacaRoadOnline(playerCount, tempAlpacas) {
   await loadAssets();
 
   activePlayers.length = 0;
-  gPlayer.value.socketId = activeClient.socket.id; // Tag our local player
+  gPlayer.value.socketId = activeClient.socket.id;
 
   gScene.value.add(gPlayer.value.model);
   activePlayers.push(gPlayer.value);
-
   registerEntity(gPlayer.value, 'alpaca');
 
   initScenery();
@@ -105,7 +104,6 @@ function initGameValues(playerCount) {
 
 export function updateAlpacaRoad(delta) {
   if (!assetsLoaded) return;
-
 
   if (gMinigame.value.isOnline) { // ONLINE
     if (gMinigame.value.isGameOver) {
@@ -373,6 +371,13 @@ function updateDifficulty() {
   }
 }
 
+function applyLevelUp(newLevel, newSpeed, newTimerMult) {
+  level = newLevel;
+  roadSpeed = newSpeed;
+  timerMultiplier = newTimerMult;
+  makeAnnouncement(`LEVEL ${level}`, 2000);
+}
+
 function updateObstacles(delta) {
   for (let j = activeObstacles.length - 1; j >= 0; j--) {
     let obstacle = activeObstacles[j];
@@ -431,13 +436,6 @@ function awardPoints(obstacle) {
 // =========================================================
 // 5. SHARED UTILS (Online & Offline)
 // =========================================================
-
-function applyLevelUp(newLevel, newSpeed, newTimerMult) {
-  level = newLevel;
-  roadSpeed = newSpeed;
-  timerMultiplier = newTimerMult;
-  makeAnnouncement(`LEVEL ${level}`, 2000);
-}
 
 function endMinigame() {
   gMinigame.value.isGameOver = true;

@@ -66,7 +66,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     }
   }
 
-  //CHECK
+  //TODO:
   handlePlayerJump(socketId) {
     const player = this.players.get(socketId);
     if (player && !player.isDead && !player.isJumping) {

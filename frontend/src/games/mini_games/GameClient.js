@@ -77,8 +77,8 @@ export class GameClient {
     });
 
     this.socket.on('game_start', () => {
-      gMinigame.value.isActive = true;
       gUI.lobbyMenu = false;
+      gMinigame.value.isActive = true;
       playCountDown(3);
     });
 
