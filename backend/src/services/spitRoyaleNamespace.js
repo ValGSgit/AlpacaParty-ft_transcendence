@@ -121,7 +121,7 @@ export function initializeSpitRoyaleNamespace(io) {
   namespace.use(socketAuthMiddleware());
 
   namespace.on('connection', (socket) => {
-    const playerId = `u${socket.user?.id || generateId()}`;
+    const playerId = `p${socket.id}`;
 
     // lobby
     socket.on('check-lobby', () => {

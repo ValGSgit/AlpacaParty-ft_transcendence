@@ -9,6 +9,8 @@ import DataExportService from "#services/dataExportService.js";
 import DataRequest from "#models/DataRequest.js";
 import NotificationService from "#services/notificationService.js";
 import { randomUUID } from "crypto";
+import config from "#config/index.js";
+import CustomError from "#utils/CustomError.js";
 
 /**
  * GET /api/users/me
@@ -260,6 +262,9 @@ export const getApiKey = async (req, res, next) => {
  */
 export const generateApiKey = async (req, res, next) => {
   try {
+    if (!config.jwt.publicApiSecret) {
+      return next(new CustomError('Public API secret is not configured', 500));
+    }
     const publiApiToken = AuthService.generatePublicApiToken(req.user);
     await User.setApiKey(req.user.id, publiApiToken);
     res.status(201).json({ apiKey: publiApiToken });

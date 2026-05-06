@@ -57,7 +57,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import api from '../services/api.js'
-import { getSocket } from '../services/socket.js'
+import { connectSocket, getSocket } from '../services/socket.js'
 
 const tabs = [
   { label: 'Spit Royale', value: 'spit_royale' },
@@ -72,6 +72,18 @@ const socketConnected = ref(false)
 
 let socket = null
 let unsubscribeGameFinish = null
+
+function handleSocketConnect() {
+  socketConnected.value = true
+}
+
+function handleSocketDisconnect() {
+  socketConnected.value = false
+}
+
+function handleGameFinish() {
+  fetchLeaderboard()
+}
 
 const lastUpdated = computed(() => {
   if (!updatedAt.value) return '—'
@@ -111,19 +123,22 @@ function switchTab(type) {
 }
 
 function setupSocket() {
-  socket = getSocket()
+  socket = getSocket() || connectSocket()
   if (!socket) return
 
   socketConnected.value = socket.connected
 
-  socket.on('connect', () => { socketConnected.value = true })
-  socket.on('disconnect', () => { socketConnected.value = false })
+  socket.off('connect', handleSocketConnect)
+  socket.off('disconnect', handleSocketDisconnect)
+  socket.off('game:finish', handleGameFinish)
+
+  socket.on('connect', handleSocketConnect)
+  socket.on('disconnect', handleSocketDisconnect)
 
   // Refresh leaderboard whenever any game finishes
-  const onGameFinish = () => fetchLeaderboard()
-  socket.on('game:finish', onGameFinish)
+  socket.on('game:finish', handleGameFinish)
 
-  unsubscribeGameFinish = () => socket.off('game:finish', onGameFinish)
+  unsubscribeGameFinish = () => socket.off('game:finish', handleGameFinish)
 }
 
 onMounted(() => {
@@ -134,8 +149,8 @@ onMounted(() => {
 onUnmounted(() => {
   if (unsubscribeGameFinish) unsubscribeGameFinish()
   if (socket) {
-    socket.off('connect')
-    socket.off('disconnect')
+    socket.off('connect', handleSocketConnect)
+    socket.off('disconnect', handleSocketDisconnect)
   }
 })
 </script>

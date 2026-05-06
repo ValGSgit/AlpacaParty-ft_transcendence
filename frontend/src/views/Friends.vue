@@ -78,11 +78,12 @@
               <span class="username">{{ u.username }}</span>
               <span class="user-meta">Lv {{ u.level || 1 }}</span>
             </div>
-            <div class="actions">
-              <button class="btn-sm btn-primary" @click="sendRequestToUser(u.id)" :disabled="requestedIds.has(u.id)">
-                {{ requestedIds.has(u.id) ? 'Sent' : 'Add Friend' }}
-              </button>
-            </div>
+              <div class="actions">
+                <button class="btn-sm btn-primary" @click="sendRequestToUser(u.id)" :disabled="requestedIds.has(Number(u.id))">
+                  {{ requestedIds.has(Number(u.id)) ? 'Sent' : 'Add Friend' }}
+                </button>
+                <button class="btn-sm" @click="blockUser(u.id)">Block</button>
+              </div>
           </li>
         </ul>
         <!-- Pagination -->
@@ -100,8 +101,8 @@
       <h3>Received</h3>
       <ul v-if="received.length" class="user-list">
         <li v-for="r in received" :key="r.id" class="user-row">
-          <img :src="r.sender_avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
-          <span class="username">{{ r.sender_username }}</span>
+          <img :src="r.sender?.avatar || r.sender_avatar || r.senderAvatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
+          <span class="username">{{ r.sender?.username || r.sender_username || r.senderUsername }}</span>
           <div class="actions">
             <button class="btn-sm btn-primary" @click="acceptRequest(r.id)">Accept</button>
             <button class="btn-sm btn-danger" @click="declineRequest(r.id)">Decline</button>
@@ -113,8 +114,8 @@
       <h3 style="margin-top:1.5rem">Sent</h3>
       <ul v-if="sent.length" class="user-list">
         <li v-for="r in sent" :key="r.id" class="user-row">
-          <img :src="r.receiver_avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
-          <span class="username">{{ r.receiver_username }}</span>
+          <img :src="r.receiver?.avatar || r.receiver_avatar || r.receiverAvatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
+          <span class="username">{{ r.receiver?.username || r.receiver_username || r.receiverUsername }}</span>
           <span class="status-tag">Pending</span>
         </li>
       </ul>
@@ -197,6 +198,7 @@ async function fetchFriends() {
   try {
     const { data } = await api.get('/friends')
     friends.value = data.friends
+    syncRequestedIds()
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Failed to load friends'
   } finally {
@@ -211,6 +213,7 @@ async function fetchRequests() {
     const { data } = await api.get('/friends/requests')
     received.value = data.received
     sent.value = data.sent
+    syncRequestedIds()
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Failed to load requests'
   } finally {
@@ -229,6 +232,16 @@ async function fetchBlocked() {
   } finally {
     loading.value = false
   }
+}
+
+function syncRequestedIds() {
+  const nextIds = new Set()
+  for (const friend of friends.value) nextIds.add(Number(friend.id))
+  for (const request of sent.value) {
+    const rid = request.receiverId || request.receiver?.id || request.receiverId
+    if (rid != null) nextIds.add(Number(rid))
+  }
+  requestedIds.value = nextIds
 }
 
 async function sendRequest() {
@@ -265,7 +278,7 @@ async function sendRequestToUser(userId) {
   }
   try {
     await api.post('/friends/requests', { userId })
-    requestedIds.value = new Set([...requestedIds.value, userId])
+    requestedIds.value = new Set([...requestedIds.value, Number(userId)])
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Failed to send request'
   }

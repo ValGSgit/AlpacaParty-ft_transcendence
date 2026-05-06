@@ -70,7 +70,10 @@ export class GameClient {
     });
 
     this.socket.on("connect", () => {
-      console.log(`[GameClient] Connected to ${this.namespace}`);
+      // Provisionally set local player id based on socket id to avoid
+      // race conditions where server 'tick' arrives before 'joined'.
+      this.localPlayerId = `p${this.socket.id}`;
+      console.log(`[GameClient] Connected to ${this.namespace} as ${this.localPlayerId}`);
       this.socket.emit("join", { name: playerName, roomId: matchId });
     });
 
@@ -290,6 +293,14 @@ export function setupCallbacks(client) {
   client.onJoined = (playerId, spawn) => {
     console.log("Joined multiplayer as:", playerId);
     gMinigame.value.players.push({ id: playerId, name: gUser.value.name, hp: CONST.HP, point: 0 });
+    // Tag our local model with the network id so state updates won't create a duplicate
+    try {
+      if (gPlayer.value && gPlayer.value.model) {
+        gPlayer.value.model.userData.networkId = playerId;
+      }
+    } catch (e) {
+      console.warn('Could not tag local player model with network id', e);
+    }
     if (spawn) {
       gPlayer.value.model.position.set(spawn.x, 0, spawn.z);
       gPlayer.value.model.rotation.y = spawn.angle;

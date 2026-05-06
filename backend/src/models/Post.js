@@ -76,9 +76,24 @@ const Post = {
     const lim = Number(limit);
     const off = Number(offset);
 
+    // Build base where clause for public posts by public authors.
+    const baseWhere = {
+      isPublic: true,
+      author: { userSettings: { isPublic: true } },
+    };
+
+    // If viewerId is provided, exclude posts where the author blocked the viewer
+    // or the viewer blocked the author.
+    if (vid !== null) {
+      baseWhere.NOT = [
+        { author: { blockedUsers: { some: { blockedUserId: vid } } } }, // author blocked viewer
+        { author: { blockedBy: { some: { userId: vid } } } }, // viewer blocked author
+      ];
+    }
+
     const [posts, liked, viewerReposts, recentReposts] = await Promise.all([
       prisma.post.findMany({
-        where: { isPublic: true, author: { userSettings: { isPublic: true } } },
+        where: baseWhere,
         include: { author: AUTHOR_SELECT },
         orderBy: { createdAt: "desc" },
         take: lim,
@@ -102,6 +117,14 @@ const Post = {
           post: {
             isPublic: true,
             author: { userSettings: { isPublic: true } },
+            ...(vid !== null
+              ? {
+                  NOT: [
+                    { author: { blockedUsers: { some: { blockedUserId: vid } } } },
+                    { author: { blockedBy: { some: { userId: vid } } } },
+                  ],
+                }
+              : {}),
           },
         },
         include: {

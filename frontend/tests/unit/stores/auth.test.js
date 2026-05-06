@@ -217,7 +217,7 @@ describe('useAuthStore', () => {
 
       await store.fetchUser()
 
-      expect(api.get).toHaveBeenCalledWith('/auth/me')
+      expect(api.get).toHaveBeenCalledWith('/auth/me', { retryOnAuth: false })
       expect(store.user).toEqual({ id: 1, username: 'me' })
     })
 
@@ -227,7 +227,7 @@ describe('useAuthStore', () => {
 
       await store.fetchUser()
 
-      expect(api.get).toHaveBeenCalledWith('/auth/me')
+      expect(api.get).toHaveBeenCalledWith('/auth/me', { retryOnAuth: false })
       expect(store.user).toBeNull()
     })
 
