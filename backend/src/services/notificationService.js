@@ -62,17 +62,6 @@ const NotificationService = {
     });
   },
 
-  async orgInvite(userId, orgName, orgId) {
-    return this.notify({
-      userId,
-      type: 'org_invite',
-      title: 'Organization Invite',
-      message: `You were added to ${orgName}.`,
-      referenceType: 'organization',
-      referenceId: orgId,
-    });
-  },
-
   async achievementUnlocked(userId, achievementName) {
     return this.notify({
       userId,

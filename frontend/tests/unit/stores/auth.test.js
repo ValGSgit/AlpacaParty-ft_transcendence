@@ -68,6 +68,8 @@ describe('useAuthStore', () => {
         username: 'tester',
         email: 'test@test.com',
         password: 'TestPass1',
+      }, {
+        retryOnAuth: false,
       })
       expect(store.user).toEqual(mockResponse.data.user)
       expect(store.isAuthenticated).toBe(true)
@@ -143,6 +145,8 @@ describe('useAuthStore', () => {
       expect(api.post).toHaveBeenCalledWith('/auth/login', {
         username: 'tester',
         password: 'TestPass1',
+      }, {
+        retryOnAuth: false,
       })
       expect(store.user).toEqual(mockResponse.data.user)
       expect(store.isAuthenticated).toBe(true)

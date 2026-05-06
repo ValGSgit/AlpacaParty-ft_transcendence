@@ -75,7 +75,7 @@ const Post = {
     return count > 0;
   },
 
-  async getFeed({ limit = 20, offset = 0, viewerId = null } = {}) {
+  async getFeed({ limit = 200, offset = 0, viewerId = null } = {}) {
     const vid = viewerId ? Number(viewerId) : null;
     const lim = Number(limit);
     const off = Number(offset);
@@ -120,11 +120,14 @@ const Post = {
       const key = `${r.post.id}-repost-${r.authorId}`;
       if (seenKeys.has(key)) continue;
       seenKeys.add(key);
-      shaped.push(shapePost(r.post, likedIds, repostedIds, {
+      const repostShaped = shapePost(r.post, likedIds, repostedIds, {
         username: r.author?.username,
         authorId: r.authorId,
         comment: r.comment,
-      }));
+      });
+      // Use the repost record's timestamp so reposts are ordered by repost time
+      repostShaped.created_at = r.createdAt;
+      shaped.push(repostShaped);
     }
 
     // Sort combined feed by created_at desc and return one page

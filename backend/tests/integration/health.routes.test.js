@@ -2,7 +2,7 @@
  * Health & Root Endpoint Integration Tests
  */
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
-import supertest from 'supertest';
+import supertestC from 'supertest';
 
 
 // Health tests should not depend on generated Prisma runtime artifacts.
@@ -22,7 +22,7 @@ let request;
 
 beforeEach(async () => {
   app = await createTestApp();
-  request = supertest(app);
+  request = supertestC(app);
 });
 
 describe('GET /api/health', () => {

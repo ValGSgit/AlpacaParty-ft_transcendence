@@ -19,7 +19,7 @@
       <h2>2. Description of Service</h2>
       <p>
         AlpacaParty is a social web application that lets users raise and customise a virtual
-        alpaca farm, interact with other users through messaging, posts, and organisations,
+        alpaca farm, interact with other users through messaging, posts,
         and earn achievements. The Service is provided as-is for educational and entertainment
         purposes as part of the 42 ft_transcendence project.
       </p>

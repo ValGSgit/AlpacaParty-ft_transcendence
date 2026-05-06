@@ -1,15 +1,7 @@
 /**
  * User Routes Integration Tests
  */
-import {
-  describe,
-  test,
-  expect,
-  beforeEach,
-  afterAll,
-  beforeAll,
-} from "@jest/globals";
-import supertest from "supertest";
+import supertestC from "supertest";
 import prisma from "#config/prisma.js";
 import AuthService from "#services/authService.js";
 import { createTestApp } from "../helpers/createApp.js";
@@ -29,7 +21,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   app = await createTestApp();
-  request = supertest(app);
+  request = supertestC(app);
 
   // Create the actual record in the test DB
   await prisma.user.deleteMany({
@@ -59,7 +51,6 @@ beforeEach(async () => {
   validToken = AuthService.generateAccessToken({
     id: user.id,
     username: user.username,
-    is_admin: false,
   });
 });
 
