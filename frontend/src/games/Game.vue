@@ -134,9 +134,8 @@
       <div class="shop-title">
         Upgrade Farm
         <div class="stats-content">
-          <div class="stat-row">
-            <strong>Current Farm Size:</strong> {{ gUser.upgrades }}/{{ CONST.MAX_UPGRADES }}
-          </div>
+          <div class="stat-row"> Current Farm Size: {{ gUser.upgrades }}/{{ CONST.MAX_UPGRADES }} </div>
+          <div class="stat-row"> Current Herd Size: {{ gAlpacas.length}}/{{getHerdSize(gUser.herdsize)}} </div>
         </div>
 
         <div class="itemshop-grid">
@@ -148,11 +147,11 @@
           </div>
         </button>
 
-        <button class="itemshop-card" @click="increaseHerdSize()">
+        <button class="itemshop-card" @click="increaseHerdSize(gUser.herdsize)">
           <span class="item-name">Increase Herd Size</span>
           <div class="icon-container">
             <span style="position: relative; bottom: 10px;">🦙</span>
-            <span class="item-cost">🪙 5</span>
+            <span class="item-cost">🪙 {{ getHerdSizeCost(gUser.herdsize) }}</span>
           </div>
         </button>
       </div>
@@ -297,14 +296,14 @@ import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
 import { useFloatingText } from './components/floatingText.js'
 import { itemShop } from './components/itemShop.js'
-import { getUpgradeCost, upgradeFarm } from './components/upgradeFarm.js'
+import { getHerdSize, getHerdSizeCost, getUpgradeCost, upgradeFarm } from './components/upgradeFarm.js'
 import { CONST } from './config/constants.js'
 import { addDebugCoins } from './core/debug.js'
 import { updateAlpacas } from './core/entities/Alpaca.js'
 import { updateCollectables } from './core/entities/Collectable.js'
 import { shopItems } from './core/entities/Item.js'
 import { cleanupFPSstats, initFPSstats } from './core/FPSstats.js'
-import { gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser } from './core/globals.js'
+import { gAlpacas, gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
 import { changeCamera, checkControlsEnabled, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
@@ -328,7 +327,7 @@ const { setTimeOfDay, updateLighting, toggleLightCycle} = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openFarmMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu, openLobbyMenu, closeLobbyMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { increaseFarmSize } = upgradeFarm()
+const { increaseFarmSize, increaseHerdSize } = upgradeFarm()
 const { buyItem } = itemShop()
 const authStore = useAuthStore()
 const { isAuthenticated } = storeToRefs(authStore)
@@ -372,6 +371,7 @@ onMounted(async () => {
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
 
+    gUser.value.name = authStore.user.username;
     await initWorld(gScene.value, authStore.isAuthenticated)
     gameIsReady.value = true
     stopMyWatcher = watchChanges()

@@ -413,6 +413,7 @@ model AlpacaFarm {
   alpacas   Json?    @default("[]")
   coins     Int?     @default(10)
   upgrades  Int?     @default(0)
+  herdsize  Int?     @default(0)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations

@@ -47,7 +47,6 @@ export function initializeSocket(httpServer, corsOrigins) {
   initializeSpitRoyaleNamespace(io);
   const alpacaRoadNamespace = io.of('/alpaca-road');
   const manager = new MatchManager(alpacaRoadNamespace);
-  //initializeAlpacaRoadNamespace(io);
 
   // ── Auth middleware ──────────────────────────────────────────
   io.engine.use(cookieParser());

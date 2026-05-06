@@ -87,7 +87,7 @@ export function alpacaHandling() {
       if (hits.length > 0 || s.distanceTraveled > s.maxDistance) {
 
         if (hits.length > 0) {
-          if (gMinigame.value.mode !== 2) {
+          if (gMinigame.value.mode === 1) {
             // --- SINGLE PLAYER LOGIC ---
             const hitAlpaca = findAlpaca(hits[0].object);
             if (hitAlpaca.hp > 0) spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
@@ -95,7 +95,7 @@ export function alpacaHandling() {
             if (gMinigame.value.mode === 1 && gPlayer.value === hitAlpaca) // update heart UI
               gMinigame.value.players[0].hp--
             gMinigame.value.players[0].point = gUser.value.point
-          } else {
+          } else if (gMinigame.value.mode === 2) {
             console.log("Multiplayer");
             // --- MULTIPLAYER LOGIC ---
             // Only the person who fired the laser is allowed to tell the server it hit!

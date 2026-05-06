@@ -16,9 +16,9 @@ const SAFE_SELECT = {
   lastSeen: true,
   createdAt: true,
   updatedAt: true,
-  userAuth:     { select: { oauthProvider: true } },
+  userAuth: { select: { oauthProvider: true } },
   userSettings: { select: { isPublic: true } },
-  alpacaFarm:   { select: { coins: true, alpacas: true, items: true, upgrades: true } },
+  alpacaFarm: { select: { coins: true, alpacas: true, items: true, upgrades: true } },
 };
 
 /**
@@ -37,14 +37,15 @@ export function shapeUserForClient(u) {
     is_online: u.isOnline,
     isOnline: u.isOnline,
     oauth_provider: u.userAuth?.oauthProvider ?? null,
-    api_key:        u.userSettings?.apiKey    ?? null,
-    coins:          u.alpacaFarm?.coins       ?? 0,
-    alpacas:        u.alpacaFarm?.alpacas     ?? [],
-    items:          u.alpacaFarm?.items       ?? [],
-    upgrades:       u.alpacaFarm?.upgrades    ?? 0,
-    last_seen:      u.lastSeen,
-    created_at:     u.createdAt,
-    updated_at:     u.updatedAt,
+    api_key: u.userSettings?.apiKey ?? null,
+    coins: u.alpacaFarm?.coins ?? 0,
+    alpacas: u.alpacaFarm?.alpacas ?? [],
+    items: u.alpacaFarm?.items ?? [],
+    upgrades: u.alpacaFarm?.upgrades ?? 0,
+    herdsize: u.alpacaFarm?.herdsize ?? 0,
+    last_seen: u.lastSeen,
+    created_at: u.createdAt,
+    updated_at: u.updatedAt,
   };
 }
 
@@ -127,7 +128,7 @@ const User = {
       include: {
         userAuth: true,
         userStats: true,
-        userSettings: { select: { userId: true, isPublic: true} },
+        userSettings: { select: { userId: true, isPublic: true } },
       },
     });
   },
@@ -295,7 +296,7 @@ const User = {
   /** Upsert an API key for a user. Returns the new key. */
   async setApiKey(userId, key) {
     await prisma.userSettings.upsert({
-      where:  { userId: Number(userId) },
+      where: { userId: Number(userId) },
       create: { userId: Number(userId), apiKey: key },
       update: { apiKey: key },
     });
@@ -306,7 +307,7 @@ const User = {
   async revokeApiKey(userId) {
     await prisma.userSettings.update({
       where: { userId: Number(userId) },
-      data:  { apiKey: null },
+      data: { apiKey: null },
     });
   },
 
@@ -314,7 +315,7 @@ const User = {
   async findByApiKey(key) {
     if (!key) return null;
     const settings = await prisma.userSettings.findUnique({
-      where:  { apiKey: key },
+      where: { apiKey: key },
       select: { userId: true },
     });
     return settings?.userId ?? null;
