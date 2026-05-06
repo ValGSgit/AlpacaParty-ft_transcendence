@@ -1,9 +1,8 @@
 import * as THREE from 'three';
-import { MATERIALS as MATS } from '../config/materials.js';
-import { gAlpacas, gPlayer, gScene, gMinigame, gUser } from "../core/globals.js";
-import { useUIManager } from '../core/useUIManager.js';
-import { getActiveClient } from '../mini_games/GameClient.js';
 import { useFloatingText } from '../components/floatingText.js';
+import { MATERIALS as MATS } from '../config/materials.js';
+import { gAlpacas, gMinigame, gPlayer, gScene, gUser } from "../core/globals.js";
+import { useUIManager } from '../core/useUIManager.js';
 
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const worldPoint = new THREE.Vector3();
@@ -46,7 +45,7 @@ export function alpacaHandling() {
     let direction
     if (targetPoint) // shooting a specific spot, for AR glasses atm
     {
-        direction = new THREE.Vector3()
+      direction = new THREE.Vector3()
         .subVectors(targetPoint, origin)
         .normalize();
     }
@@ -86,7 +85,7 @@ export function alpacaHandling() {
       const hits = raycaster.intersectObjects(targets, true);
 
       if (hits.length > 0 || s.distanceTraveled > s.maxDistance) {
-        
+
         if (hits.length > 0) {
           if (gMinigame.value.mode !== 2) {
             // --- SINGLE PLAYER LOGIC ---
@@ -97,20 +96,21 @@ export function alpacaHandling() {
               gMinigame.value.players[0].hp--
             gMinigame.value.players[0].point = gUser.value.point
           } else {
+            console.log("Multiplayer");
             // --- MULTIPLAYER LOGIC ---
             // Only the person who fired the laser is allowed to tell the server it hit!
-            const client = getActiveClient();
-            if (s.owner === gPlayer.value && client) {
+            // const client = getActiveClient();
+            // if (s.owner === gPlayer.value && client) {
 
-               // Traverse up the 3D object to find the tag we will place on remote players
-               let obj = hits[0].object;
-               while (obj && !obj.userData.networkId) obj = obj.parent;
+            //   // Traverse up the 3D object to find the tag we will place on remote players
+            //   let obj = hits[0].object;
+            //   while (obj && !obj.userData.networkId) obj = obj.parent;
 
-               if (obj && obj.userData.networkId && obj.userData.networkId !== client.localPlayerId) {
-                 // We hit a remote player! Tell the server.
-                 client.emit('spit_hit', { targetId: obj.userData.networkId, ownerId: client.localPlayerId });
-               }
-            }
+            //   if (obj && obj.userData.networkId && obj.userData.networkId !== client.localPlayerId) {
+            //     // We hit a remote player! Tell the server.
+            //     client.emit('spit_hit', { targetId: obj.userData.networkId, ownerId: client.localPlayerId });
+            //   }
+            // }
           }
         }
 

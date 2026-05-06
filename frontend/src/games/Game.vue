@@ -53,7 +53,7 @@
     <div 
       id="coin-hud" 
       v-if="gMinigame.mode === 0 || gMinigame.isGameOver" 
-      class="stat":class="{ 'overlay': gMinigame.isGameOver }">
+      class="stat" :class="{ 'overlay': gMinigame.isGameOver }">
       <span>💰 {{ gUser.coins }}</span>
     </div>
       <template v-if="gMinigame.mode === 1 || gMinigame.mode === 2">
@@ -107,7 +107,7 @@
         <button class="shop-btn" @click="changeGame(1, playerCount)" title="Spit Royale with AI">Spit Royale</button>
         <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(2)" title="Spit Royale Online">Online Lobby</button>
         <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
-        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(4)" title="Alpaca Road Online">Online Lobby</button>
+        <button class="shop-btn" @click="openLobbyMenu(4)" title="Alpaca Road Online">Online Lobby</button>
       </div>
       <select v-model="playerCount" class="player-selector" title="Number of Players">
         <option :value="1">1 Player</option>
@@ -129,24 +129,7 @@
         <button class="close-btn" @click="closeLobbyMenu()" title="Close">✖️</button>
       </div>
     </div>
-
-    <div v-if="gMinigame.mode === 4 && (!gMinigame.isReady || !gMinigame.isActive) && !gUI.countDown" class="modal-overlay">
-      <div class="shop-title">Get Ready!
-        <button class="shop-btn" :class="{ 'is-ready': gMinigame.isReady }" @click="getReady()" title="Ready">Ready</button>
-        <button class="close-btn" @click="changeGame()" title="Close">✖️</button>
-      </div>
-    </div>
-
-    <div v-if="gUI.lobbyMenu && gMinigame.mode === 4" class="modal-overlay">
-      <div class="shop-title">Alpaca Road Lobby
-        <button class="shop-btn" @click="changeGame(4, 1, -1)" title="Alpaca Road Online">Create New Room</button>
-        <div v-for="game in gMinigame.lobby">
-          <button class="shop-btn" @click="changeGame(4, 1, game.matchid)" title="Alpaca Road Online"><span>{{ game.roomName }}</span></button>
-        </div>
-        <button class="close-btn" @click="closeLobbyMenu()" title="Close">✖️</button>
-      </div>
-    </div>
-
+    <MultiplayerLobby v-if="gUI.lobbyMenu && gMinigame.mode === 4" />
     <div v-if="gUI.farmMenu" class="modal-overlay">
       <div class="shop-title">
         Upgrade Farm
@@ -165,7 +148,7 @@
           </div>
         </button>
 
-        <button class="itemshop-card"@click="increaseHerdSize()">
+        <button class="itemshop-card" @click="increaseHerdSize()">
           <span class="item-name">Increase Herd Size</span>
           <div class="icon-container">
             <span style="position: relative; bottom: 10px;">🦙</span>
@@ -299,6 +282,8 @@
 
 <!---------------------- SCRIPT ------------------------->
 <script setup>
+import MultiplayerLobby from './components/MultiplayerLobby.vue'
+
 import { storeToRefs } from 'pinia'
 import * as THREE from 'three'
 import { StereoEffect } from 'three/addons/effects/StereoEffect.js'
@@ -328,7 +313,7 @@ import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
-import { getReady, updateAlpacaRoad } from './mini_games/alpacaRoad.js'
+import { updateAlpacaRoad } from './mini_games/alpacaRoad.js'
 import { changeGame } from './mini_games/init.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
@@ -417,7 +402,10 @@ const gameLoop = () => {
   updateLighting(delta);
 
   if (gMinigame.value.isActive && gMinigame.value.mode > 2)
+  {
+    console.log("here");
     updateAlpacaRoad(delta)
+  }
 
   if (gEngine.value?.controls) {
     gEngine.value.controls.enabled = checkControlsEnabled();
