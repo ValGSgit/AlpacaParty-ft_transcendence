@@ -1,6 +1,6 @@
 import { CONST } from '../config/constants.js';
 import { shopItems } from '../core/entities/Item.js';
-import { gScene, gUser } from '../core/globals.js';
+import { gAlpacas, gScene, gUser } from '../core/globals.js';
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js';
 
 const UPGRADE_COST = [25, 50, 100, 250, 500];
@@ -66,12 +66,20 @@ export function getHerdSize(level) {
   console.log(level)
   if (level < HERDSIZES.length)
     return HERDSIZES[level];
-  return "NaN";
+  return 0;
 }
 
 export function checkCoinsPrice(cost) {
   if (gUser.value.coins < cost) {
     alert('Not enough coins!');
+    return false;
+  }
+  return true;
+}
+
+export function checkHerdSize() {
+  if (gAlpacas.length >= getHerdSize(gUser.value.herdsize)) {
+    alert('Herdsize limit reached!');
     return false;
   }
   return true;
