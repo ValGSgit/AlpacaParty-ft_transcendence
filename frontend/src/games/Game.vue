@@ -403,7 +403,6 @@ const gameLoop = () => {
 
   if (gMinigame.value.isActive && gMinigame.value.mode > 2)
   {
-    console.log("here");
     updateAlpacaRoad(delta)
   }
 
