@@ -75,7 +75,7 @@ export class AlpacaRoadMatch extends BaseMatch {
         if (this.players.has(socketId)) {
           this.players.get(socketId).isJumping = false;
         }
-      }, 800);
+      }, 700);
     }
   }
 

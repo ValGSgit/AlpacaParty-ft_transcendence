@@ -207,12 +207,10 @@ function syncPlayersFromServer(delta) {
         localAlpaca.model.position.x = playerPositions[serverData.lane];
       }
 
-      // JUMP
+      // JUMP TRIGGER
       if (localAlpaca.socketId !== activeClient.socket.id) {
         if (serverData.isJumping && !localAlpaca.isJumping) {
           localAlpaca.isJumping = true;
-        } else if (!serverData.isJumping) {
-          localAlpaca.isJumping = false;
         }
       }
 
@@ -229,6 +227,8 @@ function syncPlayersFromServer(delta) {
       localAlpaca.isDead = serverData.isDead;
     }
 
+    if (localAlpaca.isJumping || localAlpaca.model.position.y > 0) handleJump(localAlpaca, delta);
+
     // SPIN
     if (localAlpaca.isBeingHit) spinAlpacaUp(localAlpaca, delta);
 
@@ -238,6 +238,32 @@ function syncPlayersFromServer(delta) {
         localAlpaca.model.position.z -= (roadSpeed * delta);
       }
     }
+  }
+}
+
+function handleJump(alpaca, delta) {
+  if (alpaca.socketId === activeClient.socket.id)
+    return;
+  const { model } = alpaca
+
+  if (model.position.y <= CONST.JUMPING_MAX_HEIGHT && !alpaca.isFalling) {
+    model.position.y += CONST.JUMPING_SPEED * delta;
+    alpaca.isJumping = false;
+  }
+  // Fall down
+  if (model.position.y > 0 && (alpaca.isFalling)) {
+    model.position.y -= CONST.JUMPING_SPEED * delta;
+    alpaca.isFalling = true;
+  }
+  // Hit the ground
+  if (model.position.y <= 0) {
+    model.position.y = 0;
+    alpaca.isJumping = false;
+    alpaca.isFalling = false;
+  }
+  // Hit the ceiling/max height of jump
+  if (model.position.y >= CONST.JUMPING_MAX_HEIGHT) {
+    alpaca.isFalling = true;
   }
 }
 
@@ -503,7 +529,6 @@ function spinAlpacaUp(alpaca, delta) {
     if (gMinigame.value.isOnline && alpaca.socketId === activeClient.socket.id) {
       activeClient.sendHitComplete();
     }
-
   }
 }
 
