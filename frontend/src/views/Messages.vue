@@ -118,8 +118,8 @@
         </div>
 
         <form class="message-form" @submit.prevent="sendMessage">
-          <input v-model="newMessage" type="text" placeholder="Type a message…" autocomplete="off" />
-          <button type="submit" class="btn-primary" :disabled="!newMessage.trim()">Send</button>
+          <input v-model="newMessage" type="text" placeholder="Type a message…" autocomplete="off" maxlength="2000" />
+          <button type="submit" class="btn-primary" :disabled="!newMessage.trim() || newMessage.trim().length > 2000">Send</button>
         </form>
       </template>
     </main>
@@ -152,6 +152,30 @@ const showAddMember = ref(false)
 const selectedMembers = ref([])
 const friendSearch = ref('')
 const msgBox = ref(null)
+
+function handleSocketConnect() {
+  msgError.value = null
+}
+
+function handleSocketDisconnect() {}
+
+function handleSocketConnectError(err) {
+  msgError.value = `Socket error: ${err.message}`
+}
+
+function handleDmMessage(data) {
+  const message = data.id ? data : data.message
+  if (
+    selected.value?.type === 'dm' &&
+    (message.sender_id === selected.value.id || message.receiver_id === selected.value.id)
+  ) {
+    if (!messages.value.some((m) => m.id === message.id)) {
+      messages.value.push(message)
+      scrollToBottom()
+    }
+  }
+  fetchConversations()
+}
 
 const totalUnread = computed(() =>
   conversations.value.reduce((sum, c) => sum + (c.unread_count || 0), 0)
@@ -245,8 +269,12 @@ async function loadDmMessages(userId) {
 function sendMessage() {
   const content = newMessage.value.trim()
   if (!content || !selected.value) return
+  if (content.length > 2000) {
+    msgError.value = 'Messages must be 2000 characters or fewer'
+    return
+  }
 
-  if (!socket.connected) {
+  if (!socket?.connected) {
     msgError.value = 'Not connected. Reconnecting…'
     connectSocket()
     return
@@ -274,23 +302,15 @@ function scrollToBottom() {
 function setupSocket() {
   connectSocket()
 
-  socket.on('connect', () => { msgError.value = null })
-  socket.on('disconnect', () => {})
-  socket.on('connect_error', (err) => { msgError.value = `Socket error: ${err.message}` })
+  socket.off('connect', handleSocketConnect)
+  socket.off('disconnect', handleSocketDisconnect)
+  socket.off('connect_error', handleSocketConnectError)
+  socket.off('dm:message', handleDmMessage)
 
-  socket.on('dm:message', (data) => {
-    const message = data.id ? data : data.message
-    if (
-      selected.value?.type === 'dm' &&
-      (message.sender_id === selected.value.id || message.receiver_id === selected.value.id)
-    ) {
-      if (!messages.value.some(m => m.id === message.id)) {
-        messages.value.push(message)
-        scrollToBottom()
-      }
-    }
-    fetchConversations()
-  })
+  socket.on('connect', handleSocketConnect)
+  socket.on('disconnect', handleSocketDisconnect)
+  socket.on('connect_error', handleSocketConnectError)
+  socket.on('dm:message', handleDmMessage)
 }
 
 onMounted(async () => {
@@ -301,12 +321,11 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (socket) {
-    socket.off('connect')
-    socket.off('disconnect')
-    socket.off('connect_error')
-    socket.off('dm:message')
+    socket.off('connect', handleSocketConnect)
+    socket.off('disconnect', handleSocketDisconnect)
+    socket.off('connect_error', handleSocketConnectError)
+    socket.off('dm:message', handleDmMessage)
   }
-  disconnectSocket()
 })
 </script>
 

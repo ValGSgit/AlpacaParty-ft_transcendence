@@ -1,72 +1,47 @@
 /**
  * Public API Routes Integration Tests
  */
-import { jest, describe, test, expect, beforeEach } from "@jest/globals";
-import supertestC from "supertest";
-
-process.env.API_KEYS = "test-api-key";
-
-const mockPrisma = {
-  user: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-    count: jest.fn(),
-    upsert: jest.fn(),
-  },
-  post: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    deleteMany: jest.fn(),
-    count: jest.fn(),
-  },
-  postLike: {
-    findMany: jest.fn(),
-    create: jest.fn(),
-    deleteMany: jest.fn(),
-    count: jest.fn(),
-  },
-  gameStat: { findUnique: jest.fn(), findMany: jest.fn(), upsert: jest.fn() },
-  repost: { findMany: jest.fn() },
-  achievement: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    upsert: jest.fn(),
-  },
-  userAchievement: {
-    findMany: jest.fn(),
-    create: jest.fn(),
-    upsert: jest.fn(),
-  },
-  notification: {
-    create: jest.fn(),
-    findMany: jest.fn(),
-    updateMany: jest.fn(),
-    deleteMany: jest.fn(),
-    count: jest.fn(),
-    findUnique: jest.fn(),
-  },
-  $transaction: jest.fn(),
-  $queryRaw: jest.fn(),
-};
-jest.unstable_mockModule("#config/prisma.js", () => ({ default: mockPrisma }));
-
-const { createTestApp } = await import("../helpers/createApp.js");
+import {
+  describe,
+  test,
+  expect,
+  beforeEach,
+  afterAll,
+  beforeAll,
+} from "@jest/globals";
+import supertest from "supertest";
+import prisma from "#config/prisma.js";
+import AuthService from "#services/authService.js";
+import { createTestApp } from "../helpers/createApp.js";
+import { createTestUser } from "../helpers/createTestUser.js";
+import User from "#models/User.js";
+import { createTestUsers } from "../helpers/createTestUsers.js";
+import Post from "#models/Post.js";
+import config from "#config/index.js";
 
 let app;
 let request;
+let user;
+
+beforeAll(async () => {
+  await prisma.user.deleteMany({});
+  await prisma.userAuth.deleteMany({});
+  await prisma.post.deleteMany({});
+  user = await createTestUser("TestUser");
+  user.apiKey = AuthService.generatePublicApiToken({ id: user.id });
+  await User.setApiKey(user.id, user.apiKey);
+});
 
 beforeEach(async () => {
-  jest.clearAllMocks();
-  mockPrisma.$transaction.mockImplementation((fnOrOps) =>
-    typeof fnOrOps === "function" ? fnOrOps(mockPrisma) : Promise.all(fnOrOps),
-  );
   app = await createTestApp();
-  request = supertestC(app);
+  request = supertest(app);
+
+  await User.setApiKey(user.id, user.apiKey);
+});
+
+afterAll(async () => {
+  // Disconnect Prisma so Jest can exit properly
+  await prisma.$disconnect();
 });
 
 describe("GET /api/public", () => {
@@ -79,53 +54,135 @@ describe("GET /api/public", () => {
   test("200 — valid API key also returns docs", async () => {
     const res = await request
       .get("/api/public")
-      .set("X-API-Key", "test-api-key");
+      .set("X-API-Key", `${user.apiKey}`);
     expect(res.status).toBe(200);
     expect(res.body.name).toMatch(/Public API/i);
   });
 });
 
-describe("GET /api/public/users", () => {
-  test("200 — only public users and no email leakage", async () => {
-    mockPrisma.user.findMany.mockResolvedValueOnce([
-      {
-        id: 1,
-        username: "public-user",
-        isPublic: true,
-        avatar: "/a.png",
-        bio: "bio",
-        status: "s",
-        level: 1,
-        xp: 2,
-        isOnline: false,
-        createdAt: "2026-01-01",
-      },
-      {
-        id: 2,
-        username: "private-user",
-        isPublic: false,
-        avatar: "/b.png",
-        bio: "bio",
-        status: "s",
-        level: 1,
-        xp: 2,
-        isOnline: false,
-        createdAt: "2026-01-01",
-      },
-    ]);
+describe("api key authentication", () => {
+  test("401 — no api key", async () => {
+    const res = await request.get("/api/public/users");
+    expect(res.status).toBe(401);
+    expect(res.body.error.message).toMatch(/no api key/i);
+  });
 
+  test("401 — wrong api key", async () => {
     const res = await request
       .get("/api/public/users")
-      .set("X-API-Key", "test-api-key");
+      .set("X-API-Key", `${user.apiKey}_wong_key`);
+    expect(res.status).toBe(401);
+    expect(res.body.error.message).toMatch(/invalid/i);
+  });
 
+  test("401 — wrong api key", async () => {
+    await User.revokeApiKey(user.id);
+    const res = await request
+      .get("/api/public/users")
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(401);
+    expect(res.body.error.message).toMatch(/revoked/i);
+  });
+});
+
+describe("GET /api/public/users", () => {
+  beforeAll(async () => {
+    await createTestUsers(50);
+  });
+
+  test("200 — list users", async () => {
+    const res = await request
+      .get("/api/public/users")
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(20);
+  });
+
+  test("200 — list users with valid limit", async () => {
+    const res = await request
+      .get("/api/public/users?limit=10")
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(10);
+  });
+
+  test("200 — list users with filter", async () => {
+    const res = await request
+      .get(`/api/public/users?search=${user.username}`)
+      .set("X-API-Key", `${user.apiKey}`);
     expect(res.status).toBe(200);
     expect(res.body.users).toHaveLength(1);
-    expect(res.body.users[0].username).toBe("public-user");
+    expect(res.body.users[0].username).toBe(user.username);
+  });
+
+  test("400 — list users with invalid limit", async () => {
+    const res = await request
+      .get("/api/public/users?limit=200")
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/limit must be between/i);
+  });
+
+  test("200 — list users with valid offset", async () => {
+    let res = await request
+      .get(`/api/public/users?limit=2&offset=2`)
+      .set("X-API-Key", `${user.apiKey}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(2);
+    const user1 = res.body.users[0];
+
+    res = await request
+      .get(`/api/public/users?limit=2&offset=4`)
+      .set("X-API-Key", `${user.apiKey}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(2);
+    const user2 = res.body.users[0];
+
+    // user1 id is bigger because result is sorted by createdAt
+    // its the latest entered user in the database
+    expect(user1.id).toBe(user2.id + 2);
+  });
+
+  test("200 — only public users and no email leakage", async () => {
+    const res = await request
+      .get("/api/public/users")
+      .set("X-API-Key", `${user.apiKey}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.users).toHaveLength(20);
+    expect(res.body.users[0].username).toMatch(/user/i);
     expect(res.body.users[0].email).toBeUndefined();
   });
 });
 
-// ── POST /api/public/posts ────────────────────────────────────
+describe("GET /api/public/users:id", () => {
+  test("200 — get user by id", async () => {
+    const res = await request
+      .get(`/api/public/users/${user.id}`)
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(200);
+    expect(res.body.user.username).toBe(user.username);
+  });
+
+  test("400 — invalid id", async () => {
+    const res = await request
+      .get(`/api/public/users/-1`)
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/must be a positive/i);
+  });
+
+  test("404 — invalid user id", async () => {
+    const res = await request
+      .get(`/api/public/users/999`)
+      .set("X-API-Key", `${user.apiKey}`);
+    expect(res.status).toBe(404);
+    expect(res.body.error.message).toMatch(/not found/i);
+  });
+});
+
 describe("POST /api/public/posts", () => {
   test("401 — requires API key", async () => {
     const res = await request
@@ -137,101 +194,123 @@ describe("POST /api/public/posts", () => {
   test("400 — requires content", async () => {
     const res = await request
       .post("/api/public/posts")
-      .set("X-API-Key", "test-api-key")
-      .send({ authorId: 1 });
+      .set("X-API-Key", `${user.apiKey}`);
     expect(res.status).toBe(400);
     expect(res.body.error.message).toMatch(/invalid value|content/i);
   });
 
-  test("400 — requires authorId", async () => {
+  test("200 - create post", async () => {
     const res = await request
       .post("/api/public/posts")
-      .set("X-API-Key", "test-api-key")
-      .send({ content: "hello" });
-    expect(res.status).toBe(400);
-    expect(res.body.error.message).toMatch(/authorId/i);
+      .set("X-API-Key", `${user.apiKey}`)
+      .send({ content: "  hello  ", imageUrl: "www.google.com" });
+    expect(res.status).toBe(201);
+    expect(res.body.post).toBeDefined();
+    expect(res.body.post.content).toBe("hello");
+    expect(res.body.post.image_url).toBe("www.google.com");
   });
 });
 
-// ── PUT /api/public/posts/:id ─────────────────────────────────
 describe("PUT /api/public/posts/:id", () => {
+  let post;
+  beforeAll(async () => {
+    post = await Post.create({ authorId: user.id, content: "content" });
+  });
+
   test("401 — requires API key", async () => {
     const res = await request
       .put("/api/public/posts/1")
       .send({ content: "updated" });
     expect(res.status).toBe(401);
+    expect(res.body.error.message).toMatch(/no api key/i);
   });
 
   test("400 — requires at least one field to update", async () => {
     const res = await request
       .put("/api/public/posts/1")
-      .set("X-API-Key", "test-api-key")
+      .set("X-API-Key", `${user.apiKey}`)
       .send({});
     expect(res.status).toBe(400);
-    expect(res.body.error.message).toMatch(/nothing to update/i);
+    expect(res.body.error.message).toMatch(/content/i);
+    expect(res.body.error.message).toMatch(/required/i);
+  });
+
+  test("400 — invalid id", async () => {
+    const res = await request
+      .put("/api/public/posts/-1")
+      .set("X-API-Key", `${user.apiKey}`)
+      .send({ content: "updated" });
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/id/i);
+    expect(res.body.error.message).toMatch(/positive int/i);
+  });
+
+  test("200 — successfull update", async () => {
+    const dbPost = await prisma.post.findFirst({ where: { id: post.id } });
+    expect(dbPost.id).toBe(post.id);
+
+    const res = await request
+      .put(`/api/public/posts/${post.id}`)
+      .set("X-API-Key", `${user.apiKey}`)
+      .send({ content: "updated" });
+    expect(res.status).toBe(200);
+    expect(res.body.post.content).toBe("updated");
   });
 });
 
-// ── DELETE /api/public/posts/:id ──────────────────────────────
 describe("DELETE /api/public/posts/:id", () => {
+  let post;
+  beforeAll(async () => {
+    post = await Post.create({ authorId: user.id, content: "content" });
+  });
+
   test("401 — requires API key", async () => {
     const res = await request.delete("/api/public/posts/1");
     expect(res.status).toBe(401);
   });
-});
 
-describe("GET /api/public/mock", () => {
-  test("200 — returns anonymized mock dataset with disclaimer", async () => {
-    // User.findAll → prisma.user.findMany
-    mockPrisma.user.findMany.mockResolvedValueOnce([
-      {
-        id: 1,
-        username: "alice",
-        isPublic: true,
-        avatar: "/a.png",
-        bio: "",
-        status: "",
-        level: 2,
-        xp: 10,
-        isOnline: false,
-        createdAt: "2026-01-01",
-      },
-    ]);
-    // Game.getLeaderboard → prisma.gameStat.findMany
-    mockPrisma.gameStat.findMany.mockResolvedValueOnce([
-      {
-        userId: 1,
-        gameType: "spit_royale",
-        elo: 1000,
-        wins: 1,
-        losses: 0,
-        draws: 0,
-        user: { username: "alice", avatar: "/a.png", level: 2 },
-      },
-    ]);
-    // Post.getFeed → prisma.post.findMany (postLike not called since viewerId=null)
-    mockPrisma.post.findMany.mockResolvedValueOnce([
-      {
-        id: 10,
-        authorId: 1,
-        content: "secret",
-        imageUrl: null,
-        isPublic: true,
-        likesCount: 0,
-        createdAt: "2026-01-01",
-        updatedAt: "2026-01-01",
-        author: { username: "alice", avatar: "/a.png" },
-      },
-    ]);
-    mockPrisma.repost.findMany.mockResolvedValueOnce([]); // recent reposts
+  test("200 — successfull delete", async () => {
+    expect((await prisma.post.findFirst({ where: { id: post.id } })) != null);
 
     const res = await request
-      .get("/api/public/mock")
-      .set("X-API-Key", "test-api-key");
-
+      .delete(`/api/public/posts/${post.id}`)
+      .set("X-API-Key", `${user.apiKey}`);
     expect(res.status).toBe(200);
-    expect(res.body.disclaimer).toMatch(/not user personal data/i);
-    expect(res.body.users[0].username).toMatch(/^user_/);
-    expect(res.body.posts[0].content).toMatch(/anonymized/i);
+    expect((await prisma.post.findFirst({ where: { id: post.id } })) === null);
+  });
+});
+
+describe("Public API Rate Limiting", () => {
+  let user1;
+  beforeAll(async () => {
+    user1 = await createTestUser("TestUser1");
+    user1.apiKey = AuthService.generatePublicApiToken({ id: user1.id });
+    await User.setApiKey(user1.id, user1.apiKey);
+  });
+
+  test("should rate limit User A but allow User B to keep making requests", async () => {
+    // Step 1: Use up all allowed requests for user1
+    for (let i = 0; i < config.rateLimitPublicApi.max; i++) {
+      const res = await request
+        .get("/api/public/posts")
+        .set("X-API-Key", `${user1.apiKey}`);
+      expect(res.status).toBe(200);
+    }
+
+    // Step 2: The next request for user1 should be blocked (429 Too Many Requests)
+    const blockedResponse = await request
+      .get(`/api/public/posts`)
+      .set("X-API-Key", `${user1.apiKey}`);
+
+    expect(blockedResponse.status).toBe(429);
+    expect(blockedResponse.body.error).toMatch(/rate limit exceeded/i);
+
+    // Step 3: Make a request with another user.
+    // This proves the limit works per user
+    const userBResponse = await request
+      .get(`/api/public/posts`)
+      .set("X-API-Key", `${user.apiKey}`);
+
+    expect(userBResponse.status).toBe(200);
   });
 });

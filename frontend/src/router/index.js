@@ -39,6 +39,11 @@ const routes = [
     meta: { requiresAuth: false, guestOnly: true },
   },
   {
+    path: '/settings',
+    redirect: { name: 'Profile', query: { tab: 'settings' } },
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: Profile,

@@ -179,6 +179,16 @@ describe("POST /api/friends/requests", () => {
 describe("PUT /api/friends/requests/:id/accept", () => {
   let friendRequestDbEntry;
   beforeAll(async () => {
+    // Clean up existing friendship/requests so we can send a fresh request
+    await prisma.friend.deleteMany({
+      where: {
+        OR: [
+          { userId: friendRequest.id, friendId: validUser.id },
+          { userId: validUser.id, friendId: friendRequest.id },
+        ],
+      },
+    });
+    await prisma.friendRequest.deleteMany({});
     friendRequestDbEntry = await Friend.sendRequest(
       friendRequest.id,
       validUser.id,
@@ -205,6 +215,16 @@ describe("PUT /api/friends/requests/:id/accept", () => {
 describe("PUT /api/friends/requests/:id/decline", () => {
   let friendRequestDbEntry;
   beforeAll(async () => {
+    // Clean up existing friendship/requests so we can send a fresh request
+    await prisma.friend.deleteMany({
+      where: {
+        OR: [
+          { userId: friendRequest.id, friendId: validUser.id },
+          { userId: validUser.id, friendId: friendRequest.id },
+        ],
+      },
+    });
+    await prisma.friendRequest.deleteMany({});
     friendRequestDbEntry = await Friend.sendRequest(
       friendRequest.id,
       validUser.id,
@@ -233,7 +253,7 @@ describe("DELETE /api/friends/:id", () => {
       .get("/api/friends")
       .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
-    expect(res.body.friends.length).toBe(3);
+    const beforeCount = res.body.friends.length;
 
     res = await request
       .delete(`/api/friends/${friendOffline.id}`)
@@ -245,7 +265,7 @@ describe("DELETE /api/friends/:id", () => {
       .get("/api/friends")
       .set("Cookie", [`jwt_token=${validUser.token}`]);
     expect(res.status).toBe(200);
-    expect(res.body.friends.length).toBe(2);
+    expect(res.body.friends.length).toBe(beforeCount - 1);
   });
 });
 

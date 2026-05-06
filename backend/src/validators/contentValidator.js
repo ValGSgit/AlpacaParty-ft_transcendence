@@ -37,14 +37,20 @@ export const postCreateValidation = () => [
   contentChain(body("content"), { max: 5000, field: "content" }),
   urlChain(body("imageUrl")),
   urlChain(body("image_url")),
-  body("isPublic").optional().isBoolean().withMessage("isPublic must be a boolean"),
+  body("isPublic")
+    .optional()
+    .isBoolean()
+    .withMessage("isPublic must be a boolean"),
 ];
 
 export const postUpdateValidation = () => [
   optionalContentChain(body("content"), { max: 5000, field: "content" }),
   urlChain(body("imageUrl")),
   urlChain(body("image_url")),
-  body("isPublic").optional().isBoolean().withMessage("isPublic must be a boolean"),
+  body("isPublic")
+    .optional()
+    .isBoolean()
+    .withMessage("isPublic must be a boolean"),
 ];
 
 // ── Comments ──────────────────────────────────────────────────────────────
@@ -82,5 +88,7 @@ export const chatRoomCreateValidation = () => [
 // ── Common path params ────────────────────────────────────────────────────
 
 export const idParamValidation = (name = "id") => [
-  param(name).isInt({ min: 1 }).withMessage(`${name} must be a positive integer`),
+  param(name)
+    .isInt({ min: 1 })
+    .withMessage(`${name} must be a positive integer`),
 ];
