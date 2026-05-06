@@ -207,8 +207,9 @@ export function useEditMode() {
     if (selected.userData.cost === undefined)
       selected.userData.cost = 0 // fall back if the item is created at the very beginning
     if (!selected.userData.isNew) {
-      addCoins(Math.floor(selected.userData.cost / 2));
-      spawnFloatingText(gPlayer.value.model, '+' + selected.userData.cost / 2, 'coins');
+      const value = Math.floor(selected.userData.cost / 2);
+      addCoins(value);
+      spawnFloatingText(gPlayer.value.model, '+' + value, 'coins');
     }
     resetSelected();
     removeObject(selected);
