@@ -14,12 +14,9 @@
  */
 import cookieParser from "cookie-parser";
 import { Server } from "socket.io";
-<<<<<<< frontend-Lukas
-=======
 import User from "../models/User.js";
 import Friend from "../models/Friend.js";
 import Message from "../models/Message.js";
->>>>>>> dev
 import ChatRoom from "../models/ChatRoom.js";
 import Game from "../models/Game.js";
 import Message from "../models/Message.js";
