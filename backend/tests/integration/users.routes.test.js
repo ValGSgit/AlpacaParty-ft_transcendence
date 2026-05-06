@@ -1,14 +1,17 @@
 /**
  * User Routes Integration Tests
  */
-import supertestC from "supertest";
+import supertest from "supertest";
 import prisma from "#config/prisma.js";
 import AuthService from "#services/authService.js";
 import { createTestApp } from "../helpers/createApp.js";
 import { createTestUsers } from "../helpers/createTestUsers.js";
+import User from "#models/User.js";
+import { createTestUser } from "../helpers/createTestUser.js";
 
 let app;
 let request;
+let user;
 let validToken;
 let authPasswordHash;
 
@@ -21,7 +24,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   app = await createTestApp();
-  request = supertestC(app);
+  request = supertest(app);
 
   // Create the actual record in the test DB
   await prisma.user.deleteMany({
@@ -32,7 +35,7 @@ beforeEach(async () => {
     },
   });
 
-  const user = await prisma.user.create({
+  user = await prisma.user.create({
     data: {
       username: "authed",
       email: "a@b.com",
@@ -232,6 +235,53 @@ describe("GET /api/users/:id", () => {
     expect(res.status).toBe(200);
     expect(user.username).toBeDefined();
     expect(user.id).toBe(createdUsers[1].id);
+  });
+});
+
+describe("GET /api/users/me/api-key", () => {
+  beforeEach(async () => {
+    await User.setApiKey(user.id, "key value");
+  });
+
+  test("200 — get api key", async () => {
+    const res = await request
+      .get(`/api/users/me/api-key`)
+      .set("Cookie", [`jwt_token=${validToken}`]);
+
+    expect(res.status).toBe(200);
+    expect(res.body.hasKey).toBe(true);
+    expect(res.body.lastFour).toBe("alue");
+  });
+});
+
+describe("POST /api/users/me/api-key", () => {
+  test("200 — generate api key", async () => {
+    const res = await request
+      .post(`/api/users/me/api-key`)
+      .set("Cookie", [`jwt_token=${validToken}`]);
+
+    expect(res.status).toBe(201);
+    expect(res.body.apiKey).toBeDefined();
+  });
+});
+
+describe("DELETE /api/users/me/api-key", () => {
+  beforeEach(async () => {
+    await User.setApiKey(user.id, "key value");
+  });
+
+  test("200 — revoke api key", async () => {
+    let key = await User.getApiKey(user.id);
+    expect(key).toBeDefined();
+
+    const res = await request
+      .delete(`/api/users/me/api-key`)
+      .set("Cookie", [`jwt_token=${validToken}`]);
+
+    expect(res.status).toBe(200);
+
+    key = await User.getApiKey(user.id);
+    expect(key).toBe(null);
   });
 });
 

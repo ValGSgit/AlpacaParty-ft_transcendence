@@ -47,6 +47,7 @@ jobs:
       NODE_ENV: test
       JWT_SECRET: ci-test-secret-do-not-use-in-prod
       JWT_REFRESH_SECRET: ci-e2e-secret-change-in-prod
+      JWT_PUBLIC_API_SECRET: ci-test-public-key
       JWT_EXPIRES_IN: 1h
       JWT_REFRESH_EXPIRES_IN: 7d
       DATABASE_URL: postgresql://alpacaparty:alpacaparty@127.0.0.1:5432/alpacaparty?schema=public
@@ -193,21 +194,21 @@ jobs:
       CORS_ORIGINS: https://localhost:8443,http://localhost:5173
       GOOGLE_CALLBACK_URL: https://localhost:8443/api/auth/google/callback
       GITHUB_CALLBACK_URL: https://localhost:8443/api/auth/github/callback
-      JWT_SECRET: ci-e2e-secret-change-in-prod
       JWT_EXPIRES_IN: 1h
       JWT_REFRESH_EXPIRES_IN: 7d
-      JWT_REFRESH_SECRET: ci-e2e-secret-change-in-prod
       VAULT_DEV_TOKEN: root
-      API_KEYS: ci-e2e-api-key
-      GOOGLE_CLIENT_ID: ""
-      GOOGLE_CLIENT_SECRET: ""
-      GITHUB_CLIENT_ID: ""
-      GITHUB_CLIENT_SECRET: ""
       MOD_USERS: live_admin
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Prepare env and start production stack
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          make generate-secrets
+          make prod-up
 
       - name: Set up Node ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v5
@@ -294,12 +295,6 @@ jobs:
             sleep 5
           done
 
-      # -- Start the full stack -------------------------------------
-      - name: Start application stack
-        run: |
-          docker compose build --no-cache frontend nginx
-          docker compose up -d --build postgres backend frontend nginx
-
       - name: Wait for backend to be healthy
         run: |
           echo "Waiting for backend health endpoint..."
@@ -312,7 +307,7 @@ jobs:
             sleep 5
           done
           echo "Backend did not become healthy in time"
-          docker compose logs
+          docker compose -f compose.prod.yaml logs
           exit 1
 
       - name: Sync database schema
@@ -320,7 +315,7 @@ jobs:
           set -e
           for attempt in 1 2 3; do
             echo "Prisma db push attempt ${attempt}/3"
-            if docker compose exec -T -e DATABASE_URL="postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty?schema=public" backend npx prisma db push; then
+            if docker compose -f compose.prod.yaml exec -T backend npx env-cmd -f /run/secrets/.env npx prisma db push; then
               exit 0
             fi
             if [ "$attempt" -lt 3 ]; then
@@ -332,11 +327,13 @@ jobs:
           exit 1
 
       - name: Generate Prisma client
-        run: docker compose exec -T -e DATABASE_URL="postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty?schema=public" backend npx prisma generate
+        run: docker compose -f compose.prod.yaml exec -T backend npx env-cmd -f /run/secrets/.env npx prisma generate
 
       # -- Seed data for E2E tests ----------------------------------
       - name: Seed live data for E2E tests
-        run: docker compose exec -T backend npm run seed:live
+        run: |
+          set -euo pipefail
+          docker compose -f compose.prod.yaml exec -T backend npx env-cmd -f /run/secrets/.env npm run seed:live | tee /tmp/seed_output.log
         env:
           SEED_USERS: "50"
           SEED_POSTS: "100"
@@ -345,25 +342,11 @@ jobs:
           SEED_ROOM_MESSAGES: "200"
           SEED_NOTIFICATIONS: "100"
 
-      # -- Run tests ------------------------------------------------
-      - name: Sanity check public API key before Playwright
-        run: |
-          code=$(curl -ks -o /tmp/public_api.json -w "%{http_code}" \
-            -H "X-API-Key: ci-e2e-api-key" \
-            "https://localhost:8443/api/public/users?limit=1")
-          echo "Public API status: $code"
-          cat /tmp/public_api.json || true
-          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
-            echo "Public API key sanity check failed"
-            exit 1
-          fi
-
       - name: Run Playwright tests
         working-directory: e2e
         run: npm test
         env:
           E2E_BASE_URL: https://localhost:8443
-          E2E_API_KEY: ci-e2e-api-key
 
       # -- Artifacts ------------------------------------------------
       - name: Upload Playwright report
@@ -385,4 +368,4 @@ jobs:
       # -- Teardown -------------------------------------------------
       - name: Stop application stack
         if: always()
-        run: docker compose down -v
+        run: make prod-down

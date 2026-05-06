@@ -61,8 +61,10 @@ export const errorHandler = (err, _req, res, _next) => {
 };
 
 const handlePrismaError = (err) => {
-  console.log(`#### PRISMA_CODE: ${err.code}`);
-  console.log(`#### PRISMA_META: ${JSON.stringify(err.meta, null, 2)}`);
+  if (config.envIsDev) {
+    console.log(`#### PRISMA_CODE: ${err.code}`);
+    console.log(`#### PRISMA_META: ${JSON.stringify(err.meta, null, 2)}`);
+  }
 
   const prefix = "Prisma error:";
 

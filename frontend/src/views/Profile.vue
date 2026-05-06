@@ -14,16 +14,15 @@
         <span class="status">{{ authStore.user.status || 'No status set' }}</span>
 
         <div class="profile-tabs">
-          <button :class="['tab-btn', { active: activeTab === 'overview' }]" @click="activeTab = 'overview'">
+          <button :class="['tab-btn', { active: activeTab === 'overview' }]" @click="setActiveTab('overview')">
             Overview
           </button>
-          <button :class="['tab-btn', { active: activeTab === 'settings' }]" @click="activeTab = 'settings'">
+          <button :class="['tab-btn', { active: activeTab === 'settings' }]" @click="setActiveTab('settings')">
             Settings
           </button>
         </div>
 
         <div v-if="activeTab === 'overview'" class="tab-content">
-          
           <div class="profile-info">
             <div class="info-row">
               <span class="label">Email</span>
@@ -83,8 +82,7 @@
           </section>
         </div>
 
-        <div v-if="activeTab === 'settings'" class="tab-content settings-view">
-          
+        <div v-else-if="activeTab === 'settings'" class="tab-content settings-view">
           <div v-if="globalMsg" :class="['banner', globalMsg.type]">{{ globalMsg.text }}</div>
 
           <section class="settings-section">
@@ -147,15 +145,15 @@
             <form @submit.prevent="changePassword" class="settings-form">
               <div class="form-row">
                 <label>Current Password</label>
-                <input v-model="pwForm.current" type="password" autocomplete="current-password" />
+                <input v-model="pwForm.current" type="password" autocomplete="current-password" maxlength="50" />
               </div>
               <div class="form-row">
                 <label>New Password</label>
-                <input v-model="pwForm.newPw" type="password" autocomplete="new-password" />
+                <input v-model="pwForm.newPw" type="password" autocomplete="new-password" maxlength="50" />
               </div>
               <div class="form-row">
                 <label>Confirm New Password</label>
-                <input v-model="pwForm.confirm" type="password" autocomplete="new-password" />
+                <input v-model="pwForm.confirm" type="password" autocomplete="new-password" maxlength="50" />
               </div>
               <p v-if="pwError" class="field-error">{{ pwError }}</p>
               <button type="submit" class="btn-primary" :disabled="savingPw">
@@ -220,19 +218,19 @@
             </div>
           </section>
         </div>
-
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
 
 const authStore = useAuthStore()
+const route = useRoute()
 const router = useRouter()
 
 // UI State
@@ -259,6 +257,9 @@ const apiKeyLoading = ref(false)
 const apiKeyMsg = ref(null)
 const revealKey = ref(false)
 
+const MAX_AVATAR_BYTES = 10 * 1024 * 1024
+const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']
+
 const profileForm = ref({
   username: '', email: '', bio: '', status: '', avatar: '', is_public: false
 })
@@ -275,6 +276,23 @@ function flash(text, type = 'success') {
   globalMsg.value = { text, type }
   setTimeout(() => { globalMsg.value = null }, 4000)
 }
+
+function setActiveTab(tab) {
+  const nextTab = tab === 'settings' ? 'settings' : 'overview'
+  activeTab.value = nextTab
+  router.replace({
+    name: 'Profile',
+    query: nextTab === 'settings' ? { tab: 'settings' } : {},
+  })
+}
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    activeTab.value = tab === 'settings' ? 'settings' : 'overview'
+  },
+  { immediate: true },
+)
 
 // Initialization
 onMounted(async () => {
@@ -321,12 +339,20 @@ onMounted(async () => {
 async function uploadAvatar(event) {
   const file = event.target.files?.[0]
   if (!file) return
+  if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+    flash('Avatar must be a JPEG, PNG, GIF, WebP, or SVG image.', 'error')
+    event.target.value = ''
+    return
+  }
+  if (file.size > MAX_AVATAR_BYTES) {
+    flash('Avatar must be 10 MB or smaller.', 'error')
+    event.target.value = ''
+    return
+  }
   const formData = new FormData()
   formData.append('files', file)
   try {
-    const { data } = await api.post('/uploads', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    const { data } = await api.post('/uploads', formData)
     const url = data.files?.[0]?.url
     if (url) {
       await authStore.updateProfile({ avatar: url })
@@ -448,10 +474,10 @@ async function confirmDelete() {
   if (!window.confirm('Are you sure? This will permanently delete your account.')) return
   requestingData.value = true
   try {
-    await authStore.logout()
     await api.delete('/users/me')
+    await authStore.logout()
     flash('Account deleted.')
-    await router.push('/login')
+    await router.replace('/login')
   } catch (e) {
     flash(e.response?.data?.error?.message || 'Failed to delete account.', 'error')
   } finally {

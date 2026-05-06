@@ -4,6 +4,7 @@
  */
 import express from "express";
 import cookieParser from "cookie-parser";
+import config from "#config/index.js";
 
 export async function createTestApp() {
   const { default: routes } = await import("../../src/routes/index.js");

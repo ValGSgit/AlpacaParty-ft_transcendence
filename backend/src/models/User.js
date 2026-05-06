@@ -18,7 +18,13 @@ const SAFE_SELECT = {
   updatedAt: true,
   userAuth: { select: { oauthProvider: true } },
   userSettings: { select: { isPublic: true } },
+<<<<<<< HEAD
   alpacaFarm: { select: { coins: true, alpacas: true, items: true, upgrades: true } },
+=======
+  alpacaFarm: {
+    select: { coins: true, alpacas: true, items: true, upgrades: true },
+  },
+>>>>>>> eb03465fbdd8117bd31d77331644c6a6348a922b
 };
 
 /**
@@ -42,7 +48,6 @@ export function shapeUserForClient(u) {
     alpacas: u.alpacaFarm?.alpacas ?? [],
     items: u.alpacaFarm?.items ?? [],
     upgrades: u.alpacaFarm?.upgrades ?? 0,
-    herdsize: u.alpacaFarm?.herdsize ?? 0,
     last_seen: u.lastSeen,
     created_at: u.createdAt,
     updated_at: u.updatedAt,
@@ -244,8 +249,14 @@ const User = {
   async findAll({ limit = 50, offset = 0 } = {}) {
     return prisma.user.findMany({
       select: {
-        id: true, username: true, avatar: true, bio: true,
-        status: true, isOnline: true, lastSeen: true, createdAt: true,
+        id: true,
+        username: true,
+        avatar: true,
+        bio: true,
+        status: true,
+        isOnline: true,
+        lastSeen: true,
+        createdAt: true,
         userSettings: { select: { isPublic: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -267,9 +278,13 @@ const User = {
         ],
       },
       select: {
-        id: true, username: true, avatar: true, isOnline: true,
+        id: true,
+        username: true,
+        avatar: true,
+        isOnline: true,
         userSettings: { select: { isPublic: true } },
       },
+      orderBy: { createdAt: "desc" },
       take: Number(limit),
       skip: Number(offset),
     });
@@ -286,16 +301,16 @@ const User = {
 
   /** Return the raw apiKey for a user (null if not set). */
   async getApiKey(userId) {
-    const settings = await prisma.userSettings.findUnique({
+    const publicApi = await prisma.publicApi.findUnique({
       where: { userId: Number(userId) },
       select: { apiKey: true },
     });
-    return settings?.apiKey ?? null;
+    return publicApi?.apiKey ?? null;
   },
 
   /** Upsert an API key for a user. Returns the new key. */
   async setApiKey(userId, key) {
-    await prisma.userSettings.upsert({
+    await prisma.publicApi.upsert({
       where: { userId: Number(userId) },
       create: { userId: Number(userId), apiKey: key },
       update: { apiKey: key },
@@ -305,16 +320,15 @@ const User = {
 
   /** Remove the API key for a user. */
   async revokeApiKey(userId) {
-    await prisma.userSettings.update({
-      where: { userId: Number(userId) },
-      data: { apiKey: null },
+    await prisma.publicApi.deleteMany({
+      where: { userId: userId },
     });
   },
 
   /** Validate an API key against the DB. Returns the userId or null. */
   async findByApiKey(key) {
     if (!key) return null;
-    const settings = await prisma.userSettings.findUnique({
+    const settings = await prisma.publicApi.findUnique({
       where: { apiKey: key },
       select: { userId: true },
     });
@@ -326,8 +340,12 @@ const User = {
       prisma.user.findUnique({
         where: { id: Number(id) },
         select: {
-          id: true, username: true, email: true, bio: true,
-          status: true, createdAt: true,
+          id: true,
+          username: true,
+          email: true,
+          bio: true,
+          status: true,
+          createdAt: true,
         },
       }),
       prisma.friend.findMany({
@@ -352,7 +370,10 @@ const User = {
 
     return {
       user: user ?? null,
-      friends: friends.map((f) => ({ friendId: f.friend.id, username: f.friend.username })),
+      friends: friends.map((f) => ({
+        friendId: f.friend.id,
+        username: f.friend.username,
+      })),
       messages,
       games,
       posts,

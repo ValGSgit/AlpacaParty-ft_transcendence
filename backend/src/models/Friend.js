@@ -17,33 +17,85 @@ function shapeFriend(u) {
 }
 
 const Friend = {
+  async isBlockedBetween(userA, userB) {
+    const a = Number(userA);
+    const b = Number(userB);
+    const found = await prisma.blockedUser.findFirst({
+      where: {
+        OR: [
+          { userId: a, blockedUserId: b },
+          { userId: b, blockedUserId: a },
+        ],
+      },
+    });
+    return !!found;
+  },
   async sendRequest(senderId, receiverId) {
     if (senderId === receiverId)
       throw Object.assign(new Error("Cannot friend yourself"), { status: 400 });
 
-    const reverseRequest = await prisma.friendRequest.findFirst({
+    const sender = Number(senderId);
+    const receiver = Number(receiverId);
+
+    // Prevent sending requests when either user has blocked the other.
+    const blocked = await prisma.blockedUser.findFirst({
       where: {
-        senderId: Number(receiverId),
-        receiverId: Number(senderId),
-        status: "pending",
+        OR: [
+          { userId: receiver, blockedUserId: sender }, // receiver blocked sender
+          { userId: sender, blockedUserId: receiver }, // sender blocked receiver
+        ],
       },
     });
-    if (reverseRequest) {
-      const request = await this.acceptRequest(reverseRequest.id, senderId);
+    if (blocked) {
+      // If receiver blocked sender, return 403. If sender blocked receiver, reject as well.
+      throw Object.assign(new Error('Cannot send friend request due to block'), { status: 403 });
+    }
+
+    const alreadyFriends = await this.areFriends(sender, receiver);
+    if (alreadyFriends)
+      throw Object.assign(new Error("You are already friends"), { status: 409 });
+
+    const existing = await prisma.friendRequest.findFirst({
+      where: {
+        OR: [
+          { senderId: sender, receiverId: receiver },
+          { senderId: receiver, receiverId: sender },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (existing?.status === "pending") {
+      if (existing.senderId === sender && existing.receiverId === receiver) {
+        return { request: existing, alreadyPending: true };
+      }
+
+      const request = await this.acceptRequest(existing.id, sender);
       return { request, autoAccepted: true };
+    }
+
+    if (existing?.status === "declined") {
+      return prisma.friendRequest.update({
+        where: { id: existing.id },
+        data: {
+          senderId: sender,
+          receiverId: receiver,
+          status: "pending",
+        },
+      });
     }
 
     return prisma.friendRequest.upsert({
       where: {
         senderId_receiverId: {
-          senderId: Number(senderId),
-          receiverId: Number(receiverId),
+          senderId: sender,
+          receiverId: receiver,
         },
       },
       update: { status: "pending" },
       create: {
-        senderId: Number(senderId),
-        receiverId: Number(receiverId),
+        senderId: sender,
+        receiverId: receiver,
         status: "pending",
       },
     });

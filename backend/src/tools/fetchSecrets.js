@@ -10,6 +10,7 @@ const KEY_MAP = {
   db_name: "DB_NAME",
   jwt_secret: "JWT_SECRET",
   jwt_refresh_secret: "JWT_REFRESH_SECRET",
+  jwt_public_api_secret: "JWT_PUBLIC_API_SECRET",
   api_keys: "API_KEYS",
   google_client_id: "GOOGLE_CLIENT_ID",
   google_client_secret: "GOOGLE_CLIENT_SECRET",

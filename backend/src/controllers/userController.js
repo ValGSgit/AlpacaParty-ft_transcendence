@@ -8,7 +8,8 @@ import AuthService from "#services/authService.js";
 import DataExportService from "#services/dataExportService.js";
 import DataRequest from "#models/DataRequest.js";
 import NotificationService from "#services/notificationService.js";
-import { customValidationResult } from "#validators/validatorUtils.js";
+import { randomUUID } from "crypto";
+import config from "#config/index.js";
 import CustomError from "#utils/CustomError.js";
 
 /**
@@ -25,11 +26,6 @@ export const updateMe = async (req, res, next) => {
   const { username, email, bio, status, avatar, is_public } = req.body;
 
   try {
-    const errors = customValidationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ error: { message: errors.array()[0] } });
-    }
-
     if (username) {
       const current = req.user?.username;
       if (username !== current) {
@@ -55,7 +51,11 @@ export const updateMe = async (req, res, next) => {
     }
 
     const updatedUser = await User.update(id, {
-      username, email, bio, status, avatar,
+      username,
+      email,
+      bio,
+      status,
+      avatar,
       ...(is_public !== undefined && { isPublic: !!is_public }),
     });
 
@@ -70,8 +70,6 @@ export const updateMe = async (req, res, next) => {
  */
 export const changePassword = async (req, res, next) => {
   try {
-    customValidationResult(req).throw();
-
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
@@ -90,7 +88,8 @@ export const changePassword = async (req, res, next) => {
         .status(401)
         .json({ error: { message: "Current password is incorrect" } });
 
-    const { valid: newValid, errors } = AuthService.validatePassword(newPassword);
+    const { valid: newValid, errors } =
+      AuthService.validatePassword(newPassword);
     if (!newValid) {
       return res.status(400).json({
         error: { message: errors.join(". ") },
@@ -137,7 +136,8 @@ export const getUser = async (req, res, next) => {
  */
 export const listUsers = async (req, res, next) => {
   try {
-    const pageSize = Number(req.query.pageSize) || Number(req.query.limit) || 50;
+    const pageSize =
+      Number(req.query.pageSize) || Number(req.query.limit) || 50;
     const page = Number(req.query.page) || 1;
     const limit = Math.min(pageSize, 100);
     const offset = Number(req.query.offset) || Math.max((page - 1) * limit, 0);
@@ -262,10 +262,12 @@ export const getApiKey = async (req, res, next) => {
  */
 export const generateApiKey = async (req, res, next) => {
   try {
-    const { randomUUID } = await import('crypto');
-    const key = `ap_${randomUUID().replace(/-/g, '')}`;
-    await User.setApiKey(req.user.id, key);
-    res.status(201).json({ apiKey: key });
+    if (!config.jwt.publicApiSecret) {
+      return next(new CustomError('Public API secret is not configured', 500));
+    }
+    const publiApiToken = AuthService.generatePublicApiToken(req.user);
+    await User.setApiKey(req.user.id, publiApiToken);
+    res.status(201).json({ apiKey: publiApiToken });
   } catch (err) {
     next(err);
   }

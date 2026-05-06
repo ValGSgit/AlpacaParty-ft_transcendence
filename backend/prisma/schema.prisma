@@ -52,6 +52,7 @@ model User {
   userSettings           UserSettings?
   comments               Comment[]
   reposts                Repost[]
+  publicApi              PublicApi?
 
   @@map("user")
 }
@@ -72,6 +73,17 @@ model UserAuth {
   @@map("user_auth")
 }
 
+model PublicApi {
+  id     Int    @id @default(autoincrement())
+  apiKey String @unique @map("api_key") @db.Text
+
+  // Relations
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @unique
+
+  @@map("public_api")
+}
+
 model UserStats {
   userId Int  @id @map("user_id")
   xp     Int? @default(0)
@@ -85,7 +97,6 @@ model UserStats {
 
 model UserSettings {
   isPublic Boolean? @default(true) @map("is_public")
-  apiKey   String?  @unique @map("api_key") @db.VarChar(255)
 
   // Relations
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)

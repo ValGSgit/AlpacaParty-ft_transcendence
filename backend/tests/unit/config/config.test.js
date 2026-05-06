@@ -97,7 +97,7 @@ describe("config", () => {
     expect(typeof config.jwt.secret).toBe("string");
     expect(config.jwt.secret.length).toBeGreaterThan(0);
     expect(config.jwt.secret).toBe(process.env.JWT_SECRET);
-    expect(config.jwt.refresh_secret).toBe(process.env.JWT_REFRESH_SECRET);
+    expect(config.jwt.refreshSecret).toBe(process.env.JWT_REFRESH_SECRET);
   });
 
   // ── Database config ───────────────────────────────────────────────────────

@@ -60,6 +60,10 @@ export const sendRequest = async (req, res, next) => {
       return res.status(200).json({ request, autoAccepted: true });
     }
 
+    if (result.alreadyPending) {
+      return res.status(200).json({ request, alreadyPending: true });
+    }
+
     await NotificationService.friendRequest(Number(userId), req.user.username);
     res.status(201).json({ request });
   } catch (err) { next(err); }

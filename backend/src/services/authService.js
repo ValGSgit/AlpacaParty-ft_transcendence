@@ -41,11 +41,20 @@ const AuthService = {
   generateRefreshToken(user) {
     return jwt.sign(
       { id: user.id, type: "refresh" },
-      config.jwt.refresh_secret,
+      config.jwt.refreshSecret,
       {
         expiresIn: config.jwt.refreshExpiresIn,
       },
     );
+  },
+
+  /**
+   * Generate an public api token
+   */
+  generatePublicApiToken(user) {
+    return jwt.sign({ id: user.id }, config.jwt.publicApiSecret, {
+      expiresIn: config.jwt.publicApiExpiresIn,
+    });
   },
 
   /**
@@ -66,7 +75,19 @@ const AuthService = {
    */
   verifyRefreshToken(token) {
     try {
-      return jwt.verify(token, config.jwt.refresh_secret);
+      return jwt.verify(token, config.jwt.refreshSecret);
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Verify and decode a public api token.
+   * @returns {object|null} decoded payload or null if invalid.
+   */
+  verifyPublicApiToken(token) {
+    try {
+      return jwt.verify(token, config.jwt.publicApiSecret);
     } catch {
       return null;
     }

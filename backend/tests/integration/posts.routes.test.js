@@ -186,7 +186,6 @@ describe("PUT /api/posts/:id", () => {
   test("404 — post not found or not yours", async () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
     // Post.update uses .catch(() => null), so rejecting returns null → 404
-    mockPrisma.post.update.mockRejectedValueOnce(new Error("record not found"));
 
     const res = await request
       .put("/api/posts/99")

@@ -4,8 +4,11 @@
 process.env.NODE_ENV = "test";
 process.env.JWT_SECRET = "test-jwt-secret-for-unit-tests";
 process.env.JWT_REFRESH_SECRET = "test-jwt-refresh-secret-for-unit-tests";
+process.env.JWT_PUBLIC_API_SECRET = "test-jwt-refresh-secret-for-unit-tests";
 process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h";
 process.env.JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+process.env.JWT_PUBLIC_API_EXPIRES_IN =
+  process.env.JWT_PUBLIC_API_EXPIRES_IN || "30d";
 
 process.env.CORS_ORIGINS =
   process.env.CORS_ORIGINS || "https://localhost:8443,http://localhost:5173";
