@@ -7,6 +7,7 @@ import { saveGame } from '../core/saveLoadGame.js';
 import { useGameEngine } from '../core/useGameEngine.js';
 import { initWorld } from '../world/initWorld.js';
 import { initAlpacaRoad, initAlpacaRoadOnline } from './alpacaRoad.js';
+import { clearAnnouncements } from './annoucement.js';
 import { activeClient } from './GameClient.js';
 import { initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
 
@@ -43,7 +44,7 @@ async function returnFarm() {
   if (gMinigame.value.isOnline) {
     activeClient.disconnect();
   }
-
+  clearAnnouncements();
   resetMinigame();
   gMinigame.value.mode = 0;
 
