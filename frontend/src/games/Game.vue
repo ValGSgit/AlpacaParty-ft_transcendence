@@ -371,7 +371,8 @@ onMounted(async () => {
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
 
-    gUser.value.name = authStore.user.username;
+    if (authStore.isAuthenticated)
+      gUser.value.name = authStore.user.username;
     await initWorld(gScene.value, authStore.isAuthenticated)
     gameIsReady.value = true
     stopMyWatcher = watchChanges()

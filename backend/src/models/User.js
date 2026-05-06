@@ -18,13 +18,9 @@ const SAFE_SELECT = {
   updatedAt: true,
   userAuth: { select: { oauthProvider: true } },
   userSettings: { select: { isPublic: true } },
-<<<<<<< HEAD
-  alpacaFarm: { select: { coins: true, alpacas: true, items: true, upgrades: true } },
-=======
   alpacaFarm: {
     select: { coins: true, alpacas: true, items: true, upgrades: true },
   },
->>>>>>> eb03465fbdd8117bd31d77331644c6a6348a922b
 };
 
 /**

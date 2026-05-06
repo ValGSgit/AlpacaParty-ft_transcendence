@@ -14,10 +14,8 @@
  */
 import cookieParser from "cookie-parser";
 import { Server } from "socket.io";
-import User from "../models/User.js";
-import Friend from "../models/Friend.js";
-import Message from "../models/Message.js";
 import ChatRoom from "../models/ChatRoom.js";
+import Friend from "../models/Friend.js";
 import Game from "../models/Game.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
@@ -81,9 +79,9 @@ export function initializeSocket(httpServer, corsOrigins) {
 
   // ── Connection handler ───────────────────────────────────────
   io.on("connection", async (socket) => {
-    try {
-      const { user } = socket;
+    const { user } = socket;
 
+    try {
       // Join personal room
       socket.join(`user:${user.id}`);
       await markOnline(user.id, socket.id);
