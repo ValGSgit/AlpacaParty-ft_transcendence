@@ -94,7 +94,7 @@ export function initializeSocket(httpServer, corsOrigins) {
 
       console.log(`[socket] ${user.username} connected (${socket.id})`);
     } catch (err) {
-      console.error("[socket] connection setup failed:", err.message);
+      // console.error("[socket] connection setup failed:", err.message);
       socket.disconnect(true);
       return;
     }
@@ -106,8 +106,14 @@ export function initializeSocket(httpServer, corsOrigins) {
         if (Number(receiverId) === user.id)
           return ack?.({ error: "Cannot send a message to yourself" });
         // Prevent sending messages when either user has blocked the other.
-        const blocked = await Friend.isBlockedBetween(user.id, Number(receiverId));
-        if (blocked) return ack?.({ error: "Cannot send message: blocked or you have blocked this user" });
+        const blocked = await Friend.isBlockedBetween(
+          user.id,
+          Number(receiverId),
+        );
+        if (blocked)
+          return ack?.({
+            error: "Cannot send message: blocked or you have blocked this user",
+          });
         const msg = await Message.create({
           senderId: user.id,
           receiverId,
