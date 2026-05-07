@@ -60,6 +60,12 @@ export class GameClient {
     }
   }
 
+  sendActive() {
+    if (this.socket) {
+      this.socket.emit('player_active');
+    }
+  }
+
   setupListeners() {
     this.socket.on('available_rooms', (roomList) => {
       gMinigame.value.publicRooms = roomList;

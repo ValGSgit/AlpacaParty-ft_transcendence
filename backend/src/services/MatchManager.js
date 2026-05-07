@@ -90,6 +90,16 @@ export class MatchManager {
         }
       });
 
+      socket.on('player_active', () => {
+        const matchId = this.playerToMatch.get(socket.id);
+        if (matchId) {
+          const match = this.matches.get(matchId);
+          if (match && typeof match.handleActive === 'function') {
+            match.handleActive(socket.id);
+          }
+        }
+      })
+
       socket.on('disconnect', () => {
         console.log('BACKEND: Receive disconnect request');
         const matchId = this.playerToMatch.get(socket.id);

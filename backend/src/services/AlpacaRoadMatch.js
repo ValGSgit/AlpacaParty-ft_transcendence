@@ -4,7 +4,7 @@ export class AlpacaRoadMatch extends BaseMatch {
   constructor(id, namespace, roomName, onStateChange) {
     super(id, namespace, roomName, onStateChange);
     this.obstacles = [];
-    this.tickRate = 10;
+    this.tickRate = 33;
     this.isPlaying = false;
 
     this.level = 1;
@@ -25,6 +25,8 @@ export class AlpacaRoadMatch extends BaseMatch {
 
     player.lane = assignedLane;
     player.isJumping = false;
+    player.isActive = true;
+    player.lastActive = Date.now();
     this.syncLobby();
   }
 
@@ -78,6 +80,15 @@ export class AlpacaRoadMatch extends BaseMatch {
     }
   }
 
+  handleActive(socketId) {
+    const player = this.players.get(socketId);
+    console.log("Handle active:", socketId);
+    if (player && !player.isDead) {
+      player.lastActive = Date.now();
+      player.isActive = true;
+    }
+  }
+
   updateDifficulty() {
     const pointsPerLevel = 4 + this.level;
     const newLevel = Math.floor(this.totalPoints / pointsPerLevel) + 1;
@@ -111,11 +122,19 @@ export class AlpacaRoadMatch extends BaseMatch {
           let awardedPoint = false;
 
           for (const [id, player] of this.players) {
-            if (!player.isDead && !player.isHit) {
+            if (!player.isDead && !player.isHit && player.isActive) {
               if (obs.isFull || player.lane === obs.lane) {
                 obs.pointGiven = true;
                 player.points++;
                 awardedPoint = true;
+              }
+            } else if (!player.isActive) {
+              if (obs.isFull || player.lane === obs.lane) {
+                player.isHit = true;
+                player.hp--;
+                if (player.hp <= 0) {
+                  player.isDead = true;
+                }
               }
             }
           }
@@ -136,6 +155,8 @@ export class AlpacaRoadMatch extends BaseMatch {
         this.spawnTimer = (1.0 + Math.random() * 2.0) * this.timerMultiplier;
       }
     }
+
+    this.checkActivity();
 
     const playersArr = Array.from(this.players.values()).map(p => ({
       id: p.id,
@@ -190,5 +211,19 @@ export class AlpacaRoadMatch extends BaseMatch {
       isFull: Math.random() > 0.6,
       pointGiven: false
     });
+  }
+
+  checkActivity() {
+    if (!this.isPlaying) return;
+
+    const now = Date.now();
+    for (const [id, player] of this.players) {
+      if (!player.isDead && player.isActive) {
+        if (now - player.lastActive > 3000) {
+          console.log(`Server: ${player.name} is inactive!`);
+          player.isActive = false;
+        }
+      }
+    }
   }
 }

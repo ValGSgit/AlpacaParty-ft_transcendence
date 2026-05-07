@@ -44,6 +44,7 @@ let assetsLoaded = false;
 let totalPoints = 0;
 
 let hasAwardedRewards = false;
+let activeTimer = 1.0;
 
 const { spawnFloatingText } = useFloatingText();
 const { collectRewards } = useCoinUI();
@@ -56,7 +57,6 @@ const { setTimeOfDay } = editLight();
 export async function initAlpacaRoad(playerCount, tempAlpacas) {
   cleanupAlpacaRoad()
   gMinigame.value.mode = 3;
-  hasAwardedRewards = false;
 
   await setupRoadScene(gScene.value);
   await loadAssets();
@@ -70,7 +70,6 @@ export async function initAlpacaRoad(playerCount, tempAlpacas) {
 export async function initAlpacaRoadOnline() {
   cleanupAlpacaRoad();
   gMinigame.value.mode = 4;
-  hasAwardedRewards = false;
 
   await setupRoadScene(gScene.value);
   await loadAssets();
@@ -96,10 +95,97 @@ function initGameValues(playerCount) {
   gUI.lockCamera = true;
   gUI.isLightCycling = false;
   assetsLoaded = true;
+  hasAwardedRewards = false;
+}
+
+async function setupRoadScene(scene) {
+  setupLighting(scene);
+  setSunLight(25, 125, roadLength / 4, 0, 0, 200);
+  adjustSunBox(200, 150, 1, 0, 0, 0);
+  setTimeOfDay('day');
+
+  const road = PRIMITIVES.Box(30, 1, roadLength, '#666666')
+  road.position.y = -road.geometry.parameters.height / 2;
+  road.position.z += roadOffset;
+  scene.add(road)
+
+  const sidewalk = await createDecoration('/models/sidewalk.glb');
+  roadScene.push(sidewalk.model)
+  scene.add(sidewalk.model);
+
+  initRoadStripes();
+}
+
+async function loadAssets() {
+  if (fullObstacle.length === 0) {
+    const loadedFull = await Promise.all(fullPaths.map(path => createItem(path)));
+    loadedFull.forEach(item => fullObstacle.push(item.model));
+  }
+  if (singleObstacle.length === 0) {
+    const loadedSingle = await Promise.all(singlePaths.map(path => createItem(path)));
+    loadedSingle.forEach(item => singleObstacle.push(item.model));
+  }
+  if (buildingSelection.length === 0) {
+    const loadedAssets = await Promise.all(sceneryPaths.map(path => createDecoration(path)));
+    loadedAssets.forEach(item => buildingSelection.push(item.model));
+  }
+}
+
+function initScenery() {
+  if (buildingSelection.length === 0) return;
+
+  const buildingDepth = 60;
+  const buildingOffset = -30;
+  const rScaleUp = new THREE.Vector3(1, 1, 1);
+  const lScaleUp = new THREE.Vector3(-1, 1, 1);
+  const numBuildings = Math.ceil(roadLength / buildingDepth) + 1;
+
+  for (let i = 0; i < numBuildings; i++) {
+    const zPos = i * buildingDepth;
+
+    // Right
+    let id = getRandomID(buildingSelection);
+    const rBuild = buildingSelection[id].clone();
+    rBuild.position.set(buildingOffset, 0, zPos);
+    gScene.value.add(rBuild);
+    roadScene.push(rBuild);
+    rBuild.userData.targetScale = rScaleUp;
+
+    // Left
+    id = getRandomID(buildingSelection);
+    const lBuild = buildingSelection[id].clone();
+    lBuild.scale.x = -1;
+    lBuild.position.set(-buildingOffset, 0, zPos);
+    gScene.value.add(lBuild);
+    roadScene.push(lBuild);
+    lBuild.userData.targetScale = lScaleUp;
+  }
+}
+
+function initRoadStripes() {
+  const numRows = 8;
+  const spacingZ = roadLength / numRows;
+
+  const stripeMat = new THREE.MeshStandardMaterial({ color: '#dddddd' });
+  const stripe = PRIMITIVES.Box(1, 0.1, 10, stripeMat);
+  const targetScale = new THREE.Vector3(1, 1, 1);
+
+  for (let row = 0; row < numRows; row++) {
+    let offsetX = -5;
+    for (let lane = 0; lane < 3; lane++) {
+      const roadStripe = stripe.clone();
+      roadStripe.position.z = startZ - (row * spacingZ);
+      roadStripe.position.x = offsetX;
+      roadStripe.userData.targetScale = targetScale;
+      roadScene.push(roadStripe);
+      gScene.value.add(roadStripe);
+      offsetX += 5;
+    }
+  }
 }
 
 // =========================================================
-// 2. THE MAIN LOOP
+// 2. GAME LOOP
 // =========================================================
 
 export function updateAlpacaRoad(delta) {
@@ -110,12 +196,13 @@ export function updateAlpacaRoad(delta) {
       endMinigame();
       return;
     }
-    syncServerState();
-    syncPlayersFromServer(delta);
+    syncObstacles();
+    syncPlayers(delta);
     if (gMinigame.value.isActive) {
       updateRoadScene(delta);
       checkLocalCollisions();
       checkLocalJump();
+      checkActivity(delta);
     }
   } else { //OFFLINE
     if (!gMinigame.value.isActive) return;
@@ -132,7 +219,7 @@ export function updateAlpacaRoad(delta) {
 // 3. ONLINE SYNC LOGIC
 // =========================================================
 
-export function syncServerState() {
+export function syncObstacles() {
   const serverObstacles = activeClient.serverObstacles;
   if (!serverObstacles) return;
 
@@ -159,7 +246,7 @@ export function syncServerState() {
   });
 }
 
-function syncPlayersFromServer(delta) {
+function syncPlayers(delta) {
   const serverPlayers = gMinigame.value.players;
   if (!serverPlayers) return;
 
@@ -282,15 +369,24 @@ function checkLocalCollisions() {
   }
 }
 
+function checkActivity(delta) {
+  activeTimer -= delta
+  if (activeTimer <= 0) {
+    activeClient.sendActive();
+    activeTimer = 1.0;
+  }
+}
+
 function checkLocalJump() {
   const localAlpaca = activePlayers.find(p => p.socketId === activeClient.socket.id);
-  if (localAlpaca) {
-    if (localAlpaca.isJumping && !localAlpaca.lastSentJump) {
-      activeClient.sendJump();
-      localAlpaca.lastSentJump = true;
-    } else if (!localAlpaca.isJumping) {
-      localAlpaca.lastSentJump = false;
-    }
+
+  if (!localAlpaca || localAlpaca.isDead) return;
+
+  if (localAlpaca.isJumping && !localAlpaca.lastSentJump) {
+    activeClient.sendJump();
+    localAlpaca.lastSentJump = true;
+  } else if (!localAlpaca.isJumping) {
+    localAlpaca.lastSentJump = false;
   }
 }
 
@@ -358,6 +454,38 @@ export function createObstacle() {
 
   activeObstacles.push(obstacle);
   gScene.value.add(obstacle);
+}
+
+async function initPlayers(playerCount, tempAlpacas) {
+  activePlayers.length = 0;
+  activePlayers.push(gPlayer.value);
+  registerEntity(gPlayer.value, 'alpaca');
+  gMinigame.value.players = [];
+
+  for (let i = 0; i < playerCount - 1; i++) {
+    if (tempAlpacas[i]) {
+      activePlayers.push(tempAlpacas[i]);
+      registerEntity(tempAlpacas[i], 'alpaca');
+    } else {
+      activePlayers.push(await createAlpaca());
+    }
+  }
+  for (let i = 0; i < activePlayers.length; i++) {
+    const alpaca = activePlayers[i];
+    gScene.value.add(alpaca.model);
+    alpaca.model.position.x = playerPositions[i];
+    if (gMinigame.value.mode !== 4) {
+      gMinigame.value.players.push({ id: i + 1, name: alpaca.name, hp: CONST.HP, point: 0 });
+    }
+  }
+}
+
+function initObstacles() {
+  const amount = 8;
+  for (let i = 0; i < amount; ++i) {
+    createObstacle();
+    activeObstacles[i].position.z = startZ - (roadLength / amount * i);
+  }
 }
 
 function updatePlayers(delta) {
@@ -459,6 +587,18 @@ function awardPoints(obstacle) {
   obstacle.pointGiven = true;
 }
 
+function getRandomID(array) {
+  return getRandomInt(array.length);
+}
+
+function getValidLanes() {
+  const validLanes = [];
+  for (let i = 0; i < activePlayers.length; i++) {
+    if (!activePlayers[i].isDead) validLanes.push(i);
+  }
+  return validLanes;
+}
+
 // =========================================================
 // 5. SHARED UTILS (Online & Offline)
 // =========================================================
@@ -530,137 +670,6 @@ function spinAlpacaUp(alpaca, delta) {
       activeClient.sendHitComplete();
     }
   }
-}
-
-async function setupRoadScene(scene) {
-  setupLighting(scene);
-  setSunLight(25, 125, roadLength / 4, 0, 0, 200);
-  adjustSunBox(200, 150, 1, 0, 0, 0);
-  setTimeOfDay('day');
-
-  const road = PRIMITIVES.Box(30, 1, roadLength, '#666666')
-  road.position.y = -road.geometry.parameters.height / 2;
-  road.position.z += roadOffset;
-  scene.add(road)
-
-  const sidewalk = await createDecoration('/models/sidewalk.glb');
-  roadScene.push(sidewalk.model)
-  scene.add(sidewalk.model);
-
-  initRoadStripes();
-}
-
-async function loadAssets() {
-  if (fullObstacle.length === 0) {
-    const loadedFull = await Promise.all(fullPaths.map(path => createItem(path)));
-    loadedFull.forEach(item => fullObstacle.push(item.model));
-  }
-  if (singleObstacle.length === 0) {
-    const loadedSingle = await Promise.all(singlePaths.map(path => createItem(path)));
-    loadedSingle.forEach(item => singleObstacle.push(item.model));
-  }
-  if (buildingSelection.length === 0) {
-    const loadedAssets = await Promise.all(sceneryPaths.map(path => createDecoration(path)));
-    loadedAssets.forEach(item => buildingSelection.push(item.model));
-  }
-}
-
-async function initPlayers(playerCount, tempAlpacas) {
-  activePlayers.length = 0;
-  activePlayers.push(gPlayer.value);
-  registerEntity(gPlayer.value, 'alpaca');
-  gMinigame.value.players = [];
-
-  for (let i = 0; i < playerCount - 1; i++) {
-    if (tempAlpacas[i]) {
-      activePlayers.push(tempAlpacas[i]);
-      registerEntity(tempAlpacas[i], 'alpaca');
-    } else {
-      activePlayers.push(await createAlpaca());
-    }
-  }
-  for (let i = 0; i < activePlayers.length; i++) {
-    const alpaca = activePlayers[i];
-    gScene.value.add(alpaca.model);
-    alpaca.model.position.x = playerPositions[i];
-    if (gMinigame.value.mode !== 4) {
-      gMinigame.value.players.push({ id: i + 1, name: alpaca.name, hp: CONST.HP, point: 0 });
-    }
-  }
-}
-
-function initScenery() {
-  if (buildingSelection.length === 0) return;
-
-  const buildingDepth = 60;
-  const buildingOffset = -30;
-  const rScaleUp = new THREE.Vector3(1, 1, 1);
-  const lScaleUp = new THREE.Vector3(-1, 1, 1);
-  const numBuildings = Math.ceil(roadLength / buildingDepth) + 1;
-
-  for (let i = 0; i < numBuildings; i++) {
-    const zPos = i * buildingDepth;
-
-    // Right
-    let id = getRandomID(buildingSelection);
-    const rBuild = buildingSelection[id].clone();
-    rBuild.position.set(buildingOffset, 0, zPos);
-    gScene.value.add(rBuild);
-    roadScene.push(rBuild);
-    rBuild.userData.targetScale = rScaleUp;
-
-    // Left
-    id = getRandomID(buildingSelection);
-    const lBuild = buildingSelection[id].clone();
-    lBuild.scale.x = -1;
-    lBuild.position.set(-buildingOffset, 0, zPos);
-    gScene.value.add(lBuild);
-    roadScene.push(lBuild);
-    lBuild.userData.targetScale = lScaleUp;
-  }
-}
-
-function initObstacles() {
-  console.log("road init!");
-  const amount = 8;
-  for (let i = 0; i < amount; ++i) {
-    createObstacle();
-    activeObstacles[i].position.z = startZ - (roadLength / amount * i);
-  }
-}
-
-function initRoadStripes() {
-  const numRows = 8;
-  const spacingZ = roadLength / numRows;
-
-  const stripeMat = new THREE.MeshStandardMaterial({ color: '#dddddd' });
-  const stripe = PRIMITIVES.Box(1, 0.1, 10, stripeMat);
-  const targetScale = new THREE.Vector3(1, 1, 1);
-
-  for (let row = 0; row < numRows; row++) {
-    let offsetX = -5;
-    for (let lane = 0; lane < 3; lane++) {
-      const roadStripe = stripe.clone();
-      roadStripe.position.z = startZ - (row * spacingZ);
-      roadStripe.position.x = offsetX;
-      roadStripe.userData.targetScale = targetScale;
-      roadScene.push(roadStripe);
-      gScene.value.add(roadStripe);
-      offsetX += 5;
-    }
-  }
-}
-
-function getRandomID(array) {
-  return getRandomInt(array.length);
-}
-
-function getValidLanes() {
-  const validLanes = [];
-  for (let i = 0; i < activePlayers.length; i++) {
-    if (!activePlayers[i].isDead) validLanes.push(i);
-  }
-  return validLanes;
 }
 
 function cleanupAlpacaRoad() {
