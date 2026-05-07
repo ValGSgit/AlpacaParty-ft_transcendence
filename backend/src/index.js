@@ -8,10 +8,12 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
-import swaggerSpec from "#config/swagger.js";
+import swaggerSpec from "#docs/swagger.js";
+import swaggerFilePubliApi from "./docs/swagger-output-public-api.json" with { type: "json" };
 import config from "#config/index.js";
 import routes from "#routes/index.js";
 import prisma from "#config/prisma.js";
+import cookieParser from "cookie-parser";
 import { errorHandler, notFoundHandler } from "#middleware/errorHandler.js";
 import { initializeSocket } from "#services/socketService.js";
 import { initializePassport } from "#services/oauthService.js";
@@ -68,13 +70,14 @@ app.use(
 // Body parsing
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(cookieParser());
 
 // Passport (OAuth)
 const passport = initializePassport();
 app.use(passport.initialize());
 
-// todo maybe remove from here and aus api/upload routes ?
-// uploads
+// This should happen here to ensure all routes, including static file serving, are protected by the upload security check.
+//  It will allow or deny access to the uploads directory based on the request's authentication and authorization status.
 app.use("/uploads", uploadSecurityCheck, express.static(config.uploads.dir));
 
 // Dev request logging
@@ -86,7 +89,18 @@ if (config.envIsDev) {
 }
 
 // API docs (Swagger UI)
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+if (config.envIsDev) {
+  app.use(
+    "/api/docs/dev",
+    swaggerUi.serveFiles(swaggerSpec),
+    swaggerUi.setup(swaggerSpec),
+  );
+}
+app.use(
+  "/api/docs/public",
+  swaggerUi.serveFiles(swaggerFilePubliApi),
+  swaggerUi.setup(swaggerFilePubliApi),
+);
 
 // API routes
 app.use("/api", routes);
@@ -104,7 +118,6 @@ app.get("/", (_req, res) => {
       chat: "/api/chat",
       game: "/api/game",
       posts: "/api/posts",
-      organizations: "/api/organizations",
       notifications: "/api/notifications",
       uploads: "/api/uploads",
       admin: "/api/admin",

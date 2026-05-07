@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 // Secrets are injected via env-cmd from /run/secrets/.env (written by fetchSecrets.js at entrypoint time).
 let prisma;
@@ -9,7 +10,6 @@ const cfg = {
   dmMessages: Number(process.env.SEED_DM_MESSAGES || 6000),
   rooms: Number(process.env.SEED_ROOMS || 40),
   roomMessages: Number(process.env.SEED_ROOM_MESSAGES || 7000),
-  organizations: Number(process.env.SEED_ORGS || 30),
   notifications: Number(process.env.SEED_NOTIFICATIONS || 250),
   avgFriends: Number(process.env.SEED_AVG_FRIENDS || 27),
 };
@@ -54,8 +54,6 @@ async function hardReset() {
     ["notification", () => prisma.notification.deleteMany({})],
     ["postLike", () => prisma.postLike.deleteMany({})],
     ["post", () => prisma.post.deleteMany({})],
-    ["organizationMember", () => prisma.organizationMember.deleteMany({})],
-    ["organization", () => prisma.organization.deleteMany({})],
     ["friend", () => prisma.friend.deleteMany({})],
     ["friendRequest", () => prisma.friendRequest.deleteMany({})],
     ["blockedUser", () => prisma.blockedUser.deleteMany({})],
@@ -74,7 +72,6 @@ async function hardReset() {
           where: {
             OR: [
               { userSettings: { is: null } },
-              { userSettings: { is: { isAdmin: false } } },
             ],
           },
         }),
@@ -154,7 +151,7 @@ async function seedUsers(passwordHash) {
       where: { email: userData.email },
       update: userData,
       create: userData,
-      select: { id: true, username: true },
+      select: { id: true, username: true, email: true },
     });
     users.push(user);
 
@@ -174,19 +171,6 @@ async function seedUsers(passwordHash) {
       where: { userId: user.id },
       update: { isPublic },
       create: { userId: user.id, isPublic },
-    });
-  }
-
-  const admins = await prisma.user.findMany({
-    where: { email: "live_admin@alpacaparty.test" },
-    select: { id: true },
-  });
-
-  const adminIds = admins.map((a) => a.id);
-  if (adminIds.length > 0) {
-    await prisma.userSettings.updateMany({
-      where: { userId: { in: adminIds } },
-      data: { isAdmin: true },
     });
   }
 
@@ -360,136 +344,6 @@ async function seedMessages(friendPairs) {
   await prisma.message.createMany({ data: dms, skipDuplicates: true });
 }
 
-async function seedRooms(userIds) {
-  const rooms = Array.from({ length: cfg.rooms }, (_, i) => ({
-    name: `${runTag}-room-${String(i + 1).padStart(2, "0")}`,
-    ownerId: pick(userIds),
-    isPrivate: Math.random() < 0.25,
-    createdAt: randomDateLastDays(),
-  }));
-
-  await prisma.chatRoom.createMany({ data: rooms, skipDuplicates: true });
-  const roomRows = await prisma.chatRoom.findMany({
-    where: { name: { startsWith: `${runTag}-room-` } },
-    select: { id: true, ownerId: true },
-  });
-
-  const membersData = [];
-  const membersByRoom = new Map();
-
-  for (const room of roomRows) {
-    const selected = new Set([room.ownerId]);
-    const memberCount = Math.min(userIds.length, r(5, 18));
-    while (selected.size < memberCount) {
-      selected.add(pick(userIds));
-    }
-
-    const memberIds = Array.from(selected);
-    membersByRoom.set(room.id, memberIds);
-
-    for (const id of memberIds) {
-      membersData.push({
-        roomId: room.id,
-        userId: id,
-        role: id === room.ownerId ? "owner" : "member",
-      });
-    }
-  }
-
-  await prisma.chatRoomMember.createMany({
-    data: membersData,
-    skipDuplicates: true,
-  });
-
-  const roomMessages = [];
-  for (let i = 0; i < cfg.roomMessages; i++) {
-    const room = pick(roomRows);
-    const members = membersByRoom.get(room.id) || [room.ownerId];
-    roomMessages.push({
-      roomId: room.id,
-      senderId: pick(members),
-      content: makeContent("Room:"),
-      createdAt: randomDateLastDays(),
-    });
-  }
-
-  await prisma.chatRoomMessage.createMany({
-    data: roomMessages,
-    skipDuplicates: true,
-  });
-}
-
-const ORG_NAMES = [
-  "Alpaca Riders Guild",
-  "Farm Defense League",
-  "Llama Lords",
-  "Woolly Warriors",
-  "Spit Masters",
-  "Neon Arena",
-  "Pixel Farmers Co",
-  "The Alpaca Academy",
-  "Golden Fleece Syndicate",
-  "Cloud Herders",
-  "Alpaca Party Official",
-  "Code Ranchers",
-  "Frontier Explorers",
-  "Turbo Shearers",
-  "Data Shepherds",
-  "Midnight Grazers",
-  "Alpine Collective",
-  "Digital Pastures",
-  "Thunder Herd",
-  "Cosmic Alpacas",
-];
-
-async function seedOrganizations(userIds) {
-  const orgsData = Array.from({ length: cfg.organizations }, (_, i) => ({
-    name:
-      i < ORG_NAMES.length
-        ? ORG_NAMES[i]
-        : `${ORG_NAMES[i % ORG_NAMES.length]} ${Math.floor(i / ORG_NAMES.length) + 1}`,
-    description: pick([
-      "A community of dedicated alpaca enthusiasts.",
-      "Competitive gaming and strategy discussions.",
-      "Casual group for farm management tips.",
-      "Elite players pushing the leaderboard.",
-      "Social club for events and meetups.",
-      "Research and development of alpaca tech.",
-    ]),
-    ownerId: pick(userIds),
-    createdAt: randomDateLastDays(),
-    updatedAt: randomDateLastDays(),
-  }));
-
-  await prisma.organization.createMany({
-    data: orgsData,
-    skipDuplicates: true,
-  });
-  const orgNames = orgsData.map((o) => o.name);
-  const orgs = await prisma.organization.findMany({
-    where: { name: { in: orgNames } },
-    select: { id: true, ownerId: true },
-  });
-
-  const members = [];
-  for (const org of orgs) {
-    const selected = new Set([org.ownerId]);
-    const count = Math.min(userIds.length, r(8, 30));
-    while (selected.size < count) selected.add(pick(userIds));
-    for (const id of selected) {
-      members.push({
-        orgId: org.id,
-        userId: id,
-        role: id === org.ownerId ? "owner" : "member",
-      });
-    }
-  }
-
-  await prisma.organizationMember.createMany({
-    data: members,
-    skipDuplicates: true,
-  });
-}
 
 async function seedNotifications(userIds) {
   const kinds = [
@@ -530,7 +384,7 @@ async function main() {
   console.log("[seed-live] Config:", cfg);
 
   if (shouldReset) {
-    console.log("[seed-live] Reset enabled: clearing non-admin data first");
+    console.log("[seed-live] Reset enabled: clearing seeded data first");
     await hardReset();
   }
 
@@ -542,8 +396,6 @@ async function main() {
   await Promise.all([
     seedPostsAndLikes(userIds),
     seedMessages(friendPairs),
-    seedRooms(userIds),
-    seedOrganizations(userIds),
     seedNotifications(userIds),
     seedAchievements(userIds),
   ]);
@@ -554,7 +406,6 @@ async function main() {
     dmCount,
     roomsCount,
     roomMsgCount,
-    orgCount,
     notifCount,
     achievementCount,
   ] = await Promise.all([
@@ -563,17 +414,33 @@ async function main() {
     prisma.message.count(),
     prisma.chatRoom.count(),
     prisma.chatRoomMessage.count(),
-    prisma.organization.count(),
     prisma.notification.count(),
     prisma.achievement.count(),
   ]);
 
+  // Generate API key for live_admin (first fixed user) for E2E testing
+  const liveAdmin = users[0]; // live_admin is the first fixed user
+  if (liveAdmin && liveAdmin.email === "live_admin@alpacaparty.test") {
+    const publicApiSecret = process.env.JWT_PUBLIC_API_SECRET;
+    if (publicApiSecret) {
+      const apiKey = jwt.sign({ id: liveAdmin.id }, publicApiSecret, {
+        expiresIn: "30d",
+      });
+      await prisma.publicApi.upsert({
+        where: { userId: liveAdmin.id },
+        update: { apiKey },
+        create: { userId: liveAdmin.id, apiKey },
+      });
+      console.log(`[seed-live] Generated API key for live_admin: ${apiKey}`);
+    }
+  }
+
   console.log("[seed-live] Done");
   console.log(
-    `[seed-live] users=${usersCount}, posts=${postsCount}, dms=${dmCount}, rooms=${roomsCount}, roomMessages=${roomMsgCount}, orgs=${orgCount}, notifications=${notifCount}, achievements=${achievementCount}`,
+    `[seed-live] users=${usersCount}, posts=${postsCount}, dms=${dmCount}, rooms=${roomsCount}, roomMessages=${roomMsgCount}, notifications=${notifCount}, achievements=${achievementCount}`,
   );
   console.log(`[seed-live] Shared password for seeded users: ${seedPassword}`);
-  console.log("[seed-live] Demo accounts: live_admin, live_demo, live_mod");
+  console.log("[seed-live] Seeded accounts: live_admin, live_demo, live_mod");
 }
 
 main()

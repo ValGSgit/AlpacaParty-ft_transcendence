@@ -159,6 +159,12 @@ generate-secrets:
 	@JWT=$$(openssl rand -hex 40) && \
 	  sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$$JWT|" .env && \
 	  echo "$(GREEN)✓ JWT_SECRET randomised$(RESET)"
+	@JWT=$$(openssl rand -hex 40) && \
+	  sed -i "s|^JWT_REFRESH_SECRET=.*|JWT_REFRESH_SECRET=$$JWT|" .env && \
+	  echo "$(GREEN)✓ JWT_REFRESH_SECRET randomised$(RESET)"
+	@JWT=$$(openssl rand -hex 40) && \
+	  sed -i "s|^JWT_PUBLIC_API_SECRET=.*|JWT_PUBLIC_API_SECRET=$$JWT|" .env && \
+	  echo "$(GREEN)✓ JWT_PUBLIC_API_SECRET randomised$(RESET)"
 	@echo "$(GREEN)✓ DATABASE_URL synced with DB credentials$(RESET)"
 	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
 
@@ -228,17 +234,6 @@ test: backend-test
 
 e2e: create-dirs seed-live
 	$(DC) up -d
-	@echo "Waiting for API health..."; \
-	for i in $$(seq 1 60); do \
-	  if curl -k -sSf https://localhost:8443/api/health >/dev/null; then \
-	    break; \
-	  fi; \
-	  if [ $$i -eq 60 ]; then \
-	    echo "API did not become ready in time"; \
-	    exit 1; \
-	  fi; \
-	  sleep 1; \
-	done
 	@E2E_API_KEY="$${E2E_API_KEY:-$$(grep '^API_KEYS=' .env | cut -d= -f2- | cut -d, -f1)}"; \
 	$(DC_E2E) run --build --rm -e E2E_API_KEY="$$E2E_API_KEY" e2e npm test
 
@@ -362,15 +357,12 @@ seed-example-reset:
 	$(DC) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
 	$(DC) exec backend npm run seed:exampleData:reset
 
-prod-seed-example:
-	$(DC_PROD) up -d backend
-	$(DC_PROD) exec backend npm install --no-audit --no-fund --loglevel=error
+prod-seed-example: prod-up
 	$(DC_PROD) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
 	$(DC_PROD) exec backend npm run seed:exampleData
 
 prod-seed-example-reset:
 	$(DC_PROD) up -d backend
-	$(DC_PROD) exec backend npm install --no-audit --no-fund --loglevel=error
 	$(DC_PROD) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
 	$(DC_PROD) exec backend npm run seed:exampleData:reset
 

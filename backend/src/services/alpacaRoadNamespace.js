@@ -8,25 +8,26 @@ const playerPositions = [2.5, -2.5, -7.5, 7.5];
 function generateId() {
   return Math.random().toString(36).slice(2, 9);
 }
+// Keep track of ongoing matches
+const matches = new Map();
+const playerToMatch = new Map();
 
 export function initializeAlpacaRoadNamespace(io) {
   const namespace = io.of('/alpaca-road');
 
-  // Keep track of ongoing matches
-  const matches = new Map();
-  const playerToMatch = new Map();
 
   // --- HELPER: Random Non-Overlapping Spawn ---
   function getValidSpawn(players) {
-    const existingPlayers = Object.values(players).length
-    const x = playerPositions[existingPlayers]
+    const existingPlayers = Object.values(players).length;
+    const idx = Math.min(existingPlayers, playerPositions.length - 1);
+    const x = playerPositions[idx] ?? playerPositions[playerPositions.length - 1];
     return { x, z: 0, angle: 0 };
   }
 
   namespace.use(socketAuthMiddleware());
 
   namespace.on('connection', (socket) => {
-    const playerId = `u${socket.user?.id || generateId()}`;
+    const playerId = `p${socket.id}`;
 
     // ready
     socket.on('ready', ({ id, ready } = {}) => {
@@ -39,31 +40,71 @@ export function initializeAlpacaRoadNamespace(io) {
 
       const allReady = Object.values(match.players).every(player => player.isReady === true);
       if (allReady && Object.keys(match.players).length > 1) { // Also check for minimum players
-        namespace.to(match.roomName).emit('game:start', { msg: "Everyone is ready! Starting..." });
+        namespace.to(match.id).emit('game:start', { msg: "Everyone is ready! Starting..." });
         match.state = 'playing';
       }
     });
 
     // lobby
     socket.on('check-lobby', () => {
-        const lobbyList = Array.from(matches.values()).filter(m => Object.keys(m.players).length < MAX_PLAYERS).map(m => ({
-            matchid: m.id,
-            roomName: m.roomName,
-            state: m.state,
-            playerCount: Object.keys(m.players).length
-          }));
-        
-        // Send the whole list in one go
-        socket.emit('lobby:list', lobbyList);
+      try {
+          const lobbyList = Array.from(matches.values())
+              .filter(m => m.players && Object.keys(m.players).length < MAX_PLAYERS && m.state === 'waiting')
+              .map(m => ({
+                  matchid: m.id,
+                  roomName: m.roomName,
+                  state: m.state,
+                  playerCount: Object.keys(m.players).length
+              }));
+          
+          socket.emit('lobby:list', lobbyList);
+      } catch (error) {
+          console.error("Failed to generate lobby list:", error);
+          // Optionally notify the user
+          socket.emit('lobby:error', 'Could not retrieve matches.');
+      }
     });
-
+    
     // 1. JOINING THE ARENA
     socket.on('join', ({ name, roomId } = {}) => {
+      // cleanup
+      if (playerToMatch.has(playerId)) {
+        const oldMatchId = playerToMatch.get(playerId);
+        const oldMatch = matches.get(oldMatchId);
+        if (oldMatch) {
+          delete oldMatch.players[playerId];
+          if (Object.keys(oldMatch.players).length === 0) {
+            clearInterval(oldMatch.interval);
+            matches.delete(oldMatchId);
+          }
+        }
+        playerToMatch.delete(playerId);
+      }
+
       if (playerToMatch.has(playerId)) return;
-
-      // Find a match that isn't full, or create a new one
-      let matchToJoin = Array.from(matches.values()).find(m => Object.keys(m.players).length < MAX_PLAYERS);
-
+    
+      let matchToJoin;
+    
+      // 1. Determine which room to join or create
+      if (roomId && roomId !== -1) {
+        // Try to find the specific requested room AND check if it's waiting
+        matchToJoin = Array.from(matches.values()).find(m => 
+          m.id === roomId && m.state === 'waiting'
+        );
+        
+        if (!matchToJoin) {
+          console.log(`Room ${roomId} not found or already in progress.`);
+          socket.emit('error', 'Room is unavailable or has already started.');
+          return;
+        }
+      } else {
+        // Find an open match that is specifically in the 'waiting' state
+        matchToJoin = Array.from(matches.values()).find(m => 
+          Object.keys(m.players).length < MAX_PLAYERS && m.state === 'waiting'
+        );
+      }
+        
+      // 2. Create a new room if needed
       if (!matchToJoin || roomId === -1) {
         const matchId = generateId();
         matchToJoin = {
@@ -74,39 +115,71 @@ export function initializeAlpacaRoadNamespace(io) {
           interval: setInterval(() => gameLoop(matchToJoin), TICK_RATE)
         };
         matches.set(matchId, matchToJoin);
-        console.log("New roomId", matchId)
       }
-      else if (roomId)
-      {
-        console.log("roomId", roomId)
-        matchToJoin = Array.from(matches.values()).find(m => m.id === roomId);
-        matches.set(roomId, matchToJoin);
-      }
-
+    
+      // 3. DEFINE THE HOST: If the room is currently empty, this player is the Host
+      const currentPlayersCount = Object.keys(matchToJoin.players).length;
+      const isHost = currentPlayersCount === 0;
+    
       const spawn = getValidSpawn(matchToJoin.players);
-
+    
+      // 4. Create the player object
       const newPlayer = {
         id: playerId,
+        matchId: matchToJoin.id,
         socket,
         name: name || socket.user?.username || 'Vue_Llama',
         x: spawn.x, y: 0, z: spawn.z, angle: spawn.angle,
         health: MAX_HEALTH,
         alive: true,
         point: 0,
-        isReady: false
+        isReady: false,
+        isHost: isHost // Save host status on the server-side state
       };
-
+    
       matchToJoin.players[playerId] = newPlayer;
       playerToMatch.set(playerId, matchToJoin.id);
-      socket.join(matchToJoin.roomName);
-
+      socket.join(matchToJoin.id);
+    
+      // 5. Send the joined message back to the client, including the isHost flag
       socket.emit('game:message', {
         type: 'joined',
         playerId,
+        matchId: matchToJoin.id,
+        isHost: isHost,
         spawn: { x: spawn.x, z: spawn.z, angle: spawn.angle }
       });
     });
 
+    socket.on('spawnObstacle', (config) => {
+      // Find which match this player is in
+      const matchId = playerToMatch.get(playerId);
+      if (!matchId) return;
+    
+      const match = matches.get(matchId);
+      if (!match) return;
+      // Broadcast the obstacle to everyone ELSE in the room
+      // We wrap it in 'game:message' so your GameClient can catch it
+      socket.broadcast.to(match.id).emit('game:message', {
+        type: 'spawnObstacle',
+        config: config
+      });
+    });
+
+    socket.on('levelUp', (data) => {
+      const matchId = playerToMatch.get(playerId);
+      if (!matchId) return;
+    
+      const match = matches.get(matchId);
+      if (!match) return;
+    
+      // Broadcast the new level stats to everyone ELSE in the room
+      socket.to(match.id).emit('game:message', {
+        type: 'levelUp',
+        data: data
+      });
+    });
+      
     socket.on('input', ({ x, y, z, angle }) => {
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
@@ -124,10 +197,20 @@ export function initializeAlpacaRoadNamespace(io) {
     socket.on('spit', () => {
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
-      if (match) socket.broadcast.to(match.roomName).emit('game:message', { type: 'player_spit', playerId });
+      if (match) socket.broadcast.to(match.id).emit('game:message', { type: 'player_spit', playerId });
     });
 
-    socket.on('spit_hit', ({ targetId, ownerId }) => {
+    socket.on('point', ({ ownerId }) => {
+      const matchId = playerToMatch.get(playerId);
+      const match = matchId ? matches.get(matchId) : null;
+      if (!match) return;
+
+      if (match.players[ownerId])
+          match.players[ownerId].point++
+        namespace.to(match.id).emit('game:message', { type: 'get_point', ownerId, point: match.players[ownerId].point });
+    });
+
+    socket.on('hit', ({ targetId }) => {
       const matchId = playerToMatch.get(playerId);
       const match = matchId ? matches.get(matchId) : null;
       if (!match) return;
@@ -137,26 +220,69 @@ export function initializeAlpacaRoadNamespace(io) {
         target.health -= 1;
         
         if (target.health <= 0) {
-          if (match.players[ownerId])
-            match.players[ownerId].point++
           target.alive = false;
           target.socket.emit('game:message', { type: 'game_over', reason: 'eliminated' });
         }
-        namespace.to(match.roomName).emit('game:message', { type: 'player_hit', targetId, health: target.health, ownerId, point: match.players[ownerId].point });
+        namespace.to(match.id).emit('game:message', { type: 'get_hit', targetId, health: target.health});
       }
     });
 
     socket.on('disconnect', () => {
-      const matchId = playerToMatch.get(playerId);
-      const match = matchId ? matches.get(matchId) : null;
-      if (match) removePlayer(playerId, match);
+      // Find which match the disconnected player was in
+      const matchId = playerToMatch.get(playerId); 
+      if (!matchId) return;
+    
+      const match = matches.get(matchId);
+      if (!match) return;
+    
+      const disconnectedPlayer = match.players[playerId];
+      if (!disconnectedPlayer) return;
+    
+      // 1. Remove the player from the room state
+      delete match.players[playerId];
+      playerToMatch.delete(playerId);
+    
+      const remainingPlayerIds = Object.keys(match.players);
+    
+      // 2. Check if the room is now empty
+      if (remainingPlayerIds.length === 0) {
+        // Cleanup the room to prevent memory leaks
+        clearInterval(match.interval);
+        matches.delete(matchId);
+        console.log(`Room ${matchId} destroyed.`);
+        return;
+      } 
+    
+      // 3. HOST MIGRATION LOGIC
+      if (disconnectedPlayer.isHost) {
+        // Pick the first available remaining player to be the new host
+        const newHostId = remainingPlayerIds[0];
+        const newHostPlayer = match.players[newHostId];
+    
+        // Update their status on the server
+        newHostPlayer.isHost = true;
+    
+        // Send a direct message to the new host's socket using the reference we saved
+        // We wrap it in 'game:message' so your GameClient handles it
+        newHostPlayer.socket.emit('game:message', {
+          type: 'host_migrated'
+        });
+    
+        console.log(`Host left. Migrated host role to ${newHostPlayer.name} (${newHostId})`);
+      }
+    
+      // 4. Let everyone else know a player left (so you can remove their alpaca)
+      socket.to(match.id).emit('game:message', {
+        type: 'player_left',
+        playerId: playerId
+      });
     });
   });
 
   // --- HELPER: Remove Player Cleanly ---
   function removePlayer(pid, match) {
     const player = match.players[pid];
-    if (player) player.socket.leave(match.roomName);
+    if (player) player.socket.leave(match.id);
 
     delete match.players[pid];
     playerToMatch.delete(pid);
@@ -173,7 +299,7 @@ export function initializeAlpacaRoadNamespace(io) {
         id: p.id, name: p.name, x: p.x, y: p.y || 0, z: p.z, angle: p.angle, health: p.health, point: p.point, isReady: p.isReady
       }))
     };
-    namespace.to(match.roomName).emit('game:message', { type: 'tick', state });
+    namespace.to(match.id).emit('game:message', { type: 'tick', state });
   }
 }
 export default initializeAlpacaRoadNamespace;

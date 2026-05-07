@@ -1,33 +1,36 @@
 import { useEditMode } from "../components/editMode";
+import { AlpacaRoadClient, SpitRoyaleClient } from '../mini_games/client.js';
 import { changeGame } from '../mini_games/init.js';
-import { gEngine, gUI, gMinigame } from "./globals";
-import { SpitRoyaleClient,  AlpacaRoadClient} from '../mini_games/client.js';
+import { gEditState, gMinigame, gUI } from "./globals";
+import { changeEditModeCamera } from "./useCamera.js";
 
 export function useUIManager() {
 
   const { removeHighlight, cancelPlacement } = useEditMode()
 
   const closeMenus = () => {
+    if (gUI.editMode) closeEditMode();
     if (gUI.alpacaShop) closeAlpacaShop();
+    if (gUI.alpacaStats) closeAlpacaStats();
     if (gUI.itemShop) closeItemShop();
     if (gUI.lightMenu) closeLightMenu();
-    if (gUI.editMode) closeEditMode();
     if (gUI.shopMenu) closeShopMenu();
     if (gUI.gameMenu) closeGameMenu();
     if (gUI.farmMenu) closeFarmMenu();
-    if (gUI.farmMenu) closeLobbyMenu();
+    if (gUI.lobbyMenu) closeLobbyMenu();
   }
 
   const openEditMode = () => {
-    gUI.editMode = true
-    gEngine.value.controls.enabled = false
+    gUI.editMode = true;
+    gEditState.cameraMode = gUI.cameraMode;
+    changeEditModeCamera();
   }
 
   const closeEditMode = () => {
     removeHighlight()
     cancelPlacement()
     gUI.editMode = false
-    gEngine.value.controls.enabled = true
+    changeEditModeCamera();
   }
 
   const openShopMenu = () => {
@@ -77,6 +80,7 @@ export function useUIManager() {
   }
 
   const openGameMenu = () => {
+    closeEditMode()
     if (gMinigame.value.mode)
       changeGame()
     else
@@ -101,12 +105,12 @@ export function useUIManager() {
   const openLobbyMenu = (game) => {
     gUI.lobbyMenu = true
     gUI.gameMenu = false
-    gUI.isRoadGame = game
-    gMinigame.isReady = false
-    gMinigame.value.lobby = [] // start fresh
-    if (game === 0)
+    gMinigame.value.mode = game;
+    gMinigame.value.isReady = false
+    gMinigame.value.lobby = []
+    if (game === 2)
       onlineClient = new SpitRoyaleClient();
-    if (game === 1)
+    if (game === 4)
       onlineClient = new AlpacaRoadClient();
     if (onlineClient)
       onlineClient.check();

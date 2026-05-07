@@ -9,8 +9,9 @@ test.describe('Notifications Workflow', () => {
     await requestFriendship(request, sender.accessToken, receiver.user.id);
     await acceptFirstPending(request, receiver.accessToken);
 
+
     const list = await request.get('/api/notifications', {
-      headers: { Authorization: `Bearer ${receiver.accessToken}` },
+      headers: authHeaders(receiver.accessToken),
     });
     expect(list.ok()).toBeTruthy();
 
@@ -19,12 +20,12 @@ test.describe('Notifications Workflow', () => {
     expect(typeof listBody.unreadCount).toBe('number');
 
     const markAll = await request.put('/api/notifications/read-all', {
-      headers: { Authorization: `Bearer ${receiver.accessToken}` },
+      headers: authHeaders(receiver.accessToken),
     });
     expect(markAll.ok()).toBeTruthy();
 
     const afterRead = await request.get('/api/notifications?unreadOnly=true', {
-      headers: { Authorization: `Bearer ${receiver.accessToken}` },
+      headers: authHeaders(receiver.accessToken),
     });
     expect(afterRead.ok()).toBeTruthy();
 

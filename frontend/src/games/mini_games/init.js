@@ -7,8 +7,8 @@ import { saveGame } from '../core/saveLoadGame.js';
 import { useGameEngine } from '../core/useGameEngine.js';
 import { initWorld } from '../world/initWorld.js';
 import { initAlpacaRoad, initAlpacaRoadOnline } from './alpacaRoad.js';
-import { initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
 import { cleanupClient } from './client.js';
+import { initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
 
 const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
@@ -18,6 +18,7 @@ export async function changeGame(mode, playerCount, matchId) {
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0)
     saveGame()
+  gMinigame.value.isOnline = gMinigame.value.mode === 2 || gMinigame.value.mode === 4;
   // clean up all clients
   cleanupClient()
   // Reset state
@@ -28,7 +29,6 @@ export async function changeGame(mode, playerCount, matchId) {
   gUI.lobbyMenu = false
   gUser.value.hp = CONST.HP
   gUser.value.point = 0
-  gUser.value.name = gPlayer.value.name
   resetAlpaca(gPlayer.value)
 
   gMinigame.value.isGameOver = false;

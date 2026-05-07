@@ -57,7 +57,7 @@ export const uploadSecurityCheck = async (req, res, next) => {
 
       // authenticate() replies with 401 if the token is missing/invalid — if we reach
       // here, req.user is set and the requester is authenticated.
-      if (record.uploaderId !== req.user.id && !req.user.isAdmin) {
+      if (record.uploaderId !== req.user.id) {
         return res.status(403).json({ error: { message: "Access denied" } });
       }
     }

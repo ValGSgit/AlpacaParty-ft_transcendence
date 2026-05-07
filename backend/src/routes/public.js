@@ -7,9 +7,7 @@
  * Endpoints:
  *   GET  /api/public/users
  *   GET  /api/public/users/:id
- *   GET  /api/public/leaderboard
  *   GET  /api/public/posts
- *   GET  /api/public/organizations
  */
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -17,17 +15,19 @@ import { requireApiKey } from "../middleware/apiKey.js";
 import {
   listUsers,
   getUser,
-  getLeaderboard,
   getPosts,
-  listOrganizations,
-  getMockDataset,
   createPost,
   updatePost,
   deletePost,
 } from "../controllers/publicApiController.js";
-import { body } from "express-validator";
 import { idParamValidation } from "../validators/contentValidator.js";
 import { checkValidation } from "../validators/validatorUtils.js";
+import { limitValidation } from "#validators/limitValidator.js";
+import {
+  postCreateValidation,
+  postUpdateValidation,
+} from "#validators/publicApiValidator.js";
+import config from "#config/index.js";
 
 const router = express.Router();
 
@@ -65,12 +65,6 @@ router.get("/", (_req, res) => {
       },
       {
         method: "GET",
-        path: "/api/public/organizations",
-        description: "List organizations",
-        params: "search, limit, offset",
-      },
-      {
-        method: "GET",
         path: "/api/public/mock",
         description: "Anonymized mock dataset",
       },
@@ -95,316 +89,135 @@ router.get("/", (_req, res) => {
   });
 });
 
-// Rate limit + API key required for all data endpoints
-router.use(
-  rateLimit({
-    windowMs: 60_000,
-    max: 30,
-    message: "Public API rate limit exceeded",
-  }),
-);
 router.use(requireApiKey);
 
 /**
- * @openapi
- * /public/users:
- *   get:
- *     tags: [Public API]
- *     summary: List public users
- *     security:
- *       - ApiKeyAuth: []
- *     parameters:
- *       - in: query
- *         name: search
- *         schema: { type: string }
- *         description: Filter by username
- *       - $ref: '#/components/parameters/limitParam'
- *       - $ref: '#/components/parameters/offsetParam'
- *       - $ref: '#/components/parameters/anonymizedParam'
- *     responses:
- *       200:
- *         description: Public user list (private profiles excluded)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 users:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id: { type: integer }
- *                       username: { type: string }
- *                       avatar: { type: string, nullable: true }
- *                       is_online: { type: boolean }
- *       401: { description: Missing or invalid X-API-Key }
+ * Rate Limit
+ * need authentication first to get ratelimits per user
  */
-router.get("/users", listUsers);
+router.use(
+  rateLimit({
+    windowMs: config.rateLimitPublicApi.windowMs,
+    max: config.rateLimitPublicApi.max,
+    message: { error: "Public API rate limit exceeded" },
 
-/**
- * @openapi
- * /public/users/{id}:
- *   get:
- *     tags: [Public API]
- *     summary: Get a single public user profile
- *     security:
- *       - ApiKeyAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: integer }
- *       - $ref: '#/components/parameters/anonymizedParam'
- *     responses:
- *       200:
- *         description: Public user profile
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 user: { type: object }
- *       401: { description: Missing or invalid X-API-Key }
- *       404: { description: User not found or profile is private }
- */
-router.get("/users/:id", idParamValidation(), checkValidation, getUser);
+    // create reate limit per user
+    keyGenerator: (req) => {
+      return req.userId;
+    },
+  }),
+);
 
-/**
- * @openapi
- * /public/leaderboard:
- *   get:
- *     tags: [Public API]
- *     summary: Game leaderboard (public profiles only)
- *     security:
- *       - ApiKeyAuth: []
- *     parameters:
- *       - in: query
- *         name: gameType
- *         schema: { type: string, default: spit_royale }
- *       - $ref: '#/components/parameters/limitParam'
- *       - $ref: '#/components/parameters/offsetParam'
- *       - $ref: '#/components/parameters/anonymizedParam'
- *     responses:
- *       200:
- *         description: Leaderboard
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 leaderboard:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       userId: { type: integer }
- *                       username: { type: string }
- *                       elo: { type: integer }
- *                       wins: { type: integer }
- *                       losses: { type: integer }
- *                       draws: { type: integer }
- */
-router.get("/leaderboard", getLeaderboard);
+router.get(
+  "/users",
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Get users'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.responses[200] = { description: 'Success.' }
+    #swagger.responses[400] = { description: 'Failed.' }
+  */
+  limitValidation(100),
+  checkValidation,
+  listUsers,
+);
 
-/**
- * @openapi
- * /public/posts:
- *   get:
- *     tags: [Public API]
- *     summary: Public feed posts (read-only, no viewer-specific flags)
- *     security:
- *       - ApiKeyAuth: []
- *     parameters:
- *       - $ref: '#/components/parameters/limitParam'
- *       - $ref: '#/components/parameters/offsetParam'
- *       - $ref: '#/components/parameters/anonymizedParam'
- *     responses:
- *       200:
- *         description: Posts
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 posts:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id: { type: integer }
- *                       author_id: { type: integer, nullable: true }
- *                       author_username: { type: string }
- *                       content: { type: string }
- *                       likes_count: { type: integer }
- *                       comments_count: { type: integer }
- *                       reposts_count: { type: integer }
- *                       created_at: { type: string, format: date-time }
- *   post:
- *     tags: [Public API]
- *     summary: Create a post on behalf of a user (service-level write)
- *     description: Intended for server-to-server integrations. The caller must supply `authorId`.
- *     security:
- *       - ApiKeyAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [content, authorId]
- *             properties:
- *               authorId: { type: integer, example: 42 }
- *               content: { type: string, maxLength: 2000, example: "Posted via API" }
- *               imageUrl: { type: string, nullable: true }
- *     responses:
- *       201:
- *         description: Post created
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 post: { $ref: '#/components/schemas/Post' }
- */
-router.get("/posts", getPosts);
+router.get(
+  "/users/:id",
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Get user by ID'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.parameters['id'] = { description: 'ID of the user to retrieve' }
+    #swagger.responses[200] = { description: 'Success.' }
+    #swagger.responses[400] = { description: 'Failed.' }
+    #swagger.responses[404] = { description: 'User not found.' }
+  */
+  idParamValidation(),
+  checkValidation,
+  getUser,
+);
+
+router.get(
+  "/posts",
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Get posts'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.responses[200] = { description: 'Success.' }
+    #swagger.responses[400] = { description: 'Failed.' }
+  */
+  limitValidation(100),
+  checkValidation,
+  getPosts,
+);
+
 router.post(
   "/posts",
-  [
-    body("content").isString().trim().notEmpty().withMessage("content is required")
-      .isLength({ max: 2000 }).withMessage("content must be 2000 characters or fewer"),
-    body("imageUrl").optional({ values: "null" }).isString().isLength({ max: 2048 }).withMessage("invalid imageUrl"),
-    body("authorId").optional().isInt({ min: 1 }).withMessage("authorId must be a positive integer"),
-  ],
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Create a new post'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.parameters['body'] = {
+      in: 'body',
+      description: 'Post creation data',
+      required: true
+    }
+    #swagger.responses[201] = { description: 'Post created successfully.' }
+    #swagger.responses[400] = { description: 'Failed validation.' }
+  */
+  postCreateValidation(),
   checkValidation,
   createPost,
 );
 
-/**
- * @openapi
- * /public/posts/{id}:
- *   put:
- *     tags: [Public API]
- *     summary: Update a post (service-level write, no ownership restriction)
- *     security:
- *       - ApiKeyAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: integer }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               content: { type: string, maxLength: 2000 }
- *               imageUrl: { type: string, nullable: true }
- *     responses:
- *       200:
- *         description: Post updated
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 post: { $ref: '#/components/schemas/Post' }
- *       404: { description: Post not found }
- *   delete:
- *     tags: [Public API]
- *     summary: Delete a post (service-level write, no ownership restriction)
- *     security:
- *       - ApiKeyAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: integer }
- *     responses:
- *       200:
- *         description: Post deleted
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message: { type: string }
- *       404: { description: Post not found }
- */
 router.put(
   "/posts/:id",
-  idParamValidation(),
-  [
-    body("content").optional({ values: "falsy" }).isString().trim().notEmpty()
-      .isLength({ max: 2000 }).withMessage("content must be 2000 characters or fewer"),
-    body("imageUrl").optional({ values: "null" }).isString().isLength({ max: 2048 }).withMessage("invalid imageUrl"),
-  ],
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Update an existing post by ID'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.parameters['id'] = { description: 'ID of the post to update' }
+    #swagger.parameters['body'] = {
+      in: 'body',
+      description: 'Updated post data',
+      required: true
+    }
+    #swagger.responses[200] = { description: 'Post updated successfully.' }
+    #swagger.responses[400] = { description: 'Failed validation.' }
+    #swagger.responses[404] = { description: 'Post not found.' }
+  */
+  postUpdateValidation(),
   checkValidation,
   updatePost,
 );
-router.delete("/posts/:id", idParamValidation(), checkValidation, deletePost);
 
-/**
- * @openapi
- * /public/organizations:
- *   get:
- *     tags: [Public API]
- *     summary: List organizations (no owner ID or internal fields exposed)
- *     security:
- *       - ApiKeyAuth: []
- *     parameters:
- *       - in: query
- *         name: search
- *         schema: { type: string }
- *       - $ref: '#/components/parameters/limitParam'
- *       - $ref: '#/components/parameters/offsetParam'
- *       - $ref: '#/components/parameters/anonymizedParam'
- *     responses:
- *       200:
- *         description: Organizations
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 organizations:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id: { type: integer }
- *                       name: { type: string }
- *                       description: { type: string, nullable: true }
- *                       avatar: { type: string, nullable: true }
- *                       created_at: { type: string, format: date-time }
- */
-router.get("/organizations", listOrganizations);
-
-/**
- * @openapi
- * /public/mock:
- *   get:
- *     tags: [Public API]
- *     summary: Fully anonymized mock dataset for integration testing
- *     description: Returns a snapshot of real data with all usernames, avatars, and content replaced by placeholder values. Safe to embed in demos or documentation.
- *     security:
- *       - ApiKeyAuth: []
- *     responses:
- *       200:
- *         description: Mock dataset
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 users: { type: array }
- *                 leaderboard: { type: array }
- *                 posts: { type: array }
- *                 organizations: { type: array }
- *                 disclaimer: { type: string, example: "Mock dataset is anonymized and is not user personal data." }
- */
-router.get("/mock", getMockDataset);
+router.delete(
+  "/posts/:id",
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Delete a post by ID'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.parameters['id'] = { description: 'ID of the post to delete' }
+    #swagger.responses[200] = { description: 'Post deleted successfully.' }
+    #swagger.responses[400] = { description: 'Failed.' }
+    #swagger.responses[404] = { description: 'Post not found.' }
+  */
+  idParamValidation(),
+  checkValidation,
+  deletePost,
+);
 
 export default router;

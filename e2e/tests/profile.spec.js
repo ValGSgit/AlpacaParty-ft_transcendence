@@ -6,7 +6,7 @@ test.describe('Profile and User Data', () => {
     const me = await createUser(request, 'profile');
 
     const getMe = await request.get('/api/users/me', {
-      headers: { Authorization: `Bearer ${me.accessToken}` },
+      headers: authHeaders(me.accessToken),
     });
     expect(getMe.ok()).toBeTruthy();
 
@@ -23,7 +23,7 @@ test.describe('Profile and User Data', () => {
     expect(updatedBody.user.bio).toContain('Updated by e2e');
 
     const byId = await request.get(`/api/users/${me.user.id}`, {
-      headers: { Authorization: `Bearer ${me.accessToken}` },
+      headers: authHeaders(me.accessToken),
     });
     expect(byId.ok()).toBeTruthy();
 

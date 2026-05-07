@@ -8,7 +8,8 @@ import AuthService from "#services/authService.js";
 import DataExportService from "#services/dataExportService.js";
 import DataRequest from "#models/DataRequest.js";
 import NotificationService from "#services/notificationService.js";
-import { customValidationResult } from "#validators/validatorUtils.js";
+import { randomUUID } from "crypto";
+import config from "#config/index.js";
 import CustomError from "#utils/CustomError.js";
 
 /**
@@ -25,11 +26,6 @@ export const updateMe = async (req, res, next) => {
   const { username, email, bio, status, avatar, is_public } = req.body;
 
   try {
-    const errors = customValidationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ error: { message: errors.array()[0] } });
-    }
-
     if (username) {
       const current = req.user?.username;
       if (username !== current) {
@@ -55,7 +51,11 @@ export const updateMe = async (req, res, next) => {
     }
 
     const updatedUser = await User.update(id, {
-      username, email, bio, status, avatar,
+      username,
+      email,
+      bio,
+      status,
+      avatar,
       ...(is_public !== undefined && { isPublic: !!is_public }),
     });
 
@@ -70,8 +70,6 @@ export const updateMe = async (req, res, next) => {
  */
 export const changePassword = async (req, res, next) => {
   try {
-    customValidationResult(req).throw();
-
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
@@ -90,7 +88,8 @@ export const changePassword = async (req, res, next) => {
         .status(401)
         .json({ error: { message: "Current password is incorrect" } });
 
-    const { valid: newValid, errors } = AuthService.validatePassword(newPassword);
+    const { valid: newValid, errors } =
+      AuthService.validatePassword(newPassword);
     if (!newValid) {
       return res.status(400).json({
         error: { message: errors.join(". ") },
@@ -118,8 +117,7 @@ export const getUser = async (req, res, next) => {
       return res.status(404).json({ error: { message: "User not found" } });
     }
     const isPublic = user.userSettings?.isPublic;
-    const reqIsAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
-    if (!isPublic && user.id !== req.user?.id && !reqIsAdmin) {
+    if (!isPublic && user.id !== req.user?.id) {
       const areFriends = await Friend.areFriends(req.user?.id, user.id);
       if (!areFriends) {
         return res
@@ -138,22 +136,20 @@ export const getUser = async (req, res, next) => {
  */
 export const listUsers = async (req, res, next) => {
   try {
-    const pageSize = Number(req.query.pageSize) || Number(req.query.limit) || 50;
+    const pageSize =
+      Number(req.query.pageSize) || Number(req.query.limit) || 50;
     const page = Number(req.query.page) || 1;
     const limit = Math.min(pageSize, 100);
     const offset = Number(req.query.offset) || Math.max((page - 1) * limit, 0);
     const search = req.query.search ? String(req.query.search).trim() : "";
 
-    const reqIsAdmin = req.user?.isAdmin || req.user?.userSettings?.isAdmin;
     const users = search
       ? await User.search(search, { limit })
       : await User.findAll({ limit, offset });
-    const visibleUsers = reqIsAdmin
-      ? users
-      : users.filter((u) => {
-          const isPublic = u.userSettings?.isPublic ?? u.isPublic ?? true;
-          return isPublic || Number(u.id) === Number(req.user.id);
-        });
+    const visibleUsers = users.filter((u) => {
+      const isPublic = u.userSettings?.isPublic ?? u.isPublic ?? true;
+      return isPublic || Number(u.id) === Number(req.user.id);
+    });
     const total = await User.count();
 
     res.json({
@@ -245,15 +241,12 @@ export const deleteMe = async (req, res, next) => {
 
 /**
  * GET /api/users/me/api-key
- * Reports whether an API key exists and — for display — the last four
- * characters only. The full key is returned exactly once at creation time
- * (see POST below); if the user lost it, they must regenerate.
  */
 export const getApiKey = async (req, res, next) => {
   try {
-    const key = await User.getApiKey(req.user.id);
-    if (!key) return res.json({ hasKey: false, lastFour: null });
-    res.json({ hasKey: true, lastFour: key.slice(-4) });
+    const apiKey = await User.getApiKey(req.user.id);
+    if (!apiKey) throw new CustomError("api key not found", 404);
+    res.json({ apiKey });
   } catch (err) {
     next(err);
   }
@@ -266,10 +259,12 @@ export const getApiKey = async (req, res, next) => {
  */
 export const generateApiKey = async (req, res, next) => {
   try {
-    const { randomUUID } = await import('crypto');
-    const key = `ap_${randomUUID().replace(/-/g, '')}`;
-    await User.setApiKey(req.user.id, key);
-    res.status(201).json({ apiKey: key });
+    if (!config.jwt.publicApiSecret) {
+      return next(new CustomError("Public API secret is not configured", 500));
+    }
+    const publiApiToken = AuthService.generatePublicApiToken(req.user);
+    await User.setApiKey(req.user.id, publiApiToken);
+    res.status(201).json({ apiKey: publiApiToken });
   } catch (err) {
     next(err);
   }

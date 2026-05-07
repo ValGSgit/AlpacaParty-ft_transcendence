@@ -1,160 +1,141 @@
-/**
- * API Key Middleware Unit Tests
- *
- * config.apiKeys is a getter that reads process.env.API_KEYS on each access,
- * so tests just set the env var before calling the middleware.
- */
-import { jest, describe, test, expect, afterAll } from "@jest/globals";
-import { requireApiKey } from "../../../src/middleware/apiKey.js";
-import prisma from "#config/prisma.js";
+import { jest, describe, test, expect, beforeEach } from "@jest/globals";
 
-const originalApiKeys = process.env.API_KEYS;
-afterAll(async () => {
-  process.env.API_KEYS = originalApiKeys;
-  await prisma.$disconnect();
+// ── Mocks ────────────────────────────────────────────────────────────────────
+
+// Mock the CustomError class so we can easily check its properties
+class MockCustomError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
+jest.unstable_mockModule("#utils/CustomError.js", () => ({
+  default: MockCustomError,
+}));
+
+const mockUser = {
+  findByApiKey: jest.fn(),
+};
+jest.unstable_mockModule("#models/User.js", () => ({
+  default: mockUser,
+}));
+
+const mockAuthService = {
+  verifyPublicApiToken: jest.fn(),
+};
+jest.unstable_mockModule("#services/authService.js", () => ({
+  default: mockAuthService,
+}));
+
+// Import the middleware AFTER the mocks are registered
+// Note: Adjust the import path to match where your middleware file is located
+const { requireApiKey } = await import("#middleware/apiKey.js");
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function createReqRes(headers = {}) {
+  const req = {
+    headers,
+  };
+  const res = {}; // The middleware doesn't use 'res', so an empty object is fine
+  const next = jest.fn();
+
+  return { req, res, next };
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
 });
 
-function setKeys(keys) {
-  process.env.API_KEYS = keys;
-}
+// ── Tests ────────────────────────────────────────────────────────────────────
 
-function mockRes() {
-  const res = { statusCode: 200 };
-  res.status = (code) => {
-    res.statusCode = code;
-    return res;
-  };
-  res.json = (body) => {
-    res.body = body;
-    return res;
-  };
-  return res;
-}
+describe("requireApiKey Middleware", () => {
+  test("should call next with a 401 error if no API key is provided", async () => {
+    const { req, res, next } = createReqRes({}); // No headers
 
-describe("requireApiKey", () => {
-  test("rejects request with no API key header", async () => {
-    setKeys("valid-key-123");
-    const req = { headers: {} };
-    const res = mockRes();
-    const next = jest.fn();
     await requireApiKey(req, res, next);
-    expect(res.statusCode).toBe(401);
-    expect(next).not.toHaveBeenCalled();
-  });
 
-  test("rejects request with wrong API key", async () => {
-    setKeys("correct-key");
-    const req = { headers: { "x-api-key": "wrong-key" } };
-    const res = mockRes();
-    const next = jest.fn();
-    await requireApiKey(req, res, next);
-    expect(res.statusCode).toBe(401);
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  test("calls next() with valid API key", async () => {
-    setKeys("my-valid-key");
-    const req = { headers: { "x-api-key": "my-valid-key" } };
-    const res = mockRes();
-    const next = jest.fn();
-    await requireApiKey(req, res, next);
-    expect(next).toHaveBeenCalled();
-    expect(res.statusCode).toBe(200);
-  });
-
-  test("supports multiple API keys (comma-separated)", async () => {
-    setKeys("key-one,key-two,key-three");
-    const next = jest.fn();
-    for (const key of ["key-one", "key-two", "key-three"]) {
-      const req = { headers: { "x-api-key": key } };
-      await requireApiKey(req, mockRes(), next);
-    }
-    expect(next).toHaveBeenCalledTimes(3);
-  });
-
-  test("rejects empty key even if API_KEYS is set", async () => {
-    setKeys("real-key");
-    const req = { headers: { "x-api-key": "" } };
-    const res = mockRes();
-    const next = jest.fn();
-    await requireApiKey(req, res, next);
-    expect(res.statusCode).toBe(401);
-  });
-
-  test("trims whitespace from configured keys", async () => {
-    setKeys("  spaced-key  , another-key ");
-    const req = { headers: { "x-api-key": "spaced-key" } };
-    const res = mockRes();
-    const next = jest.fn();
-    await requireApiKey(req, res, next);
-    expect(next).toHaveBeenCalled();
-    expect(res.statusCode).toBe(200);
-  });
-
-  test("does not trim whitespace from incoming request key", async () => {
-    setKeys("exact-key");
-    const req = { headers: { "x-api-key": "  exact-key  " } };
-    const res = mockRes();
-    const next = jest.fn();
-    await requireApiKey(req, res, next);
-    expect(res.statusCode).toBe(401);
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  test("keys are case-sensitive", async () => {
-    setKeys("CaseSensitive-Key");
-    const req = { headers: { "x-api-key": "casesensitive-key" } };
-    const res = mockRes();
-    const next = jest.fn();
-    await requireApiKey(req, res, next);
-    expect(res.statusCode).toBe(401);
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  test("exact case match succeeds", async () => {
-    setKeys("CaseSensitive-Key");
-    const req = { headers: { "x-api-key": "CaseSensitive-Key" } };
-    const res = mockRes();
-    const next = jest.fn();
-    await requireApiKey(req, res, next);
-    expect(next).toHaveBeenCalled();
-    expect(res.statusCode).toBe(200);
-  });
-
-  test("rejects undefined API key header", async () => {
-    setKeys("valid-key");
-    const req = { headers: { "x-api-key": undefined } };
-    const res = mockRes();
-    const next = jest.fn();
-    await requireApiKey(req, res, next);
-    expect(res.statusCode).toBe(401);
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  test("returns proper error body on rejection", async () => {
-    setKeys("valid-key");
-    const req = { headers: {} };
-    const res = mockRes();
-    const next = jest.fn();
-    await requireApiKey(req, res, next);
-    expect(res.body).toBeDefined();
-    expect(res.body.error.message).toMatch(/invalid|missing/i);
-  });
-
-  test("handles comma-separated keys with empty entries", async () => {
-    setKeys("key1,,key2");
-    const next = jest.fn();
-
-    const req1 = { headers: { "x-api-key": "" } };
-    await requireApiKey(req1, mockRes(), next);
-    expect(next).not.toHaveBeenCalled();
-
-    const req2 = { headers: { "x-api-key": "key1" } };
-    await requireApiKey(req2, mockRes(), next);
+    expect(mockAuthService.verifyPublicApiToken).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledWith(expect.any(MockCustomError));
 
-    const req3 = { headers: { "x-api-key": "key2" } };
-    await requireApiKey(req3, mockRes(), next);
-    expect(next).toHaveBeenCalledTimes(2);
+    const errorPassedToNext = next.mock.calls[0][0];
+    expect(errorPassedToNext.message).toBe("No api key provided");
+    expect(errorPassedToNext.status).toBe(401);
+  });
+
+  test("should call next with a 401 error if API key is invalid or expired", async () => {
+    const { req, res, next } = createReqRes({ "x-api-key": "invalid-key" });
+
+    // Simulate AuthService returning null/falsy for a bad token
+    mockAuthService.verifyPublicApiToken.mockReturnValue(null);
+
+    await requireApiKey(req, res, next);
+
+    expect(mockAuthService.verifyPublicApiToken).toHaveBeenCalledWith(
+      "invalid-key",
+    );
+    expect(mockUser.findByApiKey).not.toHaveBeenCalled();
+
+    const errorPassedToNext = next.mock.calls[0][0];
+    expect(errorPassedToNext.message).toBe("Invalid or expired api key");
+    expect(errorPassedToNext.status).toBe(401);
+  });
+
+  test("should call next with a 401 error if API key is valid but revoked/user not found", async () => {
+    const { req, res, next } = createReqRes({
+      "x-api-key": "valid-format-key",
+    });
+
+    // Simulate valid token format, but no user matches it in the DB
+    mockAuthService.verifyPublicApiToken.mockReturnValue({ iat: 123456 });
+    mockUser.findByApiKey.mockResolvedValue(null);
+
+    await requireApiKey(req, res, next);
+
+    expect(mockAuthService.verifyPublicApiToken).toHaveBeenCalledWith(
+      "valid-format-key",
+    );
+    expect(mockUser.findByApiKey).toHaveBeenCalledWith("valid-format-key");
+
+    const errorPassedToNext = next.mock.calls[0][0];
+    expect(errorPassedToNext.message).toBe("Invalid or revoked api key");
+    expect(errorPassedToNext.status).toBe(401);
+  });
+
+  test("should set req.userId and call next() on success", async () => {
+    const { req, res, next } = createReqRes({ "x-api-key": "good-key" });
+    const expectedUserId = 99;
+
+    // Simulate completely successful validations
+    mockAuthService.verifyPublicApiToken.mockReturnValue({ iat: 123456 });
+    mockUser.findByApiKey.mockResolvedValue(expectedUserId);
+
+    await requireApiKey(req, res, next);
+
+    expect(mockAuthService.verifyPublicApiToken).toHaveBeenCalledWith(
+      "good-key",
+    );
+    expect(mockUser.findByApiKey).toHaveBeenCalledWith("good-key");
+
+    // Verify user ID was attached correctly
+    expect(req.userId).toBe(expectedUserId);
+
+    // Verify next was called with NO arguments (meaning success)
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledWith();
+  });
+
+  test("should catch unexpected errors and pass them to next()", async () => {
+    const { req, res, next } = createReqRes({ "x-api-key": "trigger-error" });
+    const unexpectedError = new Error("Database connection failed");
+
+    mockAuthService.verifyPublicApiToken.mockReturnValue({ iat: 123456 });
+    mockUser.findByApiKey.mockRejectedValue(unexpectedError);
+
+    await requireApiKey(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledWith(unexpectedError);
   });
 });

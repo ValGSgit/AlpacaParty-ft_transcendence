@@ -12,15 +12,17 @@
  *   room:{id}         — group chat room
  *   game:{id}         — game session room
  */
-import { Server } from 'socket.io';
-import User from '../models/User.js';
-import Message from '../models/Message.js';
-import ChatRoom from '../models/ChatRoom.js';
-import Game from '../models/Game.js';
-import NotificationService from './notificationService.js';
-import { initializeSpitRoyaleNamespace } from './spitRoyaleNamespace.js';
-import { initializeAlpacaRoadNamespace } from './alpacaRoadNamespace.js';
-import { socketAuthMiddleware } from './socketAuth.js';
+import { Server } from "socket.io";
+import User from "../models/User.js";
+import Friend from "../models/Friend.js";
+import Message from "../models/Message.js";
+import ChatRoom from "../models/ChatRoom.js";
+import Game from "../models/Game.js";
+import NotificationService from "./notificationService.js";
+import cookieParser from "cookie-parser";
+import { initializeSpitRoyaleNamespace } from "./spitRoyaleNamespace.js";
+import { initializeAlpacaRoadNamespace } from "./alpacaRoadNamespace.js";
+import { socketAuthMiddleware } from "./socketAuth.js";
 
 /**
  * Compute Elo delta. Simple 32-K factor implementation.
@@ -28,7 +30,7 @@ import { socketAuthMiddleware } from './socketAuth.js';
 function calcElo(playerElo, opponentElo, result) {
   const K = 32;
   const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
-  const score = result === 'win' ? 1 : result === 'loss' ? 0 : 0.5;
+  const score = result === "win" ? 1 : result === "loss" ? 0 : 0.5;
   return Math.round(playerElo + K * (score - expected));
 }
 
@@ -47,6 +49,7 @@ export function initializeSocket(httpServer, corsOrigins) {
   initializeAlpacaRoadNamespace(io);
 
   // ── Auth middleware ──────────────────────────────────────────
+  io.engine.use(cookieParser());
   io.use(socketAuthMiddleware());
 
   // ── Presence tracking ────────────────────────────────────────
@@ -56,7 +59,7 @@ export function initializeSocket(httpServer, corsOrigins) {
     if (!onlineSockets.has(userId)) {
       onlineSockets.set(userId, new Set());
       await User.setOnline(userId);
-      io.emit('presence', { userId, isOnline: true });
+      io.emit("presence", { userId, isOnline: true });
     }
     onlineSockets.get(userId).add(socketId);
   }
@@ -68,33 +71,52 @@ export function initializeSocket(httpServer, corsOrigins) {
       if (sockets.size === 0) {
         onlineSockets.delete(userId);
         await User.setOffline(userId);
-        io.emit('presence', { userId, isOnline: false });
+        io.emit("presence", { userId, isOnline: false });
       }
     }
   }
 
   // ── Connection handler ───────────────────────────────────────
-  io.on('connection', async (socket) => {
+  io.on("connection", async (socket) => {
     const { user } = socket;
+    try {
+      // Join personal room
+      socket.join(`user:${user.id}`);
+      await markOnline(user.id, socket.id);
 
-    // Join personal room
-    socket.join(`user:${user.id}`);
-    await markOnline(user.id, socket.id);
+      // Join all group chat rooms the user belongs to
+      const rooms = await ChatRoom.getUserRooms(user.id);
+      for (const room of rooms) {
+        socket.join(`room:${room.id}`);
+      }
 
-    // Join all group chat rooms the user belongs to
-    const rooms = await ChatRoom.getUserRooms(user.id);
-    for (const room of rooms) {
-      socket.join(`room:${room.id}`);
+      console.log(`[socket] ${user.username} connected (${socket.id})`);
+    } catch (err) {
+      // console.error("[socket] connection setup failed:", err.message);
+      socket.disconnect(true);
+      return;
     }
 
-    console.log(`[socket] ${user.username} connected (${socket.id})`);
-
     // ── Direct Messages ──────────────────────────────────────
-    socket.on('dm:send', async ({ receiverId, content }, ack) => {
+    socket.on("dm:send", async ({ receiverId, content }, ack) => {
       try {
-        if (!content?.trim()) return ack?.({ error: 'Empty message' });
-        if (Number(receiverId) === user.id) return ack?.({ error: 'Cannot send a message to yourself' });
-        const msg = await Message.create({ senderId: user.id, receiverId, content: content.trim() });
+        if (!content?.trim()) return ack?.({ error: "Empty message" });
+        if (Number(receiverId) === user.id)
+          return ack?.({ error: "Cannot send a message to yourself" });
+        // Prevent sending messages when either user has blocked the other.
+        const blocked = await Friend.isBlockedBetween(
+          user.id,
+          Number(receiverId),
+        );
+        if (blocked)
+          return ack?.({
+            error: "Cannot send message: blocked or you have blocked this user",
+          });
+        const msg = await Message.create({
+          senderId: user.id,
+          receiverId,
+          content: content.trim(),
+        });
 
         const dmRoom = `dm:${Math.min(user.id, receiverId)}-${Math.max(user.id, receiverId)}`;
         socket.join(dmRoom);
@@ -112,12 +134,14 @@ export function initializeSocket(httpServer, corsOrigins) {
         };
 
         // Send to receiver's personal room
-        io.to(`user:${receiverId}`).emit('dm:message', shaped);
+        io.to(`user:${receiverId}`).emit("dm:message", shaped);
         // Echo back to sender
-        socket.emit('dm:message', shaped);
+        socket.emit("dm:message", shaped);
 
         // Notification (non-blocking)
-        NotificationService.newMessage(receiverId, user.username).catch(() => {});
+        NotificationService.newMessage(receiverId, user.username).catch(
+          () => {},
+        );
 
         ack?.({ ok: true, message: shaped });
       } catch (err) {
@@ -125,15 +149,15 @@ export function initializeSocket(httpServer, corsOrigins) {
       }
     });
 
-    socket.on('dm:read', async ({ senderId }) => {
+    socket.on("dm:read", async ({ senderId }) => {
       await Message.markAsRead(user.id, senderId).catch(() => {});
     });
 
     // ── Group Chat Rooms ─────────────────────────────────────
-    socket.on('room:join', async ({ roomId }, ack) => {
+    socket.on("room:join", async ({ roomId }, ack) => {
       try {
         const isMember = await ChatRoom.isMember(roomId, user.id);
-        if (!isMember) return ack?.({ error: 'Not a member of this room' });
+        if (!isMember) return ack?.({ error: "Not a member of this room" });
         socket.join(`room:${roomId}`);
         ack?.({ ok: true });
       } catch (err) {
@@ -141,13 +165,17 @@ export function initializeSocket(httpServer, corsOrigins) {
       }
     });
 
-    socket.on('room:send', async ({ roomId, content }, ack) => {
+    socket.on("room:send", async ({ roomId, content }, ack) => {
       try {
-        if (!content?.trim()) return ack?.({ error: 'Empty message' });
+        if (!content?.trim()) return ack?.({ error: "Empty message" });
         const isMember = await ChatRoom.isMember(roomId, user.id);
-        if (!isMember) return ack?.({ error: 'Not a member' });
+        if (!isMember) return ack?.({ error: "Not a member" });
 
-        const msg = await ChatRoom.sendMessage({ roomId, senderId: user.id, content: content.trim() });
+        const msg = await ChatRoom.sendMessage({
+          roomId,
+          senderId: user.id,
+          content: content.trim(),
+        });
         const shaped = {
           id: msg.id,
           room_id: msg.roomId ?? roomId,
@@ -157,7 +185,7 @@ export function initializeSocket(httpServer, corsOrigins) {
           sender_username: user.username,
           sender_avatar: user.avatar,
         };
-        io.to(`room:${roomId}`).emit('room:message', shaped);
+        io.to(`room:${roomId}`).emit("room:message", shaped);
         ack?.({ ok: true, message: shaped });
       } catch (err) {
         ack?.({ error: err.message });
@@ -165,19 +193,19 @@ export function initializeSocket(httpServer, corsOrigins) {
     });
 
     // ── Game: matchmaking ────────────────────────────────────
-    socket.on('game:queue', async ({ gameType = 'spit_royale' }, ack) => {
+    socket.on("game:queue", async ({ gameType = "spit_royale" }, ack) => {
       try {
         // Look for a waiting game
         let game = await Game.findWaiting(gameType, user.id);
         if (game) {
           game = await Game.joinGame(game.id, user.id);
           socket.join(`game:${game.id}`);
-          io.to(`game:${game.id}`).emit('game:start', { game });
+          io.to(`game:${game.id}`).emit("game:start", { game });
         } else {
           // Create a new waiting game
           game = await Game.create({ player1Id: user.id, gameType });
           socket.join(`game:${game.id}`);
-          socket.emit('game:waiting', { gameId: game.id });
+          socket.emit("game:waiting", { gameId: game.id });
         }
         ack?.({ ok: true, game });
       } catch (err) {
@@ -186,59 +214,77 @@ export function initializeSocket(httpServer, corsOrigins) {
     });
 
     // ── Game: state sync (authoritative server relay) ──
-    socket.on('game:state', async ({ gameId, state }) => {
+    socket.on("game:state", async ({ gameId, state }) => {
       const game = await Game.findById(gameId);
       if (!game || ![game.player1Id, game.player2Id].includes(user.id)) return;
-      socket.to(`game:${gameId}`).emit('game:state', { from: user.id, state });
+      socket.to(`game:${gameId}`).emit("game:state", { from: user.id, state });
     });
 
-    socket.on('game:finish', async ({ gameId, winnerId, player1Score, player2Score }, ack) => {
-      try {
-        const game = await Game.findById(gameId);
-        if (!game || !['playing'].includes(game.status)) return ack?.({ error: 'Invalid game' });
+    socket.on(
+      "game:finish",
+      async ({ gameId, winnerId, player1Score, player2Score }, ack) => {
+        try {
+          const game = await Game.findById(gameId);
+          if (!game || !["playing"].includes(game.status))
+            return ack?.({ error: "Invalid game" });
 
-        const finished = await Game.finishGame(gameId, { winnerId, player1Score, player2Score });
+          const finished = await Game.finishGame(gameId, {
+            winnerId,
+            player1Score,
+            player2Score,
+          });
 
-        // Determine results for both players
-        const p1Result = winnerId === game.player1Id ? 'win' : winnerId === game.player2Id ? 'loss' : 'draw';
-        const p2Result = p1Result === 'win' ? 'loss' : p1Result === 'loss' ? 'win' : 'draw';
+          // Determine results for both players
+          const p1Result =
+            winnerId === game.player1Id
+              ? "win"
+              : winnerId === game.player2Id
+                ? "loss"
+                : "draw";
+          const p2Result =
+            p1Result === "win" ? "loss" : p1Result === "loss" ? "win" : "draw";
 
-        // Update stats & award XP
-        if (game.player2Id) {
-          const [p1Stats, p2Stats] = await Promise.all([
-            Game.getStats(game.player1Id, game.gameType),
-            Game.getStats(game.player2Id, game.gameType),
-          ]);
-          const newP1Elo = calcElo(p1Stats.elo, p2Stats.elo, p1Result);
-          const newP2Elo = calcElo(p2Stats.elo, p1Stats.elo, p2Result);
+          // Update stats & award XP
+          if (game.player2Id) {
+            const [p1Stats, p2Stats] = await Promise.all([
+              Game.getStats(game.player1Id, game.gameType),
+              Game.getStats(game.player2Id, game.gameType),
+            ]);
+            const newP1Elo = calcElo(p1Stats.elo, p2Stats.elo, p1Result);
+            const newP2Elo = calcElo(p2Stats.elo, p1Stats.elo, p2Result);
 
-          await Promise.all([
-            Game.updateStats(game.player1Id, game.gameType, p1Result),
-            Game.updateStats(game.player2Id, game.gameType, p2Result),
-            Game.updateElo(game.player1Id, game.gameType, newP1Elo),
-            Game.updateElo(game.player2Id, game.gameType, newP2Elo),
-          ]);
+            await Promise.all([
+              Game.updateStats(game.player1Id, game.gameType, p1Result),
+              Game.updateStats(game.player2Id, game.gameType, p2Result),
+              Game.updateElo(game.player1Id, game.gameType, newP1Elo),
+              Game.updateElo(game.player2Id, game.gameType, newP2Elo),
+            ]);
+          }
+
+          io.to(`game:${gameId}`).emit("game:finished", { game: finished });
+          ack?.({ ok: true });
+        } catch (err) {
+          ack?.({ error: err.message });
         }
+      },
+    );
 
-        io.to(`game:${gameId}`).emit('game:finished', { game: finished });
-        ack?.({ ok: true });
-      } catch (err) {
-        ack?.({ error: err.message });
-      }
-    });
-
-    socket.on('game:forfeit', async ({ gameId }, ack) => {
+    socket.on("game:forfeit", async ({ gameId }, ack) => {
       try {
         const game = await Game.findById(gameId);
-        if (!game) return ack?.({ error: 'Game not found' });
-        const opponent = game.player1Id === user.id ? game.player2Id : game.player1Id;
+        if (!game) return ack?.({ error: "Game not found" });
+        const opponent =
+          game.player1Id === user.id ? game.player2Id : game.player1Id;
         if (opponent) {
           await Game.finishGame(gameId, {
             winnerId: opponent,
             player1Score: game.player1Score,
             player2Score: game.player2Score,
           });
-          io.to(`game:${gameId}`).emit('game:finished', { reason: 'forfeit', forfeiter: user.id });
+          io.to(`game:${gameId}`).emit("game:finished", {
+            reason: "forfeit",
+            forfeiter: user.id,
+          });
         } else {
           await Game.cancelGame(gameId);
         }
@@ -249,7 +295,7 @@ export function initializeSocket(httpServer, corsOrigins) {
     });
 
     // ── Alpaca farm data sync (offline -> server) ────────────
-    socket.on('farm:save', async ({ farmData }, ack) => {
+    socket.on("farm:save", async ({ farmData }, ack) => {
       try {
         const farm = await Game.updateFarm(user.id, farmData);
         ack?.({ ok: true, farm });
@@ -258,7 +304,7 @@ export function initializeSocket(httpServer, corsOrigins) {
       }
     });
 
-    socket.on('farm:load', async (ack) => {
+    socket.on("farm:load", async (ack) => {
       try {
         const farm = await Game.getFarm(user.id);
         ack?.({ ok: true, farm });
@@ -268,7 +314,7 @@ export function initializeSocket(httpServer, corsOrigins) {
     });
 
     // ── Disconnect ───────────────────────────────────────────
-    socket.on('disconnect', async (reason) => {
+    socket.on("disconnect", async (reason) => {
       console.log(`[socket] ${user.username} disconnected: ${reason}`);
       await markOffline(user.id, socket.id);
     });

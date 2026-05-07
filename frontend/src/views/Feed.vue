@@ -116,10 +116,14 @@
             v-model="commentDraft[post.id]"
             type="text"
             placeholder="Write a comment…"
-            maxlength="2000"
+            maxlength="1000"
             class="comment-input"
           />
-          <button type="submit" class="comment-submit" :disabled="!commentDraft[post.id]?.trim()">Send</button>
+          <button
+            type="submit"
+            class="comment-submit"
+            :disabled="!commentDraft[post.id]?.trim() || (commentDraft[post.id] || '').trim().length > 1000"
+          >Send</button>
         </form>
       </div>
     </div>
@@ -333,6 +337,10 @@ async function loadComments(postId) {
 async function submitComment(post) {
   const content = commentDraft[post.id]?.trim()
   if (!content) return
+  if (content.length > 1000) {
+    error.value = 'Comments must be 1000 characters or fewer'
+    return
+  }
   try {
     const { data } = await api.post(`/posts/${post.id}/comments`, { content })
     if (!postComments[post.id]) postComments[post.id] = []

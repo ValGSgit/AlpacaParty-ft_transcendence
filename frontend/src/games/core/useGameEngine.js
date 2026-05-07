@@ -26,7 +26,7 @@ export function useGameEngine(containerRef) {
 
     resetGArrays()
 
-    gUser.value = null
+    //gUser.value = null
     gPlayer.value = null
 
     scene.value = new THREE.Scene()

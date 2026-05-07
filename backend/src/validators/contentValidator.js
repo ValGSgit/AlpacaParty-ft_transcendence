@@ -37,14 +37,20 @@ export const postCreateValidation = () => [
   contentChain(body("content"), { max: 5000, field: "content" }),
   urlChain(body("imageUrl")),
   urlChain(body("image_url")),
-  body("isPublic").optional().isBoolean().withMessage("isPublic must be a boolean"),
+  body("isPublic")
+    .optional()
+    .isBoolean()
+    .withMessage("isPublic must be a boolean"),
 ];
 
 export const postUpdateValidation = () => [
   optionalContentChain(body("content"), { max: 5000, field: "content" }),
   urlChain(body("imageUrl")),
   urlChain(body("image_url")),
-  body("isPublic").optional().isBoolean().withMessage("isPublic must be a boolean"),
+  body("isPublic")
+    .optional()
+    .isBoolean()
+    .withMessage("isPublic must be a boolean"),
 ];
 
 // ── Comments ──────────────────────────────────────────────────────────────
@@ -79,20 +85,10 @@ export const chatRoomCreateValidation = () => [
   optionalContentChain(body("description"), { max: 500, field: "description" }),
 ];
 
-// ── Organizations ─────────────────────────────────────────────────────────
-
-export const orgCreateValidation = () => [
-  contentChain(body("name"), { min: 1, max: 100, field: "name" }),
-  optionalContentChain(body("description"), { max: 1000, field: "description" }),
-];
-
-export const orgUpdateValidation = () => [
-  optionalContentChain(body("name"), { min: 1, max: 100, field: "name" }),
-  optionalContentChain(body("description"), { max: 1000, field: "description" }),
-];
-
 // ── Common path params ────────────────────────────────────────────────────
 
 export const idParamValidation = (name = "id") => [
-  param(name).isInt({ min: 1 }).withMessage(`${name} must be a positive integer`),
+  param(name)
+    .isInt({ min: 1 })
+    .withMessage(`${name} must be a positive integer`),
 ];

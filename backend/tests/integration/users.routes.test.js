@@ -1,22 +1,17 @@
 /**
  * User Routes Integration Tests
  */
-import {
-  describe,
-  test,
-  expect,
-  beforeEach,
-  afterAll,
-  beforeAll,
-} from "@jest/globals";
 import supertest from "supertest";
 import prisma from "#config/prisma.js";
 import AuthService from "#services/authService.js";
 import { createTestApp } from "../helpers/createApp.js";
 import { createTestUsers } from "../helpers/createTestUsers.js";
+import User from "#models/User.js";
+import { createTestUser } from "../helpers/createTestUser.js";
 
 let app;
 let request;
+let user;
 let validToken;
 let authPasswordHash;
 
@@ -40,7 +35,7 @@ beforeEach(async () => {
     },
   });
 
-  const user = await prisma.user.create({
+  user = await prisma.user.create({
     data: {
       username: "authed",
       email: "a@b.com",
@@ -59,7 +54,6 @@ beforeEach(async () => {
   validToken = AuthService.generateAccessToken({
     id: user.id,
     username: user.username,
-    is_admin: false,
   });
 });
 
@@ -79,7 +73,7 @@ describe("GET /api/users/me", () => {
   test("200 — returns current user", async () => {
     const res = await request
       .get("/api/users/me")
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Cookie", [`jwt_token=${validToken}`]);
 
     expect(res.status).toBe(200);
     expect(res.body.user.username).toBe("authed");
@@ -106,7 +100,7 @@ describe("PUT /api/users/me", () => {
 
     const res = await request
       .put("/api/users/me")
-      .set("Authorization", `Bearer ${validToken}`)
+      .set("Cookie", [`jwt_token=${validToken}`])
       .send(testUserUpdate);
 
     expect(res.status).toBe(200);
@@ -129,7 +123,7 @@ describe("PUT /api/users/me", () => {
 const updatePasswordRequest = async (newPw) => {
   return await request
     .put("/api/users/me/password")
-    .set("Authorization", `Bearer ${validToken}`)
+    .set("Cookie", [`jwt_token=${validToken}`])
     .send({
       currentPassword: "TestPassword1234",
       newPassword: newPw,
@@ -187,7 +181,7 @@ describe("GET /api/users", () => {
     const pageSize = 2;
     const res = await request
       .get(`/api/users?page=${page}&pageSize=${pageSize}`)
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Cookie", [`jwt_token=${validToken}`]);
 
     const users = res.body.users;
     expect(users.length).toBe(2);
@@ -201,7 +195,7 @@ describe("GET /api/users", () => {
     const pageSize = 3;
     const res = await request
       .get(`/api/users?page=${page}&pageSize=${pageSize}`)
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Cookie", [`jwt_token=${validToken}`]);
 
     const users = res.body.users;
     expect(users.length).toBe(3);
@@ -224,7 +218,7 @@ describe("GET /api/users/:id", () => {
   test("200 — get user 1", async () => {
     const res = await request
       .get(`/api/users/${createdUsers[0].id}`)
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Cookie", [`jwt_token=${validToken}`]);
 
     const user = res.body.user;
     expect(res.status).toBe(200);
@@ -235,12 +229,58 @@ describe("GET /api/users/:id", () => {
   test("200 — get user 2", async () => {
     const res = await request
       .get(`/api/users/${createdUsers[1].id}`)
-      .set("Authorization", `Bearer ${validToken}`);
+      .set("Cookie", [`jwt_token=${validToken}`]);
 
     const user = res.body.user;
     expect(res.status).toBe(200);
     expect(user.username).toBeDefined();
     expect(user.id).toBe(createdUsers[1].id);
+  });
+});
+
+describe("GET /api/users/me/api-key", () => {
+  beforeEach(async () => {
+    await User.setApiKey(user.id, "key value");
+  });
+
+  test("200 — get api key", async () => {
+    const res = await request
+      .get(`/api/users/me/api-key`)
+      .set("Cookie", [`jwt_token=${validToken}`]);
+
+    expect(res.status).toBe(200);
+    expect(res.body.apiKey).toBe("key value");
+  });
+});
+
+describe("POST /api/users/me/api-key", () => {
+  test("200 — generate api key", async () => {
+    const res = await request
+      .post(`/api/users/me/api-key`)
+      .set("Cookie", [`jwt_token=${validToken}`]);
+
+    expect(res.status).toBe(201);
+    expect(res.body.apiKey).toBeDefined();
+  });
+});
+
+describe("DELETE /api/users/me/api-key", () => {
+  beforeEach(async () => {
+    await User.setApiKey(user.id, "key value");
+  });
+
+  test("200 — revoke api key", async () => {
+    let key = await User.getApiKey(user.id);
+    expect(key).toBeDefined();
+
+    const res = await request
+      .delete(`/api/users/me/api-key`)
+      .set("Cookie", [`jwt_token=${validToken}`]);
+
+    expect(res.status).toBe(200);
+
+    key = await User.getApiKey(user.id);
+    expect(key).toBe(null);
   });
 });
 

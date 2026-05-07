@@ -13,19 +13,17 @@ npm install
 run_with_secrets="./node_modules/.bin/env-cmd -f /run/secrets/.env"
 prisma="./node_modules/.bin/prisma"
 
-echo "Applying database migrations..."
-if find prisma/migrations -mindepth 1 -maxdepth 1 -type d | grep -q .; then
-	# Apply committed migrations only; do not generate new files at container boot.
-	$run_with_secrets $prisma migrate deploy
-else
-	echo "No migration folders found, creating initial migration..."
-	$run_with_secrets $prisma migrate dev --name init
-fi
+echo "Applying database migrations"
+$run_with_secrets $prisma migrate dev --name init
 
 echo "Create prisma client"
 $run_with_secrets $prisma generate
 
 echo "Seed database"
 $run_with_secrets npm run seed
+
+echo "Build docs"
+rm -f /app/src/docs/swagger-output-public-api.json
+npm run buildDocs
 
 exec "$@"

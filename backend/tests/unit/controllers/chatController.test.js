@@ -26,7 +26,7 @@ jest.unstable_mockModule('../../../src/models/ChatRoom.js', () => ({ default: mo
 
 const { getConversation } = await import('../../../src/controllers/chatController.js');
 
-function mockReq(params = {}, body = {}, user = { id: 1, is_admin: false }, query = {}) {
+function mockReq(params = {}, body = {}, user = { id: 1 }, query = {}) {
   return { params, body, user, query };
 }
 function mockRes() {

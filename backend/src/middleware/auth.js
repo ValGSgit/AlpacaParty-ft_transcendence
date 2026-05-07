@@ -3,8 +3,9 @@
  * @owner ValGSgit
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
-import AuthService from '../services/authService.js';
-import User from '../models/User.js';
+import AuthService from "../services/authService.js";
+import User from "../models/User.js";
+import CustomError from "#utils/CustomError.js";
 
 /**
  * Require a valid access token.
@@ -12,22 +13,13 @@ import User from '../models/User.js';
  */
 export const authenticate = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: { message: 'Authentication required' } });
-    }
-
-    const token = authHeader.split(' ')[1];
+    let token = req.cookies.jwt_token;
+    if (!token) throw new CustomError("No token provided", 401);
     const decoded = AuthService.verifyToken(token);
-    if (!decoded || decoded.type === 'refresh') {
-      return res.status(401).json({ error: { message: 'Invalid or expired token' } });
-    }
+    if (!decoded) throw new CustomError("Invalid or expired token", 401);
 
     const user = await User.findById(decoded.id);
-    if (!user) {
-      return res.status(401).json({ error: { message: 'User not found' } });
-    }
-
+    if (!user) throw new CustomError("User not found", 401);
     req.user = user;
     next();
   } catch (err) {
@@ -41,11 +33,10 @@ export const authenticate = async (req, res, next) => {
  */
 export const optionalAuth = async (req, _res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
+    let token = req.cookies.jwt_token;
+    if (token) {
       const decoded = AuthService.verifyToken(token);
-      if (decoded && decoded.type !== 'refresh') {
+      if (decoded) {
         req.user = await User.findById(decoded.id);
       }
     }

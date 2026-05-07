@@ -19,7 +19,7 @@ const {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function createReqRes(overrides = {}) {
   const req = {
-    user: { id: 1, isAdmin: false },
+    user: { id: 1},
     params: {}, query: {}, body: {},
     ...overrides,
   };

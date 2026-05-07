@@ -21,6 +21,7 @@ const mockPrisma = {
   },
   blockedUser: {
     upsert: jest.fn(),
+    findFirst: jest.fn(),
     findMany: jest.fn(),
     deleteMany: jest.fn(),
   },
@@ -36,9 +37,19 @@ beforeEach(() => jest.clearAllMocks());
 // ── sendRequest ──────────────────────────────────────────────────────────────
 describe('sendRequest', () => {
   test('creates a friend request via upsert', async () => {
+    mockPrisma.friendRequest.findFirst.mockResolvedValue(null);
     const request = { id: 1, senderId: 1, receiverId: 2, status: 'pending' };
     mockPrisma.friendRequest.upsert.mockResolvedValue(request);
     const result = await Friend.sendRequest(1, 2);
+    expect(mockPrisma.friendRequest.findFirst).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { senderId: 1, receiverId: 2 },
+          { senderId: 2, receiverId: 1 },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
     expect(mockPrisma.friendRequest.upsert).toHaveBeenCalledWith({
       where: { senderId_receiverId: { senderId: 1, receiverId: 2 } },
       update: { status: 'pending' },
@@ -54,6 +65,22 @@ describe('sendRequest', () => {
     } catch (e) {
       expect(e.status).toBe(400);
     }
+  });
+
+  test('auto-accepts a reverse pending request', async () => {
+    const reverseRequest = { id: 9, senderId: 2, receiverId: 1, status: 'pending' };
+    const accepted = { ...reverseRequest, status: 'accepted' };
+    mockPrisma.friendRequest.findFirst.mockResolvedValue(reverseRequest);
+
+    const acceptSpy = jest.spyOn(Friend, 'acceptRequest').mockResolvedValue(accepted);
+
+    const result = await Friend.sendRequest(1, 2);
+
+    expect(mockPrisma.friendRequest.upsert).not.toHaveBeenCalled();
+    expect(acceptSpy).toHaveBeenCalledWith(9, 1);
+    expect(result).toEqual({ request: accepted, autoAccepted: true });
+
+    acceptSpy.mockRestore();
   });
 });
 

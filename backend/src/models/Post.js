@@ -49,50 +49,67 @@ const Post = {
     return post ? shapePost(post) : null;
   },
 
-  async update(id, authorId, fields) {
+  async update(id, fields) {
     const data = {};
     if (fields.content !== undefined) data.content = fields.content;
-    if (fields.image_url !== undefined) data.imageUrl = fields.image_url;
     if (fields.imageUrl !== undefined) data.imageUrl = fields.imageUrl;
-    if (fields.is_public !== undefined) data.isPublic = fields.is_public;
     if (fields.isPublic !== undefined) data.isPublic = fields.isPublic;
     if (Object.keys(data).length === 0) return this.findById(id);
 
-    const post = await prisma.post
-      .update({
-        where: { id: Number(id), authorId: Number(authorId) },
-        data,
-        include: { author: AUTHOR_SELECT },
-      })
-      .catch(() => null);
+    const post = await prisma.post.update({
+      where: { id: Number(id) },
+      data,
+      include: { author: AUTHOR_SELECT },
+    });
     return post ? shapePost(post) : null;
   },
 
-  async delete(id, authorId) {
+  async delete(postId) {
     const { count } = await prisma.post.deleteMany({
-      where: { id: Number(id), authorId: Number(authorId) },
+      where: { id: Number(postId) },
     });
     return count > 0;
   },
 
-  async getFeed({ limit = 20, offset = 0, viewerId = null } = {}) {
+  async getFeed({ limit = 200, offset = 0, viewerId = null } = {}) {
     const vid = viewerId ? Number(viewerId) : null;
     const lim = Number(limit);
     const off = Number(offset);
 
+    // Build base where clause for public posts by public authors.
+    const baseWhere = {
+      isPublic: true,
+      author: { userSettings: { isPublic: true } },
+    };
+
+    // If viewerId is provided, exclude posts where the author blocked the viewer
+    // or the viewer blocked the author.
+    if (vid !== null) {
+      baseWhere.NOT = [
+        { author: { blockedUsers: { some: { blockedUserId: vid } } } }, // author blocked viewer
+        { author: { blockedBy: { some: { userId: vid } } } }, // viewer blocked author
+      ];
+    }
+
     const [posts, liked, viewerReposts, recentReposts] = await Promise.all([
       prisma.post.findMany({
-        where: { isPublic: true, author: { userSettings: { isPublic: true } } },
+        where: baseWhere,
         include: { author: AUTHOR_SELECT },
         orderBy: { createdAt: "desc" },
         take: lim,
         skip: off,
       }),
       vid
-        ? prisma.postLike.findMany({ where: { userId: vid }, select: { postId: true } })
+        ? prisma.postLike.findMany({
+            where: { userId: vid },
+            select: { postId: true },
+          })
         : Promise.resolve([]),
       vid
-        ? prisma.repost.findMany({ where: { authorId: vid }, select: { postId: true } })
+        ? prisma.repost.findMany({
+            where: { authorId: vid },
+            select: { postId: true },
+          })
         : Promise.resolve([]),
       // Fetch recent reposts of public posts by public authors only
       prisma.repost.findMany({
@@ -100,15 +117,26 @@ const Post = {
           post: {
             isPublic: true,
             author: { userSettings: { isPublic: true } },
+            ...(vid !== null
+              ? {
+                  NOT: [
+                    { author: { blockedUsers: { some: { blockedUserId: vid } } } },
+                    { author: { blockedBy: { some: { userId: vid } } } },
+                  ],
+                }
+              : {}),
           },
         },
-        include: { post: { include: { author: AUTHOR_SELECT } }, author: AUTHOR_SELECT },
-        orderBy: { createdAt: 'desc' },
+        include: {
+          post: { include: { author: AUTHOR_SELECT } },
+          author: AUTHOR_SELECT,
+        },
+        orderBy: { createdAt: "desc" },
         take: lim,
       }),
     ]);
 
-    const likedIds    = new Set(liked.map((l) => l.postId));
+    const likedIds = new Set(liked.map((l) => l.postId));
     const repostedIds = new Set(viewerReposts.map((r) => r.postId));
 
     // Shape original posts
@@ -120,11 +148,14 @@ const Post = {
       const key = `${r.post.id}-repost-${r.authorId}`;
       if (seenKeys.has(key)) continue;
       seenKeys.add(key);
-      shaped.push(shapePost(r.post, likedIds, repostedIds, {
+      const repostShaped = shapePost(r.post, likedIds, repostedIds, {
         username: r.author?.username,
         authorId: r.authorId,
         comment: r.comment,
-      }));
+      });
+      // Use the repost record's timestamp so reposts are ordered by repost time
+      repostShaped.created_at = r.createdAt;
+      shaped.push(repostShaped);
     }
 
     // Sort combined feed by created_at desc and return one page
@@ -179,7 +210,11 @@ const Post = {
     try {
       repost = await prisma.$transaction(async (tx) => {
         const r = await tx.repost.create({
-          data: { postId: Number(postId), authorId: Number(authorId), comment: comment ?? null },
+          data: {
+            postId: Number(postId),
+            authorId: Number(authorId),
+            comment: comment ?? null,
+          },
           include: { author: AUTHOR_SELECT },
         });
         await tx.post.update({
@@ -189,7 +224,7 @@ const Post = {
         return r;
       });
     } catch (e) {
-      if (e.code === 'P2002') return null; // already reposted
+      if (e.code === "P2002") return null; // already reposted
       throw e;
     }
     if (!repost) return null;
