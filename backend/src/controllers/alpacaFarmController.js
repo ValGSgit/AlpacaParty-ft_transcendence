@@ -1,7 +1,7 @@
 import prisma from "#config/prisma.js";
 
 /**
- * PUT /api/users/farmdata
+ * GET /api/users/farmdata
  */
 export const getFarmData = async (req, res, next) => {
   const id = Number(req.user.id);

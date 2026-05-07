@@ -75,11 +75,24 @@ jest.unstable_mockModule('../../../src/services/socketAuth.js', () => ({
   socketAuthMiddleware: jest.fn(() => (_socket, next) => next()),
 }))
 
+const mockMatchManager = {}
+
+jest.unstable_mockModule('../../../src/services/MatchManager.js', () => ({
+  MatchManager: jest.fn().mockImplementation(() => mockMatchManager),
+}))
+
+const mockNamespaceOf = {
+  use: jest.fn(),
+  on: jest.fn(),
+  emit: jest.fn(),
+}
+
 const mockIo = {
   engine: { use: jest.fn() },
   use: jest.fn(),
   on: jest.fn(),
   emit: jest.fn(),
+  of: jest.fn().mockReturnValue(mockNamespaceOf),
 }
 
 let initializeSocket
