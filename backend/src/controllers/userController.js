@@ -147,9 +147,9 @@ export const listUsers = async (req, res, next) => {
       ? await User.search(search, { limit })
       : await User.findAll({ limit, offset });
     const visibleUsers = users.filter((u) => {
-          const isPublic = u.userSettings?.isPublic ?? u.isPublic ?? true;
-          return isPublic || Number(u.id) === Number(req.user.id);
-        });
+      const isPublic = u.userSettings?.isPublic ?? u.isPublic ?? true;
+      return isPublic || Number(u.id) === Number(req.user.id);
+    });
     const total = await User.count();
 
     res.json({
@@ -241,15 +241,12 @@ export const deleteMe = async (req, res, next) => {
 
 /**
  * GET /api/users/me/api-key
- * Reports whether an API key exists and — for display — the last four
- * characters only. The full key is returned exactly once at creation time
- * (see POST below); if the user lost it, they must regenerate.
  */
 export const getApiKey = async (req, res, next) => {
   try {
-    const key = await User.getApiKey(req.user.id);
-    if (!key) return res.json({ hasKey: false, lastFour: null });
-    res.json({ hasKey: true, lastFour: key.slice(-4) });
+    const apiKey = await User.getApiKey(req.user.id);
+    if (!apiKey) throw new CustomError("api key not found", 404);
+    res.json({ apiKey });
   } catch (err) {
     next(err);
   }
@@ -263,7 +260,7 @@ export const getApiKey = async (req, res, next) => {
 export const generateApiKey = async (req, res, next) => {
   try {
     if (!config.jwt.publicApiSecret) {
-      return next(new CustomError('Public API secret is not configured', 500));
+      return next(new CustomError("Public API secret is not configured", 500));
     }
     const publiApiToken = AuthService.generatePublicApiToken(req.user);
     await User.setApiKey(req.user.id, publiApiToken);
