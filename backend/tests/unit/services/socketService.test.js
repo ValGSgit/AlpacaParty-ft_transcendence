@@ -94,6 +94,7 @@ const mockIo = {
   on: jest.fn(),
   emit: jest.fn(),
   of: jest.fn().mockReturnValue(mockNamespaceOf),
+  to: jest.fn().mockReturnValue({ emit: jest.fn() }),
 }
 
 let initializeSocket
