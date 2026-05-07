@@ -53,7 +53,7 @@
     <div 
       id="coin-hud" 
       v-if="gMinigame.mode === 0 || gMinigame.isGameOver" 
-      class="stat":class="{ 'overlay': gMinigame.isGameOver }">
+      class="stat" :class="{ 'overlay': gMinigame.isGameOver }">
       <span>💰 {{ gUser.coins }}</span>
     </div>
       <template v-if="gMinigame.mode === 1 || gMinigame.mode === 2">
@@ -107,7 +107,7 @@
         <button class="shop-btn" @click="changeGame(1, playerCount)" title="Spit Royale with AI">Spit Royale</button>
         <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(2)" title="Spit Royale Online">Online Lobby</button>
         <button class="shop-btn" @click="changeGame(3, playerCount)" title="Alpaca Road">Alpaca Road</button>
-        <button v-if="isAuthenticated" class="shop-btn" @click="openLobbyMenu(4)" title="Alpaca Road Online">Online Lobby</button>
+        <button class="shop-btn" @click="openLobbyMenu(4)" title="Alpaca Road Online">Online Lobby</button>
       </div>
       <select v-model="playerCount" class="player-selector" title="Number of Players">
         <option :value="1">1 Player</option>
@@ -129,31 +129,13 @@
         <button class="close-btn" @click="closeLobbyMenu()" title="Close">✖️</button>
       </div>
     </div>
-
-    <div v-if="gMinigame.mode === 4 && (!gMinigame.isReady || !gMinigame.isActive) && !gUI.countDown" class="modal-overlay">
-      <div class="shop-title">Get Ready!
-        <button class="shop-btn" :class="{ 'is-ready': gMinigame.isReady }" @click="getReady()" title="Ready">Ready</button>
-        <button class="close-btn" @click="changeGame()" title="Close">✖️</button>
-      </div>
-    </div>
-
-    <div v-if="gUI.lobbyMenu && gMinigame.mode === 4" class="modal-overlay">
-      <div class="shop-title">Alpaca Road Lobby
-        <button class="shop-btn" @click="changeGame(4, 1, -1)" title="Alpaca Road Online">Create New Room</button>
-        <div v-for="game in gMinigame.lobby">
-          <button class="shop-btn" @click="changeGame(4, 1, game.matchid)" title="Alpaca Road Online"><span>{{ game.roomName }}</span></button>
-        </div>
-        <button class="close-btn" @click="closeLobbyMenu()" title="Close">✖️</button>
-      </div>
-    </div>
-
+    <MultiplayerLobby v-if="gUI.lobbyMenu && gMinigame.mode === 4" />
     <div v-if="gUI.farmMenu" class="modal-overlay">
       <div class="shop-title">
         Upgrade Farm
         <div class="stats-content">
-          <div class="stat-row">
-            <strong>Current Farm Size:</strong> {{ gUser.upgrades }}/{{ CONST.MAX_UPGRADES }}
-          </div>
+          <div class="stat-row"> Current Farm Size: {{ gUser.upgrades }}/{{ CONST.MAX_UPGRADES }} </div>
+          <div class="stat-row"> Current Herd Size: {{ gAlpacas.length}}/{{getHerdSize(gUser.herdsize)}} </div>
         </div>
 
         <div class="itemshop-grid">
@@ -165,11 +147,11 @@
           </div>
         </button>
 
-        <button class="itemshop-card"@click="increaseHerdSize()">
+        <button class="itemshop-card" @click="increaseHerdSize(gUser.herdsize)">
           <span class="item-name">Increase Herd Size</span>
           <div class="icon-container">
             <span style="position: relative; bottom: 10px;">🦙</span>
-            <span class="item-cost">🪙 5</span>
+            <span class="item-cost">🪙 {{ getHerdSizeCost(gUser.herdsize) }}</span>
           </div>
         </button>
       </div>
@@ -299,6 +281,8 @@
 
 <!---------------------- SCRIPT ------------------------->
 <script setup>
+import MultiplayerLobby from './components/MultiplayerLobby.vue'
+
 import { storeToRefs } from 'pinia'
 import * as THREE from 'three'
 import { StereoEffect } from 'three/addons/effects/StereoEffect.js'
@@ -312,14 +296,14 @@ import { editLight } from './components/editLight.js'
 import { useEditMode } from './components/editMode.js'
 import { useFloatingText } from './components/floatingText.js'
 import { itemShop } from './components/itemShop.js'
-import { getUpgradeCost, upgradeFarm } from './components/upgradeFarm.js'
+import { getHerdSize, getHerdSizeCost, getUpgradeCost, upgradeFarm } from './components/upgradeFarm.js'
 import { CONST } from './config/constants.js'
 import { addDebugCoins } from './core/debug.js'
 import { updateAlpacas } from './core/entities/Alpaca.js'
 import { updateCollectables } from './core/entities/Collectable.js'
 import { shopItems } from './core/entities/Item.js'
 import { cleanupFPSstats, initFPSstats } from './core/FPSstats.js'
-import { gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser } from './core/globals.js'
+import { gAlpacas, gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser } from './core/globals.js'
 import { saveGame } from './core/saveLoadGame.js'
 import { changeCamera, checkControlsEnabled, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
@@ -328,7 +312,7 @@ import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
-import { getReady, updateAlpacaRoad } from './mini_games/alpacaRoad.js'
+import { updateAlpacaRoad } from './mini_games/alpacaRoad.js'
 import { changeGame } from './mini_games/init.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
@@ -343,7 +327,7 @@ const { setTimeOfDay, updateLighting, toggleLightCycle} = editLight()
 const { buyAlpaca } = alpacaShop()
 const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openFarmMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu, openLobbyMenu, closeLobbyMenu } = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
-const { increaseFarmSize } = upgradeFarm()
+const { increaseFarmSize, increaseHerdSize } = upgradeFarm()
 const { buyItem } = itemShop()
 const authStore = useAuthStore()
 const { isAuthenticated } = storeToRefs(authStore)
@@ -387,6 +371,8 @@ onMounted(async () => {
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
 
+    if (authStore.isAuthenticated)
+      gUser.value.name = authStore.user.username;
     await initWorld(gScene.value, authStore.isAuthenticated)
     gameIsReady.value = true
     stopMyWatcher = watchChanges()
@@ -403,7 +389,6 @@ const gameLoop = () => {
   const delta = clock.getDelta()
   const player = gPlayer.value
 
-
   if (player) {
     if (cameraUpdate) {
       cameraUpdate(player)
@@ -417,7 +402,9 @@ const gameLoop = () => {
   updateLighting(delta);
 
   if (gMinigame.value.isActive && gMinigame.value.mode > 2)
+  {
     updateAlpacaRoad(delta)
+  }
 
   if (gEngine.value?.controls) {
     gEngine.value.controls.enabled = checkControlsEnabled();

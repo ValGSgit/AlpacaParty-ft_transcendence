@@ -1,5 +1,4 @@
-import { gAlpacas, gUser } from '../core/globals.js'
-import { gMinigame } from '../core/globals.js'
+import { gAlpacas, gMinigame, gUser } from '../core/globals.js'
 
 export const CONST = {
   BASE_RADIUS: 25,

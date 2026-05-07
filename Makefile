@@ -12,27 +12,27 @@ RESET  := \033[0m
 
 # ── Docker ──────────────────────────────────────────────────
 COMPOSE_PROJECT := alpacaparty-ft_transcendence
-DC := docker compose --profile dev
-DC_TEST := docker compose --profile test --env-file .env.test
-DC_E2E := docker compose --profile dev --profile e2e
-DC_PROD := docker compose -f compose.prod.yaml
+DC       := docker compose --profile dev
+DC_TEST  := docker compose --profile test --env-file .env.test
+DC_E2E   := docker compose --profile dev --profile e2e
+DC_PROD  := docker compose -f compose.prod.yaml
 
 .DEFAULT_GOAL := help
 .PHONY: help up down build logs restart ps \
         prod-up prod-down prod-build prod-logs \
-        generate-secrets ssl-certs \
-	clean clean-volumes fclean deep-clean \
+        generate-secrets ssl-certs create-dirs \
+        clean clean-volumes fclean deep-clean \
         install install-backend install-frontend \
         dev dev-backend dev-frontend \
-        shell-backend shell-frontend shell-db \
-	test backend-test e2e prod-e2e test-local \
-	stress-test stress-test-build stress-test-live \
-	seed-admins prod-seed-admins make-admin prod-make-admin \
-	seed-example seed-example-reset prod-seed-example prod-seed-example-reset \
-	seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
+        shell-backend shell-frontend shell-db shell-nginx \
+        prisma_studio backend-cmd \
+        test backend-test backend-test-watch e2e prod-e2e test-local \
+        stress-test stress-test-build stress-test-live \
+        seed-example seed-example-reset prod-seed-example prod-seed-example-reset \
+        seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
         vault-status vault-secrets vault-shell \
-        prod-vault-status prod-vault-unseal prod-vault-rotate-token \
-        waf-logs \
+        prod-vault-status prod-vault-unseal prod-vault-rotate-token prod-vault-reseed \
+        waf-logs
 
 # ── HELP ────────────────────────────────────────────────────
 help:
@@ -52,8 +52,8 @@ help:
 	@echo "  $(GREEN)make prod-down$(RESET)         Stop production containers"
 	@echo "  $(GREEN)make prod-build$(RESET)        Build production images"
 	@echo "  $(GREEN)make prod-logs$(RESET)         View production logs"
-	@echo "  $(GREEN)make generate-secrets$(RESET)  Rotate DB_PASSWORD + JWT_SECRET in .env"
-	@echo "  $(GREEN)make ssl-certs$(RESET)          Generate self-signed SSL certificate"
+	@echo "  $(GREEN)make generate-secrets$(RESET)  Rotate DB_PASSWORD + JWT secrets in .env"
+	@echo "  $(GREEN)make ssl-certs$(RESET)         Generate self-signed SSL certificate"
 	@echo ""
 	@echo "$(YELLOW)Local Dev (no Docker)$(RESET)"
 	@echo "  $(GREEN)make install$(RESET)        npm install in backend & frontend"
@@ -65,25 +65,22 @@ help:
 	@echo "  $(GREEN)make shell-backend$(RESET)  Shell into backend container"
 	@echo "  $(GREEN)make shell-frontend$(RESET) Shell into frontend container"
 	@echo "  $(GREEN)make shell-db$(RESET)       psql into postgres container"
+	@echo "  $(GREEN)make shell-nginx$(RESET)    Shell into nginx container"
 	@echo ""
 	@echo "$(YELLOW)Testing$(RESET)"
-	@echo "  $(GREEN)make test$(RESET)           Run backend tests in container"
-	@echo "  $(GREEN)make test-local$(RESET)     Run backend tests locally (no Docker)"
-	@echo "  $(GREEN)make e2e$(RESET)            Run E2E tests against dev stack"
-	@echo "  $(GREEN)make prod-e2e$(RESET)       Seed data + run E2E tests against prod stack"
-	@echo "  $(GREEN)make stress-test$(RESET)    Run full containerized stress & security tests"
+	@echo "  $(GREEN)make test$(RESET)              Run backend tests in container"
+	@echo "  $(GREEN)make test-local$(RESET)        Run backend tests locally (no Docker)"
+	@echo "  $(GREEN)make e2e$(RESET)               Run E2E tests against dev stack"
+	@echo "  $(GREEN)make prod-e2e$(RESET)          Seed data + run E2E tests against prod stack"
+	@echo "  $(GREEN)make stress-test$(RESET)       Run full containerized stress & security tests"
 	@echo "  $(GREEN)make stress-test-build$(RESET) Build stress-test image only (skip auto-run)"
-	@echo "  $(GREEN)make stress-test-live$(RESET) Watch stress-test results as they complete"
+	@echo "  $(GREEN)make stress-test-live$(RESET)  Watch stress-test results as they complete"
 	@echo ""
 	@echo "$(YELLOW)Database$(RESET)"
-	@echo "  $(GREEN)make seed-admins$(RESET)          Promote developer accounts to admin (dev)"
-	@echo "  $(GREEN)make prod-seed-admins$(RESET)     Promote developer accounts to admin (prod)"
-	@echo "  $(GREEN)make make-admin USER=x$(RESET)    Promote user x to admin (dev)"
-	@echo "  $(GREEN)make prod-make-admin USER=x$(RESET) Promote user x to admin (prod)"
-	@echo "  $(GREEN)make seed-live$(RESET)            Seed high-volume sample data (dev compose)"
-	@echo "  $(GREEN)make seed-live-reset$(RESET)      Reset and reseed high-volume sample data (dev compose)"
-	@echo "  $(GREEN)make prod-seed-live$(RESET)       Seed high-volume sample data (prod compose)"
-	@echo "  $(GREEN)make prod-seed-live-reset$(RESET) Reset and reseed high-volume sample data (prod compose)"
+	@echo "  $(GREEN)make seed-live$(RESET)            Seed sample data (dev)"
+	@echo "  $(GREEN)make seed-live-reset$(RESET)      Reset and reseed sample data (dev)"
+	@echo "  $(GREEN)make prod-seed-live$(RESET)       Seed sample data (prod)"
+	@echo "  $(GREEN)make prod-seed-live-reset$(RESET) Reset and reseed sample data (prod)"
 	@echo ""
 	@echo "$(YELLOW)Security$(RESET)"
 	@echo "  $(GREEN)make vault-status$(RESET)              Show Vault seal/HA status (dev)"
@@ -92,7 +89,8 @@ help:
 	@echo "  $(GREEN)make prod-vault-status$(RESET)         Show prod Vault status"
 	@echo "  $(GREEN)make prod-vault-unseal$(RESET)         Manually unseal prod Vault"
 	@echo "  $(GREEN)make prod-vault-rotate-token$(RESET)   Create new limited service token"
-	@echo "  $(GREEN)make waf-logs$(RESET)                  Tail ModSecurity audit log"
+	@echo "  $(GREEN)make prod-vault-reseed$(RESET)         Re-run vault-init to push new secrets"
+	@echo "  $(GREEN)make waf-logs$(RESET)                  Tail ModSecurity audit log (prod)"
 	@echo ""
 	@echo "$(YELLOW)Cleanup$(RESET)"
 	@echo "  $(GREEN)make clean$(RESET)          Stop containers & remove images"
@@ -134,15 +132,14 @@ prod-build: .env
 prod-logs:
 	$(DC_PROD) logs -f
 
-# Setup
+# ── SETUP ───────────────────────────────────────────────────
 create-dirs:
 	@mkdir -p backend/node_modules
 	@mkdir -p frontend/node_modules
 
 # ── SECRETS ─────────────────────────────────────────────────
-# Generates .env from .env.example with cryptographically random
-# DB_PASSWORD and JWT_SECRET.  Run once before first prod deploy,
-# or explicitly to rotate secrets (requires DB re-initialisation).
+# Generates .env from .env.example with cryptographically random secrets.
+# Run once before first prod deploy, or again to rotate (requires DB re-init).
 generate-secrets:
 	@if [ ! -f .env ]; then \
 	  cp .env.example .env; \
@@ -188,7 +185,6 @@ ssl-certs:
 	chmod +rw ssl/key.pem
 	chmod +rw ssl/cert.pem
 
-
 # Ensure .env exists with real secrets before any prod command.
 # Does NOT regenerate if .env already exists (keeps DB password stable).
 .env:
@@ -214,10 +210,12 @@ dev:
 dev-backend:
 	cd backend && npm run dev
 
-# TESTING
-# This runs with the test profile to use an temporary test database
-# example option: '-- users.routes.test.js' (tests only one file)
-options?=
+dev-frontend:
+	cd frontend && npm run dev
+
+# ── TESTING ─────────────────────────────────────────────────
+# Pass extra options: make backend-test options='-- users.routes.test.js'
+options ?=
 backend-test: create-dirs
 	@EXIT_CODE=0; \
 	$(DC_TEST) run --rm backend_test npm test $(options) || EXIT_CODE=$$?; \
@@ -238,8 +236,6 @@ e2e: create-dirs seed-live
 	$(DC_E2E) run --build --rm -e E2E_API_KEY="$$E2E_API_KEY" e2e npm test
 
 # Production E2E: seeds data and runs Playwright against the production build.
-# Builds the e2e Docker image and runs it on the shared prod network so that
-# the container can resolve 'nginx' by DNS — no host npx required.
 prod-e2e: prod-seed-live
 	@echo "$(CYAN)Building e2e image…$(RESET)"
 	docker build -t alpacaparty-e2e e2e/
@@ -256,22 +252,14 @@ prod-e2e: prod-seed-live
 test-local:
 	cd backend && npm test
 
-dev-frontend:
-	cd frontend && npm run dev
-
-# ── STRESS & SECURITY TESTS (CONTAINERIZED) ──────────────────────────────
-# Runs comprehensive load, performance, and security tests against the application.
-# All tools (siege, wrk, nikto, nmap, ab, jq) run inside Docker — no local install needed.
-
-# Full stress-test run: builds image, starts stack, runs tests, displays results
+# ── STRESS & SECURITY TESTS ─────────────────────────────────
+# All tools run inside Docker — no local install needed.
 stress-test: ssl-certs create-dirs
 	@bash scripts/run-stress-test.sh
 
-# Build the stress-test image without running tests
 stress-test-build: ssl-certs create-dirs
 	@bash scripts/run-stress-test.sh "https://nginx:443" "10s" "1" true
 
-# Run stress tests with smaller dataset and live report viewing
 stress-test-live: ssl-certs create-dirs
 	@bash scripts/run-stress-test.sh "https://nginx:443" "5m" "50" false && \
 	  echo "" && \
@@ -298,53 +286,7 @@ cmd ?=
 backend-cmd:
 	$(DC) run --rm backend $(cmd)
 
-# ── DATABASE SEEDS ──────────────────────────────────────────
-# Requires the postgres container to be running (make up / make prod-up).
-# Seed the default mod list (Val, David, Kahou, Lukas, live_admin) into dev Vault.
-seed-admins:
-	@$(DC) exec -T \
-	  -e VAULT_ADDR=http://127.0.0.1:8200 \
-	  -e VAULT_TOKEN=$${VAULT_DEV_TOKEN:-alpacaparty-dev-token} \
-	  vault vault kv patch secret/alpacaparty mod_users="Val,David,Kahou,Lukas,live_admin"
-	@echo "$(GREEN)✓ mod_users seeded in dev Vault$(RESET)"
-
-# Seed the default mod list into prod Vault (reads VAULT_ADMIN_TOKEN from vault_keys volume).
-prod-seed-admins:
-	@docker run --rm \
-	  --network alpacaparty_net \
-	  -v $(COMPOSE_PROJECT)_vault_keys:/vault/keys:ro \
-	  -e VAULT_ADDR=https://vault:8200 \
-	  -e VAULT_SKIP_VERIFY=true \
-	  hashicorp/vault:1.16 \
-	  sh -c '. /vault/keys/keys.env && export VAULT_TOKEN=$$VAULT_ADMIN_TOKEN && vault kv patch secret/alpacaparty mod_users="Val,David,Kahou,Lukas,live_admin"'
-	@echo "$(GREEN)✓ mod_users seeded in prod Vault$(RESET)"
-
-# Add a single user to mod_users in dev Vault.
-# Usage: make make-admin USER=myusername
-make-admin:
-	@[ -n "$(USER)" ] || { echo "$(YELLOW)Usage: make make-admin USER=<username>$(RESET)"; exit 1; }
-	@$(DC) exec -T \
-	  -e VAULT_ADDR=http://127.0.0.1:8200 \
-	  -e VAULT_TOKEN=$${VAULT_DEV_TOKEN:-alpacaparty-dev-token} \
-	  -e MOD_USERNAME=$(USER) \
-	  vault sh < scripts/vault-add-mod.sh
-	@echo "$(GREEN)✓ $(USER) added to mod_users in dev Vault$(RESET)"
-
-# Add a single user to mod_users in prod Vault (reads VAULT_ADMIN_TOKEN from vault_keys volume).
-# Usage: make prod-make-admin USER=myusername
-prod-make-admin:
-	@[ -n "$(USER)" ] || { echo "$(YELLOW)Usage: make prod-make-admin USER=<username>$(RESET)"; exit 1; }
-	@docker run --rm \
-	  --network alpacaparty_net \
-	  -v $(COMPOSE_PROJECT)_vault_keys:/vault/keys:ro \
-	  -v $(shell pwd)/scripts:/scripts:ro \
-	  -e VAULT_ADDR=https://vault:8200 \
-	  -e VAULT_SKIP_VERIFY=true \
-	  -e MOD_USERNAME=$(USER) \
-	  hashicorp/vault:1.16 \
-	  sh -c '. /vault/keys/keys.env && export VAULT_TOKEN=$$VAULT_ADMIN_TOKEN && sh /scripts/vault-add-mod.sh'
-	@echo "$(GREEN)✓ $(USER) added to mod_users in prod Vault$(RESET)"
-
+# ── DATABASE SEEDING ────────────────────────────────────────
 seed-example:
 	$(DC) up -d backend
 	$(DC) exec backend npm install --no-audit --no-fund --loglevel=error
@@ -366,16 +308,13 @@ prod-seed-example-reset:
 	$(DC_PROD) exec -e DATABASE_URL=$${DATABASE_URL:-postgresql://alpacaparty:alpacaparty@postgres:5432/alpacaparty} backend npx prisma generate
 	$(DC_PROD) exec backend npm run seed:exampleData:reset
 
-# Backward-compatible aliases used by help text and existing scripts.
+# Aliases
 seed-live: seed-example
-
 seed-live-reset: seed-example-reset
-
 prod-seed-live: prod-seed-example
-
 prod-seed-live-reset: prod-seed-example-reset
 
-# ── SECURITY ────────────────────────────────────────────────────────────────
+# ── SECURITY / VAULT ────────────────────────────────────────
 vault-status:
 	$(DC) exec vault vault status
 
@@ -388,10 +327,9 @@ vault-shell:
 	           vault sh
 
 waf-logs:
-	$(DC) exec nginx tail -f /var/log/modsecurity/audit.log
+	$(DC_PROD) exec nginx tail -f /var/log/modsecurity/audit.log
 
-# ── PRODUCTION VAULT MANAGEMENT ─────────────────────────────────────────────
-# Show prod vault seal status and active address
+# ── PRODUCTION VAULT MANAGEMENT ─────────────────────────────
 prod-vault-status:
 	$(DC_PROD) exec vault vault status
 
@@ -403,8 +341,14 @@ prod-vault-unseal:
 	  -e VAULT_SKIP_VERIFY=true \
 	  vault vault operator unseal $${VAULT_UNSEAL_KEY}
 
-# Create a limited read-only service token and print it.
-# Copy the printed token into VAULT_TOKEN in .env, then restart backend:
+# Re-run vault-init to push updated secrets (e.g. after adding new keys to .env).
+prod-vault-reseed:
+	$(DC_PROD) run --rm vault-init
+	@echo "$(GREEN)✓ Vault reseeded — restart the backend to pick up new secrets$(RESET)"
+	@echo "$(YELLOW)  make prod-down && make prod-up$(RESET)"
+
+# Create a new limited read-only service token.
+# Copy the printed token into VAULT_TOKEN in .env, then restart:
 #   make prod-down && make prod-up
 prod-vault-rotate-token:
 	@$(DC_PROD) exec \
@@ -420,7 +364,6 @@ prod-vault-rotate-token:
 	  | grep '"client_token"' \
 	  | sed 's/.*"client_token": *"\(.*\)".*/\1/' \
 	  | xargs -I{} echo "New VAULT_TOKEN: {}"
-
 
 # ── CLEANUP ─────────────────────────────────────────────────
 clean:

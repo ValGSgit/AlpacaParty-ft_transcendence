@@ -9,6 +9,7 @@ import { saveGame } from '../core/saveLoadGame.js'
 import { checkWithinBounds, usePhysics, usePos } from '../core/usePhysics.js'
 import { useUIManager } from '../core/useUIManager.js'
 import { addCoins, spendCoins } from './coins.js'
+import { useFloatingText } from './floatingText.js'
 
 const pointer = new THREE.Vector2()
 const raycaster = new THREE.Raycaster()
@@ -16,6 +17,7 @@ const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 const worldPoint = new THREE.Vector3()
 let hoveredItem = null
 const { closeMenus } = useUIManager()
+const { spawnFloatingText } = useFloatingText()
 
 export function useEditMode() {
   const { checkCollision, } = usePhysics()
@@ -204,8 +206,11 @@ export function useEditMode() {
     }
     if (selected.userData.cost === undefined)
       selected.userData.cost = 0 // fall back if the item is created at the very beginning
-    if (!selected.userData.isNew)
-      addCoins(Math.floor(selected.userData.cost / 2));
+    if (!selected.userData.isNew) {
+      const value = Math.floor(selected.userData.cost / 2);
+      addCoins(value);
+      spawnFloatingText(gPlayer.value.model, '+' + value, 'coins');
+    }
     resetSelected();
     removeObject(selected);
     if (selected === gPlayer.value) //switch to another alpaca if the playing alpaca got deleted

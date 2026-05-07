@@ -1,5 +1,4 @@
 import { useEditMode } from "../components/editMode";
-import { AlpacaRoadClient, SpitRoyaleClient } from '../mini_games/client.js';
 import { changeGame } from '../mini_games/init.js';
 import { gEditState, gMinigame, gUI } from "./globals";
 import { changeEditModeCamera } from "./useCamera.js";
@@ -100,29 +99,17 @@ export function useUIManager() {
     gUI.farmMenu = false
   }
 
-  let onlineClient = null;
-
   const openLobbyMenu = (game) => {
     gUI.lobbyMenu = true
     gUI.gameMenu = false
     gMinigame.value.mode = game;
-    gMinigame.value.isReady = false
     gMinigame.value.lobby = []
-    if (game === 2)
-      onlineClient = new SpitRoyaleClient();
-    if (game === 4)
-      onlineClient = new AlpacaRoadClient();
-    if (onlineClient)
-      onlineClient.check();
   }
 
   const closeLobbyMenu = () => {
     gUI.lobbyMenu = false
-    gUI.gameMenu = true
-    if (onlineClient)
-      onlineClient.destroy();
+    //gUI.gameMenu = true
   }
-
 
   return {
     closeMenus,

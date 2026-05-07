@@ -68,12 +68,15 @@ export async function saveGame() {
 
   try {
     const itemsData = getItemsData();
-    await api.put('/users/me/farmdata', {
+    console.log("gUser:", gUser);
+    const res = await api.put('/users/me/farmdata', {
       items: itemsData,
       alpacas: saveAlpacas,
       coins: gUser.value.coins,
-      upgrades: gUser.value.upgrades
+      upgrades: gUser.value.upgrades,
+      herdsize: gUser.value.herdsize
     })
+    console.log(res);
     console.log('✅ Farm stats synced to server')
   } catch (error) {
     console.error('Failed to sync farm stats:', error)

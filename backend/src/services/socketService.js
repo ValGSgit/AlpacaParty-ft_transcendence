@@ -12,17 +12,17 @@
  *   room:{id}         — group chat room
  *   game:{id}         — game session room
  */
-import { Server } from "socket.io";
-import User from "../models/User.js";
-import Friend from "../models/Friend.js";
-import Message from "../models/Message.js";
-import ChatRoom from "../models/ChatRoom.js";
-import Game from "../models/Game.js";
-import NotificationService from "./notificationService.js";
 import cookieParser from "cookie-parser";
-import { initializeSpitRoyaleNamespace } from "./spitRoyaleNamespace.js";
-import { initializeAlpacaRoadNamespace } from "./alpacaRoadNamespace.js";
+import { Server } from "socket.io";
+import ChatRoom from "../models/ChatRoom.js";
+import Friend from "../models/Friend.js";
+import Game from "../models/Game.js";
+import Message from "../models/Message.js";
+import User from "../models/User.js";
+import { MatchManager } from "./MatchManager.js";
+import NotificationService from "./notificationService.js";
 import { socketAuthMiddleware } from "./socketAuth.js";
+import { initializeSpitRoyaleNamespace } from "./spitRoyaleNamespace.js";
 
 /**
  * Compute Elo delta. Simple 32-K factor implementation.
@@ -46,7 +46,8 @@ export function initializeSocket(httpServer, corsOrigins) {
   // Share io with NotificationService so it can push real-time notifications
   NotificationService.setIo(io);
   initializeSpitRoyaleNamespace(io);
-  initializeAlpacaRoadNamespace(io);
+  const alpacaRoadNamespace = io.of('/alpaca-road');
+  const manager = new MatchManager(alpacaRoadNamespace);
 
   // ── Auth middleware ──────────────────────────────────────────
   io.engine.use(cookieParser());
@@ -79,6 +80,7 @@ export function initializeSocket(httpServer, corsOrigins) {
   // ── Connection handler ───────────────────────────────────────
   io.on("connection", async (socket) => {
     const { user } = socket;
+
     try {
       // Join personal room
       socket.join(`user:${user.id}`);
@@ -112,6 +114,10 @@ export function initializeSocket(httpServer, corsOrigins) {
           return ack?.({
             error: "Cannot send message: blocked or you have blocked this user",
           });
+
+        const friends = await Friend.areFriends(user.id, Number(receiverId));
+        if (!friends)
+          return ack?.({ error: "You can only message friends" });
         const msg = await Message.create({
           senderId: user.id,
           receiverId,
@@ -140,7 +146,7 @@ export function initializeSocket(httpServer, corsOrigins) {
 
         // Notification (non-blocking)
         NotificationService.newMessage(receiverId, user.username).catch(
-          () => {},
+          () => { },
         );
 
         ack?.({ ok: true, message: shaped });
@@ -150,7 +156,7 @@ export function initializeSocket(httpServer, corsOrigins) {
     });
 
     socket.on("dm:read", async ({ senderId }) => {
-      await Message.markAsRead(user.id, senderId).catch(() => {});
+      await Message.markAsRead(user.id, senderId).catch(() => { });
     });
 
     // ── Group Chat Rooms ─────────────────────────────────────

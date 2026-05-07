@@ -116,11 +116,14 @@ const config = {
     keyPath: process.env.SSL_KEY_PATH,
   },
 
-  get modUsers() {
-    return (process.env.MOD_USERS || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+  // Groq AI (help desk) — up to 3 keys rotated round-robin
+  groq: {
+    apiKeys: [
+      process.env.GROQ_API_KEY1,
+      process.env.GROQ_API_KEY2,
+      process.env.GROQ_API_KEY3,
+    ].filter(Boolean),
+    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
   },
 
   // File uploads
@@ -144,8 +147,14 @@ const config = {
     // so even when upload is allowed (see allowedMimeTypes), we never serve
     // it inline — uploadSecurity.js forces Content-Disposition: attachment
     // for any mime type not listed here.
-    imageMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
+    imageMimeTypes: [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ],
   },
+
 };
 
 export default config;
