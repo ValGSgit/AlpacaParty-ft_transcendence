@@ -8,24 +8,8 @@
  */
 import dotenv from "dotenv";
 import { validateConfig } from "./validateConfig.js";
-import ms from "ms";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 
-// Load env vars in both Docker and local dev.
-// - Docker: secrets mounted at /run/secrets/.env
-// - Local: project root .env (one level above /backend)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const localEnvPath = path.resolve(__dirname, "../../../.env");
-if (fs.existsSync("/run/secrets/.env")) {
-  dotenv.config({ path: "/run/secrets/.env" });
-} else if (fs.existsSync(localEnvPath)) {
-  dotenv.config({ path: localEnvPath });
-} else {
-  dotenv.config();
-}
+dotenv.config({ path: "/run/secrets/.env" });
 
 const config = {
   port: parseInt(process.env.API_PORT, 10), // needed fallback for testing
@@ -35,25 +19,8 @@ const config = {
 
   jwt: {
     secret: process.env.JWT_SECRET,
-    refreshSecret: process.env.JWT_REFRESH_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
-    cookieOptions: {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: ms(process.env.JWT_EXPIRES_IN),
-      path: "/",
-    },
-    cookieOptionsRefresh: {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: ms(process.env.JWT_REFRESH_EXPIRES_IN),
-      path: "/api/auth/refresh",
-    },
-    publicApiSecret: process.env.JWT_PUBLIC_API_SECRET,
-    publicApiExpiresIn: process.env.JWT_PUBLIC_API_EXPIRES_IN,
   },
 
   // PostgreSQL connection (Issue #7)
@@ -78,11 +45,6 @@ const config = {
   rateLimit: {
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 1000,
-  },
-
-  rateLimitPublicApi: {
-    windowMs: 60 * 1000, // 1 minutes
-    max: 30,
   },
 
   password: {
@@ -116,11 +78,32 @@ const config = {
     keyPath: process.env.SSL_KEY_PATH,
   },
 
+  // Secrets loaded from Vault (production) or env vars (development).
+  // apiKeys uses a getter so it always reads the current process.env value,
+  // which allows Vault to populate it after module load.
+  get apiKeys() {
+    return new Set(
+      (process.env.API_KEYS || "")
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean),
+    );
+  },
   get modUsers() {
     return (process.env.MOD_USERS || "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+  },
+
+  // Groq AI (help desk) — up to 3 keys rotated round-robin
+  groq: {
+    apiKeys: [
+      process.env.GROQ_API_KEY1,
+      process.env.GROQ_API_KEY2,
+      process.env.GROQ_API_KEY3,
+    ].filter(Boolean),
+    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
   },
 
   // File uploads
@@ -144,8 +127,14 @@ const config = {
     // so even when upload is allowed (see allowedMimeTypes), we never serve
     // it inline — uploadSecurity.js forces Content-Disposition: attachment
     // for any mime type not listed here.
-    imageMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
+    imageMimeTypes: [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ],
   },
+
 };
 
 export default config;
