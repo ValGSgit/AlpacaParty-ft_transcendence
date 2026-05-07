@@ -57,7 +57,11 @@ vault kv put secret/alpacaparty \
   google_client_id="${GOOGLE_CLIENT_ID:-}" \
   google_client_secret="${GOOGLE_CLIENT_SECRET:-}" \
   github_client_id="${GITHUB_CLIENT_ID:-}" \
-  github_client_secret="${GITHUB_CLIENT_SECRET:-}"
+  github_client_secret="${GITHUB_CLIENT_SECRET:-}" \
+  groq_api_key1="${GROQ_API_KEY1:-}" \
+  groq_api_key2="${GROQ_API_KEY2:-}" \
+  groq_api_key3="${GROQ_API_KEY3:-}" \
+  groq_model="${GROQ_MODEL:-}"
 
 echo "[vault-seed] Secrets written."
 
