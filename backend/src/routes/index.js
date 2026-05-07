@@ -13,6 +13,7 @@ import postRoutes from './posts.js';
 import notificationRoutes from './notifications.js';
 import uploadRoutes from './uploads.js';
 import publicRoutes from './public.js';
+import helpdeskRoutes from './helpdesk.js';
 
 const router = express.Router();
 
@@ -36,5 +37,6 @@ router.use('/posts', postRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/uploads', uploadRoutes);
 router.use('/public', publicRoutes);
+router.use('/helpdesk', helpdeskRoutes);
 
 export default router;
