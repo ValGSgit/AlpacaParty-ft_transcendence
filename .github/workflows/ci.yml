@@ -197,7 +197,6 @@ jobs:
       JWT_EXPIRES_IN: 1h
       JWT_REFRESH_EXPIRES_IN: 7d
       VAULT_DEV_TOKEN: root
-      MOD_USERS: live_admin
 
     steps:
       - name: Checkout

@@ -16,7 +16,6 @@ const KEY_MAP = {
   google_client_secret: "GOOGLE_CLIENT_SECRET",
   github_client_id: "GITHUB_CLIENT_ID",
   github_client_secret: "GITHUB_CLIENT_SECRET",
-  mod_users: "MOD_USERS",
 };
 
 /**
