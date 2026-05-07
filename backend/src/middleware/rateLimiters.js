@@ -1,7 +1,7 @@
 /**
  * Per-user (authenticated) and per-IP (anonymous) rate limiters for the
  * user-generated content surface: posts, comments, chat, uploads, friend
- * requests, organization creation. Applied per-route so a user abusing one
+ * requests. Applied per-route so a user abusing one
  * endpoint does not starve others.
  */
 import rateLimit from "express-rate-limit";
@@ -25,5 +25,4 @@ export const likeLimiter          = make(60_000, 120, "Too many like/unlike acti
 export const uploadLimiter        = make(60_000,  20, "Too many uploads — try again in a minute.");
 export const chatSendLimiter      = make(10_000,  20, "Sending messages too fast.");
 export const friendRequestLimiter = make(60_000,  20, "Too many friend requests — slow down.");
-export const orgWriteLimiter      = make(60_000,  10, "Too many organization changes.");
 export const helpdeskLimiter      = make(60_000,  20, "Too many help desk messages — slow down.");
