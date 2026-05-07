@@ -22,6 +22,7 @@ jest.unstable_mockModule('../../../src/models/User.js', () => ({
 jest.unstable_mockModule('../../../src/models/Friend.js', () => ({
   default: {
     isBlockedBetween: jest.fn(),
+    areFriends: jest.fn(),
   },
 }))
 
@@ -111,6 +112,36 @@ beforeEach(async () => {
   initializeSocket = module.initializeSocket
 })
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+let Friend, Message
+
+beforeEach(async () => {
+  Friend = (await import('../../../src/models/Friend.js')).default
+  Message = (await import('../../../src/models/Message.js')).default
+})
+
+async function connectSocket(overrides = {}) {
+  mockChatRoom.getUserRooms.mockResolvedValue([])
+  initializeSocket({}, ['https://localhost:8443'])
+
+  const dmHandlers = {}
+  const socket = {
+    id: 'socket-1',
+    user: { id: 7, username: 'alice', avatar: null },
+    join: jest.fn(),
+    disconnect: jest.fn(),
+    emit: jest.fn(),
+    on: jest.fn((event, handler) => { dmHandlers[event] = handler }),
+    _trigger: (event, ...args) => dmHandlers[event]?.(...args),
+    ...overrides,
+  }
+  await connectionHandler(socket)
+  return socket
+}
+
+// ── initializeSocket ──────────────────────────────────────────────────────────
+
 describe('initializeSocket', () => {
   test('disconnects the socket when connection setup fails', async () => {
     mockChatRoom.getUserRooms.mockRejectedValue(new Error('room lookup failed'))
@@ -130,5 +161,56 @@ describe('initializeSocket', () => {
     expect(socket.join).toHaveBeenCalledWith('user:7')
     expect(socket.disconnect).toHaveBeenCalledWith(true)
     expect(socket.on).not.toHaveBeenCalled()
+  })
+})
+
+// ── dm:send ───────────────────────────────────────────────────────────────────
+
+describe('dm:send', () => {
+  test('rejects when sender and receiver are the same user', async () => {
+    const socket = await connectSocket()
+    const ack = jest.fn()
+    await socket._trigger('dm:send', { receiverId: 7, content: 'hi' }, ack)
+    expect(ack).toHaveBeenCalledWith({ error: 'Cannot send a message to yourself' })
+  })
+
+  test('rejects when either user has blocked the other', async () => {
+    Friend.isBlockedBetween.mockResolvedValue(true)
+    const socket = await connectSocket()
+    const ack = jest.fn()
+    await socket._trigger('dm:send', { receiverId: 99, content: 'hi' }, ack)
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringMatching(/blocked/) }))
+    expect(Message.create).not.toHaveBeenCalled()
+  })
+
+  test('rejects when users are not friends', async () => {
+    Friend.isBlockedBetween.mockResolvedValue(false)
+    Friend.areFriends.mockResolvedValue(false)
+    const socket = await connectSocket()
+    const ack = jest.fn()
+    await socket._trigger('dm:send', { receiverId: 99, content: 'hi' }, ack)
+    expect(ack).toHaveBeenCalledWith({ error: 'You can only message friends' })
+    expect(Message.create).not.toHaveBeenCalled()
+  })
+
+  test('sends message when users are friends and not blocked', async () => {
+    Friend.isBlockedBetween.mockResolvedValue(false)
+    Friend.areFriends.mockResolvedValue(true)
+    Message.create.mockResolvedValue({
+      id: 1, senderId: 7, receiverId: 99, content: 'hi',
+      isRead: false, createdAt: new Date(),
+    })
+    const socket = await connectSocket()
+    const ack = jest.fn()
+    await socket._trigger('dm:send', { receiverId: 99, content: 'hi' }, ack)
+    expect(Message.create).toHaveBeenCalled()
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ ok: true }))
+  })
+
+  test('rejects when content is empty', async () => {
+    const socket = await connectSocket()
+    const ack = jest.fn()
+    await socket._trigger('dm:send', { receiverId: 99, content: '   ' }, ack)
+    expect(ack).toHaveBeenCalledWith({ error: 'Empty message' })
   })
 })

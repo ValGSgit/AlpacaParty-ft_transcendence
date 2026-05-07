@@ -114,6 +114,10 @@ export function initializeSocket(httpServer, corsOrigins) {
           return ack?.({
             error: "Cannot send message: blocked or you have blocked this user",
           });
+
+        const friends = await Friend.areFriends(user.id, Number(receiverId));
+        if (!friends)
+          return ack?.({ error: "You can only message friends" });
         const msg = await Message.create({
           senderId: user.id,
           receiverId,
