@@ -22,4 +22,8 @@ $run_with_secrets $prisma generate
 echo "Seed database"
 $run_with_secrets npm run seed
 
+echo "Build docs"
+rm -f /app/src/docs/swagger-output-public-api.json
+npm run buildDocs
+
 exec "$@"

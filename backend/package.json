@@ -7,6 +7,7 @@
   "imports": {
     "#config/*.js": "./src/config/*.js",
     "#controllers/*.js": "./src/controllers/*.js",
+    "#docs/*.js": "./src/docs/*.js",
     "#lib/prisma.js": "./src/config/prisma.js",
     "#lib/*.js": "./src/lib/*.js",
     "#middleware/*.js": "./src/middleware/*.js",
@@ -24,7 +25,8 @@
     "seed:exampleData:reset": "SEED_RESET=true node prisma/seedExampleData.js --reset",
     "seed:live": "node prisma/seedExampleData.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --coverage",
-    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --watchAll"
+    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --watchAll",
+    "buildDocs": "node src/docs/swaggerPublicApi.js"
   },
   "keywords": [
     "alpacaparty",
@@ -55,7 +57,8 @@
     "prisma": "^7.4.2",
     "socket.io": "^4.8.0",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "swagger-autogen": "^2.3.1"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.0",

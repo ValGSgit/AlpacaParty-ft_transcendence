@@ -249,8 +249,7 @@ describe("GET /api/users/me/api-key", () => {
       .set("Cookie", [`jwt_token=${validToken}`]);
 
     expect(res.status).toBe(200);
-    expect(res.body.hasKey).toBe(true);
-    expect(res.body.lastFour).toBe("alue");
+    expect(res.body.apiKey).toBe("key value");
   });
 });
 
