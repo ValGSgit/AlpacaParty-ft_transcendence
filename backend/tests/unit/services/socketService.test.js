@@ -56,7 +56,7 @@ jest.unstable_mockModule('../../../src/models/Game.js', () => ({
 jest.unstable_mockModule('../../../src/services/notificationService.js', () => ({
   default: {
     setIo: mockSetIo,
-    newMessage: jest.fn(),
+    newMessage: jest.fn().mockResolvedValue(undefined),
   },
 }))
 
