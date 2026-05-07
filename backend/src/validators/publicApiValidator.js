@@ -18,6 +18,11 @@ const sharedPostValidations = [
     .withMessage("imageUrl must be a valid URL format")
     .isLength({ max: 2048 })
     .withMessage("imageUrl must be 2048 characters or fewer"),
+
+  body("isPublic")
+    .optional({ values: "falsy" })
+    .isBoolean()
+    .withMessage("isPublic must be boolean"),
 ];
 
 export const postCreateValidation = () => [...sharedPostValidations];

@@ -16,7 +16,10 @@ const KEY_MAP = {
   google_client_secret: "GOOGLE_CLIENT_SECRET",
   github_client_id: "GITHUB_CLIENT_ID",
   github_client_secret: "GITHUB_CLIENT_SECRET",
-  mod_users: "MOD_USERS",
+  groq_api_key1: "GROQ_API_KEY1",
+  groq_api_key2: "GROQ_API_KEY2",
+  groq_api_key3: "GROQ_API_KEY3",
+  groq_model: "GROQ_MODEL",
 };
 
 /**

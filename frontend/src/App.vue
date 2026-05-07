@@ -98,12 +98,13 @@
       <div class="footer-container">
         <span class="footer-copy">&copy; 2026 AlpacaParty</span>
         <div class="footer-links">
-          <router-link to="/docs">API Docs</router-link>
+          <a href="/api/docs/public">API Docs</a>
           <router-link to="/privacy">Privacy Policy</router-link>
           <router-link to="/terms">Terms of Service</router-link>
         </div>
       </div>
     </footer>
+    <HelpDeskChat v-if="authStore.isAuthenticated" />
   </div>
 </template>
 
@@ -114,7 +115,7 @@ import { useAuthStore } from './stores/auth.js'
 import api from './services/api.js'
 import { connectSocket, disconnectSocket } from './services/socket.js'
 import Messages from './views/Messages.vue';
-import NotifBadge from './components/NotifBadge.vue';
+import HelpDeskChat from './components/HelpDeskChat.vue';
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -203,10 +204,13 @@ function handleOutsideClick(e) {
 // Connect socket when authenticated
 watch(() => authStore.isAuthenticated, (isAuth) => {
   if (isAuth) {
-      const sock = connectSocket()
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+      const sock = connectSocket(token)
       sock.on('notification', () => {
         unreadCount.value++
       })
+    }
     fetchUnreadCount()
   } else {
     disconnectSocket()

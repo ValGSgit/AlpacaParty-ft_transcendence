@@ -21,6 +21,7 @@ services:
       # ── App config (non-secret) ───────────────────────────────
       JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-1h}"
       JWT_REFRESH_EXPIRES_IN: "${JWT_REFRESH_EXPIRES_IN:-7d}"
+      JWT_PUBLIC_API_EXPIRES_IN: "${JWT_PUBLIC_API_EXPIRES_IN:-30d}"
       CORS_ORIGINS: ${CORS_ORIGINS:-https://localhost:8443}
       FRONTEND_URL: ${FRONTEND_URL:-https://localhost:8443}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://localhost:8443/api/auth/google/callback}

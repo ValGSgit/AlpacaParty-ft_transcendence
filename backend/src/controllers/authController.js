@@ -10,6 +10,7 @@ import { oauthTokensForUser } from "../services/oauthService.js";
 import config from "../config/index.js";
 import { customValidationResult } from "#validators/validatorUtils.js";
 import CustomError from "#utils/CustomError.js";
+import passport from "passport";
 
 /**
  * POST /api/auth/register
@@ -139,6 +140,25 @@ export const refresh = async (req, res, next) => {
  */
 export const me = async (req, res) =>
   res.json({ user: shapeUserForClient(req.user) });
+
+export const googleAuth = (req, res, next) => {
+  passport.authenticate("google", { session: false }, (err, user, info) => {
+    const frontendLogin = `${config.frontendUrl}/login`;
+
+    // Catch internal provider errors
+    if (err) {
+      console.error("Google OAuth Error:", err.message);
+      return res.redirect(`${frontendLogin}?error=oauth_provider_error`);
+    }
+
+    // Catch auth failures
+    if (!user) {
+      return res.redirect(`${frontendLogin}?error=access_denied`);
+    }
+    req.user = user;
+    next();
+  })(req, res, next);
+};
 
 /**
  * OAuth callback (Google / GitHub)

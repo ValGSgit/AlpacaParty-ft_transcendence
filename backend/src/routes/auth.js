@@ -13,12 +13,14 @@ import {
   refresh,
   me,
   oauthCallback,
+  googleAuth,
 } from "../controllers/authController.js";
 import { authenticate } from "../middleware/auth.js";
 import {
   authLoginValidation,
   authRegisterValidation,
 } from "#validators/authValidator.js";
+import config from "#config/index.js";
 
 const router = express.Router();
 
@@ -186,13 +188,20 @@ router.get(
     session: false,
   }),
 );
+// router.get(
+//   "/google/callback",
+//   requireStrategy("google"),
+//   passport.authenticate("google", {
+//     failureRedirect: "/login",
+//     session: false,
+//   }),
+//   oauthCallback,
+// );
+
 router.get(
   "/google/callback",
   requireStrategy("google"),
-  passport.authenticate("google", {
-    failureRedirect: "/login",
-    session: false,
-  }),
+  googleAuth,
   oauthCallback,
 );
 
