@@ -108,11 +108,116 @@ router.use(
   }),
 );
 
-router.get("/users", limitValidation(100), checkValidation, listUsers);
-router.get("/users/:id", idParamValidation(), checkValidation, getUser);
-router.get("/posts", limitValidation(100), checkValidation, getPosts);
-router.post("/posts", postCreateValidation(), checkValidation, createPost);
-router.put("/posts/:id", postUpdateValidation(), checkValidation, updatePost);
-router.delete("/posts/:id", idParamValidation(), checkValidation, deletePost);
+router.get(
+  "/users",
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Get users'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.responses[200] = { description: 'Success.' }
+    #swagger.responses[400] = { description: 'Failed.' }
+  */
+  limitValidation(100),
+  checkValidation,
+  listUsers,
+);
+
+router.get(
+  "/users/:id",
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Get user by ID'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.parameters['id'] = { description: 'ID of the user to retrieve' }
+    #swagger.responses[200] = { description: 'Success.' }
+    #swagger.responses[400] = { description: 'Failed.' }
+    #swagger.responses[404] = { description: 'User not found.' }
+  */
+  idParamValidation(),
+  checkValidation,
+  getUser,
+);
+
+router.get(
+  "/posts",
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Get posts'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.responses[200] = { description: 'Success.' }
+    #swagger.responses[400] = { description: 'Failed.' }
+  */
+  limitValidation(100),
+  checkValidation,
+  getPosts,
+);
+
+router.post(
+  "/posts",
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Create a new post'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.parameters['body'] = {
+      in: 'body',
+      description: 'Post creation data',
+      required: true
+    }
+    #swagger.responses[201] = { description: 'Post created successfully.' }
+    #swagger.responses[400] = { description: 'Failed validation.' }
+  */
+  postCreateValidation(),
+  checkValidation,
+  createPost,
+);
+
+router.put(
+  "/posts/:id",
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Update an existing post by ID'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.parameters['id'] = { description: 'ID of the post to update' }
+    #swagger.parameters['body'] = {
+      in: 'body',
+      description: 'Updated post data',
+      required: true
+    }
+    #swagger.responses[200] = { description: 'Post updated successfully.' }
+    #swagger.responses[400] = { description: 'Failed validation.' }
+    #swagger.responses[404] = { description: 'Post not found.' }
+  */
+  postUpdateValidation(),
+  checkValidation,
+  updatePost,
+);
+
+router.delete(
+  "/posts/:id",
+  /**
+    #swagger.tags = ['PublicApi']
+    #swagger.description = 'Delete a post by ID'
+    #swagger.security = [{
+      "apiKeyAuth": []
+    }]
+    #swagger.parameters['id'] = { description: 'ID of the post to delete' }
+    #swagger.responses[200] = { description: 'Post deleted successfully.' }
+    #swagger.responses[400] = { description: 'Failed.' }
+    #swagger.responses[404] = { description: 'Post not found.' }
+  */
+  idParamValidation(),
+  checkValidation,
+  deletePost,
+);
 
 export default router;

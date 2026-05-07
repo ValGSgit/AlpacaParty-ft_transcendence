@@ -8,7 +8,8 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
-import swaggerSpec from "#config/swagger.js";
+import swaggerSpec from "#docs/swagger.js";
+import swaggerFilePubliApi from "./docs/swagger-output-public-api.json" with { type: "json" };
 import config from "#config/index.js";
 import routes from "#routes/index.js";
 import prisma from "#config/prisma.js";
@@ -88,7 +89,18 @@ if (config.envIsDev) {
 }
 
 // API docs (Swagger UI)
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+if (config.envIsDev) {
+  app.use(
+    "/api/docs/dev",
+    swaggerUi.serveFiles(swaggerSpec),
+    swaggerUi.setup(swaggerSpec),
+  );
+}
+app.use(
+  "/api/docs/public",
+  swaggerUi.serveFiles(swaggerFilePubliApi),
+  swaggerUi.setup(swaggerFilePubliApi),
+);
 
 // API routes
 app.use("/api", routes);
