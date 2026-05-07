@@ -52,6 +52,13 @@ export function usePlayerControls() {
     return isVerticalMoving;
   }
 
+  const handleSpitting = (player) => {
+    if (keys.f) {
+      player.spit();
+      keys.f = false;
+    }
+  }
+
   const handleWalking = (player, delta) => {
     const { model } = player;
 
@@ -95,6 +102,7 @@ export function usePlayerControls() {
     const isJumping = handleJumping(player, delta);
     const { dir, speed, nextRotY, isWalking } = handleWalking(player, delta);
     const { handleMoving } = alpacaAI(); // for double click moving
+    handleSpitting(player);
 
     if (isWalking) {
       checkMovement(model, dir, speed, nextRotY);

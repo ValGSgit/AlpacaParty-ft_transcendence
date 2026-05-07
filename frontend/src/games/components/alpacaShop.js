@@ -3,13 +3,13 @@ import { CONST } from '../config/constants';
 import { createAlpaca } from '../core/createObjects';
 import { useUIManager } from "../core/useUIManager";
 import { setupPlacement } from './editMode';
-import { checkCoinsPrice } from './upgradeFarm';
+import { checkCoinsPrice, checkHerdSize } from './upgradeFarm';
 
 export function alpacaShop() {
   const { closeMenus } = useUIManager()
 
   async function buyAlpaca() {
-    if (!checkCoinsPrice(CONST.ALPACA_COST)) {
+    if (!checkCoinsPrice(CONST.ALPACA_COST) || !checkHerdSize()) {
       return;
     }
 

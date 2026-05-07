@@ -1,11 +1,11 @@
 import { CONST } from '../config/constants.js';
 import { shopItems } from '../core/entities/Item.js';
-import { gScene, gUser } from '../core/globals.js';
+import { gAlpacas, gScene, gUser } from '../core/globals.js';
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js';
 
 const UPGRADE_COST = [25, 50, 100, 250, 500];
-const HERDSIZE_COST = [5, 15, 25, 50, 100];
-const HERDSIZES = [3, 5, 7, 10, 15, 20];
+const HERDSIZE_COST = [15, 25, 50, 100];
+const HERDSIZES = [3, 5, 10, 15, 25];
 
 export function upgradeFarm() {
 
@@ -36,7 +36,20 @@ export function upgradeFarm() {
     const treeGroup = await spawnObjectRandomly(tree, 2, true);
     gScene.value.add(treeGroup);
   }
-  return { increaseFarmSize }
+
+  const increaseHerdSize = (level) => {
+    const cost = getHerdSizeCost(level);
+
+    if (cost === "Max" || level >= UPGRADE_COST.length) {
+      alert("You reached max herdsize!");
+      return;
+    }
+    if (!checkCoinsPrice(cost)) return;
+
+    gUser.value.coins -= cost;
+    gUser.value.herdsize++;
+  }
+  return { increaseFarmSize, increaseHerdSize }
 }
 
 export function getUpgradeCost(level) {
@@ -44,9 +57,29 @@ export function getUpgradeCost(level) {
   return UPGRADE_COST[level];
 }
 
+export function getHerdSizeCost(level) {
+  if (level >= HERDSIZE_COST.length) return "Max";
+  return HERDSIZE_COST[level];
+}
+
+export function getHerdSize(level) {
+  console.log(level)
+  if (level < HERDSIZES.length)
+    return HERDSIZES[level];
+  return 0;
+}
+
 export function checkCoinsPrice(cost) {
   if (gUser.value.coins < cost) {
     alert('Not enough coins!');
+    return false;
+  }
+  return true;
+}
+
+export function checkHerdSize() {
+  if (gAlpacas.length >= getHerdSize(gUser.value.herdsize)) {
+    alert('Herdsize limit reached!');
     return false;
   }
   return true;

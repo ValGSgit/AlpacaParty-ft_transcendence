@@ -3,12 +3,14 @@ import { gUser } from '../core/globals.js';
 
 export async function loadGameData() {
   try {
-    const { data } = await api.get('/users/me')
-    console.log("Data:", data);
-    gUser.value.name = data.user.username;
-    gUser.value.coins = data.user.coins
-    gUser.value.upgrades = data.user.upgrades
-    return data.user
+    const res = await api.get('/users/me/farmdata')
+    const farmData = res.data.farmData;
+    gUser.value.coins = farmData.coins;
+    gUser.value.upgrades = farmData.upgrades;
+    gUser.value.herdsize = farmData.herdsize;
+
+    console.log("FarmData:", farmData);
+    return farmData
   } catch (error) {
     console.error('Failed to load user stats:', error)
     return null
