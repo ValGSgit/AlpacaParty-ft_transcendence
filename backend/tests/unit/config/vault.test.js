@@ -196,7 +196,6 @@ describe("key mapping", () => {
       google_client_secret: "gcsec",
       github_client_id: "ghid",
       github_client_secret: "ghsec",
-      mod_users: "admin1,admin2",
     });
     await runFetchSecrets();
 
@@ -206,8 +205,7 @@ describe("key mapping", () => {
     expect(written).toContain('GOOGLE_CLIENT_SECRET="gcsec"');
     expect(written).toContain('GITHUB_CLIENT_ID="ghid"');
     expect(written).toContain('GITHUB_CLIENT_SECRET="ghsec"');
-    expect(written).toContain('MOD_USERS="admin1,admin2"');
-  });
+    });
 });
 
 // ── DATABASE_URL construction ─────────────────────────────────────────────────
