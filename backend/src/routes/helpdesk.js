@@ -6,6 +6,7 @@ import express from 'express';
 import { body } from 'express-validator';
 import { checkValidation } from '../validators/validatorUtils.js';
 import { helpdeskLimiter } from '../middleware/rateLimiters.js';
+import { authenticate } from '../middleware/auth.js';
 import config from '#config/index.js';
 
 const router = express.Router();
@@ -27,7 +28,6 @@ AlpacaParty is a web-based platform where users can:
 - Build a social profile and share posts on the Feed
 - Add friends and manage friend requests
 - Send direct messages to other players
-- Join and create organizations (guilds/clubs)
 - Earn coins and achievements through gameplay
 - Compete on leaderboards
 
@@ -75,6 +75,7 @@ Always sign off short answers with a friendly alpaca-themed closing when appropr
 
 router.post(
   '/chat',
+  authenticate,
   helpdeskLimiter,
   [
     body('messages')

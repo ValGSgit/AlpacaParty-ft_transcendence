@@ -104,7 +104,7 @@
         </div>
       </div>
     </footer>
-    <HelpDeskChat />
+    <HelpDeskChat v-if="authStore.isAuthenticated" />
   </div>
 </template>
 

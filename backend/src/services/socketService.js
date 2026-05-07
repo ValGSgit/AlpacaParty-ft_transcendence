@@ -78,9 +78,8 @@ export function initializeSocket(httpServer, corsOrigins) {
 
   // ── Connection handler ───────────────────────────────────────
   io.on("connection", async (socket) => {
+    const { user } = socket;
     try {
-      const { user } = socket;
-
       // Join personal room
       socket.join(`user:${user.id}`);
       await markOnline(user.id, socket.id);
