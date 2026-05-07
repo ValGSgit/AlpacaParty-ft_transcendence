@@ -4,7 +4,7 @@ export class AlpacaRoadMatch extends BaseMatch {
   constructor(id, namespace, roomName, onStateChange) {
     super(id, namespace, roomName, onStateChange);
     this.obstacles = [];
-    this.tickRate = 33;
+    this.tickRate = 10;
     this.isPlaying = false;
 
     this.level = 1;
@@ -66,7 +66,6 @@ export class AlpacaRoadMatch extends BaseMatch {
     }
   }
 
-  //TODO:
   handlePlayerJump(socketId) {
     const player = this.players.get(socketId);
     if (player && !player.isDead && !player.isJumping) {
@@ -75,7 +74,7 @@ export class AlpacaRoadMatch extends BaseMatch {
         if (this.players.has(socketId)) {
           this.players.get(socketId).isJumping = false;
         }
-      }, 700);
+      }, 600);
     }
   }
 
