@@ -13,6 +13,7 @@ export const getFarmData = async (req, res, next) => {
       },
     });
 
+    console.log("")
     res.status(200).json({ farmData: farmData });
   } catch (err) {
     next(err);
@@ -24,7 +25,7 @@ export const getFarmData = async (req, res, next) => {
  */
 export const updateFarmData = async (req, res, next) => {
   const id = Number(req.user.id);
-  const { items, alpacas, coins, upgrades } = req.body;
+  const { items, alpacas, coins, upgrades, herdsize } = req.body;
 
   try {
     const updatedFarmData = await prisma.alpacaFarm.upsert({
@@ -36,6 +37,7 @@ export const updateFarmData = async (req, res, next) => {
         alpacas: alpacas,
         coins: coins,
         upgrades: upgrades,
+        herdsize: herdsize
       },
       create: {
         userId: id,
@@ -43,6 +45,7 @@ export const updateFarmData = async (req, res, next) => {
         alpacas: alpacas ?? [],
         coins: coins ?? 10,
         upgrades: upgrades ?? 0,
+        herdsize: herdsize ?? 0,
       },
     });
 

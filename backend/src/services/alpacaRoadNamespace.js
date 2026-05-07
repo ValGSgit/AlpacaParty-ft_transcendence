@@ -15,7 +15,6 @@ const playerToMatch = new Map();
 export function initializeAlpacaRoadNamespace(io) {
   const namespace = io.of('/alpaca-road');
 
-
   // --- HELPER: Random Non-Overlapping Spawn ---
   function getValidSpawn(players) {
     const existingPlayers = Object.values(players).length;

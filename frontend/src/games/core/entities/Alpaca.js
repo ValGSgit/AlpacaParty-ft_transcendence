@@ -151,8 +151,7 @@ export class Alpaca {
 
     if (this.hp === 0) {
       this.isDead = 1 // dead
-      //remove itself from gCollidables
-      removeFromArray(this.model, gCollidables)
+      removeFromArray(this.model, gCollidables) //remove itself from gCollidables
       alpaca.point++ // credit for the spit owner
       if (alpaca === gPlayer.value)
         gUser.value.point++ // for display

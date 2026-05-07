@@ -8,6 +8,7 @@ export const gPlayer = shallowRef(null)
 export const gUser = ref({
   coins: 999,
   upgrades: 0,
+  herdsize: 0,
   point: 0,
   hp: CONST.HP,
   name: "Alpaca",
@@ -19,8 +20,10 @@ export const gMinigame = ref({
   isReady: false,
   isOnline: false,
   mode: 0,
-  players: [],
   aliveCount: 0,
+  players: [],
+  currentRoomName: null,
+  publicRooms: [],
   lobby: []
 })
 

@@ -7,21 +7,18 @@ import { loadGameData } from './dataLoader.js'
 import { setupEnvironment } from './sceneBuilder.js'
 
 export async function initWorld(scene, isAuthenticated = false) {
-  // Load user data BEFORE setting up the environment so that
-  // CONST.FLOOR_RADIUS (which reads gUser.upgrades) is correct
-  // when the floor geometry is created.
-  let user = null
+  let data = null
   if (isAuthenticated) {
     try {
-      user = await loadGameData()
+      data = await loadGameData()
     } catch (e) {
       console.error('Failed to load game data, starting fresh.', e)
     }
   }
 
   setupEnvironment(scene)
-  await initAlpacas(scene, user)
-  await initItems(scene, user?.items)
+  await initAlpacas(scene, data)
+  await initItems(scene, data?.items)
 }
 
 export async function initAlpacas(scene, user) {
