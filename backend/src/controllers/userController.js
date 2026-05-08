@@ -179,18 +179,17 @@ export const listUsers = async (req, res, next) => {
     const limit = Math.min(pageSize, 100);
     const offset = Number(req.query.offset) || Math.max((page - 1) * limit, 0);
     const search = req.query.search ? String(req.query.search).trim() : "";
+    const excludeUserId = Number(req.query.excludeUserId) || undefined;
 
-    const users = search
-      ? await User.search(req.user.id, search, { limit })
-      : await User.findAll({ limit, offset, currentUserId: req.user.id });
-    const visibleUsers = users.filter((u) => {
-      const isPublic = u.userSettings?.isPublic ?? u.isPublic ?? true;
-      return isPublic || Number(u.id) === Number(req.user.id);
-    });
-    const total = await User.count();
+    const searchRes =
+      search && search.length > 0
+        ? await User.search(search, { limit, offset }, excludeUserId, false)
+        : await User.findAll({ limit, offset }, false);
+    const users = searchRes.usersFound;
+    const total = searchRes.userCount;
 
     res.json({
-      users: visibleUsers,
+      users,
       total,
       limit,
       offset,

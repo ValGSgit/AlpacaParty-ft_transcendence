@@ -31,22 +31,36 @@ const isUserPublic = (user) => {
 /** GET /api/public/users?search=&limit=20&offset=0 */
 export const listUsers = async (req, res, next) => {
   try {
-    const { search, limit = 20, offset = 0 } = req.query;
-    let users;
-    if (search) {
-      users = await User.search(null, search, {
-        limit: Number(limit),
-        offset: Number(offset),
-      });
-    } else {
-      users = await User.findAll({
-        limit: Number(limit),
-        offset: Number(offset),
-      });
-    }
+    let { search, limit = 20, offset = 0 } = req.query;
+    search = search ? String(search).trim() : "";
+
+    const searchRes =
+      search && search.length > 0
+        ? await User.search(
+            search,
+            {
+              limit: Number(limit),
+              offset: Number(offset),
+            },
+            -1,
+            true,
+          )
+        : await User.findAll(
+            {
+              limit: Number(limit),
+              offset: Number(offset),
+            },
+            -1,
+            true,
+          );
+
+    const users = searchRes.usersFound;
+    const total = searchRes.userCount;
+
     // Strip private profiles and remove sensitive fields.
     res.json({
       users: users.filter((u) => isUserPublic(u)).map((u) => toPublicUser(u)),
+      total,
     });
   } catch (err) {
     next(err);

@@ -206,8 +206,8 @@ describe("User.findAll", () => {
   test("should return array of users with default pagination", async () => {
     mockPrisma.user.findMany.mockResolvedValue([fakeUser]);
     const result = await User.findAll();
-    expect(Array.isArray(result)).toBe(true);
-    expect(result).toHaveLength(1);
+    expect(Array.isArray(result.usersFound)).toBe(true);
+    expect(result.usersFound).toHaveLength(1);
     expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 50, skip: 0 }),
     );
@@ -223,21 +223,20 @@ describe("User.findAll", () => {
 });
 
 describe("User.search", () => {
-  // Signature: search(currentUserId, term, { limit, offset } = {})
-  // currentUserId is used to filter out users who have a BlockedUser row in
-  // either direction with the viewer.
-  const VIEWER = 1;
-
-  test("should pass term as startsWith pattern", async () => {
+  test("should pass term as contains pattern", async () => {
     mockPrisma.user.findMany.mockResolvedValue([fakeUser]);
-    const result = await User.search(VIEWER, "test");
-    expect(result).toHaveLength(1);
+    const result = await User.search("test");
+    expect(result.usersFound).toHaveLength(1);
     expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          OR: expect.arrayContaining([
+          AND: expect.arrayContaining([
             expect.objectContaining({
-              username: { startsWith: "test", mode: "insensitive" },
+              OR: expect.arrayContaining([
+                expect.objectContaining({
+                  username: { contains: "test", mode: "insensitive" },
+                }),
+              ]),
             }),
           ]),
         }),
@@ -247,8 +246,8 @@ describe("User.search", () => {
 
   test("should return empty array when no matches", async () => {
     mockPrisma.user.findMany.mockResolvedValue([]);
-    const result = await User.search(VIEWER, "zzz");
-    expect(result).toHaveLength(0);
+    const result = await User.search("zzz");
+    expect(result.usersFound).toHaveLength(0);
   });
 
   test("should forward custom limit", async () => {

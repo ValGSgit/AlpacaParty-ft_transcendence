@@ -51,23 +51,20 @@
       <div v-for="n in 4" :key="n" class="skeleton-card"></div>
     </div>
 
-    <!-- ── Tab content ── -->
-    <transition name="tab-slide" mode="out-in">
-
-      <!-- ══ Friends ══ -->
-      <div v-if="activeTab === 'friends' && !loading" key="friends" class="tab-pane">
-
-        <!-- Search + sort toolbar -->
-        <div class="toolbar">
-          <div class="search-wrap">
-            <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
-            <input v-model="friendSearch" type="text" placeholder="Search friends…" class="search-input" />
-          </div>
-          <select v-model="friendSort" class="sort-select">
-            <option value="name">Name</option>
-            <option value="online">Online first</option>
-            <option value="level">Level</option>
-          </select>
+      <!-- Discover users -->
+      <div class="discover-section">
+        <h3>Discover Users</h3>
+        <div class="search-toolbar">
+          <input
+            v-model="userSearch"
+            type="text"
+            placeholder="Search all users…"
+            @keyup.enter="searchUsers"
+            class="search-input"
+          />
+          <button class="btn-primary btn-sm" @click="searchUsers()" :disabled="searchingUsers">
+            {{ searchingUsers ? 'Searching…' : 'Search' }}
+          </button>
         </div>
 
         <ul v-if="filteredFriends.length" class="card-list">
@@ -355,12 +352,14 @@ async function searchUsers() {
   searchingUsers.value = true
   try {
     const { data } = await api.get('/users', {
-      params: { search: userSearch.value.trim(), limit: searchPageSize, offset: searchPage.value * searchPageSize },
-    })
-    const blockedIds = new Set(blocked.value.map((b) => Number(b.id)))
-    searchResults.value = (data.users || []).filter(
-      (u) => Number(u.id) !== Number(authStore.user?.id) && !blockedIds.has(Number(u.id))
-    )
+      params: {
+        search: userSearch.value.trim(), 
+        limit: searchPageSize,
+        offset: searchPage.value * searchPageSize,
+        excludeUserId: authStore.user.id
+      },
+    });
+    searchResults.value = data.users || [];
     searchTotal.value = data.total || searchResults.value.length
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Search failed'

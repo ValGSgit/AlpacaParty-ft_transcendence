@@ -511,7 +511,7 @@ describe("listUsers", () => {
       { id: 1, username: "alice", isPublic: true },
       { id: 2, username: "bob", isPublic: true },
     ];
-    mockUser.findAll.mockResolvedValue(users);
+    mockUser.findAll.mockResolvedValue({ usersFound: users, userCount: 2 });
 
     const { req, res, next } = createReqRes();
     await listUsers(req, res, next);
@@ -519,28 +519,11 @@ describe("listUsers", () => {
     expect(res._json.users).toHaveLength(2);
   });
 
-  test("should filter non-public users for non-admins", async () => {
-    const users = [
-      { id: 1, username: "alice", isPublic: true },
-      { id: 2, username: "bob", isPublic: false },
-      { id: 3, username: "charlie", isPublic: true },
-    ];
-    mockUser.findAll.mockResolvedValue(users);
-
-    const { req, res, next } = createReqRes({
-      user: { id: 1, username: "alice" },
-    });
-    await listUsers(req, res, next);
-
-    // Should include alice (own profile) and charlie (public), but not bob (private, not own)
-    expect(res._json.users).toHaveLength(2);
-    expect(res._json.users.map((u) => u.id)).toEqual([1, 3]);
-  });
-
   test("should use search when query param provided", async () => {
-    mockUser.search.mockResolvedValue([
-      { id: 2, username: "bob", isPublic: true },
-    ]);
+    mockUser.search.mockResolvedValue({
+      usersFound: [{ id: 2, username: "bob", isPublic: true }],
+      userCount: 1,
+    });
 
     const { req, res, next } = createReqRes({
       query: { search: "bob", limit: "10" },
@@ -548,8 +531,15 @@ describe("listUsers", () => {
     });
     await listUsers(req, res, next);
 
-    // search() takes the viewer's id first so blocked users get filtered out.
-    expect(mockUser.search).toHaveBeenCalledWith(1, "bob", { limit: 10 });
+    expect(mockUser.search).toHaveBeenCalledWith(
+      "bob",
+      {
+        limit: 10,
+        offset: 0,
+      },
+      undefined,
+      false,
+    );
     expect(res._json.users).toHaveLength(1);
   });
 

@@ -241,17 +241,18 @@ const User = {
     });
   },
 
-  async findAll({ limit = 50, offset = 0, currentUserId = null } = {}) {
-    const blockFilter = currentUserId
-      ? {
-          // exclude users that currentUser has blocked
-          blockedBy: { none: { userId: Number(currentUserId) } },
-          // exclude users that have blocked currentUser
-          blockedUsers: { none: { blockedUserId: Number(currentUserId) } },
-        }
-      : {};
-    return prisma.user.findMany({
-      where: blockFilter,
+  async findAll({ limit = 50, offset = 0 } = {}, publicOnly = true) {
+    let whereClause = undefined;
+    if (publicOnly === true) {
+      whereClause = {
+        userSettings: { isPublic: true },
+      };
+    }
+
+    const userCount = await prisma.user.count({ where: whereClause });
+
+    const usersFound = await prisma.user.findMany({
+      where: whereClause,
       select: {
         id: true,
         username: true,
@@ -267,27 +268,50 @@ const User = {
       take: Number(limit),
       skip: Number(offset),
     });
+
+    return { usersFound, userCount };
   },
 
   async count() {
     return prisma.user.count();
   },
 
-  async search(currentUserId, term, { limit = 20, offset = 0 } = {}) {
-    const blockFilter = currentUserId
-      ? {
-          blockedBy: { none: { userId: Number(currentUserId) } },
-          blockedUsers: { none: { blockedUserId: Number(currentUserId) } },
-        }
-      : {};
-    return prisma.user.findMany({
-      where: {
-        OR: [
-          { username: { startsWith: term, mode: "insensitive" } },
-          { bio: { contains: term, mode: "insensitive" } },
-        ],
-        ...blockFilter,
-      },
+  async search(
+    term,
+    { limit = 20, offset = 0 } = {},
+    excludeUserId = -1,
+    publicOnly = true,
+  ) {
+    const whereObj =
+      publicOnly === false
+        ? {
+            AND: [
+              {
+                OR: [
+                  { username: { contains: term, mode: "insensitive" } },
+                  { bio: { contains: term, mode: "insensitive" } },
+                ],
+              },
+            ],
+            NOT: { id: excludeUserId },
+          }
+        : {
+            AND: [
+              {
+                OR: [
+                  { username: { contains: term, mode: "insensitive" } },
+                  { bio: { contains: term, mode: "insensitive" } },
+                ],
+              },
+              { userSettings: { isPublic: true } },
+            ],
+            NOT: { id: excludeUserId },
+          };
+
+    const userCount = await prisma.user.count({ where: whereObj });
+
+    const usersFound = await prisma.user.findMany({
+      where: whereObj,
       select: {
         id: true,
         username: true,
@@ -297,8 +321,9 @@ const User = {
       },
       orderBy: { createdAt: "desc" },
       take: Number(limit),
-      skip: Number(offset),
+      skip: offset,
     });
+    return { usersFound, userCount };
   },
 
   async deleteById(id) {
