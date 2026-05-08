@@ -118,18 +118,7 @@
         <button class="close-btn" @click="closeGameMenu()" title="Close">✖️</button>
       </div>
     </div>
-
-    <div v-if="gUI.lobbyMenu && gMinigame.mode === 2" class="modal-overlay">
-      <div class="shop-title">Spit Royale Lobby
-        <button class="shop-btn" @click="changeGame(2, 1, -1)" title="Spit Royale Online">Create New Room</button>
-        <button v-if="gMinigame.lobby.length > 0" class="shop-btn" @click="changeGame(2, 1)" title="Spit Royale Online">Join Random Room</button>
-        <div v-for="game in gMinigame.lobby">
-          <button class="shop-btn" @click="changeGame(2, 1, game.matchid)" title="Spit Royale Online"><span>{{ game.roomName }}</span></button>
-        </div>
-        <button class="close-btn" @click="closeLobbyMenu()" title="Close">✖️</button>
-      </div>
-    </div>
-    <MultiplayerLobby v-if="gUI.lobbyMenu && gMinigame.mode === 4" />
+    <MultiplayerLobby v-if="gUI.lobbyMenu && (gMinigame.mode === 2 || gMinigame.mode === 4)" />
     <div v-if="gUI.farmMenu" class="modal-overlay">
       <div class="shop-title">
         Upgrade Farm
@@ -316,6 +305,7 @@ import { updateAlpacaRoad } from './mini_games/alpacaRoad.js'
 import { changeGame } from './mini_games/init.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
+import { updateSpitRoyal } from './mini_games/spitRoyal.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -404,6 +394,11 @@ const gameLoop = () => {
   if (gMinigame.value.isActive && gMinigame.value.mode > 2)
   {
     updateAlpacaRoad(delta)
+  }
+
+    if (gMinigame.value.isActive && gMinigame.value.mode == 2)
+  {
+    updateSpitRoyal(delta)
   }
 
   if (gEngine.value?.controls) {

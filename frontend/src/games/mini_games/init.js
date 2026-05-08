@@ -16,6 +16,7 @@ const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
 const tempAlpacas = []
 
 export async function changeGame(mode, playerCount = 1) {
+  console.log("changeGame:", mode);
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0) saveGame();
 

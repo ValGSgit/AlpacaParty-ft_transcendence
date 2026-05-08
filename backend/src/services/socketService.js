@@ -22,7 +22,6 @@ import User from "../models/User.js";
 import { MatchManager } from "./MatchManager.js";
 import NotificationService from "./notificationService.js";
 import { socketAuthMiddleware } from "./socketAuth.js";
-import { initializeSpitRoyaleNamespace } from "./spitRoyaleNamespace.js";
 
 /**
  * Compute Elo delta. Simple 32-K factor implementation.
@@ -45,7 +44,7 @@ export function initializeSocket(httpServer, corsOrigins) {
 
   // Share io with NotificationService so it can push real-time notifications
   NotificationService.setIo(io);
-  initializeSpitRoyaleNamespace(io);
+  //initializeSpitRoyaleNamespace(io);
   const alpacaRoadNamespace = io.of('/alpaca-road');
   const manager = new MatchManager(alpacaRoadNamespace);
 

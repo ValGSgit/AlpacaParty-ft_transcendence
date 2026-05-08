@@ -220,10 +220,10 @@ export function updateAlpacaRoad(delta) {
 // =========================================================
 
 export function syncObstacles() {
-  const serverObstacles = activeClient.serverObstacles;
+  const serverObstacles = activeClient.serverData.obstacles;
   if (!serverObstacles) return;
 
-  roadSpeed = activeClient.roadSpeed;
+  roadSpeed = activeClient.serverData.roadSpeed;
   const serverIds = new Set(serverObstacles.map(o => o.id));
 
   for (let i = activeObstacles.length - 1; i >= 0; i--) {
