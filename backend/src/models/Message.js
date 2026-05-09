@@ -73,6 +73,11 @@ const Message = {
           AND m.sender_id != m.receiver_id
       ) sub
       WHERE other_user_id != ${Number(userId)}
+        AND NOT EXISTS (
+          SELECT 1 FROM blocked_user bu
+          WHERE (bu.user_id = ${Number(userId)} AND bu.blocked_user_id = sub.other_user_id)
+             OR (bu.user_id = sub.other_user_id AND bu.blocked_user_id = ${Number(userId)})
+        )
       ORDER BY other_user_id, created_at DESC
     `;
   },

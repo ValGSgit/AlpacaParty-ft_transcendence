@@ -106,6 +106,7 @@
           <div class="actions">
             <button class="btn-sm btn-primary" @click="acceptRequest(r.id)">Accept</button>
             <button class="btn-sm btn-danger" @click="declineRequest(r.id)">Decline</button>
+            <button class="btn-sm" @click="blockFromRequest(r.id, r.senderId)">Block</button>
           </div>
         </li>
       </ul>
@@ -300,6 +301,17 @@ async function declineRequest(id) {
     await fetchRequests()
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Failed to decline request'
+  }
+}
+
+async function blockFromRequest(requestId, senderId) {
+  try {
+    await api.put(`/friends/requests/${requestId}/decline`)
+    await api.post('/friends/block', { userId: senderId })
+    await Promise.all([fetchRequests(), fetchBlocked()])
+    activeTab.value = 'blocked'
+  } catch (e) {
+    error.value = e.response?.data?.error?.message || 'Failed to block user'
   }
 }
 

@@ -207,7 +207,16 @@ const Friend = {
 
   async getPendingReceived(userId) {
     const rows = await prisma.friendRequest.findMany({
-      where: { receiverId: Number(userId), status: "pending" },
+      where: {
+        receiverId: Number(userId),
+        status: "pending",
+        sender: {
+          // sender has not blocked receiver
+          blockedUsers: { none: { blockedUserId: Number(userId) } },
+          // receiver has not blocked sender
+          blockedBy: { none: { userId: Number(userId) } },
+        },
+      },
       include: { sender: { select: { username: true, avatar: true } } },
       orderBy: { createdAt: "desc" },
     });
