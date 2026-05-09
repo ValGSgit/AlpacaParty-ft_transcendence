@@ -413,6 +413,12 @@ function flashApiKey(text, type = 'success') {
 }
 
 async function generateApiKey() {
+  if (currentApiKey.value) {
+    const ok = window.confirm(
+      'Regenerate your API key?\n\nYour current key will be permanently invalidated and any integrations using it will stop working immediately.'
+    )
+    if (!ok) return
+  }
   apiKeyLoading.value = true
   try {
     const { data } = await api.post('/users/me/api-key')
