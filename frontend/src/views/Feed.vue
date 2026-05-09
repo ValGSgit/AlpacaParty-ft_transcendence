@@ -19,7 +19,7 @@
         <textarea v-model="newPostContent" placeholder="Want to spit some facts?" rows="3" maxlength="2000"></textarea>
         <div class="create-post-actions">
           <label class="upload-btn" title="Add image">
-            📷 Add Image
+            <AppIcon name="camera" :size="14" /> Add Image
             <input type="file" accept="image/*" @change="selectImage" hidden />
           </label>
           <span v-if="selectedImage" class="selected-file">{{ selectedImage.name }}</span>
@@ -34,7 +34,12 @@
       </form>
     </div>
 
-    <div v-if="error" class="error-banner">{{ error }}</div>
+    <div v-if="error" class="error-banner">
+      {{ error }}
+      <button class="error-dismiss" @click="error = null" aria-label="Dismiss">
+        <AppIcon name="close" :size="13" />
+      </button>
+    </div>
 
     <!-- Posts -->
     <div v-if="loading" class="loading">Loading posts…</div>
@@ -43,15 +48,21 @@
     <div v-for="post in posts" :key="post.id" class="post-card">
       <!-- Repost header (if this card is a repost) -->
       <div v-if="post._repostBy" class="repost-header">
-        🔁 <router-link :to="`/user/${post._repostById}`">{{ post._repostBy }}</router-link> reposted
+        <AppIcon name="repost" :size="13" />
+        <router-link v-if="post._repostById" :to="`/user/${post._repostById}`">{{ post._repostBy }}</router-link>
+        <span v-else>{{ post._repostBy }}</span> reposted
         <span v-if="post._repostComment" class="repost-quote">{{ post._repostComment }}</span>
       </div>
 
       <div class="post-header">
-        <router-link :to="`/user/${post.author_id}`" class="post-author">
+        <router-link v-if="post.author_id" :to="`/user/${post.author_id}`" class="post-author">
           <img :src="post.author_avatar || '/avatars/default.svg'" class="post-avatar" alt="" />
           <span>{{ post.author_username }}</span>
         </router-link>
+        <span v-else class="post-author">
+          <img :src="post.author_avatar || '/avatars/default.svg'" class="post-avatar" alt="" />
+          <span>{{ post.author_username || 'Unknown' }}</span>
+        </span>
         <span class="post-time">{{ formatTime(post.created_at) }}</span>
       </div>
       <p class="post-content">{{ post.content }}</p>
@@ -66,12 +77,13 @@
       <div class="post-actions">
         <!-- Like -->
         <button class="action-btn" :class="{ liked: post.user_liked }" @click="toggleLike(post)">
-          {{ post.user_liked ? '❤️' : '🤍' }} {{ post.likes_count || 0 }}
+          <AppIcon :name="post.user_liked ? 'heart-fill' : 'heart'" :size="15" />
+          {{ post.likes_count || 0 }}
         </button>
 
         <!-- Comment toggle -->
         <button class="action-btn" :class="{ active: commentsOpen.has(post.id) }" @click="toggleComments(post)">
-          💬 {{ post.comments_count || 0 }}
+          <AppIcon name="comment" :size="15" /> {{ post.comments_count || 0 }}
         </button>
 
         <!-- Repost -->
@@ -81,12 +93,12 @@
           :class="{ reposted: post.user_reposted }"
           @click="openRepostModal(post)"
         >
-          🔁 {{ post.reposts_count || 0 }}
+          <AppIcon name="repost" :size="15" /> {{ post.reposts_count || 0 }}
         </button>
 
         <!-- Delete (author only) -->
         <button v-if="post.author_id === authStore.user?.id" class="action-btn delete-btn" @click="deletePost(post.id)">
-          🗑️ Delete
+          <AppIcon name="trash" :size="15" /> Delete
         </button>
       </div>
 
@@ -96,10 +108,14 @@
         <div v-else>
           <div v-if="!(postComments[post.id]?.length)" class="no-comments">No comments yet.</div>
           <div v-for="c in (postComments[post.id] || [])" :key="c.id" class="comment">
-            <router-link :to="`/user/${c.author_id}`" class="comment-author">
+            <router-link v-if="c.author_id" :to="`/user/${c.author_id}`" class="comment-author">
               <img :src="c.author_avatar || '/avatars/default.svg'" class="comment-avatar" alt="" />
               <strong>{{ c.author_username }}</strong>
             </router-link>
+            <span v-else class="comment-author">
+              <img :src="c.author_avatar || '/avatars/default.svg'" class="comment-avatar" alt="" />
+              <strong>{{ c.author_username || 'Unknown' }}</strong>
+            </span>
             <span class="comment-time">{{ formatTime(c.created_at) }}</span>
             <p class="comment-content">{{ c.content }}</p>
             <button
@@ -131,7 +147,7 @@
     <!-- Repost Modal (inside feed-page so stacking context is correct) -->
     <div v-if="repostModalPost" class="modal-overlay" @click.self="closeRepostModal">
       <div class="modal">
-        <h3>🔁 Repost</h3>
+        <h3><AppIcon name="repost" :size="16" /> Repost</h3>
         <div class="modal-original-post">
           <strong>{{ repostModalPost.author_username }}</strong>: {{ repostModalPost.content }}
         </div>
@@ -148,7 +164,9 @@
             Repost with comment
           </button>
         </div>
-        <button class="modal-close" @click="closeRepostModal">✕</button>
+        <button class="modal-close" @click="closeRepostModal" aria-label="Close">
+          <AppIcon name="close" :size="14" />
+        </button>
       </div>
     </div>
     </div><!-- /feed-page -->
@@ -166,12 +184,7 @@ import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
 import FakeAd from '../components/FakeAd.vue'
 import ActiveLeaderboard from '../components/ActiveLeaderboard.vue'
-import ErrorBanner from '../components/ErrorBanner.vue'
-import LoadingSpinner from '../components/LoadingSpinner.vue'
-import EmptyState from '../components/EmptyState.vue'
-import BaseModal from '../components/BaseModal.vue'
-import BaseButton from '../components/BaseButton.vue'
-import BaseInput from '../components/BaseInput.vue'
+import AppIcon from '../components/AppIcon.vue'
 
 const authStore = useAuthStore()
 const posts = ref([])
@@ -506,7 +519,23 @@ onMounted(fetchPosts)
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
   margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
+.error-dismiss {
+  background: none;
+  border: none;
+  color: #ff5050;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.error-dismiss:hover { opacity: 1; }
 
 /* Post card */
 .post-card {

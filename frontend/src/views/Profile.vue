@@ -50,18 +50,24 @@
                 :key="a.id"
                 class="achievement-card"
                 :class="{ unlocked: unlockedMap[a.id] }"
-                :title="a.description + (unlockedMap[a.id] ? ' (Unlocked)' : ' (Locked)')"
+                :title="a.description + (unlockedMap[a.id] ? ' ✓ Unlocked' : ' — Locked')"
               >
-                <span class="achievement-icon">{{ a.icon || '🏆' }}</span>
+                <span class="achievement-icon">
+                  <img v-if="a.icon && a.icon.startsWith('/')" :src="a.icon" class="achievement-icon-img" alt="" />
+                  <span v-else>{{ a.icon || '🏆' }}</span>
+                </span>
                 <span class="achievement-name">{{ a.name }}</span>
-                <span class="achievement-pts">{{ a.points }} pts</span>
+                <span class="achievement-pts">+{{ a.xpReward ?? a.points ?? 0 }} xp</span>
               </div>
             </div>
             <div v-else-if="achievements.length" class="achievements-grid">
               <div v-for="a in achievements" :key="a.id" class="achievement-card unlocked">
-                <span class="achievement-icon">{{ a.icon || '🏆' }}</span>
+                <span class="achievement-icon">
+                  <img v-if="a.icon && a.icon.startsWith('/')" :src="a.icon" class="achievement-icon-img" alt="" />
+                  <span v-else>{{ a.icon || '🏆' }}</span>
+                </span>
                 <span class="achievement-name">{{ a.name }}</span>
-                <span class="achievement-pts">{{ a.points }} pts</span>
+                <span class="achievement-pts">+{{ a.xpReward ?? a.points ?? 0 }} xp</span>
               </div>
             </div>
             <p v-if="!allAchievements.length && !achievements.length" class="empty-msg">No achievements yet.</p>
@@ -604,10 +610,20 @@ async function confirmDelete() {
   border: 1px solid var(--border-color, #2a2a3a); border-radius: 8px;
   opacity: 0.35; transition: opacity 0.2s;
 }
-.achievement-card.unlocked { opacity: 1; border-color: var(--primary, #00f0ff); }
-.achievement-icon { font-size: 1.5rem; }
+.achievement-card.unlocked { opacity: 1; border-color: var(--primary, #00f0ff); box-shadow: 0 0 8px rgba(0, 240, 255, 0.15); }
+.achievement-icon { font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
+.achievement-icon-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: saturate(0) brightness(0.5);
+  transition: filter 0.2s;
+}
+.achievement-card.unlocked .achievement-icon-img {
+  filter: none;
+}
 .achievement-name { font-size: 0.75rem; font-weight: 600; text-align: center; color: #ccc; }
-.achievement-pts { font-size: 0.65rem; color: #888; }
+.achievement-pts { font-size: 0.65rem; color: #4ade80; font-weight: 600; }
 
 .mini-post {
   background: var(--bg-tertiary, #1a1a2a);

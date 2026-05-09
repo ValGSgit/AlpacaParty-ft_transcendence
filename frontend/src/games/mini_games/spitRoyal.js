@@ -6,6 +6,8 @@ import { getValidRandomPos } from '../utils/spawnRandomly.js';
 import { setupEnvironment } from '../world/sceneBuilder.js';
 import { changeFloorColor } from './utils.js';
 
+const ENEMY_COLORS = ['#c0392b', '#8e44ad', '#16a085', '#d35400', '#2980b9', '#c0392b', '#7f8c8d', '#2c3e50']
+
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   setupEnvironment(gScene.value)
   changeFloorColor('#ff0000', '#550000')
@@ -19,9 +21,11 @@ export async function initSpitRoyalAI(playerCount, tempAlpacas) {
       alpaca = tempAlpacas[i]
       registerEntity(alpaca, 'alpaca')
       alpaca.model.position.set(data[0].position[0], data[0].position[1], data[0].position[2])
+    } else {
+      const color = ENEMY_COLORS[i % ENEMY_COLORS.length]
+      alpaca = await createAlpaca(`Enemy ${i + 1}`, color, data[0].position, data[0].rotation, data[0].scale);
+      alpaca.isAI = true // mark as AI-only — excluded from farm saves
     }
-    else
-      alpaca = await createAlpaca(null, null, data[0].position, data[0].rotation, data[0].scale);
     gScene.value.add(alpaca.model)
   }
 

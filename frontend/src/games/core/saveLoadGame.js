@@ -20,7 +20,7 @@ export async function saveGame() {
   }
 
 
-  const saveAlpacas = gAlpacas.map(alpaca => {
+  const saveAlpacas = gAlpacas.filter(a => !a.isAI).map(alpaca => {
     let selected = false
     if (gPlayer.value === alpaca)
       selected = true // save current selected alpaca

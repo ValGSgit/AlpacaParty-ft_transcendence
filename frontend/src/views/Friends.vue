@@ -263,7 +263,10 @@ async function searchUsers() {
     const { data } = await api.get('/users', {
       params: { search: userSearch.value.trim(), limit: searchPageSize, offset: searchPage.value * searchPageSize },
     })
-    searchResults.value = (data.users || []).filter((u) => Number(u.id) !== Number(authStore.user?.id))
+    const blockedIds = new Set(blocked.value.map((b) => Number(b.id)))
+    searchResults.value = (data.users || []).filter(
+      (u) => Number(u.id) !== Number(authStore.user?.id) && !blockedIds.has(Number(u.id))
+    )
     searchTotal.value = data.total || searchResults.value.length
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Search failed'
@@ -281,7 +284,11 @@ async function sendRequestToUser(userId) {
     await api.post('/friends/requests', { userId })
     requestedIds.value = new Set([...requestedIds.value, Number(userId)])
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to send request'
+    if (e.response?.status === 403) {
+      error.value = e.response?.data?.error?.message || 'You cannot send a friend request to this user'
+    } else {
+      error.value = e.response?.data?.error?.message || 'Failed to send request'
+    }
   }
 }
 
@@ -351,7 +358,8 @@ function loadTab(tab) {
 watch(activeTab, loadTab)
 onMounted(() => {
   fetchFriends()
-  fetchRequests() // load pending count in background
+  fetchRequests()
+  fetchBlocked()
 })
 </script>
 

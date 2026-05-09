@@ -21,7 +21,8 @@ export async function changeGame(mode, playerCount = 1) {
 
   resetMinigame();
 
-  gMinigame.value.isOnline = (gMinigame.value.mode === 2 || gMinigame.value.mode === 4);
+  gMinigame.value.mode = mode;
+  gMinigame.value.isOnline = (mode === 2 || mode === 4);
   gUser.value.hp = CONST.HP
   gUser.value.point = 0
   resetAlpaca(gPlayer.value)
@@ -53,6 +54,8 @@ async function returnFarm() {
   gUI.cameraMode = 0
 
   gPlayer.value = null
+  clearScene(gScene.value)
+  resetGArrays()
   await initWorld(gScene.value, authStore.isAuthenticated)
   saveGame()
 }

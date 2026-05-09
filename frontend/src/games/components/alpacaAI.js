@@ -1,7 +1,11 @@
 import * as THREE from 'three';
-import { gMinigame } from '../core/globals.js';
+import { gMinigame, gPlayer } from '../core/globals.js';
 import { checkWithinBounds, usePhysics } from '../core/usePhysics.js';
 import { getRandomPos, getRandomTimer } from '../utils/randomValues.js';
+
+const HUNT_RANGE = 35;   // distance at which AI switches to hunting the player
+const SPIT_RANGE = 20;   // distance at which AI starts spitting during hunt
+const SPIT_COOLDOWN = 1.8; // seconds between aimed spits
 
 const dummy = new THREE.Object3D();
 
@@ -11,12 +15,22 @@ export function alpacaAI() {
   const handleIdle = (alpaca, delta) => {
     const ai = alpaca.ai;
     const target = alpaca.target;
+    const player = gPlayer.value;
 
     ai.timer -= delta;
     if (ai.timer <= 0) {
+      // 50% chance to hunt the player if they're in range
+      if (player && !player.isDead) {
+        const distToPlayer = alpaca.model.position.distanceTo(player.model.position);
+        if (distToPlayer < HUNT_RANGE && Math.random() < 0.5) {
+          ai.state = 'hunting';
+          ai.spitTimer = SPIT_COOLDOWN * Math.random(); // stagger initial spits
+          return;
+        }
+      }
       target.copy(getRandomPos());
       ai.state = 'moving';
-      alpaca.spit()
+      alpaca.spit();
     }
   };
 

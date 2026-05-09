@@ -16,7 +16,6 @@
 - **Real-time Chat** — Direct messages and group chat rooms via Socket.IO
 - **Social Feed** — Create posts with image uploads, likes, and public/private visibility
 - **Friends & Presence** — Add friends, see online status in real time
-- **Organizations** — Create and manage teams/groups with role-based access (owner, admin, member)
 - **Gamification** — XP/level system, 8+ achievements, daily challenges, leaderboards
 - **Admin Dashboard** — User management, site statistics, GDPR data request handling
 - **Public API** — Documented RESTful API with API key authentication and rate limiting
@@ -148,7 +147,6 @@ The PostgreSQL database contains 28 tables managed via Prisma ORM, organized aro
 | `Achievement` / `UserAchievement` | key, xpReward / userId, unlockedAt | Persistent achievement tracking |
 | `DailyChallenge` / `UserDailyChallenge` | activeDate / completed, completedAt | Rotating challenges |
 | `Post` / `PostLike` / `Comment` / `Repost` | authorId, content, imageUrl, isPublic | Full social content graph |
-| `ChatRoom` / `ChatRoomMember` / `ChatRoomMessage` | role (owner/admin/member) | Role-based room permissions |
 | `OrganizationMember` | orgId, userId, role (owner/admin/member), joinedAt | Role-based org access |
 | `DataRequest` | type (export/delete), status, format (json/csv/xml) | GDPR workflow |
 | `File` | uploaderId, originalName, storedName, mimeType, sizeBytes, url | Secure file metadata |
