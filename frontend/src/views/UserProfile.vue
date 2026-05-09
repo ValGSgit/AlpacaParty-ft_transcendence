@@ -5,7 +5,43 @@
 <template>
   <div class="profile-page">
     <div v-if="loading" class="loading-msg">Loading profile…</div>
+
+    <!-- Locked profile — private user, not friends -->
+    <div v-else-if="isPrivate && profile" class="profile-card">
+      <div class="profile-header">
+        <img :src="profile.avatar || '/avatars/default.svg'" alt="avatar" class="avatar" />
+        <h2>{{ profile.username }}</h2>
+        <div class="online-status">
+          <span class="dot" :class="{ online: profile.isOnline }"></span>
+          {{ profile.isOnline ? 'Online' : 'Offline' }}
+        </div>
+      </div>
+
+      <div class="locked-banner">
+        <span class="lock-icon">🔒</span>
+        <p>This profile is private.<br />Add <strong>{{ profile.username }}</strong> as a friend to see their stats and posts.</p>
+        <button
+          v-if="authStore.isAuthenticated && profile.id !== authStore.user?.id"
+          class="btn-primary"
+          :disabled="requestSent"
+          @click="sendFriendRequest"
+        >
+          {{ requestSent ? 'Request sent' : 'Add Friend' }}
+        </button>
+      </div>
+
+      <div class="locked-preview" aria-hidden="true">
+        <div class="locked-row"></div>
+        <div class="locked-row short"></div>
+        <div class="locked-row"></div>
+        <div class="locked-row short"></div>
+      </div>
+    </div>
+
+    <!-- Error (404 / network) -->
     <div v-else-if="error" class="error-msg">{{ error }}</div>
+
+    <!-- Full profile -->
     <div v-else-if="profile" class="profile-card">
       <div class="profile-header">
         <img :src="profile.avatar || '/avatars/default.svg'" alt="avatar" class="avatar" />
@@ -30,11 +66,19 @@
 
       <!-- Actions -->
       <div class="profile-actions" v-if="authStore.isAuthenticated && profile.id !== authStore.user?.id">
-        <button class="btn-primary" @click="sendFriendRequest">Add Friend</button>
+        <button
+          class="btn-primary"
+          :disabled="requestSent"
+          @click="sendFriendRequest"
+        >
+          {{ requestSent ? 'Request sent' : 'Add Friend' }}
+        </button>
         <router-link :to="{ name: 'Messages', query: { dm: profile.id } }" class="btn-secondary">
           Send Message
         </router-link>
       </div>
+
+      <div v-if="actionError" class="action-error">{{ actionError }}</div>
 
       <!-- Game Stats -->
       <div v-if="stats" class="stats-section">
@@ -76,8 +120,6 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
-import PostCard from '../components/PostCard.vue'
-import UserAvatar from '../components/UserAvatar.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -87,6 +129,9 @@ const stats = ref(null)
 const userPosts = ref([])
 const loading = ref(true)
 const error = ref(null)
+const isPrivate = ref(false)
+const requestSent = ref(false)
+const actionError = ref(null)
 
 function formatDate(ts) {
   if (!ts) return ''
@@ -101,7 +146,8 @@ onMounted(async () => {
     profile.value = data.user
   } catch (e) {
     if (e.response?.status === 403) {
-      error.value = 'This profile is private and visible only to friends or admins.'
+      isPrivate.value = true
+      profile.value = e.response?.data?.user ?? null
     } else {
       error.value = e.response?.data?.error?.message || 'User not found'
     }
@@ -109,24 +155,27 @@ onMounted(async () => {
     loading.value = false
   }
 
-  // Fetch game stats and posts in parallel
+  if (isPrivate.value) return
+
+  // Fetch game stats and posts in parallel only for visible profiles
   try {
-    const { data } = await api.get(`/game/stats?userId=${route.params.id}&gameType=spit_royale`)
+    const { data } = await api.get(`/game/stats?userId=${userId}&gameType=spit_royale`)
     stats.value = data.stats
   } catch {}
 
   try {
-    const { data } = await api.get(`/posts/user/${route.params.id}?limit=10`)
+    const { data } = await api.get(`/posts/user/${userId}?limit=10`)
     userPosts.value = data.posts || []
   } catch {}
 })
 
 async function sendFriendRequest() {
+  actionError.value = null
   try {
     await api.post('/friends/requests', { userId: profile.value.id })
-    alert('Friend request sent!')
+    requestSent.value = true
   } catch (e) {
-    alert(e.response?.data?.error?.message || 'Failed to send request')
+    actionError.value = e.response?.data?.error?.message || 'Failed to send request'
   }
 }
 </script>
@@ -198,6 +247,57 @@ async function sendFriendRequest() {
   font-size: 0.9rem;
 }
 
+/* ── Locked state ──────────────────────────────────────────────────── */
+
+.locked-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: var(--bg-tertiary, #1a1a2a);
+  border: 1px solid var(--border-color, #2a2a3a);
+  border-radius: 10px;
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.lock-icon {
+  font-size: 2rem;
+}
+
+.locked-banner p {
+  margin: 0;
+  color: #999;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.locked-banner strong {
+  color: var(--text-primary, #e8e8f0);
+}
+
+.locked-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  opacity: 0.2;
+  pointer-events: none;
+  user-select: none;
+}
+
+.locked-row {
+  height: 14px;
+  background: var(--border-color, #2a2a3a);
+  border-radius: 6px;
+}
+
+.locked-row.short {
+  width: 55%;
+}
+
+/* ── Normal profile ────────────────────────────────────────────────── */
+
 .profile-info {
   display: flex;
   flex-direction: column;
@@ -223,6 +323,13 @@ async function sendFriendRequest() {
   margin: 1rem 0;
 }
 
+.action-error {
+  color: #ff5050;
+  font-size: 0.85rem;
+  margin-top: -0.5rem;
+  margin-bottom: 0.5rem;
+}
+
 .btn-primary, .btn-secondary {
   flex: 1;
   padding: 0.6rem;
@@ -238,6 +345,11 @@ async function sendFriendRequest() {
   background: var(--primary, #00f0ff);
   color: #000;
   border: none;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .btn-secondary {

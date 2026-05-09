@@ -3,7 +3,7 @@
  */
 import express from 'express';
 import {
-  getStats, getHistory, getLeaderboard,
+  getStats, getHistory, getLeaderboard, getCoinsLeaderboard,
   getFarm, saveFarm, getAchievements, getChallenges,
 } from '../controllers/gameController.js';
 import { authenticate } from '../middleware/auth.js';
@@ -98,6 +98,7 @@ router.get('/history', getHistory);
  *                       wins: { type: integer }
  *                       losses: { type: integer }
  */
+router.get('/leaderboard/coins', getCoinsLeaderboard);
 router.get('/leaderboard', getLeaderboard);
 
 /**

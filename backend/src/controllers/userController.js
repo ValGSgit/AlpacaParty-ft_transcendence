@@ -130,9 +130,17 @@ export const getUser = async (req, res, next) => {
     if (!isPublic && user.id !== req.user?.id) {
       const areFriends = await Friend.areFriends(req.user?.id, user.id);
       if (!areFriends) {
-        return res
-          .status(403)
-          .json({ error: { message: "This profile is private" } });
+        // Include minimal public data so the frontend can render a locked card.
+        return res.status(403).json({
+          error: { message: "This profile is private" },
+          user: {
+            id: user.id,
+            username: user.username,
+            avatar: user.avatar,
+            isOnline: user.isOnline,
+            isPrivate: true,
+          },
+        });
       }
     }
     res.json({ user: shapeUserForClient(user) });

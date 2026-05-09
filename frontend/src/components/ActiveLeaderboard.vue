@@ -40,9 +40,16 @@
         />
         <div class="lb-info">
           <span class="lb-username">{{ entry.username }}</span>
-          <span class="lb-record">{{ entry.wins }}W · {{ entry.losses }}L<span v-if="entry.draws"> · {{ entry.draws }}D</span></span>
+          <span class="lb-record">
+            <template v-if="gameType === 'coins'">Lv {{ entry.level }}</template>
+            <template v-else-if="gameType === 'spit_royale'">{{ entry.wins }} kills · {{ entry.losses }}L</template>
+            <template v-else>{{ entry.wins }} stages · {{ entry.losses }}L</template>
+          </span>
         </div>
-        <span class="lb-elo">{{ entry.elo }}</span>
+        <span class="lb-elo" :class="{ 'lb-elo--coins': gameType === 'coins' }">
+          <template v-if="gameType === 'coins'">🪙 {{ entry.coins }}</template>
+          <template v-else>{{ entry.elo }}</template>
+        </span>
       </div>
     </div>
 
@@ -60,8 +67,9 @@ import api from '../services/api.js'
 import { connectSocket, getSocket } from '../services/socket.js'
 
 const tabs = [
-  { label: 'Spit Royale', value: 'spit_royale' },
-  { label: 'Survival', value: 'survival' },
+  { label: '💀 Spit Royale', value: 'spit_royale' },
+  { label: '🏁 Alpaca Road', value: 'survival' },
+  { label: '🪙 Farm Coins',  value: 'coins' },
 ]
 
 const gameType = ref('spit_royale')
@@ -107,7 +115,10 @@ function onAvatarError(e) {
 async function fetchLeaderboard() {
   loading.value = true
   try {
-    const { data } = await api.get(`/game/leaderboard?gameType=${gameType.value}&limit=10`)
+    const url = gameType.value === 'coins'
+      ? '/game/leaderboard/coins?limit=10'
+      : `/game/leaderboard?gameType=${gameType.value}&limit=10`
+    const { data } = await api.get(url)
     entries.value = data.leaderboard || []
     updatedAt.value = Date.now()
   } catch {
@@ -307,6 +318,10 @@ onUnmounted(() => {
   color: var(--primary, #00f0ff);
   font-size: 0.85rem;
   white-space: nowrap;
+}
+
+.lb-elo--coins {
+  color: #f5c842;
 }
 
 /* Footer */
