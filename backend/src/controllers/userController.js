@@ -259,15 +259,12 @@ export const deleteMe = async (req, res, next) => {
 
 /**
  * GET /api/users/me/api-key
- *
- * Returns the caller's stored API key, or `{ apiKey: null }` when none exists.
- * "No key yet" is a valid state for an authenticated user — not an error —
- * so we respond 200 to avoid spurious console errors on the Settings page.
  */
 export const getApiKey = async (req, res, next) => {
   try {
     const apiKey = await User.getApiKey(req.user.id);
-    res.json({ apiKey: apiKey || null });
+    if (!apiKey) throw new CustomError("api key not found", 404);
+    res.json({ apiKey });
   } catch (err) {
     next(err);
   }

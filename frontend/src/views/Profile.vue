@@ -345,12 +345,16 @@ onMounted(async () => {
     postsLoading.value = false
   }
 
-  // 4. Fetch API key status — backend returns { apiKey: null } when none exists,
-  // so a thrown error here is a real failure, not "no key yet".
+  // 4. Fetch API key status — backend throws 404 when the user has no key
+  // yet, which is a normal state for a new account; only log unexpected
+  // failures so we don't dirty the console on every Settings tab visit.
   try {
     const { data } = await api.get('/users/me/api-key')
     currentApiKey.value = data.apiKey || null
-  } catch (e) { devError(e) }
+  } catch (e) {
+    if (e?.response?.status !== 404) devError(e)
+    currentApiKey.value = null
+  }
 })
 
 // Settings Methods
