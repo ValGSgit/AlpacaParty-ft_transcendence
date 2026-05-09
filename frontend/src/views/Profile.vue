@@ -149,6 +149,16 @@
           <section class="settings-section">
             <h3>Change Password</h3>
             <form @submit.prevent="changePassword" class="settings-form">
+              <!-- Hidden username for password managers + screen readers (Chromium a11y warning) -->
+              <input
+                type="text"
+                :value="profileForm.username"
+                autocomplete="username"
+                aria-hidden="true"
+                tabindex="-1"
+                class="visually-hidden"
+                readonly
+              />
               <div class="form-row">
                 <label>Current Password</label>
                 <input v-model="pwForm.current" type="password" autocomplete="current-password" maxlength="50" />
@@ -234,6 +244,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
+import { devError } from '../services/logger.js'
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -324,21 +335,22 @@ onMounted(async () => {
     const map = {}
     for (const a of achievements.value) { map[a.id] = true }
     unlockedMap.value = map
-  } catch {}
+  } catch (e) { devError(e) }
 
   // 3. Fetch Posts
   try {
     const { data } = await api.get(`/posts/user/${u?.id}?limit=10`)
     userPosts.value = data.posts || []
-  } catch {} finally {
+  } catch (e) { devError(e) } finally {
     postsLoading.value = false
   }
 
-  // 4. Fetch API key status
+  // 4. Fetch API key status — backend returns { apiKey: null } when none exists,
+  // so a thrown error here is a real failure, not "no key yet".
   try {
     const { data } = await api.get('/users/me/api-key')
     currentApiKey.value = data.apiKey || null
-  } catch {}
+  } catch (e) { devError(e) }
 })
 
 // Settings Methods
@@ -724,4 +736,15 @@ async function confirmDelete() {
 }
 .api-key-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .api-key-empty { padding: 0.5rem 0; }
+
+/* a11y helper — visually hidden but exposed to screen readers + autofill */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 </style>

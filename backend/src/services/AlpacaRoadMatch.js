@@ -1,3 +1,4 @@
+import { debug } from "#lib/logger.js";
 import { BaseMatch } from "./BaseMatch.js";
 
 export class AlpacaRoadMatch extends BaseMatch {
@@ -82,7 +83,7 @@ export class AlpacaRoadMatch extends BaseMatch {
 
   handleActive(socketId) {
     const player = this.players.get(socketId);
-    console.log("Handle active:", socketId);
+    debug("Handle active:", socketId);
     if (player && !player.isDead) {
       player.lastActive = Date.now();
       player.isActive = true;
@@ -102,7 +103,7 @@ export class AlpacaRoadMatch extends BaseMatch {
 
       this.roadSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;
       this.timerMultiplier = Math.max(0.5, this.timerMultiplier - 0.05);
-      console.log(`${this.level}: Speed: ${this.roadSpeed}, TimerMult: ${this.timerMultiplier}`, newLevel);
+      debug(`${this.level}: Speed: ${this.roadSpeed}, TimerMult: ${this.timerMultiplier}`, newLevel);
 
       this.broadcast('level_up', {
         level: this.level,
@@ -220,7 +221,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     for (const [id, player] of this.players) {
       if (!player.isDead && player.isActive) {
         if (now - player.lastActive > 3000) {
-          console.log(`Server: ${player.name} is inactive!`);
+          debug(`Server: ${player.name} is inactive!`);
           player.isActive = false;
         }
       }

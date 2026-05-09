@@ -14,7 +14,6 @@ export async function generateIcons() {
 
   for (const item of shopItems) {
     try {
-      console.log(`Loading ${item.name}...`);
       const { model } = await getModel(item.path);
 
       // This figures out how big the model is and centers it perfectly

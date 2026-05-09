@@ -120,6 +120,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
+import { devError } from '../services/logger.js'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -161,12 +162,12 @@ onMounted(async () => {
   try {
     const { data } = await api.get(`/game/stats?userId=${userId}&gameType=spit_royale`)
     stats.value = data.stats
-  } catch {}
+  } catch (e) { devError(e) }
 
   try {
     const { data } = await api.get(`/posts/user/${userId}?limit=10`)
     userPosts.value = data.posts || []
-  } catch {}
+  } catch (e) { devError(e) }
 })
 
 async function sendFriendRequest() {

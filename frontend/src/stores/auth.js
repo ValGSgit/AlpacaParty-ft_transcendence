@@ -6,6 +6,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "../services/api.js";
+import { devError } from "../services/logger.js";
 import { disconnectSocket } from "../services/socket.js";
 
 export const useAuthStore = defineStore("auth", () => {
@@ -75,8 +76,9 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       disconnectSocket();
       await api.post("/auth/logout");
-    } catch {
-      // Ignore errors on logout
+    } catch (e) {
+      // Ignore errors on logout — clear local state regardless.
+      devError(e);
     } finally {
       user.value = null;
     }
@@ -90,8 +92,10 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       const { data } = await api.get("/auth/me", { retryOnAuth: false });
       user.value = data.user;
-    } catch {
+    } catch (e) {
+      // 401 here just means "no valid session" — expected on first load.
       user.value = null;
+      if (e?.response?.status !== 401) devError(e);
     } finally {
       loading.value = false;
     }

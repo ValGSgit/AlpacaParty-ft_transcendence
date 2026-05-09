@@ -38,7 +38,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  console.log("unmounted");
   if (!gMinigame.value.isActive && !gMinigame.value.isReady) {
     activeClient.disconnect();
     gMinigame.value.currentRoomName = null;

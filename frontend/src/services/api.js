@@ -132,7 +132,9 @@ async function performRequest({
           timeout,
           retryOnAuth: false,
         });
-      } catch {}
+      } catch {
+        // Refresh failed — fall through and surface the original 401 below.
+      }
     }
 
     throw new HttpError(

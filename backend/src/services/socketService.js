@@ -14,6 +14,7 @@
  */
 import cookieParser from "cookie-parser";
 import { Server } from "socket.io";
+import { debug } from "#lib/logger.js";
 import ChatRoom from "../models/ChatRoom.js";
 import Friend from "../models/Friend.js";
 import Game from "../models/Game.js";
@@ -92,7 +93,7 @@ export function initializeSocket(httpServer, corsOrigins) {
         socket.join(`room:${room.id}`);
       }
 
-      console.log(`[socket] ${user.username} connected (${socket.id})`);
+      debug(`[socket] ${user.username} connected (${socket.id})`);
     } catch (err) {
       // console.error("[socket] connection setup failed:", err.message);
       socket.disconnect(true);
@@ -321,7 +322,7 @@ export function initializeSocket(httpServer, corsOrigins) {
 
     // ── Disconnect ───────────────────────────────────────────
     socket.on("disconnect", async (reason) => {
-      console.log(`[socket] ${user.username} disconnected: ${reason}`);
+      debug(`[socket] ${user.username} disconnected: ${reason}`);
       await markOffline(user.id, socket.id);
     });
   });

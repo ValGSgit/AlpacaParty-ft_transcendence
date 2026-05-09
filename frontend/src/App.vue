@@ -113,6 +113,7 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth.js'
 import api from './services/api.js'
+import { devError } from './services/logger.js'
 import { connectSocket, disconnectSocket } from './services/socket.js'
 import AppIcon from './components/AppIcon.vue'
 import IconSprite from './components/IconSprite.vue'
@@ -152,7 +153,7 @@ async function fetchNotifications() {
     const { data } = await api.get('/notifications')
     notifications.value = data.notifications || []
     unreadCount.value = notifications.value.filter(n => !n.is_read).length
-  } catch {}
+  } catch (e) { devError(e) }
 }
 
 async function markNotifRead(n) {
@@ -161,7 +162,7 @@ async function markNotifRead(n) {
       await api.put(`/notifications/${n.id}/read`)
       n.is_read = true
       unreadCount.value = Math.max(0, unreadCount.value - 1)
-    } catch {}
+    } catch (e) { devError(e) }
   }
   showNotifPanel.value = false
   const targetByType = {
@@ -190,11 +191,11 @@ function handleOutsideClick(e) {
 
 watch(() => authStore.isAuthenticated, (isAuth) => {
   if (isAuth) {
-    const token = localStorage.getItem('accessToken')
-    if (token) {
-      const sock = connectSocket(token)
-      sock.on('notification', () => { unreadCount.value++ })
-    }
+    // Auth is cookie-based (httpOnly + sameSite=strict + secure). Socket.IO
+    // is configured with `withCredentials: true` so the JWT cookie is sent on
+    // the handshake and validated by socketAuthMiddleware. No client-side token.
+    const sock = connectSocket()
+    sock.on('notification', () => { unreadCount.value++ })
     fetchNotifications()
   } else {
     disconnectSocket()

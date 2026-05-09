@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../../stores/auth.js';
+import { debug } from '../../services/logger.js';
 import { clearCoins } from '../components/coins.js';
 import { CONST } from '../config/constants.js';
 import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
@@ -78,7 +79,7 @@ function resetMinigame() {
 }
 
 async function initGameMode(mode, playerCount, tempAlpacas) {
-  console.log("initGameMode: ", mode);
+  debug("initGameMode: ", mode);
   switch (mode) {
     case 1:
       initSpitRoyalAI(10, tempAlpacas);
