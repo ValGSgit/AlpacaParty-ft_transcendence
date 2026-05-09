@@ -5,91 +5,15 @@
 -->
 <template>
   <div id="app">
-    <!-- Global SVG icon sprite — referenced via <AppIcon name="…"> -->
-    <svg aria-hidden="true" style="display:none;position:absolute;width:0;height:0" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <symbol id="icon-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12.62 20.8101C12.28 20.9301 11.72 20.9301 11.38 20.8101C8.48 19.8201 2 15.6901 2 8.6901C2 5.6001 4.49 3.1001 7.56 3.1001C9.38 3.1001 10.99 3.9801 12 5.3401C13.01 3.9801 14.63 3.1001 16.44 3.1001C19.51 3.1001 22 5.6001 22 8.6901C22 15.6901 15.52 19.8201 12.62 20.8101Z"/>
-        </symbol>
-        <symbol id="icon-heart-fill" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-          <path d="M16.1315 3.71436C14.4172 3.71436 12.9029 4.57721 12 5.8915C11.0972 4.57721 9.58289 3.71436 7.86861 3.71436C5.10289 3.71436 2.85718 5.96007 2.85718 8.72578C2.85718 14.8344 12 20.3258 12 20.3258C12 20.3258 21.1429 14.8344 21.1429 8.72578C21.1429 5.96007 18.8972 3.71436 16.1315 3.71436Z"/>
-        </symbol>
-        <symbol id="icon-comment" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M44 6H4V36H13V41L23 36H44V6Z"/>
-          <path d="M14 19.5V22.5"/>
-          <path d="M24 19.5V22.5"/>
-          <path d="M34 19.5V22.5"/>
-        </symbol>
-        <symbol id="icon-repost" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4.5 4.5H12a2 2 0 0 1 2 2V8"/>
-          <path d="M11.5 11.5H4a2 2 0 0 1-2-2V8"/>
-          <polyline points="2.5 2.5 0.5 4.5 2.5 6.5"/>
-          <polyline points="13.5 9.5 15.5 11.5 13.5 13.5"/>
-        </symbol>
-        <symbol id="icon-trash" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 5 4.5 14 11.5 14 13 5"/>
-          <line x1="1.5" y1="5" x2="14.5" y2="5"/>
-          <path d="M6 5V3.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V5"/>
-        </symbol>
-        <symbol id="icon-camera" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="1" y="4.5" width="14" height="10" rx="2"/>
-          <circle cx="8" cy="10" r="2.5"/>
-          <path d="M5.5 4.5V3.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1"/>
-        </symbol>
-        <symbol id="icon-close" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <line x1="2" y1="2" x2="14" y2="14"/>
-          <line x1="14" y1="2" x2="2" y2="14"/>
-        </symbol>
-        <symbol id="icon-trophy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 11c-2.761 0-5-2.239-5-5V2h10v4c0 2.761-2.239 5-5 5z"/>
-          <path d="M3 4H1.5A1.5 1.5 0 0 0 0 5.5C0 7.433 1.343 9 3 9"/>
-          <path d="M13 4h1.5A1.5 1.5 0 0 1 16 5.5C16 7.433 14.657 9 13 9"/>
-          <path d="M8 11v3M5 14h6"/>
-        </symbol>
-        <symbol id="icon-star" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="8 1 10.163 6.021 15.511 6.635 11.633 10.304 12.653 15.615 8 12.951 3.347 15.615 4.367 10.304 0.489 6.635 5.837 6.021"/>
-        </symbol>
-        <symbol id="icon-bell" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 1a5 5 0 0 1 5 5v3l1.5 2.5h-13L3 9V6a5 5 0 0 1 5-5z"/>
-          <path d="M6.5 13.5a1.5 1.5 0 0 0 3 0"/>
-        </symbol>
-        <symbol id="icon-image" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="1" y="2" width="14" height="12" rx="2"/>
-          <circle cx="5.5" cy="6" r="1.5"/>
-          <path d="M1 11l4-4 3 3 2-2 5 5"/>
-        </symbol>
-        <symbol id="icon-github" viewBox="0 0 16 16" fill="currentColor">
-          <path fill-rule="evenodd" d="M8 1C4.133 1 1 4.13 1 7.993c0 3.09 2.006 5.71 4.787 6.635.35.064.478-.152.478-.337 0-.166-.006-.606-.01-1.19-1.947.423-2.357-.937-2.357-.937-.319-.808-.778-1.023-.778-1.023-.635-.434.048-.425.048-.425.703.05 1.073.72 1.073.72.624 1.07 1.638.76 2.037.582.063-.452.244-.76.444-.935-1.554-.176-3.188-.776-3.188-3.456 0-.763.273-1.388.72-1.876-.072-.177-.312-.888.07-1.85 0 0 .586-.189 1.924.716A6.711 6.711 0 018 4.381c.595.003 1.194.08 1.753.236 1.336-.905 1.923-.717 1.923-.717.382.963.142 1.674.07 1.85.448.49.72 1.114.72 1.877 0 2.686-1.638 3.278-3.197 3.45.251.216.475.643.475 1.296 0 .934-.009 1.688-.009 1.918 0 .187.127.404.482.336A6.996 6.996 0 0015 7.993 6.997 6.997 0 008 1z" clip-rule="evenodd"/>
-        </symbol>
-      </defs>
-    </svg>
+    <IconSprite />
 
+    <!-- Top navbar -->
     <nav class="navbar">
       <div class="nav-container">
         <router-link to="/" class="nav-logo">
           <span class="logo-text">Alpaca Party!</span>
         </router-link>
 
-        <!-- Message box -->
-        <div v-if="authStore.isAuthenticated" :class="['bottom-left-nav', { 'with-footer': hasFooter }]">
-          <div class="msg-wrapper">
-            <button class="nav-link nav-btn message-btn" @click="showMessagesModal = true" title="Messages">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              <span v-if="unreadMessages" class="notif-badge msg-badge">{{ unreadMessages }}</span>
-            </button>
-        
-            <div v-if="showMessagesModal" class="modal-overlay" @click.self="showMessagesModal = false">
-              <div class="messages-modal-content">
-                <button class="modal-close-top" @click="showMessagesModal = false">&times;</button>
-                <Messages /> 
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Mobile hamburger -->
         <button class="hamburger" @click="mobileOpen = !mobileOpen" aria-label="Toggle menu">
           <span :class="['bar', { open: mobileOpen }]"></span>
           <span :class="['bar', { open: mobileOpen }]"></span>
@@ -97,29 +21,21 @@
         </button>
 
         <div :class="['nav-links', { open: mobileOpen }]">
-          <!-- Public links -->
           <router-link to="/game" class="nav-link nav-game" @click="mobileOpen = false">AlpacaFarm</router-link>
 
           <template v-if="authStore.isAuthenticated">
-            <!-- Divider -->
             <span class="nav-divider"></span>
-
-            <!-- Core social -->
             <router-link to="/feed" class="nav-link" @click="mobileOpen = false">Feed</router-link>
             <router-link to="/friends" class="nav-link" @click="mobileOpen = false">Friends</router-link>
-
-            <!-- Divider -->
             <span class="nav-divider"></span>
 
-            <!-- User area -->
-            <router-link to="/profile" class="nav-link" @click="mobileOpen = false">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <router-link to="/profile" class="nav-link" title="Profile" @click="mobileOpen = false">
+              <AppIcon name="user" :size="18" />
             </router-link>
 
-            <!-- Notifications -->
             <div class="notif-wrapper">
               <button class="nav-link nav-btn notification-btn" @click="toggleNotifications" title="Notifications">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <AppIcon name="bell" :size="18" />
                 <span v-if="unreadCount" class="notif-badge">{{ unreadCount }}</span>
               </button>
               <div v-if="showNotifPanel" class="notif-panel">
@@ -140,7 +56,10 @@
               </div>
             </div>
 
-            <button class="nav-link nav-btn logout-btn" @click="handleLogout">Logout</button>
+            <button class="nav-link nav-btn logout-btn" @click="handleLogout" title="Logout">
+              <AppIcon name="logout" :size="18" />
+              <span class="logout-label">Logout</span>
+            </button>
           </template>
           <template v-else>
             <span class="nav-divider"></span>
@@ -150,9 +69,13 @@
         </div>
       </div>
     </nav>
-    <main :class="['main-content', { 'game-content': ['Game', 'SpitRoyale'].includes($route.name) }]">
+
+    <!-- Page content -->
+    <main :class="['main-content', { 'game-content': isGameRoute }]">
       <router-view />
     </main>
+
+    <!-- Footer -->
     <footer v-if="hasFooter" class="app-footer">
       <div class="footer-container">
         <span class="footer-copy">&copy; 2026 AlpacaParty</span>
@@ -163,6 +86,24 @@
         </div>
       </div>
     </footer>
+
+    <!-- Floating message button (positioned fixed via global CSS in style.css) -->
+    <div v-if="authStore.isAuthenticated" :class="['bottom-left-nav', { 'with-footer': hasFooter }]">
+      <button class="message-btn" @click="showMessagesModal = true" title="Messages">
+        <AppIcon name="message" :size="22" />
+        <span v-if="unreadMessages" class="msg-badge">{{ unreadMessages }}</span>
+      </button>
+    </div>
+
+    <!-- Messages modal -->
+    <div v-if="showMessagesModal" class="modal-overlay" @click.self="showMessagesModal = false">
+      <div class="messages-modal-content">
+        <button class="modal-close-top" @click="showMessagesModal = false">&times;</button>
+        <Messages />
+      </div>
+    </div>
+
+    <!-- AI help desk widget -->
     <HelpDeskChat v-if="authStore.isAuthenticated" />
   </div>
 </template>
@@ -173,28 +114,27 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth.js'
 import api from './services/api.js'
 import { connectSocket, disconnectSocket } from './services/socket.js'
-import Messages from './views/Messages.vue';
-import HelpDeskChat from './components/HelpDeskChat.vue';
+import AppIcon from './components/AppIcon.vue'
+import IconSprite from './components/IconSprite.vue'
+import HelpDeskChat from './components/HelpDeskChat.vue'
+import Messages from './views/Messages.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
-const route = useRoute();
+const route = useRoute()
+
+const mobileOpen = ref(false)
+const showNotifPanel = ref(false)
+const showMessagesModal = ref(false)
+const notifications = ref([])
 const unreadCount = ref(0)
 const unreadMessages = ref(0)
-const showNotifPanel = ref(false)
-const notifications = ref([])
-const mobileOpen = ref(false)
 
-const showMessagesModal = ref(false);
+const PAGES_WITHOUT_FOOTER = ['Game', 'Home']
+const hasFooter = computed(() => !PAGES_WITHOUT_FOOTER.includes(route.name))
+const isGameRoute = computed(() => ['Game', 'SpitRoyale'].includes(route.name))
 
-// Close mobile menu on route change
 router.afterEach(() => { mobileOpen.value = false })
-
-const hasFooter = computed(() => {
-  const pagesWithoutFooter = ['Game', 'Home'];
-  if (pagesWithoutFooter.includes(route.name)) return false;
-  return true;
-});
 
 async function handleLogout() {
   disconnectSocket()
@@ -215,16 +155,6 @@ async function fetchNotifications() {
   } catch {}
 }
 
-async function fetchUnreadCount() {
-  try {
-    const { data } = await api.get('/notifications')
-    const notifs = data.notifications || []
-    unreadCount.value = notifs.filter(n => !n.is_read).length
-    // WIP: show correct red numbers on the icon
-    //unreadMessages.value = notifs.filter(n => !n.is_read && (n.type === 'dm' || n.type === 'message')).length;
-  } catch {}
-}
-
 async function markNotifRead(n) {
   if (!n.is_read) {
     try {
@@ -233,57 +163,49 @@ async function markNotifRead(n) {
       unreadCount.value = Math.max(0, unreadCount.value - 1)
     } catch {}
   }
-  // Navigate based on notification type
   showNotifPanel.value = false
-  if (n.type === 'friend_request') router.push('/friends')
-  else if (n.type === 'game_invite' || n.type === 'game_finish') router.push('/game')
-  else if (n.type === 'post_like') router.push('/feed')
-  else if (n.type === 'achievement') router.push('/profile')
-  //else if (n.type === 'dm' || n.type === 'message') router.push('/messages')
-  else router.push('/')
+  const targetByType = {
+    friend_request: '/friends',
+    game_invite:    '/game',
+    game_finish:    '/game',
+    post_like:      '/feed',
+    achievement:    '/profile',
+  }
+  router.push(targetByType[n.type] || '/')
 }
 
 function formatNotifTime(ts) {
   if (!ts) return ''
-  const d = new Date(ts)
-  const diff = Date.now() - d
-  if (diff < 60000) return 'just now'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
-  return d.toLocaleDateString()
+  const diff = Date.now() - new Date(ts)
+  if (diff < 60_000)    return 'just now'
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`
+  return new Date(ts).toLocaleDateString()
 }
 
 function handleOutsideClick(e) {
   const wrapper = document.querySelector('.notif-wrapper')
-  if (wrapper && !wrapper.contains(e.target)) {
-    showNotifPanel.value = false
-  }
+  if (wrapper && !wrapper.contains(e.target)) showNotifPanel.value = false
 }
 
-// Connect socket when authenticated
 watch(() => authStore.isAuthenticated, (isAuth) => {
   if (isAuth) {
     const token = localStorage.getItem('accessToken')
     if (token) {
       const sock = connectSocket(token)
-      sock.on('notification', () => {
-        unreadCount.value++
-      })
+      sock.on('notification', () => { unreadCount.value++ })
     }
-    fetchUnreadCount()
+    fetchNotifications()
   } else {
     disconnectSocket()
     unreadCount.value = 0
+    unreadMessages.value = 0
+    notifications.value = []
   }
 }, { immediate: true })
 
-onMounted(() => {
-  document.addEventListener('click', handleOutsideClick)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleOutsideClick)
-})
+onMounted(() => document.addEventListener('click', handleOutsideClick))
+onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 </script>
 
 <style scoped>
@@ -336,6 +258,9 @@ onUnmounted(() => {
   border-radius: 6px;
   transition: color 0.15s, background 0.15s;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .nav-link:hover {
@@ -348,17 +273,8 @@ onUnmounted(() => {
   background: rgba(0, 240, 255, 0.06);
 }
 
-.nav-game { font-weight: 600; }
-.nav-help { color: #4ecdc4; }
-.nav-help:hover { color: #6eeee4; }
-.nav-admin { color: #ff6b6b; }
-.nav-admin:hover { color: #ff9090; }
-
-.nav-login {
-  color: var(--primary, #00f0ff);
-  font-weight: 600;
-}
-
+.nav-game     { font-weight: 600; }
+.nav-login    { color: var(--primary, #00f0ff); font-weight: 600; }
 .nav-register {
   background: var(--primary, #00f0ff);
   color: #000;
@@ -388,13 +304,11 @@ onUnmounted(() => {
   padding: 0.4rem 0.65rem;
 }
 
-.logout-btn {
-  color: #a0a0b0;
-  font-size: 0.85rem;
-}
+.logout-btn { color: #a0a0b0; font-size: 0.85rem; }
 .logout-btn:hover { color: #ff6b6b; }
+.logout-label { display: none; }
 
-/* ── Notification ───────────────────────────────────────── */
+/* ── Notifications ──────────────────────────────────────── */
 .notification-btn {
   position: relative;
   display: flex;
@@ -479,7 +393,7 @@ onUnmounted(() => {
   border-left: 3px solid var(--primary, #00f0ff);
 }
 
-.notif-msg { font-size: 0.85rem; color: var(--text-primary, #e8e8f0); }
+.notif-msg  { font-size: 0.85rem; color: var(--text-primary, #e8e8f0); }
 .notif-time { font-size: 0.75rem; color: var(--text-secondary, #a0a0b0); }
 
 /* ── Main ───────────────────────────────────────────────── */
@@ -588,6 +502,8 @@ onUnmounted(() => {
     font-size: 0.9rem;
     width: 100%;
   }
+
+  .logout-label { display: inline; }
 
   .nav-register {
     text-align: center;
