@@ -59,27 +59,33 @@
 
         <div v-if="error" class="hd-error">{{ error }}</div>
 
-        <div class="hd-input-row">
-          <textarea
-            ref="inputEl"
-            v-model="draft"
-            class="hd-input"
-            placeholder="Ask a question…"
-            rows="1"
-            :disabled="loading"
-            @keydown.enter.exact.prevent="send"
-            @input="autoResize"
-          />
-          <button
-            class="hd-send"
-            :disabled="!draft.trim() || loading"
-            @click="send"
-            aria-label="Send"
-          >
+        <div class="hd-input-wrapper">
+          <div class="hd-input-row">
+            <textarea
+              ref="inputEl"
+              v-model="draft"
+              class="hd-input"
+              placeholder="Ask a question…"
+              rows="1"
+              :maxlength="MAX_CHARS"
+              :disabled="loading"
+              @keydown.enter.exact.prevent="send"
+              @input="autoResize"
+            />
+            <button
+              class="hd-send"
+              :disabled="!draft.trim() || loading || draft.length > MAX_CHARS"
+              @click="send"
+              aria-label="Send"
+            >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M2 21l21-9L2 3v7l15 2-15 2z"/>
             </svg>
           </button>
+          </div>
+          <div class="hd-char-counter" :class="{ 'hd-char-limit': draft.length >= MAX_CHARS * 0.9 }">
+            {{ draft.length }}/{{ MAX_CHARS }}
+          </div>
         </div>
       </div>
     </transition>
@@ -89,6 +95,9 @@
 <script setup>
 import { ref, nextTick } from 'vue'
 import api from '../services/api.js'
+
+const MAX_CHARS = 2000
+const MAX_HISTORY = 20
 
 const isOpen = ref(false)
 const draft = ref('')
@@ -125,7 +134,7 @@ async function sendSuggestion(text) {
 
 async function send() {
   const text = draft.value.trim()
-  if (!text || loading.value) return
+  if (!text || loading.value || text.length > MAX_CHARS) return
 
   error.value = ''
   messages.value.push({ role: 'user', content: text })
@@ -137,9 +146,8 @@ async function send() {
   scrollToBottom()
 
   try {
-    const { data } = await api.post('/helpdesk/chat', {
-      messages: messages.value.map(m => ({ role: m.role, content: m.content })),
-    })
+    const history = messages.value.slice(-MAX_HISTORY).map(m => ({ role: m.role, content: m.content }))
+    const { data } = await api.post('/helpdesk/chat', { messages: history })
     messages.value.push({ role: 'assistant', content: data.reply })
   } catch (err) {
     error.value = err?.data?.error?.message || 'Something went wrong. Please try again.'
@@ -340,14 +348,26 @@ function scrollToBottom() {
 }
 
 /* ── Input row ───────────────────────────────────────────── */
+.hd-input-wrapper {
+  border-top: 1px solid var(--border-color, #2a2a3a);
+  background: var(--bg-secondary, #12121a);
+  flex-shrink: 0;
+}
 .hd-input-row {
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
-  padding: 0.65rem 0.75rem;
-  border-top: 1px solid var(--border-color, #2a2a3a);
-  background: var(--bg-secondary, #12121a);
-  flex-shrink: 0;
+  padding: 0.65rem 0.75rem 0.35rem;
+}
+.hd-char-counter {
+  text-align: right;
+  font-size: 0.7rem;
+  color: var(--text-secondary, #a0a0b0);
+  padding: 0 0.75rem 0.4rem;
+  transition: color 0.15s;
+}
+.hd-char-limit {
+  color: #f87171;
 }
 .hd-input {
   flex: 1;
