@@ -19,8 +19,11 @@ const mockPrisma = {
     findMany: jest.fn(),
     updateMany: jest.fn(),
     count: jest.fn(),
+    groupBy: jest.fn(),
   },
-  $queryRaw: jest.fn(),
+  blockedUser: {
+    findMany: jest.fn(),
+  },
 };
 
 jest.unstable_mockModule('#config/prisma.js', () => ({
@@ -51,13 +54,110 @@ describe('Message.getConversation — snake_case output', () => {
   });
 });
 
-describe('Message.getConversationsList — correct SQL aliases', () => {
-  test('calls $queryRaw and returns result', async () => {
-    const mockConvs = [{ other_user_id: 2, username: 'bob', avatar: null, last_message: 'Hi', unread_count: 1 }];
-    mockPrisma.$queryRaw.mockResolvedValue(mockConvs);
+describe('Message.getConversationsList — Prisma-only', () => {
+  const baseDate = new Date('2024-01-01T10:00:00Z');
+  const olderDate = new Date('2024-01-01T09:00:00Z');
+
+  test('dedupes by other-user, takes newest message, fills unread count', async () => {
+    mockPrisma.blockedUser.findMany.mockResolvedValue([]);
+    // Newest first, with duplicates for user 2 to verify dedupe.
+    mockPrisma.message.findMany.mockResolvedValue([
+      {
+        id: 3,
+        senderId: 2,
+        receiverId: 1,
+        content: 'latest from bob',
+        isRead: false,
+        createdAt: baseDate,
+        sender: { id: 2, username: 'bob', avatar: '/avatars/bob.jpg' },
+        receiver: { id: 1, username: 'me', avatar: null },
+      },
+      {
+        id: 2,
+        senderId: 1,
+        receiverId: 2,
+        content: 'older outbound',
+        isRead: true,
+        createdAt: olderDate,
+        sender: { id: 1, username: 'me', avatar: null },
+        receiver: { id: 2, username: 'bob', avatar: '/avatars/bob.jpg' },
+      },
+      {
+        id: 1,
+        senderId: 3,
+        receiverId: 1,
+        content: 'hi from carol',
+        isRead: false,
+        createdAt: olderDate,
+        sender: { id: 3, username: 'carol', avatar: null },
+        receiver: { id: 1, username: 'me', avatar: null },
+      },
+    ]);
+    mockPrisma.message.groupBy.mockResolvedValue([
+      { senderId: 2, _count: { _all: 4 } },
+      { senderId: 3, _count: { _all: 1 } },
+    ]);
+
     const result = await Message.getConversationsList(1);
-    expect(result).toEqual(mockConvs);
-    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(1);
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({
+      other_user_id: 2,
+      username: 'bob',
+      avatar: '/avatars/bob.jpg',
+      last_message: 'latest from bob',
+      is_read: false,
+      unread_count: 4,
+    });
+    expect(result[1]).toMatchObject({
+      other_user_id: 3,
+      username: 'carol',
+      last_message: 'hi from carol',
+      unread_count: 1,
+    });
+  });
+
+  test('skips conversations with blocked users (either direction)', async () => {
+    mockPrisma.blockedUser.findMany.mockResolvedValue([
+      { userId: 1, blockedUserId: 2 },
+      { userId: 3, blockedUserId: 1 },
+    ]);
+    mockPrisma.message.findMany.mockResolvedValue([
+      {
+        id: 1,
+        senderId: 2,
+        receiverId: 1,
+        content: 'should be hidden',
+        isRead: false,
+        createdAt: baseDate,
+        sender: { id: 2, username: 'bob', avatar: null },
+        receiver: { id: 1, username: 'me', avatar: null },
+      },
+      {
+        id: 2,
+        senderId: 3,
+        receiverId: 1,
+        content: 'also hidden',
+        isRead: false,
+        createdAt: baseDate,
+        sender: { id: 3, username: 'carol', avatar: null },
+        receiver: { id: 1, username: 'me', avatar: null },
+      },
+    ]);
+    mockPrisma.message.groupBy.mockResolvedValue([]);
+
+    const result = await Message.getConversationsList(1);
+    expect(result).toEqual([]);
+    expect(mockPrisma.message.groupBy).not.toHaveBeenCalled();
+  });
+
+  test('returns empty list when no messages exist', async () => {
+    mockPrisma.blockedUser.findMany.mockResolvedValue([]);
+    mockPrisma.message.findMany.mockResolvedValue([]);
+
+    const result = await Message.getConversationsList(1);
+    expect(result).toEqual([]);
+    expect(mockPrisma.message.groupBy).not.toHaveBeenCalled();
   });
 });
 
