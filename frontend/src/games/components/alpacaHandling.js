@@ -3,11 +3,12 @@ import { useFloatingText } from '../components/floatingText.js';
 import { MATERIALS as MATS } from '../config/materials.js';
 import { gAlpacas, gMinigame, gPlayer, gScene, gUser } from "../core/globals.js";
 import { useUIManager } from '../core/useUIManager.js';
+import { activeClient } from '../mini_games/GameClient.js';
 
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const worldPoint = new THREE.Vector3();
 const { openAlpacaStats } = useUIManager();
-const activeSpits = []; // Keep track of projectiles in flight
+const activeSpits = [];
 const { spawnFloatingText } = useFloatingText();
 
 export function alpacaHandling() {
@@ -15,7 +16,7 @@ export function alpacaHandling() {
   const setMoveLocation = (raycaster) => {
     if (!raycaster.ray.intersectPlane(floorPlane, worldPoint)) return;
     if (!gPlayer.value) return;
-    gPlayer.value.target = worldPoint.clone()
+    gPlayer.value.target = worldPoint.clone();
     gPlayer.value.isAutoMoving = true;
   }
 
@@ -24,7 +25,7 @@ export function alpacaHandling() {
     if (!alpacaToSwitch && raycaster) {
       setMoveLocation(raycaster)
     }
-    else if (gPlayer.value === alpacaToSwitch) // open menu for clicking self
+    else if (gPlayer.value === alpacaToSwitch)
       openAlpacaStats();
     else
       gPlayer.value = alpacaToSwitch
@@ -32,42 +33,38 @@ export function alpacaHandling() {
   }
 
   const makeSpit = (alpaca, targetPoint) => {
-    if (alpaca.isDead)
-      return
+    if (alpaca.isDead === 1) return;
+
     const origin = new THREE.Vector3().copy(alpaca.model.position);
     let dx = Math.sin(alpaca.model.rotation.y);
     let dz = Math.cos(alpaca.model.rotation.y);
 
-    // Setup initial position
     origin.y += 5;
     origin.x += dx * 3;
     origin.z += dz * 3;
-    let direction
-    if (targetPoint) // shooting a specific spot, for AR glasses atm
-    {
-      direction = new THREE.Vector3()
-        .subVectors(targetPoint, origin)
-        .normalize();
-    }
-    else
+
+    let direction;
+    if (targetPoint) {
+      direction = new THREE.Vector3().subVectors(targetPoint, origin).normalize();
+    } else {
       direction = new THREE.Vector3(dx, -0.4, dz).normalize();
-    const beam = createLaserBeam(origin, direction, 1); // Start small
+    }
+
+    const beam = createLaserBeam(origin, direction, 1);
     gScene.value.add(beam);
 
-    // Add to our tracking array instead of doing hit logic here
     activeSpits.push({
-      owner: alpaca, // the owner of the spit
+      owner: alpaca,
       mesh: beam,
       direction: direction,
       currentPos: origin,
       distanceTraveled: 0,
       maxDistance: 15,
-      speed: 30 // Adjust this to make it slower or faster
+      speed: 30
     });
   };
 
   const updateSpits = (delta) => {
-
     for (let i = activeSpits.length - 1; i >= 0; i--) {
       const s = activeSpits[i];
 
@@ -76,45 +73,33 @@ export function alpacaHandling() {
       s.mesh.position.copy(s.currentPos);
       s.distanceTraveled += s.speed * delta;
 
-      // 2. Raycast from current position to check for hits in this "frame"
-      const raycaster = new THREE.Raycaster(s.currentPos, s.direction, 0, s.speed * delta);
-      // In multiplayer, we also need to check hits against remote players!
-      // Remote players are added straight to gScene, so let's just raycast the whole scene 
-      // (or you can push remote players to gAlpacas temporarily)
-      const targets = gMinigame.value.mode === 2 ? gScene.value.children : gAlpacas.map(a => a.model);
-      const hits = raycaster.intersectObjects(targets, true);
-
+      const targets = gAlpacas.map(a => a.model);
+      const hits = new THREE.Raycaster(s.currentPos, s.direction, 0, s.speed * delta).intersectObjects(targets, true);
       if (hits.length > 0 || s.distanceTraveled > s.maxDistance) {
 
         if (hits.length > 0) {
-          if (gMinigame.value.mode !== 2) {
-            // --- SINGLE PLAYER LOGIC ---
-            const hitAlpaca = findAlpaca(hits[0].object);
-            if (hitAlpaca.hp > 0) spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
-            if (hitAlpaca) hitAlpaca.beingHit(s.owner);
-            if (gMinigame.value.mode === 1 && gPlayer.value === hitAlpaca) // update heart UI
-              gMinigame.value.players[0].hp--
-            gMinigame.value.players[0].point = gUser.value.point
-          } else if (gMinigame.value.mode === 2) {
-            console.log("Multiplayer");
-            // --- MULTIPLAYER LOGIC ---
-            // Only the person who fired the laser is allowed to tell the server it hit!
-            // const client = getActiveClient();
-            // if (s.owner === gPlayer.value && client) {
+          const hitAlpaca = findAlpaca(hits[0].object);
 
-            //   // Traverse up the 3D object to find the tag we will place on remote players
-            //   let obj = hits[0].object;
-            //   while (obj && !obj.userData.networkId) obj = obj.parent;
+          // Make sure we didn't accidentally shoot ourselves!
+          if (hitAlpaca && hitAlpaca !== s.owner && hitAlpaca.isDead !== 1) {
 
-            //   if (obj && obj.userData.networkId && obj.userData.networkId !== client.localPlayerId) {
-            //     // We hit a remote player! Tell the server.
-            //     client.emit('spit_hit', { targetId: obj.userData.networkId, ownerId: client.localPlayerId });
-            //   }
-            // }
+            if (gMinigame.value.mode === 1) {
+              // --- SINGLE PLAYER LOGIC ---
+              if (hitAlpaca.hp > 0) spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
+              hitAlpaca.beingHit(s.owner);
+              if (gPlayer.value === hitAlpaca) gMinigame.value.players[0].hp--;
+              gMinigame.value.players[0].point = gUser.value.point;
+
+            } else if (gMinigame.value.mode === 2) {
+              // --- MULTIPLAYER LOGIC ---
+              if (s.owner === gPlayer.value && hitAlpaca.socketId && hitAlpaca.socketId !== activeClient.socket.id) {
+                activeClient.sendSpitHit(hitAlpaca.socketId);
+                if (hitAlpaca.hp > 0) spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
+              }
+            }
           }
         }
 
-        // Cleanup the visual laser
         gScene.value.remove(s.mesh);
         s.mesh.geometry.dispose();
         activeSpits.splice(i, 1);
@@ -122,7 +107,7 @@ export function alpacaHandling() {
     }
   };
 
-  return { switchAlpaca, makeSpit, updateSpits }
+  return { switchAlpaca, makeSpit, updateSpits };
 }
 
 const createLaserBeam = (origin, direction, length) => {
@@ -131,7 +116,6 @@ const createLaserBeam = (origin, direction, length) => {
   const laser = new THREE.Mesh(geo, MATS.spit);
   laser.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
   laser.position.copy(origin);
-
   return laser;
 };
 
