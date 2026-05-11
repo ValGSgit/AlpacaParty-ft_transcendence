@@ -69,6 +69,22 @@ export class MatchManager {
         }
       });
 
+      socket.on('leave_room', () => {
+        const matchId = this.playerToMatch.get(socket.id);
+        if (matchId) {
+          const match = this.matches.get(matchId);
+          if (match) {
+            match.removePlayer(socket.id);
+            if (match.players.size === 0) {
+              match.stop();
+              this.matches.delete(matchId);
+            }
+          }
+          this.playerToMatch.delete(socket.id);
+          this.broadcastPublicRooms();
+        }
+      })
+
       socket.on('ready_toggle', ({ isReady }) => {
         const matchId = this.playerToMatch.get(socket.id);
         if (matchId) this.matches.get(matchId).toggleReady(socket.id, isReady);

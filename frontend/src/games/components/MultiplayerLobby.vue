@@ -103,12 +103,9 @@ const toggleReady = () => {
 };
 
 const leaveRoom = () => {
-  activeClient.disconnect(); 
+  activeClient.leaveRoom();
   gMinigame.value.currentRoomName = null;
   gMinigame.value.isReady = false;
-  setTimeout(() => {
-    activeClient.connect();
-  }, 25);
 };
 
 </script>

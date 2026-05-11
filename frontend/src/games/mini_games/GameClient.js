@@ -19,10 +19,21 @@ export class GameClient {
     this.setupListeners();
   }
 
+
+
   disconnect() {
     if (this.socket) {
+      this.socket.emit('leave_room');
       this.socket.disconnect();
       this.socket = null;
+      this.serverData = {};
+      this.spitQueue = [];
+    }
+  }
+
+  leaveRoom() {
+    if (this.socket) {
+      this.socket.emit('leave_room');
       this.serverData = {};
       this.spitQueue = [];
     }
