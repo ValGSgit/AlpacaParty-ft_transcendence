@@ -45,7 +45,7 @@ export const register = async (req, res, next) => {
 
     res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
     res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
-    res.status(201).json({ user });
+    res.status(201).json({ user, accessToken });
   } catch (err) {
     next(err);
   }
@@ -81,7 +81,7 @@ export const login = async (req, res, next) => {
 
     res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
     res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
-    res.json({ user: safeUser });
+    res.json({ user: safeUser, accessToken });
   } catch (err) {
     next(err);
   }

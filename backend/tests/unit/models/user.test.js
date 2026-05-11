@@ -223,9 +223,14 @@ describe("User.findAll", () => {
 });
 
 describe("User.search", () => {
+  // Signature: search(currentUserId, term, { limit, offset } = {})
+  // currentUserId is used to filter out users who have a BlockedUser row in
+  // either direction with the viewer.
+  const VIEWER = 1;
+
   test("should pass term as startsWith pattern", async () => {
     mockPrisma.user.findMany.mockResolvedValue([fakeUser]);
-    const result = await User.search("test");
+    const result = await User.search(VIEWER, "test");
     expect(result).toHaveLength(1);
     expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -242,16 +247,37 @@ describe("User.search", () => {
 
   test("should return empty array when no matches", async () => {
     mockPrisma.user.findMany.mockResolvedValue([]);
-    const result = await User.search("zzz");
+    const result = await User.search(VIEWER, "zzz");
     expect(result).toHaveLength(0);
   });
 
   test("should forward custom limit", async () => {
     mockPrisma.user.findMany.mockResolvedValue([]);
-    await User.search("abc", { limit: 5 });
+    await User.search(VIEWER, "abc", { limit: 5 });
     expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 5 }),
     );
+  });
+
+  test("should exclude users blocked by or blocking the viewer", async () => {
+    mockPrisma.user.findMany.mockResolvedValue([]);
+    await User.search(VIEWER, "abc");
+    expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          blockedBy: { none: { userId: VIEWER } },
+          blockedUsers: { none: { blockedUserId: VIEWER } },
+        }),
+      }),
+    );
+  });
+
+  test("should skip the block filter when called with no viewer", async () => {
+    mockPrisma.user.findMany.mockResolvedValue([]);
+    await User.search(null, "abc");
+    const args = mockPrisma.user.findMany.mock.calls[0][0];
+    expect(args.where.blockedBy).toBeUndefined();
+    expect(args.where.blockedUsers).toBeUndefined();
   });
 });
 

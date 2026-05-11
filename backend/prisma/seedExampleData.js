@@ -47,9 +47,6 @@ function makeContent(prefix) {
 
 async function hardReset() {
   const resetSteps = [
-    ["chatRoomMessage", () => prisma.chatRoomMessage.deleteMany({})],
-    ["chatRoomMember", () => prisma.chatRoomMember.deleteMany({})],
-    ["chatRoom", () => prisma.chatRoom.deleteMany({})],
     ["message", () => prisma.message.deleteMany({})],
     ["notification", () => prisma.notification.deleteMany({})],
     ["postLike", () => prisma.postLike.deleteMany({})],
@@ -412,8 +409,6 @@ async function main() {
     prisma.user.count(),
     prisma.post.count(),
     prisma.message.count(),
-    prisma.chatRoom.count(),
-    prisma.chatRoomMessage.count(),
     prisma.notification.count(),
     prisma.achievement.count(),
   ]);

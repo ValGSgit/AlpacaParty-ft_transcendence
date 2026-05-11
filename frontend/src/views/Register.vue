@@ -102,8 +102,6 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
-import ErrorBanner from '../components/ErrorBanner.vue'
-import BaseButton from '../components/BaseButton.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()

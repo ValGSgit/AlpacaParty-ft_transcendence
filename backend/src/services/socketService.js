@@ -14,7 +14,7 @@
  */
 import cookieParser from "cookie-parser";
 import { Server } from "socket.io";
-import ChatRoom from "../models/ChatRoom.js";
+import { debug } from "#lib/logger.js";
 import Friend from "../models/Friend.js";
 import Game from "../models/Game.js";
 import Message from "../models/Message.js";
@@ -86,13 +86,7 @@ export function initializeSocket(httpServer, corsOrigins) {
       socket.join(`user:${user.id}`);
       await markOnline(user.id, socket.id);
 
-      // Join all group chat rooms the user belongs to
-      const rooms = await ChatRoom.getUserRooms(user.id);
-      for (const room of rooms) {
-        socket.join(`room:${room.id}`);
-      }
-
-      console.log(`[socket] ${user.username} connected (${socket.id})`);
+      debug(`[socket] ${user.username} connected (${socket.id})`);
     } catch (err) {
       // console.error("[socket] connection setup failed:", err.message);
       socket.disconnect(true);
@@ -157,45 +151,6 @@ export function initializeSocket(httpServer, corsOrigins) {
 
     socket.on("dm:read", async ({ senderId }) => {
       await Message.markAsRead(user.id, senderId).catch(() => { });
-    });
-
-    // ── Group Chat Rooms ─────────────────────────────────────
-    socket.on("room:join", async ({ roomId }, ack) => {
-      try {
-        const isMember = await ChatRoom.isMember(roomId, user.id);
-        if (!isMember) return ack?.({ error: "Not a member of this room" });
-        socket.join(`room:${roomId}`);
-        ack?.({ ok: true });
-      } catch (err) {
-        ack?.({ error: err.message });
-      }
-    });
-
-    socket.on("room:send", async ({ roomId, content }, ack) => {
-      try {
-        if (!content?.trim()) return ack?.({ error: "Empty message" });
-        const isMember = await ChatRoom.isMember(roomId, user.id);
-        if (!isMember) return ack?.({ error: "Not a member" });
-
-        const msg = await ChatRoom.sendMessage({
-          roomId,
-          senderId: user.id,
-          content: content.trim(),
-        });
-        const shaped = {
-          id: msg.id,
-          room_id: msg.roomId ?? roomId,
-          sender_id: msg.senderId,
-          content: msg.content,
-          created_at: msg.createdAt,
-          sender_username: user.username,
-          sender_avatar: user.avatar,
-        };
-        io.to(`room:${roomId}`).emit("room:message", shaped);
-        ack?.({ ok: true, message: shaped });
-      } catch (err) {
-        ack?.({ error: err.message });
-      }
     });
 
     // ── Game: matchmaking ────────────────────────────────────
@@ -321,7 +276,7 @@ export function initializeSocket(httpServer, corsOrigins) {
 
     // ── Disconnect ───────────────────────────────────────────
     socket.on("disconnect", async (reason) => {
-      console.log(`[socket] ${user.username} disconnected: ${reason}`);
+      debug(`[socket] ${user.username} disconnected: ${reason}`);
       await markOffline(user.id, socket.id);
     });
   });

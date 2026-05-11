@@ -15,21 +15,17 @@ import AuthService from "#services/authService.js";
 import { createTestApp } from "../helpers/createApp.js";
 import { createTestUsers } from "../helpers/createTestUsers.js";
 import Message from "#models/Message.js";
-import ChatRoom from "#models/ChatRoom.js";
 
 let app;
 let request;
 let users;
 let validUser;
-let chatRoom1;
-let chatRoom2;
 
 // #region Setup
 
 beforeAll(async () => {
   await setupUsers();
   await setupMessages();
-  await setupChatRooms();
 });
 
 async function setupUsers() {
@@ -64,37 +60,6 @@ async function setupMessages() {
       content: `Hello to user ${users[i + 1].username}`,
     });
   }
-}
-
-async function setupChatRooms() {
-  await prisma.chatRoom.deleteMany({});
-  await prisma.chatRoomMember.deleteMany({});
-  await prisma.chatRoomMessage.deleteMany({});
-  chatRoom1 = await ChatRoom.create({
-    name: "TestChatRoom1",
-    ownerId: validUser.id,
-    isPrivate: false,
-  });
-  chatRoom2 = await ChatRoom.create({
-    name: "TestChatRoom2",
-    ownerId: users[0].id,
-    isPrivate: false,
-  });
-
-  await ChatRoom.sendMessage({
-    roomId: chatRoom1.id,
-    senderId: validUser.id,
-    content: "First message in this room",
-  });
-
-  await ChatRoom.sendMessage({
-    roomId: chatRoom1.id,
-    senderId: validUser.id,
-    content: "Second message in this room",
-  });
-
-  await ChatRoom.addMember(chatRoom1.id, validUser.id); // users[1]
-  await ChatRoom.addMember(chatRoom1.id, users[0].id);
 }
 
 beforeEach(async () => {
