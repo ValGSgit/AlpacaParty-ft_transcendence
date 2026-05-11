@@ -148,9 +148,9 @@ onMounted(async () => {
   } catch (e) {
     if (e.response?.status === 403) {
       isPrivate.value = true
-      profile.value = e.response?.data?.user ?? null
+      profile.value = e.data?.user ?? null
     } else {
-      error.value = e.response?.data?.error?.message || 'User not found'
+      error.value = e.data?.error?.message || 'User not found'
     }
   } finally {
     loading.value = false
@@ -176,7 +176,7 @@ async function sendFriendRequest() {
     await api.post('/friends/requests', { userId: profile.value.id })
     requestSent.value = true
   } catch (e) {
-    actionError.value = e.response?.data?.error?.message || 'Failed to send request'
+    actionError.value = e.data?.error?.message || 'Failed to send request'
   }
 }
 </script>

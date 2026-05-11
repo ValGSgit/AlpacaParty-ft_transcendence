@@ -12,7 +12,10 @@ export class BaseMatch {
   addPlayer(socket, name, color) {
     const player = {
       id: socket.id,
-      name: name || 'Vue_Alpaca',
+      // socket.user is attached by socketAuthMiddleware; matches require auth,
+      // but keep the guard so a missing user doesn't crash player setup.
+      userId: socket.user?.id ?? null,
+      name: name || socket.user?.username || 'Vue_Alpaca',
       isReady: false,
       hp: 3,
       points: 0,

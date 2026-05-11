@@ -4,9 +4,18 @@
 -->
 <template>
   <div class="feed-layout">
-    <!-- Left sidebar: fake ad -->
+    <!-- Left sidebar: fake ad + quick links -->
     <aside class="feed-sidebar">
       <FakeAd :sidebar="true" />
+      <div class="side-card">
+        <h3 class="side-card-title">Quick links</h3>
+        <ul class="side-link-list">
+          <li><router-link to="/">Farm</router-link></li>
+          <li><router-link to="/friends">Friends</router-link></li>
+          <li><router-link to="/profile">Profile</router-link></li>
+          <li><router-link to="/help">Help &amp; FAQ</router-link></li>
+        </ul>
+      </div>
     </aside>
 
     <!-- Centre: feed -->
@@ -171,9 +180,16 @@
     </div>
     </div><!-- /feed-page -->
 
-    <!-- Right sidebar: live leaderboard -->
+    <!-- Right sidebar: live leaderboard + game tips -->
     <aside class="feed-sidebar">
       <ActiveLeaderboard />
+      <div class="side-card">
+        <h3 class="side-card-title">Today's tip</h3>
+        <p class="side-card-body">
+          Inactive players in Alpaca Road still take obstacle hits — keep
+          jumping or you'll lose hearts even when standing still.
+        </p>
+      </div>
     </aside>
   </div><!-- /feed-layout -->
 </template>
@@ -431,6 +447,47 @@ onMounted(fetchPosts)
 .feed-sidebar {
   position: sticky;
   top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.side-card {
+  background: var(--bg-secondary, #12121a);
+  border: 1px solid var(--border-color, #2a2a3a);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+.side-card-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary, #00f0ff);
+  margin: 0 0 0.5rem;
+}
+.side-card-body {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #a0a0b0);
+  line-height: 1.5;
+  margin: 0;
+}
+.side-link-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.side-link-list a {
+  color: var(--text-primary, #e8e8f0);
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.3rem 0;
+  display: block;
+}
+.side-link-list a:hover {
+  color: var(--primary, #00f0ff);
 }
 
 /* Hide sidebars on smaller screens */

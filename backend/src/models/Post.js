@@ -76,10 +76,19 @@ const Post = {
     const lim = Number(limit);
     const off = Number(offset);
 
-    // Build base where clause for public posts by public authors.
+    // Build base where clause: public posts by public authors,
+    // OR posts authored by the viewer themselves (so a private user still
+    // sees their own feed).
     const baseWhere = {
       isPublic: true,
-      author: { userSettings: { isPublic: true } },
+      ...(vid !== null
+        ? {
+            OR: [
+              { author: { userSettings: { isPublic: true } } },
+              { authorId: vid },
+            ],
+          }
+        : { author: { userSettings: { isPublic: true } } }),
     };
 
     // If viewerId is provided, exclude posts where the author blocked the viewer

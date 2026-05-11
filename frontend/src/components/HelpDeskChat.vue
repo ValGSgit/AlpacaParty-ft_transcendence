@@ -1,15 +1,14 @@
 <template>
   <div class="helpdesk-root">
-    <!-- Floating trigger button -->
+    <!-- Floating trigger button (hidden while chat is open; panel has its own close) -->
     <button
+      v-if="!isOpen"
       class="helpdesk-fab"
-      :class="{ open: isOpen }"
       @click="toggleChat"
       title="Help Desk — Ask Paca!"
       aria-label="Open help desk chat"
     >
-      <AppIcon v-if="!isOpen" name="alpaca" :size="32" />
-      <span v-else class="fab-close">&times;</span>
+      <AppIcon name="alpaca" :size="32" />
     </button>
 
     <!-- Chat panel -->
