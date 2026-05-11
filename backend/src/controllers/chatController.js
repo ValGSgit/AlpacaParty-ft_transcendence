@@ -3,7 +3,6 @@
  * @owner ValGSgit
  */
 import Message from "../models/Message.js";
-import ChatRoom from "../models/ChatRoom.js";
 import Friend from "../models/Friend.js";
 
 // ── Direct Messages ──────────────────────────────────────────────────────────

@@ -99,7 +99,6 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
         │ 1:N
         ├─► Friend, FriendRequest, BlockedUser   (social graph)
         ├─► Message                              (DMs sender↔receiver)
-        ├─► ChatRoom — ChatRoomMember — ChatRoomMessage
         ├─► Post — PostLike, Comment, Repost
         ├─► File                                 (uploads metadata)
         ├─► Notification
@@ -125,7 +124,6 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
 | `Achievement` / `UserAchievement` | key (`first_win`, `level_10`, `social_butter`, …), xpReward / unlockedAt | Persistent progress |
 | `DailyChallenge` / `UserDailyChallenge` | activeDate / completed, completedAt | Rotating challenges |
 | `Post`, `PostLike`, `Comment`, `Repost` | authorId, content, imageUrl, isPublic | Social content graph |
-| `ChatRoom` / `ChatRoomMember` / `ChatRoomMessage` | role (`owner`/`admin`/`member`) | Group chat with per-room roles |
 | `DataRequest` | type (`export`/`delete`), status, format (`json`/`csv`/`xml`) | GDPR workflow |
 | `File` | uploaderId, originalName, storedName, mimeType, sizeBytes | Secure upload metadata |
 
@@ -181,11 +179,17 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
 | 15 | **Advanced 3D graphics (Three.js)** — immersive farm world, lighting, cameras, animations | Gaming | Major | **2** | ✅ | fankahou, LukasStefanek |
 | 16 | **Game customization** — power-ups, multiple maps/themes, customizable settings, defaults | Gaming | Minor | **1** | ✅ | fankahou, LukasStefanek |
 | 17 | **Gamification** — achievements, leaderboards, XP/level, daily challenges, persistent in DB, visual feedback | Gaming | Minor | **1** | ✅ | ValGSgit |
-| 18 | **GDPR compliance** — data export (JSON/CSV/XML), deletion with grace period | Data | Minor | **1** | ✅ | ValGSgit |
 
-### **Total: 28 points** (14 required + bonus headroom)
+### **Total: 27 points** (14 required + bonus headroom)
 
-10 Major × 2 + 8 Minor × 1 = 28 points. The 14-point mandatory bar is met by any subset of half these modules; the surplus is intended as headroom in case any module is contested during peer evaluation. Per the subject, the bonus part is capped at 5 additional points beyond the required 14.
+10 Major × 2 + 7 Minor × 1 = 27 points. The 14-point mandatory bar is met by any subset of half these modules; the surplus is intended as headroom in case any module is contested during peer evaluation. Per the subject, the bonus part is capped at 5 additional points beyond the required 14.
+
+> The data-export + deletion features (`GET /api/users/me/export`,
+> `POST /api/users/me/delete-request`, `DataRequest` workflow) still ship
+> as part of the platform's compliance posture, but the team does **not**
+> claim the GDPR Minor module: the subject's "Confirmation emails for
+> data operations" bullet is not currently implemented, so the module
+> would not survive a literal evaluation.
 
 ### Module Implementation Details
 
@@ -206,7 +210,6 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
 15. **Advanced 3D graphics** — Three.js scene graph with custom lighting, multiple cameras, alpaca model rigging + animation, and an interactive farm world with shop, customization, and editing.
 16. **Game customization** — Both games expose customizable settings (power-ups, maps/themes, match rules) with sensible defaults; the AI bot in Spit Royale plays under the same rule set.
 17. **Gamification** — XP awarded for wins (with performance bonuses: accuracy, eliminations, powerups, survival time, flawless), losses, posts, and challenges. Auto level-up. Achievements: `first_win`, `win_streak_5`, `level_10`, `social_butter` (10 friends), `first_post`, `org_founder`. Daily challenges rotate and persist completions. ELO leaderboard (K = 32). Notifications and progress bars provide visual feedback.
-18. **GDPR compliance** — `GET /api/users/me/export` produces a complete user-data archive in JSON, CSV, or XML. `POST /api/users/me/delete-request` schedules deletion with a grace period (cancellable). `DataRequest` rows track every export/delete request.
 
 ---
 

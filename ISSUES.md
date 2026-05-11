@@ -11,9 +11,9 @@
 
 ---
 
-## Module status (28 pts claimed)
+## Module status (27 pts claimed)
 
-10 Major × 2 + 8 Minor × 1. Verified against the live codebase on
+10 Major × 2 + 7 Minor × 1. Verified against the live codebase on
 2026-05-11.
 
 | # | Module | Category | Pts | Status | Demo path |
@@ -35,16 +35,20 @@
 | 15 | Three.js 3D graphics | Gaming · Major | 2 | ✅ | `/` farm renders; swap camera/time |
 | 16 | Game customization | Gaming · Minor | 1 | ✅ | Alpaca colors, sizes, speeds |
 | 17 | Gamification (achievements, XP, leaderboard) | Gaming · Minor | 1 | ✅ | Win a match → XP + achievement |
-| 18 | GDPR (export JSON/CSV/XML + delete) | Data · Minor | 1 | ✅ | Settings → Export → all three formats |
 
-**Total: 28 pts.** The subject caps the bonus part at +5 above the 14-pt floor;
+**Total: 27 pts.** The subject caps the bonus part at +5 above the 14-pt floor;
 the surplus is contestation headroom in case a module is challenged during
 peer review.
 
-**Not claimed (deliberately removed 2026-04-26 in `cd326e6`):**
-Organization system, Advanced Permissions / admin dashboard. Neither has a
-controller, route, schema column, or view. Do not re-add these claims
-without shipping the implementation.
+**Not claimed (deliberately removed):**
+- **Organization system / Advanced Permissions** (removed 2026-04-26 in
+  `cd326e6`) — no controller, route, schema column, or view exists.
+- **GDPR compliance** (removed 2026-05-11) — the data-export + deletion
+  flow ships and works, but the subject's "Confirmation emails for data
+  operations" bullet (IV.8 Minor) is not implemented, so the module
+  would not survive a literal eval. Features stay, claim does not.
+
+Do not re-add any of these claims without shipping the missing bullet.
 
 ---
 
@@ -197,7 +201,7 @@ the full PR-by-PR history, use `git log`.
 
 ## Key metrics
 
-- **Module points claimed**: 28 (10 Major × 2 + 8 Minor × 1).
+- **Module points claimed**: 27 (10 Major × 2 + 7 Minor × 1).
 - **Subject threshold**: 14 → met with 14 pts of headroom.
 - **Endpoints**: ~70 REST routes across 8 route modules; 6 of them on the
   X-API-Key-gated public surface (`backend/src/routes/public.js`).
@@ -218,3 +222,4 @@ the full PR-by-PR history, use `git log`.
 | 2026-03-21 | ValGSgit (PO) | SpitRoyale consolidation: standalone server retired, served via Socket.IO namespace. |
 | 2026-04-07 | ValGSgit (PO) | Codebase audit: confirmed #30, #31, #32 done; updated completion to 24/29. |
 | 2026-05-11 | ValGSgit (PO) | Full rewrite. Aligned to README's 28-pt / 18-module table (removed Organizations + Advanced Permissions claims). Corrected counts (27 models, 6 endpoints, 6 services, 30 req/min). Dropped April sprint plan and obsolete cleanup notes. Logged ~120 post-April-7 commits. Fixed `/help` route as part of the audit. |
+| 2026-05-11 | ValGSgit (PO) | Subject re-read (v21.1). Two literal-spec gaps closed: (a) LLM helpdesk now streams Groq SSE chunks end-to-end (backend forwards as `text/event-stream`, frontend consumes via `getReader`/`TextDecoder`); (b) GDPR Minor claim dropped because "confirmation emails for data operations" is unimplemented — features stay, claim does not. Total moves from 28 → 27 pts (10 Major × 2 + 7 Minor × 1). |

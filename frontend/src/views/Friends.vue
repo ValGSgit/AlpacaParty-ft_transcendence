@@ -141,11 +141,6 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import api from '../services/api.js'
 import { useAuthStore } from '../stores/auth.js'
-import ErrorBanner from '../components/ErrorBanner.vue'
-import LoadingSpinner from '../components/LoadingSpinner.vue'
-import EmptyState from '../components/EmptyState.vue'
-import UserCard from '../components/UserCard.vue'
-import BaseButton from '../components/BaseButton.vue'
 
 const authStore = useAuthStore()
 

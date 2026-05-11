@@ -360,8 +360,6 @@ onMounted(async () => {
     effect.setSize(window.innerWidth, window.innerHeight);
   }
 
-  //generateIcons();
-
   if (!gEngine.value) {
     console.error('Init failed: Scene not returned from globalEngine.')
   }
