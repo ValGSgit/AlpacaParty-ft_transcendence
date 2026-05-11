@@ -18,6 +18,7 @@ const OAuthCallback = () => import('../views/OAuthCallback.vue')
 const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
 const TermsOfService = () => import('../views/TermsOfService.vue')
 const ApiDocs  = () => import('../views/ApiDocs.vue')
+const Help     = () => import('../views/Help.vue')
 
 const routes = [
   {
@@ -89,6 +90,12 @@ const routes = [
     path: '/terms',
     name: 'TermsOfService',
     component: TermsOfService,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/help',
+    name: 'Help',
+    component: Help,
     meta: { requiresAuth: false },
   },
   {

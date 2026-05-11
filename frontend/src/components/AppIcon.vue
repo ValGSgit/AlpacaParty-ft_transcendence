@@ -42,14 +42,14 @@ const FILE_ICONS = {
   'bell-full':      '/icons/ui/bell.svg',
   'sun-full':       '/icons/ui/sun.svg',
   'joystick-full':  '/icons/ui/joystick.svg',
-  'moneybag-full':  '/icons/ui/moneybag.svg',
+  'moneybag-full':  '/icons/ui/playercoins.svg',
   'pencil-ruler':   '/icons/ui/pencil-ruler-farm-icon.svg',
   'shopping-bags':  '/icons/ui/shopping-bags.svg',
   'camera-farm':    '/icons/ui/camera-farm-icon.svg',
   'tree':           '/icons/ui/tree.svg',
   'tractor':        '/icons/ui/tractor-svgrepo-com.svg',
   'debug-coin':     '/icons/ui/debugcoin.svg',
-  'coin':           '/icons/ui/playercoins.svg',
+  'coin':           '/icons/ui/moneybag.svg',
   'score':          '/icons/ui/score.svg',
   'sunrise':        '/icons/ui/sunrise-svgrepo-com.svg',
   'sunset':         '/icons/ui/sunset.svg',
@@ -57,6 +57,7 @@ const FILE_ICONS = {
   'tools':          '/icons/ui/tools.svg',
   'mouse':          '/icons/ui/mouse.svg',
   'scroll-icon':    '/icons/ui/scroll.svg',
+  'repost':         '/icons/ui/refresh.svg'
 }
 
 const fileSrc = computed(() => FILE_ICONS[props.name] ?? null)
