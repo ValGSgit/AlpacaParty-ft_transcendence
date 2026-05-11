@@ -21,19 +21,20 @@
     />
     <div class="post-actions">
       <button :class="['action-btn', { liked: post.user_liked }]" @click="$emit('like', post)">
-        {{ post.user_liked ? '❤️' : '🤍' }} {{ post.likes_count || 0 }}
+        <AppIcon :name="post.user_liked ? 'heart-fill' : 'heart'" :size="15" /> {{ post.likes_count || 0 }}
       </button>
       <button
         v-if="post.author_id === currentUserId"
         class="action-btn delete-btn"
         @click="$emit('delete', post.id)"
-      >🗑️ Delete</button>
+      ><AppIcon name="trash-full" :size="15" /> Delete</button>
     </div>
   </div>
 </template>
 
 <script setup>
 import UserAvatar from './UserAvatar.vue'
+import AppIcon from './AppIcon.vue'
 
 defineProps({
   post: { type: Object, required: true },

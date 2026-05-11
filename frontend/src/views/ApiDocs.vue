@@ -266,7 +266,7 @@ const { users } = await res.json();</pre>
 
         <header class="am-head">
           <div class="am-brand">
-            <span class="am-mark">🦙</span>
+            <span class="am-mark"><AppIcon name="alpaca" :size="36" /></span>
             <div class="am-titles">
               <h1>AlpacaParty · Architecture Map</h1>
               <p>System blueprint · production stack</p>
@@ -757,6 +757,7 @@ const { users } = await res.json();</pre>
 
 <script setup>
 import { ref } from 'vue';
+import AppIcon from '../components/AppIcon.vue';
 const activeTab = ref('api');
 </script>
 

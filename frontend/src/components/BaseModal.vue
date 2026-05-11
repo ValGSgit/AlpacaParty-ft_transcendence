@@ -8,7 +8,7 @@
       <div class="modal-box" role="dialog" :aria-label="title">
         <div class="modal-header">
           <span class="modal-title">{{ title }}</span>
-          <button class="modal-close" @click="$emit('close')" aria-label="Close">✕</button>
+          <button class="modal-close" @click="$emit('close')" aria-label="Close"><AppIcon name="close" :size="14" /></button>
         </div>
         <div class="modal-body">
           <slot />
@@ -23,6 +23,7 @@
 
 <script setup>
 import { onMounted, onUnmounted } from 'vue'
+import AppIcon from './AppIcon.vue'
 
 defineProps({ title: { type: String, default: '' } })
 const emit = defineEmits(['close'])

@@ -32,10 +32,31 @@ const props = defineProps({
 
 // Multi-color SVGs that live in /icons/ui/ and can't use currentColor
 const FILE_ICONS = {
-  'google':      '/icons/ui/google-color-svgrepo-com.svg',
-  'camera-full': '/icons/ui/camera-comment-section.svg',
-  'trash-full':  '/icons/ui/trash.svg',
-  'refresh-box': '/icons/ui/refresh.svg',
+  'google':         '/icons/ui/google-color-svgrepo-com.svg',
+  'camera-full':    '/icons/ui/camera-comment-section.svg',
+  'trash-full':     '/icons/ui/trash.svg',
+  'refresh-box':    '/icons/ui/refresh.svg',
+  'user':           '/icons/ui/alpaca.svg',
+  'alpaca':         '/icons/ui/alpaca.svg',
+  'alpaca-buy':     '/icons/ui/buy-alpaca.svg',
+  'bell-full':      '/icons/ui/bell.svg',
+  'sun-full':       '/icons/ui/sun.svg',
+  'joystick-full':  '/icons/ui/joystick.svg',
+  'moneybag-full':  '/icons/ui/moneybag.svg',
+  'pencil-ruler':   '/icons/ui/pencil-ruler-farm-icon.svg',
+  'shopping-bags':  '/icons/ui/shopping-bags.svg',
+  'camera-farm':    '/icons/ui/camera-farm-icon.svg',
+  'tree':           '/icons/ui/tree.svg',
+  'tractor':        '/icons/ui/tractor-svgrepo-com.svg',
+  'debug-coin':     '/icons/ui/debugcoin.svg',
+  'coin':           '/icons/ui/playercoins.svg',
+  'score':          '/icons/ui/score.svg',
+  'sunrise':        '/icons/ui/sunrise-svgrepo-com.svg',
+  'sunset':         '/icons/ui/sunset.svg',
+  'night':          '/icons/ui/night.svg',
+  'tools':          '/icons/ui/tools.svg',
+  'mouse':          '/icons/ui/mouse.svg',
+  'scroll-icon':    '/icons/ui/scroll.svg',
 }
 
 const fileSrc = computed(() => FILE_ICONS[props.name] ?? null)

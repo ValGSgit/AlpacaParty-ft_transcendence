@@ -19,7 +19,7 @@
         <textarea v-model="newPostContent" placeholder="Want to spit some facts?" rows="3" maxlength="2000"></textarea>
         <div class="create-post-actions">
           <label class="upload-btn" title="Add image">
-            <AppIcon name="camera" :size="14" /> Add Image
+            <AppIcon name="camera-full" :size="18" /> Add Image
             <input type="file" accept="image/*" @change="selectImage" hidden />
           </label>
           <span v-if="selectedImage" class="selected-file">{{ selectedImage.name }}</span>
@@ -122,7 +122,7 @@
               v-if="c.author_id === authStore.user?.id"
               class="comment-delete"
               @click="deleteComment(post, c)"
-            >✕</button>
+            ><AppIcon name="close" :size="12" /></button>
           </div>
         </div>
 

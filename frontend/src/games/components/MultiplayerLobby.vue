@@ -10,7 +10,7 @@
           Join {{ room.name }} ({{ room.playerCount }}/4)
         </button>
       </div>
-      <button class="close-btn" @click="closeLobbyMenu()" title="Close">✖️</button>
+      <button class="close-btn" @click="closeLobbyMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
     </div>
     <div v-else class="shop-title"> {{ gMinigame.currentRoomName }} {{ gMinigame.players.length }}/4
       <div v-for="player in gMinigame.players" :key="player.id" class="stat-row">
@@ -19,13 +19,14 @@
       <button class="shop-btn" @click="toggleReady">
         {{ gMinigame.isReady ? 'Cancel Ready' : 'Ready Up' }}
       </button>
-      <button class="close-btn" @click="leaveRoom" title="Leave">✖️</button>
+      <button class="close-btn" @click="leaveRoom" title="Leave"><AppIcon name="close" :size="16" /></button>
     </div>
   </div>
 </template>
 
 <script setup>
 import { onMounted, onUnmounted } from 'vue';
+import AppIcon from '../../components/AppIcon.vue';
 import { gMinigame, gPlayer, gUser } from '../core/globals.js';
 import { useUIManager } from '../core/useUIManager.js';
 import { activeClient } from '../mini_games/GameClient.js';

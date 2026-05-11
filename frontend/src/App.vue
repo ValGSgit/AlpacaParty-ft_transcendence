@@ -35,7 +35,7 @@
 
             <div class="notif-wrapper">
               <button class="nav-link nav-btn notification-btn" @click="toggleNotifications" title="Notifications">
-                <AppIcon name="bell" :size="18" />
+                <AppIcon name="bell-full" :size="20" />
                 <span v-if="unreadCount" class="notif-badge">{{ unreadCount }}</span>
               </button>
               <div v-if="showNotifPanel" class="notif-panel">

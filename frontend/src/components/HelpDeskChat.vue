@@ -8,7 +8,7 @@
       title="Help Desk — Ask Paca!"
       aria-label="Open help desk chat"
     >
-      <span v-if="!isOpen" class="fab-icon">🦙</span>
+      <AppIcon v-if="!isOpen" name="alpaca" :size="32" />
       <span v-else class="fab-close">&times;</span>
     </button>
 
@@ -17,7 +17,7 @@
       <div v-if="isOpen" class="helpdesk-panel" role="dialog" aria-label="Help Desk Chat">
         <div class="hd-header">
           <div class="hd-header-info">
-            <span class="hd-avatar">🦙</span>
+            <span class="hd-avatar"><AppIcon name="alpaca" :size="28" /></span>
             <div>
               <div class="hd-title">Paca — Help Desk</div>
               <div class="hd-subtitle">Ask me anything about AlpacaParty!</div>
@@ -45,12 +45,12 @@
             :key="i"
             :class="['hd-msg', msg.role]"
           >
-            <span v-if="msg.role === 'assistant'" class="msg-avatar">🦙</span>
+            <span v-if="msg.role === 'assistant'" class="msg-avatar"><AppIcon name="alpaca" :size="22" /></span>
             <div class="msg-bubble">{{ msg.content }}</div>
           </div>
 
           <div v-if="loading" class="hd-msg assistant">
-            <span class="msg-avatar">🦙</span>
+            <span class="msg-avatar"><AppIcon name="alpaca" :size="22" /></span>
             <div class="msg-bubble typing">
               <span></span><span></span><span></span>
             </div>
@@ -95,6 +95,7 @@
 <script setup>
 import { ref, nextTick } from 'vue'
 import api from '../services/api.js'
+import AppIcon from './AppIcon.vue'
 
 const MAX_CHARS = 2000
 const MAX_HISTORY = 20

@@ -6,11 +6,12 @@
 <template>
   <div v-if="message" :class="['error-banner', variant]" role="alert">
     <span class="banner-msg">{{ message }}</span>
-    <button v-if="dismissable" class="banner-close" @click="$emit('dismiss')" aria-label="Dismiss">✕</button>
+    <button v-if="dismissable" class="banner-close" @click="$emit('dismiss')" aria-label="Dismiss"><AppIcon name="close" :size="13" /></button>
   </div>
 </template>
 
 <script setup>
+import AppIcon from './AppIcon.vue'
 defineProps({
   message: { type: String, default: '' },
   variant: { type: String, default: 'error' },   // error | success | warning | info
