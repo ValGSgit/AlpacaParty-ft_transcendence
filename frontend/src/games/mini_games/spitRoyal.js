@@ -1,59 +1,16 @@
-// import { CONST } from '../config/constants.js';
-// import { createAlpaca } from '../core/createObjects.js';
-// import { gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
-// import { registerEntity } from '../core/registerEntity.js';
-// import { getValidRandomPos } from '../utils/spawnRandomly.js';
-// import { setupEnvironment } from '../world/sceneBuilder.js';
-// import { changeFloorColor } from './utils.js';
-
-// export async function initSpitRoyalAI(playerCount, tempAlpacas) {
-//   setupEnvironment(gScene.value)
-//   changeFloorColor('#ff0000', '#550000')
-//   registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
-//   gScene.value.add(gPlayer.value.model)
-//   gMinigame.value.players.push({ id: 1, name: gPlayer.value.name, hp: CONST.HP, point: 0 });
-//   for (let i = 0; i < playerCount - 1; i++) {
-//     let alpaca;
-//     const data = await getValidRandomPos('/models/alpaca.glb', 1);
-//     if (tempAlpacas[i]) {
-//       alpaca = tempAlpacas[i]
-//       registerEntity(alpaca, 'alpaca')
-//       alpaca.model.position.set(data[0].position[0], data[0].position[1], data[0].position[2])
-//     }
-//     else
-//       alpaca = await createAlpaca(null, null, data[0].position, data[0].rotation, data[0].scale);
-//     gScene.value.add(alpaca.model)
-//   }
-
-//   gUI.cameraMode = 1
-//   gMinigame.value.isActive = true;
-// }
-
-// export async function initSpitRoyalOnline() {
-//   setupEnvironment(gScene.value);
-//   changeFloorColor('#ff0000', '#550000');
-//   registerEntity(gPlayer.value, 'alpaca');
-//   gScene.value.add(gPlayer.value.model);
-//   gUI.cameraMode = 1;
-
-//   gMinigame.value.isActive = true;
-// }
-
-
 import * as THREE from 'three';
+import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca } from '../core/createObjects.js';
 import { gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
-import { useFloatingText } from '../components/floatingText.js';
+import { getValidRandomPos } from '../utils/spawnRandomly.js';
 import { setupEnvironment } from '../world/sceneBuilder.js';
-import { changeFloorColor } from './utils.js';
 import { activeClient } from './GameClient.js';
-import { makeAnnouncement } from './annoucement.js';
+import { changeFloorColor } from './utils.js';
 
 let activePlayers = [];
 let localProjectiles = [];
-let assetsLoaded = false;
 let activeTimer = 1.0;
 
 const { spawnFloatingText } = useFloatingText();
@@ -105,7 +62,6 @@ export async function initSpitRoyalOnline() {
   registerEntity(gPlayer.value, 'alpaca');
 
   gUI.cameraMode = 1;
-  assetsLoaded = true;
   gMinigame.value.isActive = true;
 }
 
