@@ -50,6 +50,10 @@ export function alpacaHandling() {
       direction = new THREE.Vector3(dx, -0.4, dz).normalize();
     }
 
+    if (gMinigame.value.mode === 2 && alpaca === gPlayer.value) {
+      activeClient.sendSpit({ x: direction.x, y: direction.y, z: direction.z });
+    }
+
     const beam = createLaserBeam(origin, direction, 1);
     gScene.value.add(beam);
 
@@ -80,7 +84,6 @@ export function alpacaHandling() {
         if (hits.length > 0) {
           const hitAlpaca = findAlpaca(hits[0].object);
 
-          // Make sure we didn't accidentally shoot ourselves!
           if (hitAlpaca && hitAlpaca !== s.owner && hitAlpaca.isDead !== 1) {
 
             if (gMinigame.value.mode === 1) {

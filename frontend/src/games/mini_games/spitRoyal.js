@@ -17,7 +17,14 @@ const { spawnFloatingText } = useFloatingText();
 
 export function shootSpitAction(directionVec) {
   if (!gPlayer.value || gPlayer.value.isDead === 1) return;
-  activeClient.sendSpit(directionVec);
+
+  // THE FIX: If directionVec is a Vue PointerEvent (from UI click), ignore it!
+  let safeDir = null;
+  if (directionVec && typeof directionVec.x === 'number' && typeof directionVec.z === 'number') {
+    safeDir = directionVec;
+  }
+
+  activeClient.sendSpit(safeDir);
   gPlayer.value.spit();
 }
 
@@ -55,7 +62,7 @@ export async function initSpitRoyalOnline() {
   activePlayers.length = 0;
   gPlayer.value.socketId = activeClient.socket.id;
   gPlayer.value.hp = 3;
-  gPlayer.value.hasSpawned = false; // Reset spawn tracker
+  gPlayer.value.hasSpawned = false;
 
   gScene.value.add(gPlayer.value.model);
   activePlayers.push(gPlayer.value);
@@ -68,9 +75,8 @@ export async function initSpitRoyalOnline() {
 export function updateSpitRoyal(delta) {
   if (!gMinigame.value.isActive || gMinigame.value.isGameOver) return;
 
-  syncPlayersFromServer(delta);
+  syncPlayers(delta);
   spawnEnemySpits();
-  checkActivity(delta);
   streamLocalPosition();
 }
 
@@ -80,20 +86,21 @@ function streamLocalPosition() {
 }
 
 function spawnEnemySpits() {
-  const events = activeClient.serverData.spitEvents;
+  const events = activeClient.spitQueue;
   if (!events || events.length === 0) return;
 
   while (events.length > 0) {
     const spitData = events.shift();
     const shooter = activePlayers.find(p => p.socketId === spitData.ownerId);
 
-    // FIX: Ensure the remote player object is fully loaded before trying to animate it
     if (shooter && shooter.socketId !== activeClient.socket.id && typeof shooter.spit === 'function') {
       try {
-        // Rotate the enemy to match the direction the server says they shot!
-        if (spitData.direction) {
+        // THE FIX: Only rotate if direction is a valid Vector. Prevents NaN matrix corruption!
+        if (spitData.direction && typeof spitData.direction.x === 'number' && typeof spitData.direction.z === 'number') {
           const dir = new THREE.Vector3(spitData.direction.x, 0, spitData.direction.z).normalize();
-          shooter.model.rotation.y = Math.atan2(dir.x, dir.z);
+          if (!isNaN(dir.x) && !isNaN(dir.z)) {
+            shooter.model.rotation.y = Math.atan2(dir.x, dir.z);
+          }
         }
         shooter.spit();
       } catch (e) {
@@ -103,7 +110,7 @@ function spawnEnemySpits() {
   }
 }
 
-function syncPlayersFromServer(delta) {
+function syncPlayers(delta) {
   const serverPlayers = gMinigame.value.players;
   if (!serverPlayers) return;
 
@@ -186,14 +193,6 @@ function syncPlayersFromServer(delta) {
       localAlpaca.point = serverData.point;
       localAlpaca.isDead = serverData.isDead ? 1 : 0;
     }
-  }
-}
-
-function checkActivity(delta) {
-  activeTimer -= delta;
-  if (activeTimer <= 0) {
-    activeClient.sendActive();
-    activeTimer = 1.0;
   }
 }
 

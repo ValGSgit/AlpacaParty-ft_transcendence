@@ -21,8 +21,8 @@ export class MatchManager {
       const typeStr = Object.keys(GAME_REGISTRY).find(key => GAME_REGISTRY[key] === match.constructor);
       const currentType = Number(typeStr);
 
-      if ((match.status === 'LOBBY' && match.players.size < 4 && currentType === 4) ||
-        (match.status === 'PLAYING' && match.players.size < 10 && currentType === 2)) {
+      if ((match.status === 'LOBBY' && match.players.size > 0 && match.players.size < 4 && currentType === 4) ||
+        (match.status === 'PLAYING' && match.players.size > 0 && match.players.size < 10 && currentType === 2)) {
         publicRooms.push({
           id: match.matchId,
           name: match.roomName,
@@ -49,9 +49,9 @@ export class MatchManager {
         });
 
         this.matches.set(roomId, match);
-        match.addPlayer(socket, name, color);
         this.playerToMatch.set(socket.id, roomId);
         socket.emit('join_success', { roomId: roomId, roomName: roomName, gameType: gameType });
+        match.addPlayer(socket, name, color);
         this.broadcastPublicRooms();
       });
 
@@ -62,10 +62,9 @@ export class MatchManager {
 
         if (match && ((match.status === 'LOBBY' && match.players.size < 4 && currentType === 4) ||
           (match.status === 'PLAYING' && match.players.size < 10 && currentType === 2))) {
-          match.addPlayer(socket, name, color);
           this.playerToMatch.set(socket.id, roomId);
-
           socket.emit('join_success', { roomId: roomId, roomName: match.roomName, gameType: currentType });
+          match.addPlayer(socket, name, color);
           this.broadcastPublicRooms();
         }
       });
@@ -115,13 +114,11 @@ export class MatchManager {
         }
       });
 
-      // Route collision detection
       socket.on('spit_hit', ({ targetId }) => {
         const matchId = this.playerToMatch.get(socket.id);
         if (matchId) {
           const match = this.matches.get(matchId);
           if (match && typeof match.handleSpitHit === 'function') {
-            // socket.id is the shooter, targetId is the victim
             match.handleSpitHit(socket.id, targetId);
           }
         }
@@ -152,13 +149,15 @@ export class MatchManager {
         const matchId = this.playerToMatch.get(socket.id);
         if (matchId) {
           const match = this.matches.get(matchId);
-          match.removePlayer(socket.id);
-          this.playerToMatch.delete(socket.id);
-
-          if (match.players.size === 0) {
-            match.stop();
-            this.matches.delete(matchId);
+          if (match) {
+            match.removePlayer(socket.id);
+            this.playerToMatch.delete(socket.id);
+            if (match.players.size <= 0) {
+              match.stop();
+              this.matches.delete(matchId);
+            }
           }
+          this.playerToMatch.delete(socket.id);
           this.broadcastPublicRooms();
         }
       });

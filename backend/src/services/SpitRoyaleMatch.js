@@ -8,7 +8,7 @@ export class SpitRoyalMatch extends BaseMatch {
     super(id, namespace, roomName, onStateChange);
     this.tickRate = 33;
     this.isPlaying = false;
-    this.finalized = false;
+    this.isGameOver = false;
     this.playersJoined = 0;
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
@@ -51,11 +51,10 @@ export class SpitRoyalMatch extends BaseMatch {
 
     this.syncLobby();
 
-    // Auto-start and individually send each player their specific spawn!
     if (this.status === 'LOBBY') {
       this.status = 'PLAYING';
       this.isPlaying = true;
-      if (this.onStateChange) this.onStateChange();
+      //if (this.onStateChange) this.onStateChange();
     }
 
     socket.emit('game_start', { instant: true, spawn });
@@ -118,8 +117,8 @@ export class SpitRoyalMatch extends BaseMatch {
   }
 
   endMatch(winnerPlayerId, reason) {
-    if (this.finalized) return;
-    this.finalized = true;
+    if (this.isGameOver) return;
+    this.isGameOver = true;
     this.isPlaying = false;
 
     const winner = winnerPlayerId ? this.players.get(winnerPlayerId) : null;
