@@ -60,6 +60,7 @@ export async function initSpitRoyalOnline() {
   changeFloorColor('#ff0000', '#550000');
 
   activePlayers.length = 0;
+  gPlayer.value.point = 0;
   gPlayer.value.socketId = activeClient.socket.id;
   gPlayer.value.hp = 3;
   gPlayer.value.hasSpawned = false;

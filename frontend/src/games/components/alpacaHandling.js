@@ -96,6 +96,8 @@ export function alpacaHandling() {
             } else if (gMinigame.value.mode === 2) {
               // --- MULTIPLAYER LOGIC ---
               if (s.owner === gPlayer.value && hitAlpaca.socketId && hitAlpaca.socketId !== activeClient.socket.id) {
+                console.log("hit alpaca:", hitAlpaca.health);
+                gPlayer.value.point++;
                 activeClient.sendSpitHit(hitAlpaca.socketId);
                 if (hitAlpaca.hp > 0) spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
               }

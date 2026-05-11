@@ -13,13 +13,11 @@ export class GameClient {
   connect() {
     if (this.socket) return;
 
-    this.socket = io('/alpaca-road', { transports: ['websocket'], withCredentials: true });
+    this.socket = io('/minigames', { transports: ['websocket'], withCredentials: true });
     this.socket.on('connect', () => { console.log("✅ FRONTEND: Connected! ID:", this.socket.id); });
     this.socket.on('connect_error', (err) => { console.error("❌ FRONTEND: Connection FAILED!", err.message); });
     this.setupListeners();
   }
-
-
 
   disconnect() {
     if (this.socket) {
@@ -137,15 +135,12 @@ export class GameClient {
 
     this.socket.on('game_over', (data) => {
       gMinigame.value.isGameOver = true;
-      if (data && data.reason === 'eliminated') {
-        makeAnnouncement('Eliminated!', 3000);
+      if (data) {
+        if (data.reason === 'eliminated') makeAnnouncement('Eliminated!', 3000);
+        if (data.reason === 'lastone_standing') {
+          if (data.winnerId === this.socket.id) makeAnnouncement('Congratulations!', 3000);
+        }
       }
-    });
-
-    this.socket.on('match_over', (data) => {
-      gMinigame.value.isGameOver = true;
-      const msg = data.winnerId === this.socket.id ? 'You Won!' : `${data.winnerName || 'Someone'} Won!`;
-      makeAnnouncement(msg, 5000);
     });
   }
 }

@@ -36,7 +36,7 @@
         <button class="shop-btn" @click="toggleReady">
           {{ gMinigame.isReady ? 'Cancel Ready' : 'Ready Up' }}
         </button>
-        <button class="close-btn" @click="leaveRoom" title="Leave">✖️</button>
+        <button class="close-btn" @click="leaveRoom()" title="Leave">✖️</button>
       </div>
     </div>
   </div>

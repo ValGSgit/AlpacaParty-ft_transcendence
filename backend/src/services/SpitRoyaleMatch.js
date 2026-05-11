@@ -8,7 +8,6 @@ export class SpitRoyalMatch extends BaseMatch {
     super(id, namespace, roomName, onStateChange);
     this.tickRate = 33;
     this.isPlaying = false;
-    this.isGameOver = false;
     this.playersJoined = 0;
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
@@ -92,11 +91,11 @@ export class SpitRoyalMatch extends BaseMatch {
 
     if (target && target.alive) {
       target.hp -= 1;
+      if (owner) owner.point++;
 
       if (target.hp <= 0) {
         target.alive = false;
         target.isDead = true;
-        if (owner) owner.point++;
 
         this.namespace.to(targetId).emit('game_over', { reason: 'eliminated' });
         this.checkWinCondition();
@@ -108,28 +107,23 @@ export class SpitRoyalMatch extends BaseMatch {
     if (!this.isPlaying) return;
 
     const alivePlayers = Array.from(this.players.values()).filter(p => p.alive);
-
+    console.log("alive:", alivePlayers)
     // Require at least 2 players to have joined before triggering a "last alpaca standing" win
     if (this.playersJoined > 1 && alivePlayers.length <= 1) {
+      this.status === 'GAME_OVER'
       const winnerId = alivePlayers.length === 1 ? alivePlayers[0].id : null;
-      this.endMatch(winnerId, 'last_alpaca_standing');
+      this.endMatch(winnerId, 'lastone_standing');
     }
   }
 
   endMatch(winnerPlayerId, reason) {
-    if (this.isGameOver) return;
-    this.isGameOver = true;
     this.isPlaying = false;
 
-    const winner = winnerPlayerId ? this.players.get(winnerPlayerId) : null;
-
-    this.broadcast('match_over', {
+    this.broadcast('game_over', {
       reason,
       winnerId: winnerPlayerId,
-      winnerName: winner?.name || null
     });
-
-    setTimeout(() => this.stop(), 5000);
+    this.stop();
   }
 
   update() {

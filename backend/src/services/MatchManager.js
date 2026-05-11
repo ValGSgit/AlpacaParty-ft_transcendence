@@ -38,8 +38,25 @@ export class MatchManager {
     this.io.on('connection', (socket) => {
       this.broadcastPublicRooms();
 
+      const leaveCurrentRoom = () => {
+        const matchId = this.playerToMatch.get(socket.id);
+        if (matchId) {
+          const match = this.matches.get(matchId);
+          if (match) {
+            match.removePlayer(socket.id);
+            if (match.players.size === 0) {
+              match.stop();
+              this.matches.delete(matchId);
+            }
+          }
+          this.playerToMatch.delete(socket.id);
+        }
+      };
+
       socket.on('create_room', ({ name, color, gameType }) => {
         console.log(`BACKEND: Received create_room request from ${name}`);
+
+        leaveCurrentRoom();
 
         const roomId = Math.random().toString(36);
         const roomName = `${name}'s Room`;
@@ -62,6 +79,7 @@ export class MatchManager {
 
         if (match && ((match.status === 'LOBBY' && match.players.size < 4 && currentType === 4) ||
           (match.status === 'PLAYING' && match.players.size < 10 && currentType === 2))) {
+          leaveCurrentRoom();
           this.playerToMatch.set(socket.id, roomId);
           socket.emit('join_success', { roomId: roomId, roomName: match.roomName, gameType: currentType });
           match.addPlayer(socket, name, color);
@@ -70,19 +88,8 @@ export class MatchManager {
       });
 
       socket.on('leave_room', () => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match) {
-            match.removePlayer(socket.id);
-            if (match.players.size === 0) {
-              match.stop();
-              this.matches.delete(matchId);
-            }
-          }
-          this.playerToMatch.delete(socket.id);
-          this.broadcastPublicRooms();
-        }
+        leaveCurrentRoom();
+        this.broadcastPublicRooms();
       })
 
       socket.on('ready_toggle', ({ isReady }) => {

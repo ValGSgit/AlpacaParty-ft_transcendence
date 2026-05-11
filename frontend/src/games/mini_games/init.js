@@ -15,7 +15,7 @@ const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
 const tempAlpacas = []
 
-export async function changeGame(mode, playerCount = 1) {
+export async function changeGame(mode = 0, playerCount = 1) {
   console.log("changeGame:", mode);
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0) saveGame();
@@ -42,9 +42,7 @@ export async function changeGame(mode, playerCount = 1) {
 async function returnFarm() {
   const authStore = useAuthStore()
 
-  if (gMinigame.value.isOnline) {
-    activeClient.disconnect();
-  }
+  activeClient.disconnect();
   clearAnnouncements();
   resetMinigame();
   gMinigame.value.mode = 0;
