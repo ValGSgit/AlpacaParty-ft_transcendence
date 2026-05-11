@@ -301,11 +301,10 @@ import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
-import { updateAlpacaRoad } from './mini_games/alpacaRoad.js'
 import { changeGame } from './mini_games/init.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
-import { updateSpitRoyal } from './mini_games/spitRoyal.js'
+import { updateMinigame } from './mini_games/minigames.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -390,15 +389,8 @@ const gameLoop = () => {
   updateCoins(delta);
   updateSpits(delta)
   updateLighting(delta);
-
-  if (gMinigame.value.isActive && gMinigame.value.mode > 2)
-  {
-    updateAlpacaRoad(delta)
-  }
-
-    if (gMinigame.value.isActive && gMinigame.value.mode == 2)
-  {
-    updateSpitRoyal(delta)
+  if(gMinigame.value.isActive) {
+    updateMinigame(delta);
   }
 
   if (gEngine.value?.controls) {

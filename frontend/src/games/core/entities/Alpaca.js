@@ -149,7 +149,7 @@ export class Alpaca {
         gUser.value.hp--
     }
 
-    if (this.hp === 0) {
+    if (this.hp <= 0) {
       this.isDead = 1 // dead
       removeFromArray(this.model, gCollidables) //remove itself from gCollidables
       alpaca.point++ // credit for the spit owner

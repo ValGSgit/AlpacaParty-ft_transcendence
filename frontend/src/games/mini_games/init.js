@@ -21,7 +21,7 @@ export async function changeGame(mode, playerCount = 1) {
   if (gMinigame.value.mode === 0) saveGame();
 
   resetMinigame();
-
+  gMinigame.value.mode = mode;
   gMinigame.value.isOnline = (gMinigame.value.mode === 2 || gMinigame.value.mode === 4);
   gUser.value.hp = CONST.HP
   gUser.value.point = 0
