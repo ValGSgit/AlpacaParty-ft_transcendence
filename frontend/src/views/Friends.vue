@@ -3,12 +3,7 @@
   @owner fankahou
 -->
 <template>
-  <div class="friends-layout">
-    <aside class="friends-sidebar">
-      <FakeAd :sidebar="true" />
-    </aside>
-
-    <div class="friends-page">
+  <div class="friends-page">
     <h1>Friends</h1>
 
     <!-- Tab bar -->
@@ -139,12 +134,7 @@
       </ul>
       <p v-else class="empty">No blocked users.</p>
     </div>
-    </div><!-- /friends-page -->
-
-    <aside class="friends-sidebar">
-      <ActiveLeaderboard />
-    </aside>
-  </div><!-- /friends-layout -->
+  </div>
 </template>
 
 <script setup>
@@ -156,8 +146,6 @@ import LoadingSpinner from '../components/LoadingSpinner.vue'
 import EmptyState from '../components/EmptyState.vue'
 import UserCard from '../components/UserCard.vue'
 import BaseButton from '../components/BaseButton.vue'
-import FakeAd from '../components/FakeAd.vue'
-import ActiveLeaderboard from '../components/ActiveLeaderboard.vue'
 
 const authStore = useAuthStore()
 
@@ -376,33 +364,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 3-column layout (mirrors Feed.vue) */
-.friends-layout {
-  display: grid;
-  grid-template-columns: 260px minmax(0, 700px) 260px;
-  gap: 1.5rem;
-  justify-content: center;
-  align-items: start;
-  padding: 1.5rem 1rem;
-  max-width: 1280px;
-  margin: 0 auto;
-}
-
-.friends-sidebar {
-  position: sticky;
-  top: 1.5rem;
-}
-
-@media (max-width: 1024px) {
-  .friends-layout {
-    grid-template-columns: 1fr;
-  }
-  .friends-sidebar {
-    display: none;
-  }
-}
-
-.friends-page { max-width: 700px; margin: 0 auto; min-width: 0; }
+.friends-page { max-width: 700px; margin: 0 auto; }
 h1 { margin-bottom: 1.25rem; color: var(--primary, #00f0ff); }
 h3 { color: var(--primary, #00f0ff); margin-bottom: 0.5rem; }
 

@@ -93,7 +93,6 @@
 
 <script setup>
 import { ref, nextTick } from 'vue'
-import api from '../services/api.js'
 import AppIcon from './AppIcon.vue'
 
 const MAX_CHARS = 2000
@@ -145,13 +144,85 @@ async function send() {
   loading.value = true
   scrollToBottom()
 
+  const history = messages.value.slice(-MAX_HISTORY).map(m => ({ role: m.role, content: m.content }))
+
   try {
-    const history = messages.value.slice(-MAX_HISTORY).map(m => ({ role: m.role, content: m.content }))
-    const { data } = await api.post('/helpdesk/chat', { messages: history })
-    messages.value.push({ role: 'assistant', content: data.reply })
+    const resp = await fetch('/api/helpdesk/chat', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify({ messages: history }),
+    })
+
+    if (!resp.ok) {
+      // Non-streaming error path: body is JSON, not SSE.
+      const errBody = await resp.json().catch(() => null)
+      throw new Error(errBody?.error?.message || `Request failed (${resp.status})`)
+    }
+
+    // Append an empty assistant message and let chunks fill it in.
+    messages.value.push({ role: 'assistant', content: '' })
+    const idx = messages.value.length - 1
+    loading.value = false // typing bubble disappears the moment we have a real bubble
+
+    const reader = resp.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    let buffer = ''
+    let streamError = null
+
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+
+      const events = buffer.split('\n\n')
+      buffer = events.pop() ?? ''
+
+      for (const evt of events) {
+        const line = evt.trim()
+        if (!line.startsWith('data:')) continue
+        const payload = line.slice(5).trim()
+        if (payload === '[DONE]') {
+          reader.cancel().catch(() => {})
+          break
+        }
+        try {
+          const json = JSON.parse(payload)
+          if (json.error) {
+            streamError = json.error
+            continue
+          }
+          if (json.content) {
+            messages.value[idx] = {
+              ...messages.value[idx],
+              content: messages.value[idx].content + json.content,
+            }
+            scrollToBottom()
+          }
+        } catch {
+          // Drop malformed frames; keep streaming.
+        }
+      }
+    }
+
+    if (streamError) {
+      throw new Error('Stream interrupted, please try again.')
+    }
+    if (!messages.value[idx].content) {
+      // Backend ended without emitting a single delta — treat as failure.
+      messages.value.splice(idx, 1)
+      throw new Error('No response from the assistant.')
+    }
   } catch (err) {
-    error.value = err?.data?.error?.message || 'Something went wrong. Please try again.'
-    messages.value.pop()
+    error.value = err?.message || 'Something went wrong. Please try again.'
+    // Roll the user's outbound message back if the assistant placeholder
+    // wasn't pushed (i.e. the failure was pre-stream).
+    if (messages.value[messages.value.length - 1]?.role === 'user') {
+      messages.value.pop()
+    }
   } finally {
     loading.value = false
     await nextTick()
