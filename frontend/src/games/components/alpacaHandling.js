@@ -87,7 +87,11 @@ export function alpacaHandling() {
       if (hits.length > 0 || s.distanceTraveled > s.maxDistance) {
 
         if (hits.length > 0) {
-          if (gMinigame.value.mode === 1) {
+          if (gMinigame.value.mode === 0) {
+            const hitAlpaca = findAlpaca(hits[0].object);
+            if (hitAlpaca) hitAlpaca.beingHit(s.owner); // fake hit
+          }
+          else if (gMinigame.value.mode === 1) {
             // --- SINGLE PLAYER LOGIC ---
             const hitAlpaca = findAlpaca(hits[0].object);
             if (hitAlpaca.hp > 0) spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
