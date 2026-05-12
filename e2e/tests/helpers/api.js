@@ -119,3 +119,17 @@ export async function setAuthToken(page, token) {
     window.localStorage.setItem('accessToken', t);
   }, token);
 }
+
+export async function makeFriends(request, tokenA, userBId, tokenB) {
+  await requestFriendship(request, tokenA, userBId);
+  await acceptFirstPending(request, tokenB);
+}
+
+export async function generateApiKey(request, token) {
+  const res = await request.post('/api/users/me/api-key', {
+    headers: authHeaders(token),
+  });
+  expect(res.ok()).toBeTruthy();
+  const body = await res.json();
+  return body.apiKey ?? body.key ?? body.api_key;
+}

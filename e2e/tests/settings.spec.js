@@ -178,4 +178,14 @@ test.describe('User Settings', () => {
     expect(body.user.username).toBe('live_demo');
     expect(body.user.id).toBeTruthy();
   });
+
+  test('wrong current password is rejected on password change', async ({ request }) => {
+    const user = await createUser(request, 'wrongpwd');
+
+    const res = await request.put('/api/users/me/password', {
+      headers: authHeaders(user.accessToken),
+      data: { currentPassword: 'WrongPassword1!', newPassword: 'NewPass123!' },
+    });
+    expect([400, 401].includes(res.status())).toBeTruthy();
+  });
 });

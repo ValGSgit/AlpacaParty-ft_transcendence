@@ -33,6 +33,9 @@ if [ -z "$IS_DEV" ]; then
   if [ -z "${JWT_PUBLIC_API_SECRET:-}" ]; then
     echo "[vault-seed] ERROR: JWT_PUBLIC_API_SECRET must be set before seeding" >&2; exit 1
   fi
+  if [ -z "${ADMIN_JWT_SECRET:-}" ]; then
+    echo "[vault-seed] ERROR: ADMIN_JWT_SECRET must be set before seeding" >&2; exit 1
+  fi
 fi
 
 echo "[vault-seed] Waiting for Vault to be ready..."
@@ -53,6 +56,7 @@ vault kv put secret/alpacaparty \
   jwt_secret="${JWT_SECRET}" \
   jwt_refresh_secret="${JWT_REFRESH_SECRET}" \
   jwt_public_api_secret="${JWT_PUBLIC_API_SECRET}" \
+  admin_jwt_secret="${ADMIN_JWT_SECRET:-change-me-admin-secret}" \
   api_keys="${API_KEYS:-change-me-to-a-secure-key}" \
   google_client_id="${GOOGLE_CLIENT_ID:-}" \
   google_client_secret="${GOOGLE_CLIENT_SECRET:-}" \
@@ -71,9 +75,15 @@ if vault policy list | grep -q '^alpacaparty-backend$'; then
 else
   echo "[vault-seed] Creating read-only policy for backend..."
   vault policy write alpacaparty-backend - <<'POLICY'
-# Backend service: read the single app secret path only.
+# Backend service: read main app secrets + manage per-admin permission entries.
 path "secret/data/alpacaparty" {
   capabilities = ["read"]
+}
+path "secret/data/alpacaparty/admins/*" {
+  capabilities = ["create", "read", "update", "delete"]
+}
+path "secret/metadata/alpacaparty/admins/*" {
+  capabilities = ["read", "delete", "list"]
 }
 POLICY
   echo "[vault-seed] Policy created."

@@ -33,6 +33,18 @@ const config = {
   envIsProd: process.env.NODE_ENV === "production",
   envIsDev: process.env.NODE_ENV === "development",
 
+  admin: {
+    jwtSecret: process.env.ADMIN_JWT_SECRET,
+    jwtExpiresIn: '1h',
+    cookieOptions: {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 1000,
+      path: '/',
+    },
+  },
+
   jwt: {
     secret: process.env.JWT_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,

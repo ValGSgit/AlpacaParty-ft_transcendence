@@ -17,6 +17,8 @@ model User {
   avatar    String?   @default("/avatars/default.svg") @db.VarChar(512)
   bio       String?   @default("") @db.Text
   status    String?   @default("Hey there! I am using AlpacaParty") @db.VarChar(255)
+  role      String    @default("user") @db.VarChar(20)
+  isBanned  Boolean   @default(false) @map("is_banned")
   isOnline  Boolean?  @default(false) @map("is_online")
   lastSeen  DateTime? @default(now()) @map("last_seen") @db.Timestamptz
   createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
