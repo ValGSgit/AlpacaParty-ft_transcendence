@@ -7,6 +7,7 @@ import { setupEnvironment } from '../world/sceneBuilder.js';
 import { changeFloorColor } from './utils.js';
 
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
+  gMinigame.value.mode = 1;
   setupEnvironment(gScene.value)
   changeFloorColor('#ff0000', '#550000')
   registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
@@ -30,6 +31,7 @@ export async function initSpitRoyalAI(playerCount, tempAlpacas) {
 }
 
 export async function initSpitRoyalOnline() {
+  gMinigame.value.mode = 2;
   setupEnvironment(gScene.value);
   changeFloorColor('#ff0000', '#550000');
   registerEntity(gPlayer.value, 'alpaca');

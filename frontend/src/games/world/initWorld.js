@@ -6,11 +6,11 @@ import { spawnObjectRandomly } from '../utils/spawnRandomly.js'
 import { loadGameData } from './dataLoader.js'
 import { setupEnvironment } from './sceneBuilder.js'
 
-export async function initWorld(scene, isAuthenticated = false) {
+export async function initWorld(scene, isAuthenticated = false, visitPlayerId) {
   let data = null
   if (isAuthenticated) {
     try {
-      data = await loadGameData()
+      data = await loadGameData(visitPlayerId)
     } catch (e) {
       console.error('Failed to load game data, starting fresh.', e)
     }
