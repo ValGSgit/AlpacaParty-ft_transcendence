@@ -157,6 +157,7 @@ describe('AdminLogin.vue', () => {
 
       const form = wrapper.find('form')
       await form.trigger('submit')
+      await wrapper.vm.$nextTick()
       expect(wrapper.vm.loading).toBe(true)
 
       await form.trigger('submit')

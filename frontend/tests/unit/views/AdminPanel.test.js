@@ -7,7 +7,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import AdminPanel from '../../../src/views/AdminPanel.vue'
 
-vi.mock('../../../src/services/api.js', () => ({
+vi.mock('../../../src/services/api.js', () => ({\
   default: {
     get: vi.fn(),
     post: vi.fn(),
@@ -182,7 +182,7 @@ describe('AdminPanel.vue', () => {
       const statsText = wrapper.text()
       expect(statsText).toContain('1,500')
       expect(statsText).toContain('45')
-      expect(statsText).toContain('8234')
+      expect(statsText).toContain('8,234')
       expect(statsText).toContain('12')
     })
 
@@ -546,6 +546,10 @@ describe('AdminPanel.vue', () => {
 
   describe('loading states', () => {
     it('should show loading state for users', async () => {
+      const navItems = wrapper.findAll('.nav-item')
+      await navItems[1].trigger('click')
+      await wrapper.vm.$nextTick()
+
       wrapper.vm.usersLoading = true
       await wrapper.vm.$nextTick()
 
