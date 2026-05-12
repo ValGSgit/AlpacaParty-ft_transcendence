@@ -1,11 +1,16 @@
 import api from '../../services/api.js';
 import { gUser } from '../core/globals.js';
 
-export async function loadGameData() {
+export async function loadGameData(visitPlayerId) {
   try {
-    const res = await api.get('/users/me/farmdata')
+    let res
+    if (!visitPlayerId)
+      res = await api.get('/users/me/farmdata')
+    else
+      res = await api.get(`/users/me/farmdata?id=${visitPlayerId}`)
     const farmData = res.data.farmData;
-    gUser.value.coins = farmData.coins;
+    if (!visitPlayerId)
+      gUser.value.coins = farmData.coins;
     gUser.value.upgrades = farmData.upgrades;
     gUser.value.herdsize = farmData.herdsize;
 
