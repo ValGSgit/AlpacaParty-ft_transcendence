@@ -4,8 +4,9 @@ import prisma from "#config/prisma.js";
  * GET /api/users/farmdata
  */
 export const getFarmData = async (req, res, next) => {
-  const id = Number(req.user.id);
-
+  let id = Number(req.user.id);
+  if (req.query.id)
+    id = Number(req.query.id);
   try {
     const farmData = await prisma.alpacaFarm.findFirst({
       where: {

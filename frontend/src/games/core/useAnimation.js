@@ -37,7 +37,7 @@ export function handleAnimation(player, animDir, speed) {
     newAction = idleAction
   }
 
-  if (gMinigame.value.mode > 2 && !player.isJumping && !player.isDead)
+  if ((gMinigame.value.mode === 3 || gMinigame.value.mode === 4 )&& !player.isJumping && !player.isDead)
     newAction = walkAction // always walking in Alpaca Road mini game
 
   if (player.currentAction !== newAction) {

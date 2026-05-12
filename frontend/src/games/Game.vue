@@ -130,6 +130,20 @@
       </div>
     </div>
     <MultiplayerLobby v-if="gUI.lobbyMenu && gMinigame.mode === 4" />
+    <div v-if="gUI.lobbyMenu" class="modal-overlay">
+      <div class="shop-title">Visit A Friend's Farm
+        <div v-for="friend in gMinigame.lobby" :key="friend.id">
+          <button class="shop-btn" @click="visitFarm(friend.id, friend.username)">
+            {{ friend.username }}
+          </button>
+        </div>
+        <button class="close-btn" @click="closeLobbyMenu()" title="Close">✖️</button>
+      </div>
+    </div>
+    <div v-if="gMinigame.mode === 5" class="edit-mode">
+      <div class="shop-title"> Visiting {{ friendName }}'s Farm
+      </div>
+    </div>
     <div v-if="gUI.farmMenu" class="modal-overlay">
       <div class="shop-title">
         Upgrade Farm
@@ -314,7 +328,7 @@ import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
 import { updateAlpacaRoad } from './mini_games/alpacaRoad.js'
-import { changeGame } from './mini_games/init.js'
+import { changeGame, visitFarm, friendName } from './mini_games/init.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
 

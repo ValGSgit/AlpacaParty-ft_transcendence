@@ -2,6 +2,7 @@ import { useEditMode } from "../components/editMode";
 import { changeGame } from '../mini_games/init.js';
 import { gEditState, gMinigame, gUI } from "./globals";
 import { changeEditModeCamera } from "./useCamera.js";
+import api from '../../services/api.js';
 
 export function useUIManager() {
 
@@ -99,16 +100,25 @@ export function useUIManager() {
     gUI.farmMenu = false
   }
 
-  const openLobbyMenu = (game) => {
+  async function openLobbyMenu(game) {
     gUI.lobbyMenu = true
     gUI.gameMenu = false
     gMinigame.value.mode = game;
     gMinigame.value.lobby = []
+    if (game === 0)
+      await fetchFriends();
   }
 
   const closeLobbyMenu = () => {
     gUI.lobbyMenu = false
     //gUI.gameMenu = true
+  }
+  
+  async function fetchFriends() {
+    try {
+      const { data } = await api.get('/friends')
+      gMinigame.value.lobby = data.friends || []
+    } catch {}
   }
 
   return {

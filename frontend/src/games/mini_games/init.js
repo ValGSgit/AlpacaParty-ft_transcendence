@@ -15,6 +15,8 @@ import { initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
 const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
 const tempAlpacas = []
+let visitPlayerId = null
+export let friendName = null
 
 export async function changeGame(mode, playerCount = 1) {
   if (!gPlayer.value || !gUser.value) return;
@@ -53,6 +55,7 @@ async function returnFarm() {
   gUI.lobbyMenu = false;
   gUI.lockCamera = false;
   gUI.cameraMode = 0
+  visitPlayerId = null
 
   gPlayer.value = null
   clearScene(gScene.value)
@@ -93,7 +96,19 @@ async function initGameMode(mode, playerCount, tempAlpacas) {
     case 4:
       initAlpacaRoadOnline(playerCount, tempAlpacas);
       break;
+    case 5: // visit farm
+      const authStore = useAuthStore();
+      await initWorld(gScene.value, authStore.isAuthenticated, visitPlayerId);
+      break;
     default:
       await returnFarm();
   }
+}
+
+export async function visitFarm(playerId, username){
+  gMinigame.value.mode = 5;
+  visitPlayerId = playerId
+  friendName = username
+  gUI.lobbyMenu = false
+  changeGame(5)
 }

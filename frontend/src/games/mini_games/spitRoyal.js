@@ -9,6 +9,7 @@ import { changeFloorColor } from './utils.js';
 const ENEMY_COLORS = ['#c0392b', '#8e44ad', '#16a085', '#d35400', '#2980b9', '#c0392b', '#7f8c8d', '#2c3e50']
 
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
+  gMinigame.value.mode = 1;
   setupEnvironment(gScene.value)
   changeFloorColor('#ff0000', '#550000')
   registerEntity(gPlayer.value, 'alpaca') // register the player back, important for collider!
@@ -34,6 +35,7 @@ export async function initSpitRoyalAI(playerCount, tempAlpacas) {
 }
 
 export async function initSpitRoyalOnline() {
+  gMinigame.value.mode = 2;
   setupEnvironment(gScene.value);
   changeFloorColor('#ff0000', '#550000');
   registerEntity(gPlayer.value, 'alpaca');
