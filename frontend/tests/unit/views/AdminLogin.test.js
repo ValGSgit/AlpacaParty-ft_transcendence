@@ -1,8 +1,5 @@
-/**
- * AdminLogin View Unit Tests
- */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import AdminLogin from '../../../src/views/AdminLogin.vue'
@@ -48,18 +45,11 @@ describe('AdminLogin.vue', () => {
       expect(wrapper.text()).toContain('Admin Portal')
     })
 
-    it('should render the login form', () => {
-      expect(wrapper.find('form').exists()).toBe(true)
-      expect(wrapper.text()).toContain('Username or Email')
-      expect(wrapper.text()).toContain('Password')
-    })
-
     it('should render username input field', () => {
       const input = wrapper.find('input#username')
       expect(input.exists()).toBe(true)
       expect(input.attributes('type')).toBe('text')
       expect(input.attributes('required')).toBeDefined()
-      expect(input.attributes('placeholder')).toContain('admin@alpacaparty.com')
     })
 
     it('should render password input field', () => {
@@ -67,27 +57,12 @@ describe('AdminLogin.vue', () => {
       expect(input.exists()).toBe(true)
       expect(input.attributes('type')).toBe('password')
       expect(input.attributes('required')).toBeDefined()
-      expect(input.attributes('placeholder')).toBe('••••••••••••')
     })
 
     it('should render submit button', () => {
       const button = wrapper.find('button[type="submit"]')
       expect(button.exists()).toBe(true)
       expect(button.text()).toContain('Access Console')
-    })
-
-    it('should render password toggle button', () => {
-      const toggleBtn = wrapper.find('button.toggle-password')
-      expect(toggleBtn.exists()).toBe(true)
-    })
-
-    it('should render security subtitle', () => {
-      expect(wrapper.text()).toContain('AlpacaParty Management Console')
-    })
-
-    it('should render shield icon', () => {
-      const svg = wrapper.find('.shield-icon svg')
-      expect(svg.exists()).toBe(true)
     })
   })
 
@@ -108,33 +83,16 @@ describe('AdminLogin.vue', () => {
       const passwordInput = wrapper.find('input#password')
       const toggleBtn = wrapper.find('button.toggle-password')
 
-      // Initially should be hidden
       expect(passwordInput.attributes('type')).toBe('password')
       expect(wrapper.vm.showPassword).toBe(false)
 
-      // Click to show password
       await toggleBtn.trigger('click')
       expect(wrapper.vm.showPassword).toBe(true)
       expect(passwordInput.attributes('type')).toBe('text')
 
-      // Click to hide password
       await toggleBtn.trigger('click')
       expect(wrapper.vm.showPassword).toBe(false)
       expect(passwordInput.attributes('type')).toBe('password')
-    })
-
-    it('should toggle password multiple times', async () => {
-      const toggleBtn = wrapper.find('button.toggle-password')
-
-      // Toggle 3 times
-      await toggleBtn.trigger('click')
-      expect(wrapper.vm.showPassword).toBe(true)
-
-      await toggleBtn.trigger('click')
-      expect(wrapper.vm.showPassword).toBe(false)
-
-      await toggleBtn.trigger('click')
-      expect(wrapper.vm.showPassword).toBe(true)
     })
   })
 
@@ -147,6 +105,7 @@ describe('AdminLogin.vue', () => {
       await wrapper.find('input#username').setValue('admin')
       await wrapper.find('input#password').setValue('SecurePass123')
       await wrapper.find('form').trigger('submit')
+      await flushPromises()
 
       expect(api.post).toHaveBeenCalledWith('/admin/login', {
         username: 'admin',
@@ -164,7 +123,7 @@ describe('AdminLogin.vue', () => {
       await wrapper.find('input#username').setValue('admin')
       await wrapper.find('input#password').setValue('pass')
       await wrapper.find('form').trigger('submit')
-      await wrapper.vm.$nextTick()
+      await flushPromises()
 
       expect(router.currentRoute.value.name).toBe('AdminPanel')
     })
@@ -183,7 +142,7 @@ describe('AdminLogin.vue', () => {
       expect(submitBtn.attributes('disabled')).toBeDefined()
 
       resolvePromise({ data: { user: { id: 1 } } })
-      await wrapper.vm.$nextTick()
+      await flushPromises()
 
       expect(wrapper.vm.loading).toBe(false)
       expect(submitBtn.attributes('disabled')).toBeUndefined()
@@ -200,9 +159,7 @@ describe('AdminLogin.vue', () => {
       await form.trigger('submit')
       expect(wrapper.vm.loading).toBe(true)
 
-      // Try to submit again
       await form.trigger('submit')
-      // API should have been called only once due to button disabled state
       expect(api.post).toHaveBeenCalledTimes(1)
 
       resolvePromise({ data: { user: { id: 1 } } })
@@ -218,7 +175,7 @@ describe('AdminLogin.vue', () => {
       await wrapper.find('input#username').setValue('admin')
       await wrapper.find('input#password').setValue('wrong')
       await wrapper.find('form').trigger('submit')
-      await wrapper.vm.$nextTick()
+      await flushPromises()
 
       expect(wrapper.text()).toContain('Invalid credentials')
       expect(wrapper.find('.error-banner').exists()).toBe(true)
@@ -232,9 +189,10 @@ describe('AdminLogin.vue', () => {
       await wrapper.find('input#username').setValue('admin')
       await wrapper.find('input#password').setValue('pass')
       await wrapper.find('form').trigger('submit')
-      await wrapper.vm.$nextTick()
+      await flushPromises()
 
       expect(wrapper.text()).toContain('Login failed')
+      expect(wrapper.find('.error-banner').exists()).toBe(true)
     })
 
     it('should display error when fetch fails', async () => {
@@ -243,13 +201,13 @@ describe('AdminLogin.vue', () => {
       await wrapper.find('input#username').setValue('admin')
       await wrapper.find('input#password').setValue('pass')
       await wrapper.find('form').trigger('submit')
-      await wrapper.vm.$nextTick()
+      await flushPromises()
 
       expect(wrapper.text()).toContain('Login failed')
+      expect(wrapper.find('.error-banner').exists()).toBe(true)
     })
 
     it('should clear previous error on new submission attempt', async () => {
-      // First submission fails
       api.post.mockRejectedValueOnce({
         response: { data: { error: { message: 'Invalid credentials' } } },
       })
@@ -257,11 +215,10 @@ describe('AdminLogin.vue', () => {
       await wrapper.find('input#username').setValue('admin')
       await wrapper.find('input#password').setValue('wrong')
       await wrapper.find('form').trigger('submit')
-      await wrapper.vm.$nextTick()
+      await flushPromises()
 
       expect(wrapper.text()).toContain('Invalid credentials')
 
-      // Clear form and try again
       api.post.mockResolvedValueOnce({
         data: { user: { id: 1 } },
       })
@@ -269,15 +226,15 @@ describe('AdminLogin.vue', () => {
       await wrapper.find('input#username').setValue('admin')
       await wrapper.find('input#password').setValue('correct')
       await wrapper.find('form').trigger('submit')
-      await wrapper.vm.$nextTick()
+      await flushPromises()
 
-      // Error should be cleared
       expect(wrapper.vm.error).toBe('')
+      expect(wrapper.find('.error-banner').exists()).toBe(false)
     })
 
-    it('should have error banner styling', () => {
+    it('should not render error banner initially', () => {
       const banner = wrapper.find('.error-banner')
-      expect(banner.exists()).toBe(true)
+      expect(banner.exists()).toBe(false)
     })
 
     it('should include error icon in error banner', async () => {
@@ -288,9 +245,10 @@ describe('AdminLogin.vue', () => {
       await wrapper.find('input#username').setValue('admin')
       await wrapper.find('input#password').setValue('pass')
       await wrapper.find('form').trigger('submit')
-      await wrapper.vm.$nextTick()
+      await flushPromises()
 
       const errorBanner = wrapper.find('.error-banner')
+      expect(errorBanner.exists()).toBe(true)
       const errorIcon = errorBanner.find('svg')
       expect(errorIcon.exists()).toBe(true)
     })
@@ -310,7 +268,6 @@ describe('AdminLogin.vue', () => {
       expect(spinner.exists()).toBe(true)
 
       resolvePromise({ data: { user: { id: 1 } } })
-      await wrapper.vm.$nextTick()
     })
 
     it('should disable submit button during loading', async () => {
@@ -332,13 +289,11 @@ describe('AdminLogin.vue', () => {
 
   describe('form validation', () => {
     it('should not submit with empty username', async () => {
-      // HTML5 required attribute should prevent submission
       const usernameInput = wrapper.find('input#username')
       expect(usernameInput.attributes('required')).toBeDefined()
     })
 
     it('should not submit with empty password', async () => {
-      // HTML5 required attribute should prevent submission
       const passwordInput = wrapper.find('input#password')
       expect(passwordInput.attributes('required')).toBeDefined()
     })

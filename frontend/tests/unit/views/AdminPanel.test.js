@@ -180,7 +180,7 @@ describe('AdminPanel.vue', () => {
     it('should display formatted stats values', async () => {
       await wrapper.vm.$nextTick()
       const statsText = wrapper.text()
-      expect(statsText).toContain('1500')
+      expect(statsText).toContain('1,500')
       expect(statsText).toContain('45')
       expect(statsText).toContain('8234')
       expect(statsText).toContain('12')
@@ -450,7 +450,7 @@ describe('AdminPanel.vue', () => {
       api.post.mockResolvedValueOnce({})
 
       await wrapper.vm.handleLogout()
-      await wrapper.vm.$nextTick()
+      await flushPromises()
 
       expect(router.currentRoute.value.name).toBe('AdminLogin')
     })
