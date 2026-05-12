@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../../stores/auth.js';
+import { debug } from '../../services/logger.js';
 import { clearCoins } from '../components/coins.js';
 import { CONST } from '../config/constants.js';
 import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
@@ -23,7 +24,8 @@ export async function changeGame(mode, playerCount = 1) {
 
   resetMinigame();
 
-  gMinigame.value.isOnline = (gMinigame.value.mode === 2 || gMinigame.value.mode === 4);
+  gMinigame.value.mode = mode;
+  gMinigame.value.isOnline = (mode === 2 || mode === 4);
   gUser.value.hp = CONST.HP
   gUser.value.point = 0
   resetAlpaca(gPlayer.value)
@@ -56,6 +58,8 @@ async function returnFarm() {
   visitPlayerId = null
 
   gPlayer.value = null
+  clearScene(gScene.value)
+  resetGArrays()
   await initWorld(gScene.value, authStore.isAuthenticated)
   saveGame()
 }
@@ -78,7 +82,7 @@ function resetMinigame() {
 }
 
 async function initGameMode(mode, playerCount, tempAlpacas) {
-  console.log("initGameMode: ", mode);
+  debug("initGameMode: ", mode);
   switch (mode) {
     case 1:
       initSpitRoyalAI(10, tempAlpacas);

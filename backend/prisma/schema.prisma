@@ -31,9 +31,6 @@ model User {
   blockedBy              BlockedUser[]        @relation("blockedByUser")
   sentMessages           Message[]            @relation("sentMessages")
   receivedMessages       Message[]            @relation("receivedMessages")
-  ownedRooms             ChatRoom[]           @relation("roomOwner")
-  roomMemberships        ChatRoomMember[]
-  roomMessages           ChatRoomMessage[]
   gamesAsPlayer1         Game[]               @relation("player1")
   gamesAsPlayer2         Game[]               @relation("player2")
   wonGames               Game[]               @relation("winner")
@@ -168,49 +165,6 @@ model Message {
   // Compound index for conversation queries (fetch msgs between two users)
   @@index([senderId, receiverId])
   @@map("message")
-}
-
-// ── Chat Rooms (group chats) ────────────────────────────────────────────
-model ChatRoom {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(100)
-  ownerId   Int      @map("owner_id")
-  isPrivate Boolean? @default(false) @map("is_private")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  owner    User              @relation("roomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members  ChatRoomMember[]
-  messages ChatRoomMessage[]
-
-  @@map("chat_room")
-}
-
-model ChatRoomMember {
-  id       Int      @id @default(autoincrement())
-  roomId   Int      @map("room_id")
-  userId   Int      @map("user_id")
-  role     String?  @default("member") @db.VarChar(10)
-  joinedAt DateTime @default(now()) @map("joined_at") @db.Timestamptz
-
-  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([roomId, userId])
-  @@map("chat_room_member")
-}
-
-model ChatRoomMessage {
-  id        Int      @id @default(autoincrement())
-  roomId    Int      @map("room_id")
-  senderId  Int      @map("sender_id")
-  content   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  sender User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@index([roomId])
-  @@map("chat_room_message")
 }
 
 // ── Games ────────────────────────────────────────────────────────────────

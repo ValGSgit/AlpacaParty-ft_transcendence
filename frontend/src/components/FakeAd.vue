@@ -23,7 +23,7 @@
       <!-- Ad Header -->
       <div class="ad-header">
         <span class="ad-label">Advertisement</span>
-        <button v-if="canClose" class="close-btn" @click="closeAd">✕</button>
+        <button v-if="canClose" class="close-btn" @click="closeAd"><AppIcon name="close" :size="14" /></button>
         <div v-else class="close-countdown">Close in {{ countdown }}s</div>
       </div>
 
@@ -57,9 +57,11 @@
 
 import { defineComponent, ref, onMounted, onUnmounted, watch } from 'vue'
 import shrekGif from '../assets/shrek.gif'
+import AppIcon from './AppIcon.vue'
 
 export default defineComponent({
   name: 'FakeAd',
+  components: { AppIcon },
 
   props: {
     gifUrl: {

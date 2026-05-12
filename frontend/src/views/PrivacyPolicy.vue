@@ -184,17 +184,20 @@
     </section>
 
     <section>
-      <h2>9. Cookies &amp; Local Storage</h2>
+      <h2>9. Cookies</h2>
       <p>
-        AlpacaParty uses a session token stored in <code>localStorage</code> to keep you
-        signed in. We do not use third-party tracking cookies or advertising scripts.
+        AlpacaParty stores its session as a pair of <strong>HTTP-only cookies</strong>
+        (an access token and a refresh token). The cookies are flagged
+        <code>HttpOnly</code> (not readable from JavaScript), <code>Secure</code>
+        (only sent over HTTPS), and <code>SameSite=Strict</code> (not sent on
+        cross-site navigation). We do not use third-party tracking cookies or
+        advertising scripts.
       </p>
       <p>
-        <strong>Security note:</strong> Tokens stored in <code>localStorage</code> are
-        accessible to JavaScript running on the page and are therefore subject to
-        Cross-Site Scripting (XSS) risk. We mitigate this through a strict
-        Content Security Policy (CSP), input sanitisation, and output encoding. Despite
-        these controls, you should log out on shared or untrusted devices.
+        Storing the session in HTTP-only cookies — rather than
+        <code>localStorage</code> — protects the session token from being read by
+        client-side JavaScript and therefore from theft via Cross-Site Scripting
+        (XSS). You should still log out on shared or untrusted devices.
       </p>
     </section>
 

@@ -50,18 +50,24 @@
                 :key="a.id"
                 class="achievement-card"
                 :class="{ unlocked: unlockedMap[a.id] }"
-                :title="a.description + (unlockedMap[a.id] ? ' (Unlocked)' : ' (Locked)')"
+                :title="a.description + (unlockedMap[a.id] ? ' ✓ Unlocked' : ' — Locked')"
               >
-                <span class="achievement-icon">{{ a.icon || '🏆' }}</span>
+                <span class="achievement-icon">
+                  <img v-if="a.icon && a.icon.startsWith('/')" :src="a.icon" class="achievement-icon-img" alt="" />
+                  <span v-else>{{ a.icon || '🏆' }}</span>
+                </span>
                 <span class="achievement-name">{{ a.name }}</span>
-                <span class="achievement-pts">{{ a.points }} pts</span>
+                <span class="achievement-pts">+{{ a.xpReward ?? a.points ?? 0 }} xp</span>
               </div>
             </div>
             <div v-else-if="achievements.length" class="achievements-grid">
               <div v-for="a in achievements" :key="a.id" class="achievement-card unlocked">
-                <span class="achievement-icon">{{ a.icon || '🏆' }}</span>
+                <span class="achievement-icon">
+                  <img v-if="a.icon && a.icon.startsWith('/')" :src="a.icon" class="achievement-icon-img" alt="" />
+                  <span v-else>{{ a.icon || '🏆' }}</span>
+                </span>
                 <span class="achievement-name">{{ a.name }}</span>
-                <span class="achievement-pts">{{ a.points }} pts</span>
+                <span class="achievement-pts">+{{ a.xpReward ?? a.points ?? 0 }} xp</span>
               </div>
             </div>
             <p v-if="!allAchievements.length && !achievements.length" class="empty-msg">No achievements yet.</p>
@@ -143,6 +149,16 @@
           <section class="settings-section">
             <h3>Change Password</h3>
             <form @submit.prevent="changePassword" class="settings-form">
+              <!-- Hidden username for password managers + screen readers (Chromium a11y warning) -->
+              <input
+                type="text"
+                :value="profileForm.username"
+                autocomplete="username"
+                aria-hidden="true"
+                tabindex="-1"
+                class="visually-hidden"
+                readonly
+              />
               <div class="form-row">
                 <label>Current Password</label>
                 <input v-model="pwForm.current" type="password" autocomplete="current-password" maxlength="50" />
@@ -228,6 +244,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
+import { devError } from '../services/logger.js'
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -318,21 +335,26 @@ onMounted(async () => {
     const map = {}
     for (const a of achievements.value) { map[a.id] = true }
     unlockedMap.value = map
-  } catch {}
+  } catch (e) { devError(e) }
 
   // 3. Fetch Posts
   try {
     const { data } = await api.get(`/posts/user/${u?.id}?limit=10`)
     userPosts.value = data.posts || []
-  } catch {} finally {
+  } catch (e) { devError(e) } finally {
     postsLoading.value = false
   }
 
-  // 4. Fetch API key status
+  // 4. Fetch API key status — backend throws 404 when the user has no key
+  // yet, which is a normal state for a new account; only log unexpected
+  // failures so we don't dirty the console on every Settings tab visit.
   try {
     const { data } = await api.get('/users/me/api-key')
     currentApiKey.value = data.apiKey || null
-  } catch {}
+  } catch (e) {
+    if (e?.response?.status !== 404) devError(e)
+    currentApiKey.value = null
+  }
 })
 
 // Settings Methods
@@ -407,6 +429,12 @@ function flashApiKey(text, type = 'success') {
 }
 
 async function generateApiKey() {
+  if (currentApiKey.value) {
+    const ok = window.confirm(
+      'Regenerate your API key?\n\nYour current key will be permanently invalidated and any integrations using it will stop working immediately.'
+    )
+    if (!ok) return
+  }
   apiKeyLoading.value = true
   try {
     const { data } = await api.post('/users/me/api-key')
@@ -604,10 +632,20 @@ async function confirmDelete() {
   border: 1px solid var(--border-color, #2a2a3a); border-radius: 8px;
   opacity: 0.35; transition: opacity 0.2s;
 }
-.achievement-card.unlocked { opacity: 1; border-color: var(--primary, #00f0ff); }
-.achievement-icon { font-size: 1.5rem; }
+.achievement-card.unlocked { opacity: 1; border-color: var(--primary, #00f0ff); box-shadow: 0 0 8px rgba(0, 240, 255, 0.15); }
+.achievement-icon { font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
+.achievement-icon-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: saturate(0) brightness(0.5);
+  transition: filter 0.2s;
+}
+.achievement-card.unlocked .achievement-icon-img {
+  filter: none;
+}
 .achievement-name { font-size: 0.75rem; font-weight: 600; text-align: center; color: #ccc; }
-.achievement-pts { font-size: 0.65rem; color: #888; }
+.achievement-pts { font-size: 0.65rem; color: #4ade80; font-weight: 600; }
 
 .mini-post {
   background: var(--bg-tertiary, #1a1a2a);
@@ -702,4 +740,15 @@ async function confirmDelete() {
 }
 .api-key-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .api-key-empty { padding: 0.5rem 0; }
+
+/* a11y helper — visually hidden but exposed to screen readers + autofill */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 </style>

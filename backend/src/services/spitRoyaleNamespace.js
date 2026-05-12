@@ -1,3 +1,4 @@
+import { debug } from '#lib/logger.js';
 import { socketAuthMiddleware } from './socketAuth.js';
 import Game from '../models/Game.js';
 
@@ -172,11 +173,11 @@ export function initializeSpitRoyaleNamespace(io) {
         };
         matchToJoin.interval = setInterval(() => gameLoop(matchToJoin), TICK_RATE);
         matches.set(matchId, matchToJoin);
-        console.log("New roomId", matchId)
+        debug("New roomId", matchId)
       }
       else if (roomId)
       {
-        console.log("roomId", roomId)
+        debug("roomId", roomId)
         matchToJoin = Array.from(matches.values()).find(m => m.id === roomId);
         matches.set(roomId, matchToJoin);
       }

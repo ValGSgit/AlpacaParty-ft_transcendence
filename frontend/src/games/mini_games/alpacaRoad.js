@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import * as PRIMITIVES from '../assets/primitives.js';
+import { debug } from '../../services/logger.js';
 import { useCoinUI } from '../components/coins.js';
 import { editLight } from '../components/editLight.js';
 import { useFloatingText } from '../components/floatingText.js';
@@ -620,7 +621,7 @@ function endMinigame() {
   }
 
   const earnedCoins = Math.floor(playerPoints / 1);
-  console.log(`Minigame Over! Points: ${playerPoints}, Coins: ${earnedCoins}`);
+  debug(`Minigame Over! Points: ${playerPoints}, Coins: ${earnedCoins}`);
 
   if (earnedCoins > 0) {
     setTimeout(() => { collectRewards(earnedCoins); }, 50);
@@ -702,5 +703,5 @@ function cleanupAlpacaRoad() {
   gUI.lockCamera = false;
   gUI.cameraMode = 1;
   gMinigame.value.isGameOver = false;
-  console.log("🧹 Minigame cleaned up.");
+  debug("🧹 Minigame cleaned up.");
 }

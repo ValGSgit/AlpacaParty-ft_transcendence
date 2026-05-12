@@ -5,32 +5,15 @@
 -->
 <template>
   <div id="app">
+    <IconSprite />
+
+    <!-- Top navbar -->
     <nav class="navbar">
       <div class="nav-container">
         <router-link to="/" class="nav-logo">
           <span class="logo-text">Alpaca Party!</span>
         </router-link>
 
-        <!-- Message box -->
-        <div v-if="authStore.isAuthenticated" :class="['bottom-left-nav', { 'with-footer': hasFooter }]">
-          <div class="msg-wrapper">
-            <button class="nav-link nav-btn message-btn" @click="showMessagesModal = true" title="Messages">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              <span v-if="unreadMessages" class="notif-badge msg-badge">{{ unreadMessages }}</span>
-            </button>
-        
-            <div v-if="showMessagesModal" class="modal-overlay" @click.self="showMessagesModal = false">
-              <div class="messages-modal-content">
-                <button class="modal-close-top" @click="showMessagesModal = false">&times;</button>
-                <Messages /> 
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Mobile hamburger -->
         <button class="hamburger" @click="mobileOpen = !mobileOpen" aria-label="Toggle menu">
           <span :class="['bar', { open: mobileOpen }]"></span>
           <span :class="['bar', { open: mobileOpen }]"></span>
@@ -38,29 +21,21 @@
         </button>
 
         <div :class="['nav-links', { open: mobileOpen }]">
-          <!-- Public links -->
           <router-link to="/game" class="nav-link nav-game" @click="mobileOpen = false">AlpacaFarm</router-link>
 
           <template v-if="authStore.isAuthenticated">
-            <!-- Divider -->
             <span class="nav-divider"></span>
-
-            <!-- Core social -->
             <router-link to="/feed" class="nav-link" @click="mobileOpen = false">Feed</router-link>
             <router-link to="/friends" class="nav-link" @click="mobileOpen = false">Friends</router-link>
-
-            <!-- Divider -->
             <span class="nav-divider"></span>
 
-            <!-- User area -->
-            <router-link to="/profile" class="nav-link" @click="mobileOpen = false">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <router-link to="/profile" class="nav-link" title="Profile" @click="mobileOpen = false">
+              <AppIcon name="user" :size="18" />
             </router-link>
 
-            <!-- Notifications -->
             <div class="notif-wrapper">
               <button class="nav-link nav-btn notification-btn" @click="toggleNotifications" title="Notifications">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <AppIcon name="bell-full" :size="20" />
                 <span v-if="unreadCount" class="notif-badge">{{ unreadCount }}</span>
               </button>
               <div v-if="showNotifPanel" class="notif-panel">
@@ -81,7 +56,10 @@
               </div>
             </div>
 
-            <button class="nav-link nav-btn logout-btn" @click="handleLogout">Logout</button>
+            <button class="nav-link nav-btn logout-btn" @click="handleLogout" title="Logout">
+              <AppIcon name="logout" :size="18" />
+              <span class="logout-label">Logout</span>
+            </button>
           </template>
           <template v-else>
             <span class="nav-divider"></span>
@@ -91,19 +69,42 @@
         </div>
       </div>
     </nav>
-    <main :class="['main-content', { 'game-content': ['Game', 'SpitRoyale'].includes($route.name) }]">
+
+    <!-- Page content -->
+    <main :class="['main-content', { 'game-content': isGameRoute }]">
       <router-view />
     </main>
+
+    <!-- Footer -->
     <footer v-if="hasFooter" class="app-footer">
       <div class="footer-container">
         <span class="footer-copy">&copy; 2026 AlpacaParty</span>
         <div class="footer-links">
+          <router-link to="/help">Help</router-link>
           <a href="/api/docs/public">API Docs</a>
           <router-link to="/privacy">Privacy Policy</router-link>
           <router-link to="/terms">Terms of Service</router-link>
         </div>
       </div>
     </footer>
+
+    <!-- Floating message button (positioned fixed via global CSS in style.css) -->
+    <div v-if="authStore.isAuthenticated" :class="['bottom-left-nav', { 'with-footer': hasFooter }]">
+      <button class="message-btn" @click="showMessagesModal = true" title="Messages">
+        <AppIcon name="message" :size="22" />
+        <span v-if="unreadMessages" class="msg-badge">{{ unreadMessages }}</span>
+      </button>
+    </div>
+
+    <!-- Messages modal -->
+    <div v-if="showMessagesModal" class="modal-overlay" @click.self="showMessagesModal = false">
+      <div class="messages-modal-content">
+        <button class="modal-close-top" @click="showMessagesModal = false">&times;</button>
+        <Messages />
+      </div>
+    </div>
+
+    <!-- AI help desk widget -->
     <HelpDeskChat v-if="authStore.isAuthenticated" />
   </div>
 </template>
@@ -113,29 +114,29 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth.js'
 import api from './services/api.js'
+import { devError } from './services/logger.js'
 import { connectSocket, disconnectSocket } from './services/socket.js'
-import Messages from './views/Messages.vue';
-import HelpDeskChat from './components/HelpDeskChat.vue';
+import AppIcon from './components/AppIcon.vue'
+import IconSprite from './components/IconSprite.vue'
+import HelpDeskChat from './components/HelpDeskChat.vue'
+import Messages from './views/Messages.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
-const route = useRoute();
+const route = useRoute()
+
+const mobileOpen = ref(false)
+const showNotifPanel = ref(false)
+const showMessagesModal = ref(false)
+const notifications = ref([])
 const unreadCount = ref(0)
 const unreadMessages = ref(0)
-const showNotifPanel = ref(false)
-const notifications = ref([])
-const mobileOpen = ref(false)
 
-const showMessagesModal = ref(false);
+const PAGES_WITHOUT_FOOTER = ['Game', 'Home']
+const hasFooter = computed(() => !PAGES_WITHOUT_FOOTER.includes(route.name))
+const isGameRoute = computed(() => ['Game', 'SpitRoyale'].includes(route.name))
 
-// Close mobile menu on route change
 router.afterEach(() => { mobileOpen.value = false })
-
-const hasFooter = computed(() => {
-  const pagesWithoutFooter = ['Game', 'Home'];
-  if (pagesWithoutFooter.includes(route.name)) return false;
-  return true;
-});
 
 async function handleLogout() {
   disconnectSocket()
@@ -153,17 +154,7 @@ async function fetchNotifications() {
     const { data } = await api.get('/notifications')
     notifications.value = data.notifications || []
     unreadCount.value = notifications.value.filter(n => !n.is_read).length
-  } catch {}
-}
-
-async function fetchUnreadCount() {
-  try {
-    const { data } = await api.get('/notifications')
-    const notifs = data.notifications || []
-    unreadCount.value = notifs.filter(n => !n.is_read).length
-    // WIP: show correct red numbers on the icon
-    //unreadMessages.value = notifs.filter(n => !n.is_read && (n.type === 'dm' || n.type === 'message')).length;
-  } catch {}
+  } catch (e) { devError(e) }
 }
 
 async function markNotifRead(n) {
@@ -172,59 +163,51 @@ async function markNotifRead(n) {
       await api.put(`/notifications/${n.id}/read`)
       n.is_read = true
       unreadCount.value = Math.max(0, unreadCount.value - 1)
-    } catch {}
+    } catch (e) { devError(e) }
   }
-  // Navigate based on notification type
   showNotifPanel.value = false
-  if (n.type === 'friend_request') router.push('/friends')
-  else if (n.type === 'game_invite' || n.type === 'game_finish') router.push('/game')
-  else if (n.type === 'post_like') router.push('/feed')
-  else if (n.type === 'achievement') router.push('/profile')
-  //else if (n.type === 'dm' || n.type === 'message') router.push('/messages')
-  else router.push('/')
+  const targetByType = {
+    friend_request: '/friends',
+    game_invite:    '/game',
+    game_finish:    '/game',
+    post_like:      '/feed',
+    achievement:    '/profile',
+  }
+  router.push(targetByType[n.type] || '/')
 }
 
 function formatNotifTime(ts) {
   if (!ts) return ''
-  const d = new Date(ts)
-  const diff = Date.now() - d
-  if (diff < 60000) return 'just now'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
-  return d.toLocaleDateString()
+  const diff = Date.now() - new Date(ts)
+  if (diff < 60_000)    return 'just now'
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`
+  return new Date(ts).toLocaleDateString()
 }
 
 function handleOutsideClick(e) {
   const wrapper = document.querySelector('.notif-wrapper')
-  if (wrapper && !wrapper.contains(e.target)) {
-    showNotifPanel.value = false
-  }
+  if (wrapper && !wrapper.contains(e.target)) showNotifPanel.value = false
 }
 
-// Connect socket when authenticated
 watch(() => authStore.isAuthenticated, (isAuth) => {
   if (isAuth) {
-    const token = localStorage.getItem('accessToken')
-    if (token) {
-      const sock = connectSocket(token)
-      sock.on('notification', () => {
-        unreadCount.value++
-      })
-    }
-    fetchUnreadCount()
+    // Auth is cookie-based (httpOnly + sameSite=strict + secure). Socket.IO
+    // is configured with `withCredentials: true` so the JWT cookie is sent on
+    // the handshake and validated by socketAuthMiddleware. No client-side token.
+    const sock = connectSocket()
+    sock.on('notification', () => { unreadCount.value++ })
+    fetchNotifications()
   } else {
     disconnectSocket()
     unreadCount.value = 0
+    unreadMessages.value = 0
+    notifications.value = []
   }
 }, { immediate: true })
 
-onMounted(() => {
-  document.addEventListener('click', handleOutsideClick)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleOutsideClick)
-})
+onMounted(() => document.addEventListener('click', handleOutsideClick))
+onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 </script>
 
 <style scoped>
@@ -277,6 +260,9 @@ onUnmounted(() => {
   border-radius: 6px;
   transition: color 0.15s, background 0.15s;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .nav-link:hover {
@@ -289,17 +275,8 @@ onUnmounted(() => {
   background: rgba(0, 240, 255, 0.06);
 }
 
-.nav-game { font-weight: 600; }
-.nav-help { color: #4ecdc4; }
-.nav-help:hover { color: #6eeee4; }
-.nav-admin { color: #ff6b6b; }
-.nav-admin:hover { color: #ff9090; }
-
-.nav-login {
-  color: var(--primary, #00f0ff);
-  font-weight: 600;
-}
-
+.nav-game     { font-weight: 600; }
+.nav-login    { color: var(--primary, #00f0ff); font-weight: 600; }
 .nav-register {
   background: var(--primary, #00f0ff);
   color: #000;
@@ -329,13 +306,11 @@ onUnmounted(() => {
   padding: 0.4rem 0.65rem;
 }
 
-.logout-btn {
-  color: #a0a0b0;
-  font-size: 0.85rem;
-}
+.logout-btn { color: #a0a0b0; font-size: 0.85rem; }
 .logout-btn:hover { color: #ff6b6b; }
+.logout-label { display: none; }
 
-/* ── Notification ───────────────────────────────────────── */
+/* ── Notifications ──────────────────────────────────────── */
 .notification-btn {
   position: relative;
   display: flex;
@@ -420,7 +395,7 @@ onUnmounted(() => {
   border-left: 3px solid var(--primary, #00f0ff);
 }
 
-.notif-msg { font-size: 0.85rem; color: var(--text-primary, #e8e8f0); }
+.notif-msg  { font-size: 0.85rem; color: var(--text-primary, #e8e8f0); }
 .notif-time { font-size: 0.75rem; color: var(--text-secondary, #a0a0b0); }
 
 /* ── Main ───────────────────────────────────────────────── */
@@ -529,6 +504,8 @@ onUnmounted(() => {
     font-size: 0.9rem;
     width: 100%;
   }
+
+  .logout-label { display: inline; }
 
   .nav-register {
     text-align: center;

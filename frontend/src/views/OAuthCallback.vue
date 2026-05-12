@@ -3,9 +3,10 @@
   @owner ValGSgit
   @issue https://github.com/ValGSgit/AlpacaParty/issues/8
 
-  Handles the redirect from the backend after Google / GitHub OAuth.
-  The backend appends ?accessToken=…&refreshToken=… to this route's URL.
-  We read those tokens, persist them, fetch the user, and redirect home.
+  Landing page after a Google / GitHub OAuth round-trip. The backend has
+  already set the JWT cookies on the redirect, so the only work here is to
+  scrub any query string from the URL (so it doesn't leak into history) and
+  bounce the user to the home route.
 -->
 <template>
   <div class="oauth-callback">

@@ -3,7 +3,7 @@
  * @owner ValGSgit
  */
 import Message from "../models/Message.js";
-import ChatRoom from "../models/ChatRoom.js";
+import Friend from "../models/Friend.js";
 
 // ── Direct Messages ──────────────────────────────────────────────────────────
 
@@ -27,6 +27,11 @@ export const getConversation = async (req, res, next) => {
       return res
         .status(400)
         .json({ error: { message: "Cannot have messages with yourself" } });
+
+    const blocked = await Friend.isBlockedBetween(req.user.id, otherId);
+    if (blocked)
+      return res.status(403).json({ error: { message: "Cannot access this conversation" } });
+
     const { limit = 50, offset = 0 } = req.query;
     const messages = await Message.getConversation(req.user.id, otherId, {
       limit: Number(limit),

@@ -14,7 +14,6 @@ export const getFarmData = async (req, res, next) => {
       },
     });
 
-    console.log("")
     res.status(200).json({ farmData: farmData });
   } catch (err) {
     next(err);

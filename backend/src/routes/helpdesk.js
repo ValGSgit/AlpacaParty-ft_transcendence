@@ -98,9 +98,12 @@ router.post(
     }
 
     const { messages } = req.body;
+    const abortCtrl = new AbortController();
+    req.on('close', () => abortCtrl.abort());
 
+    let upstream;
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,21 +117,77 @@ router.post(
           ],
           max_tokens: 600,
           temperature: 0.7,
+          stream: true,
         }),
+        signal: abortCtrl.signal,
       });
-
-      if (!response.ok) {
-        const err = await response.text();
-        console.error('[helpdesk] Groq error:', err);
-        return res.status(502).json({ error: { message: 'AI service unavailable.' } });
-      }
-
-      const data = await response.json();
-      const reply = data.choices?.[0]?.message?.content ?? '';
-      res.json({ reply });
     } catch (err) {
       console.error('[helpdesk] fetch error:', err.message);
-      res.status(502).json({ error: { message: 'Could not reach AI service.' } });
+      return res.status(502).json({ error: { message: 'Could not reach AI service.' } });
+    }
+
+    if (!upstream.ok) {
+      const err = await upstream.text().catch(() => '');
+      console.error('[helpdesk] Groq error:', err);
+      return res.status(502).json({ error: { message: 'AI service unavailable.' } });
+    }
+
+    // Switch the response into SSE mode. X-Accel-Buffering disables nginx
+    // buffering so chunks reach the browser as they arrive.
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    const reader = upstream.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Groq SSE frames are `data: <json>\n\n`, with a final `data: [DONE]`.
+        // Split on the SSE event delimiter.
+        const events = buffer.split('\n\n');
+        buffer = events.pop() ?? '';
+
+        for (const evt of events) {
+          const line = evt.trim();
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (payload === '[DONE]') {
+            res.write('data: [DONE]\n\n');
+            res.end();
+            return;
+          }
+          try {
+            const json = JSON.parse(payload);
+            const delta = json.choices?.[0]?.delta?.content;
+            if (delta) {
+              res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
+            }
+          } catch {
+            // Ignore malformed frames — Groq occasionally emits keep-alives.
+          }
+        }
+      }
+      // Upstream closed without a [DONE] marker.
+      res.write('data: [DONE]\n\n');
+      res.end();
+    } catch (err) {
+      if (err.name === 'AbortError') return; // client hung up; nothing to do
+      console.error('[helpdesk] stream error:', err.message);
+      // Headers already sent — surface as an SSE error frame, then end.
+      try {
+        res.write(`data: ${JSON.stringify({ error: 'stream_failed' })}\n\n`);
+      } catch {
+        // Response already torn down.
+      }
+      res.end();
     }
   },
 );

@@ -82,7 +82,6 @@ export class Alpaca {
     const isIncrease = amount > 0 ? true : false;
     const speedAdjustment = 4.0;
 
-    console.log("isIncrease:", isIncrease);
     if (isIncrease)
     {
       if (this.speedOffset <= 0)

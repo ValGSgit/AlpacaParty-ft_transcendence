@@ -1,3 +1,4 @@
+import { debug } from "#lib/logger.js";
 import { AlpacaRoadMatch } from "./AlpacaRoadMatch.js";
 
 export class MatchManager {
@@ -29,7 +30,7 @@ export class MatchManager {
       this.broadcastPublicRooms();
 
       socket.on('create_room', ({ name, color }) => {
-        console.log(`BACKEND: Received create_room request from ${name}`);
+        debug(`BACKEND: Received create_room request from ${name}`);
 
         const roomId = Math.random().toString(36);
         const roomName = `${name}'s Room`;
@@ -101,7 +102,7 @@ export class MatchManager {
       })
 
       socket.on('disconnect', () => {
-        console.log('BACKEND: Receive disconnect request');
+        debug('BACKEND: Receive disconnect request');
         const matchId = this.playerToMatch.get(socket.id);
         if (matchId) {
           const match = this.matches.get(matchId);

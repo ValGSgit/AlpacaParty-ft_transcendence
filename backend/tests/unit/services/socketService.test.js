@@ -2,11 +2,7 @@ import { jest, describe, test, expect, beforeEach } from '@jest/globals'
 
 const mockSetIo = jest.fn()
 const mockInitializeSpitRoyaleNamespace = jest.fn()
-const mockInitializeAlpacaRoadNamespace = jest.fn()
 
-const mockChatRoom = {
-  getUserRooms: jest.fn(),
-}
 
 jest.unstable_mockModule('socket.io', () => ({
   Server: jest.fn().mockImplementation(() => mockIo),
@@ -31,10 +27,6 @@ jest.unstable_mockModule('../../../src/models/Message.js', () => ({
     create: jest.fn(),
     markAsRead: jest.fn(),
   },
-}))
-
-jest.unstable_mockModule('../../../src/models/ChatRoom.js', () => ({
-  default: mockChatRoom,
 }))
 
 jest.unstable_mockModule('../../../src/models/Game.js', () => ({
@@ -66,10 +58,6 @@ jest.unstable_mockModule('cookie-parser', () => ({
 
 jest.unstable_mockModule('../../../src/services/spitRoyaleNamespace.js', () => ({
   initializeSpitRoyaleNamespace: mockInitializeSpitRoyaleNamespace,
-}))
-
-jest.unstable_mockModule('../../../src/services/alpacaRoadNamespace.js', () => ({
-  initializeAlpacaRoadNamespace: mockInitializeAlpacaRoadNamespace,
 }))
 
 jest.unstable_mockModule('../../../src/services/socketAuth.js', () => ({
@@ -106,9 +94,6 @@ beforeEach(async () => {
   mockIo.on.mockImplementation((event, handler) => {
     if (event === 'connection') connectionHandler = handler
   })
-
-  mockChatRoom.getUserRooms.mockReset()
-
   const module = await import('../../../src/services/socketService.js')
   initializeSocket = module.initializeSocket
 })
@@ -123,7 +108,6 @@ beforeEach(async () => {
 })
 
 async function connectSocket(overrides = {}) {
-  mockChatRoom.getUserRooms.mockResolvedValue([])
   initializeSocket({}, ['https://localhost:8443'])
 
   const dmHandlers = {}
@@ -145,7 +129,8 @@ async function connectSocket(overrides = {}) {
 
 describe('initializeSocket', () => {
   test('disconnects the socket when connection setup fails', async () => {
-    mockChatRoom.getUserRooms.mockRejectedValue(new Error('room lookup failed'))
+    const { default: User } = await import('../../../src/models/User.js')
+    User.setOnline.mockRejectedValueOnce(new Error('simulated failure'))
 
     initializeSocket({}, ['https://localhost:8443'])
 

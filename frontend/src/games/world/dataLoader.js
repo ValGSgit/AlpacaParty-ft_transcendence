@@ -1,4 +1,5 @@
 import api from '../../services/api.js';
+import { debug, devError } from '../../services/logger.js';
 import { gUser } from '../core/globals.js';
 
 export async function loadGameData(visitPlayerId) {
@@ -14,10 +15,10 @@ export async function loadGameData(visitPlayerId) {
     gUser.value.upgrades = farmData.upgrades;
     gUser.value.herdsize = farmData.herdsize;
 
-    console.log("FarmData:", farmData);
+    debug("FarmData:", farmData);
     return farmData
   } catch (error) {
-    console.error('Failed to load user stats:', error)
+    devError('Failed to load user stats:', error)
     return null
   }
 }

@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { debug, devError } from '../../services/logger.js';
 import { gMinigame, gUI } from '../core/globals';
 import { makeAnnouncement, playCountDown } from './annoucement';
 import { changeGame } from './init';
@@ -14,8 +15,8 @@ export class GameClient {
     if (this.socket) return;
 
     this.socket = io('/alpaca-road', { transports: ['websocket'], withCredentials: true });
-    this.socket.on('connect', () => { console.log("✅ FRONTEND: Connected to Server successfully! ID:", this.socket.id); });
-    this.socket.on('connect_error', (err) => { console.error("❌ FRONTEND: Socket Connection FAILED!", err.message); });
+    this.socket.on('connect', () => { debug("✅ FRONTEND: Connected to Server successfully! ID:", this.socket.id); });
+    this.socket.on('connect_error', (err) => { devError("❌ FRONTEND: Socket Connection FAILED!", err.message); });
     this.setupListeners();
   }
 
@@ -24,7 +25,7 @@ export class GameClient {
       this.socket.disconnect();
       this.socket = null;
       this.serverObstacles = [];
-      console.log("Disconnected from server and wiped local data.");
+      debug("Disconnected from server and wiped local data.");
     }
   }
 

@@ -9,20 +9,8 @@ const mockMessage = {
   getConversationsList: jest.fn(),
   countUnread: jest.fn(),
 };
-const mockChatRoom = {
-  getUserRooms: jest.fn(),
-  create: jest.fn(),
-  findById: jest.fn(),
-  isMember: jest.fn(),
-  getMessages: jest.fn(),
-  addMember: jest.fn(),
-  removeMember: jest.fn(),
-  delete: jest.fn(),
-  sendMessage: jest.fn(),
-};
 
 jest.unstable_mockModule('../../../src/models/Message.js', () => ({ default: mockMessage }));
-jest.unstable_mockModule('../../../src/models/ChatRoom.js', () => ({ default: mockChatRoom }));
 
 const { getConversation } = await import('../../../src/controllers/chatController.js');
 

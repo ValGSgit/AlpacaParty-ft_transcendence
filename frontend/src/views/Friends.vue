@@ -106,6 +106,7 @@
           <div class="actions">
             <button class="btn-sm btn-primary" @click="acceptRequest(r.id)">Accept</button>
             <button class="btn-sm btn-danger" @click="declineRequest(r.id)">Decline</button>
+            <button class="btn-sm" @click="blockFromRequest(r.id, r.senderId)">Block</button>
           </div>
         </li>
       </ul>
@@ -140,11 +141,6 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import api from '../services/api.js'
 import { useAuthStore } from '../stores/auth.js'
-import ErrorBanner from '../components/ErrorBanner.vue'
-import LoadingSpinner from '../components/LoadingSpinner.vue'
-import EmptyState from '../components/EmptyState.vue'
-import UserCard from '../components/UserCard.vue'
-import BaseButton from '../components/BaseButton.vue'
 
 const authStore = useAuthStore()
 
@@ -262,7 +258,10 @@ async function searchUsers() {
     const { data } = await api.get('/users', {
       params: { search: userSearch.value.trim(), limit: searchPageSize, offset: searchPage.value * searchPageSize },
     })
-    searchResults.value = (data.users || []).filter((u) => Number(u.id) !== Number(authStore.user?.id))
+    const blockedIds = new Set(blocked.value.map((b) => Number(b.id)))
+    searchResults.value = (data.users || []).filter(
+      (u) => Number(u.id) !== Number(authStore.user?.id) && !blockedIds.has(Number(u.id))
+    )
     searchTotal.value = data.total || searchResults.value.length
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Search failed'
@@ -280,7 +279,11 @@ async function sendRequestToUser(userId) {
     await api.post('/friends/requests', { userId })
     requestedIds.value = new Set([...requestedIds.value, Number(userId)])
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to send request'
+    if (e.response?.status === 403) {
+      error.value = e.response?.data?.error?.message || 'You cannot send a friend request to this user'
+    } else {
+      error.value = e.response?.data?.error?.message || 'Failed to send request'
+    }
   }
 }
 
@@ -300,6 +303,17 @@ async function declineRequest(id) {
     await fetchRequests()
   } catch (e) {
     error.value = e.response?.data?.error?.message || 'Failed to decline request'
+  }
+}
+
+async function blockFromRequest(requestId, senderId) {
+  try {
+    await api.put(`/friends/requests/${requestId}/decline`)
+    await api.post('/friends/block', { userId: senderId })
+    await Promise.all([fetchRequests(), fetchBlocked()])
+    activeTab.value = 'blocked'
+  } catch (e) {
+    error.value = e.response?.data?.error?.message || 'Failed to block user'
   }
 }
 
@@ -339,7 +353,8 @@ function loadTab(tab) {
 watch(activeTab, loadTab)
 onMounted(() => {
   fetchFriends()
-  fetchRequests() // load pending count in background
+  fetchRequests()
+  fetchBlocked()
 })
 </script>
 

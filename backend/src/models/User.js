@@ -242,8 +242,17 @@ const User = {
     });
   },
 
-  async findAll({ limit = 50, offset = 0 } = {}) {
+  async findAll({ limit = 50, offset = 0, currentUserId = null } = {}) {
+    const blockFilter = currentUserId
+      ? {
+          // exclude users that currentUser has blocked
+          blockedBy: { none: { userId: Number(currentUserId) } },
+          // exclude users that have blocked currentUser
+          blockedUsers: { none: { blockedUserId: Number(currentUserId) } },
+        }
+      : {};
     return prisma.user.findMany({
+      where: blockFilter,
       select: {
         id: true,
         username: true,
@@ -265,13 +274,20 @@ const User = {
     return prisma.user.count();
   },
 
-  async search(term, { limit = 20, offset = 0 } = {}) {
+  async search(currentUserId, term, { limit = 20, offset = 0 } = {}) {
+    const blockFilter = currentUserId
+      ? {
+          blockedBy: { none: { userId: Number(currentUserId) } },
+          blockedUsers: { none: { blockedUserId: Number(currentUserId) } },
+        }
+      : {};
     return prisma.user.findMany({
       where: {
         OR: [
           { username: { startsWith: term, mode: "insensitive" } },
           { bio: { contains: term, mode: "insensitive" } },
         ],
+        ...blockFilter,
       },
       select: {
         id: true,

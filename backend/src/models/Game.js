@@ -150,6 +150,31 @@ const Game = {
     return prisma.game.count({ where: { status: "playing" } });
   },
 
+  async getCoinsLeaderboard({ limit = 10, offset = 0 } = {}) {
+    const rows = await prisma.alpacaFarm.findMany({
+      where: { coins: { gt: 0 } },
+      include: {
+        user: {
+          select: {
+            username: true,
+            avatar: true,
+            userStats: { select: { level: true } },
+          },
+        },
+      },
+      orderBy: { coins: "desc" },
+      take: Number(limit),
+      skip: Number(offset),
+    });
+    return rows.map((f) => ({
+      userId: f.userId,
+      coins: f.coins ?? 0,
+      username: f.user.username,
+      avatar: f.user.avatar,
+      level: f.user.userStats?.level ?? 1,
+    }));
+  },
+
   // ── Alpaca Farm ──────────────────────────────────────────────────────────
 
   async getFarm(userId) {

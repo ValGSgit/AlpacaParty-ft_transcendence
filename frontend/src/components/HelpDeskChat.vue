@@ -1,15 +1,14 @@
 <template>
   <div class="helpdesk-root">
-    <!-- Floating trigger button -->
+    <!-- Floating trigger button (hidden while chat is open; panel has its own close) -->
     <button
+      v-if="!isOpen"
       class="helpdesk-fab"
-      :class="{ open: isOpen }"
       @click="toggleChat"
       title="Help Desk — Ask Paca!"
       aria-label="Open help desk chat"
     >
-      <span v-if="!isOpen" class="fab-icon">🦙</span>
-      <span v-else class="fab-close">&times;</span>
+      <AppIcon name="alpaca" :size="32" />
     </button>
 
     <!-- Chat panel -->
@@ -17,7 +16,7 @@
       <div v-if="isOpen" class="helpdesk-panel" role="dialog" aria-label="Help Desk Chat">
         <div class="hd-header">
           <div class="hd-header-info">
-            <span class="hd-avatar">🦙</span>
+            <span class="hd-avatar"><AppIcon name="alpaca" :size="28" /></span>
             <div>
               <div class="hd-title">Paca — Help Desk</div>
               <div class="hd-subtitle">Ask me anything about AlpacaParty!</div>
@@ -45,12 +44,12 @@
             :key="i"
             :class="['hd-msg', msg.role]"
           >
-            <span v-if="msg.role === 'assistant'" class="msg-avatar">🦙</span>
+            <span v-if="msg.role === 'assistant'" class="msg-avatar"><AppIcon name="alpaca" :size="22" /></span>
             <div class="msg-bubble">{{ msg.content }}</div>
           </div>
 
           <div v-if="loading" class="hd-msg assistant">
-            <span class="msg-avatar">🦙</span>
+            <span class="msg-avatar"><AppIcon name="alpaca" :size="22" /></span>
             <div class="msg-bubble typing">
               <span></span><span></span><span></span>
             </div>
@@ -59,27 +58,33 @@
 
         <div v-if="error" class="hd-error">{{ error }}</div>
 
-        <div class="hd-input-row">
-          <textarea
-            ref="inputEl"
-            v-model="draft"
-            class="hd-input"
-            placeholder="Ask a question…"
-            rows="1"
-            :disabled="loading"
-            @keydown.enter.exact.prevent="send"
-            @input="autoResize"
-          />
-          <button
-            class="hd-send"
-            :disabled="!draft.trim() || loading"
-            @click="send"
-            aria-label="Send"
-          >
+        <div class="hd-input-wrapper">
+          <div class="hd-input-row">
+            <textarea
+              ref="inputEl"
+              v-model="draft"
+              class="hd-input"
+              placeholder="Ask a question…"
+              rows="1"
+              :maxlength="MAX_CHARS"
+              :disabled="loading"
+              @keydown.enter.exact.prevent="send"
+              @input="autoResize"
+            />
+            <button
+              class="hd-send"
+              :disabled="!draft.trim() || loading || draft.length > MAX_CHARS"
+              @click="send"
+              aria-label="Send"
+            >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M2 21l21-9L2 3v7l15 2-15 2z"/>
             </svg>
           </button>
+          </div>
+          <div class="hd-char-counter" :class="{ 'hd-char-limit': draft.length >= MAX_CHARS * 0.9 }">
+            {{ draft.length }}/{{ MAX_CHARS }}
+          </div>
         </div>
       </div>
     </transition>
@@ -88,7 +93,10 @@
 
 <script setup>
 import { ref, nextTick } from 'vue'
-import api from '../services/api.js'
+import AppIcon from './AppIcon.vue'
+
+const MAX_CHARS = 2000
+const MAX_HISTORY = 20
 
 const isOpen = ref(false)
 const draft = ref('')
@@ -125,7 +133,7 @@ async function sendSuggestion(text) {
 
 async function send() {
   const text = draft.value.trim()
-  if (!text || loading.value) return
+  if (!text || loading.value || text.length > MAX_CHARS) return
 
   error.value = ''
   messages.value.push({ role: 'user', content: text })
@@ -136,14 +144,85 @@ async function send() {
   loading.value = true
   scrollToBottom()
 
+  const history = messages.value.slice(-MAX_HISTORY).map(m => ({ role: m.role, content: m.content }))
+
   try {
-    const { data } = await api.post('/helpdesk/chat', {
-      messages: messages.value.map(m => ({ role: m.role, content: m.content })),
+    const resp = await fetch('/api/helpdesk/chat', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify({ messages: history }),
     })
-    messages.value.push({ role: 'assistant', content: data.reply })
+
+    if (!resp.ok) {
+      // Non-streaming error path: body is JSON, not SSE.
+      const errBody = await resp.json().catch(() => null)
+      throw new Error(errBody?.error?.message || `Request failed (${resp.status})`)
+    }
+
+    // Append an empty assistant message and let chunks fill it in.
+    messages.value.push({ role: 'assistant', content: '' })
+    const idx = messages.value.length - 1
+    loading.value = false // typing bubble disappears the moment we have a real bubble
+
+    const reader = resp.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    let buffer = ''
+    let streamError = null
+
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+
+      const events = buffer.split('\n\n')
+      buffer = events.pop() ?? ''
+
+      for (const evt of events) {
+        const line = evt.trim()
+        if (!line.startsWith('data:')) continue
+        const payload = line.slice(5).trim()
+        if (payload === '[DONE]') {
+          reader.cancel().catch(() => {})
+          break
+        }
+        try {
+          const json = JSON.parse(payload)
+          if (json.error) {
+            streamError = json.error
+            continue
+          }
+          if (json.content) {
+            messages.value[idx] = {
+              ...messages.value[idx],
+              content: messages.value[idx].content + json.content,
+            }
+            scrollToBottom()
+          }
+        } catch {
+          // Drop malformed frames; keep streaming.
+        }
+      }
+    }
+
+    if (streamError) {
+      throw new Error('Stream interrupted, please try again.')
+    }
+    if (!messages.value[idx].content) {
+      // Backend ended without emitting a single delta — treat as failure.
+      messages.value.splice(idx, 1)
+      throw new Error('No response from the assistant.')
+    }
   } catch (err) {
-    error.value = err?.data?.error?.message || 'Something went wrong. Please try again.'
-    messages.value.pop()
+    error.value = err?.message || 'Something went wrong. Please try again.'
+    // Roll the user's outbound message back if the assistant placeholder
+    // wasn't pushed (i.e. the failure was pre-stream).
+    if (messages.value[messages.value.length - 1]?.role === 'user') {
+      messages.value.pop()
+    }
   } finally {
     loading.value = false
     await nextTick()
@@ -340,14 +419,26 @@ function scrollToBottom() {
 }
 
 /* ── Input row ───────────────────────────────────────────── */
+.hd-input-wrapper {
+  border-top: 1px solid var(--border-color, #2a2a3a);
+  background: var(--bg-secondary, #12121a);
+  flex-shrink: 0;
+}
 .hd-input-row {
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
-  padding: 0.65rem 0.75rem;
-  border-top: 1px solid var(--border-color, #2a2a3a);
-  background: var(--bg-secondary, #12121a);
-  flex-shrink: 0;
+  padding: 0.65rem 0.75rem 0.35rem;
+}
+.hd-char-counter {
+  text-align: right;
+  font-size: 0.7rem;
+  color: var(--text-secondary, #a0a0b0);
+  padding: 0 0.75rem 0.4rem;
+  transition: color 0.15s;
+}
+.hd-char-limit {
+  color: #f87171;
 }
 .hd-input {
   flex: 1;

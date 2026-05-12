@@ -100,7 +100,6 @@ export function alpacaHandling() {
               gMinigame.value.players[0].hp--
             gMinigame.value.players[0].point = gUser.value.point
           } else if (gMinigame.value.mode === 2) {
-            console.log("Multiplayer");
             // --- MULTIPLAYER LOGIC ---
             // Only the person who fired the laser is allowed to tell the server it hit!
             // const client = getActiveClient();
