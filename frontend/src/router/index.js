@@ -155,7 +155,10 @@ router.beforeEach(async (to) => {
     await authStore.fetchUser()
   }
 
-  // Check admin auth requirement
+  // Check admin auth requirement — fetch once if needed
+  if (to.meta.requiresAdminAuth && !adminAuth.isAuthenticated) {
+    await adminAuth.fetchMe()
+  }
   if (to.meta.requiresAdminAuth && !adminAuth.isAuthenticated) {
     return { name: 'AdminLogin', query: { redirect: to.fullPath } }
   }

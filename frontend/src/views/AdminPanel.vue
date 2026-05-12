@@ -289,11 +289,6 @@ async function handleLogout() {
 }
 
 onMounted(async () => {
-  await adminAuth.fetchMe();
-  if (!adminAuth.isAuthenticated) {
-    router.push({ name: 'AdminLogin' });
-    return;
-  }
   loadDashboard();
   loadUsers();
 });

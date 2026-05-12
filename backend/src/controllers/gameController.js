@@ -44,6 +44,23 @@ export const getCoinsLeaderboard = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+/** POST /api/game/result — Save offline/AI game result */
+export const saveGameResult = async (req, res, next) => {
+  try {
+    const { gameType, result } = req.body;
+    if (!gameType || !result) {
+      return res.status(400).json({ error: { message: 'gameType and result required' } });
+    }
+    if (!['win', 'loss', 'draw'].includes(result)) {
+      return res.status(400).json({ error: { message: 'result must be win, loss, or draw' } });
+    }
+
+    await Game.updateStats(req.user.id, gameType, result);
+    const stats = await Game.getStats(req.user.id, gameType);
+    res.json({ stats });
+  } catch (err) { next(err); }
+};
+
 /** GET /api/game/farm */
 export const getFarm = async (req, res, next) => {
   try {

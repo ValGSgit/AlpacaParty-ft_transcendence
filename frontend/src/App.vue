@@ -140,7 +140,7 @@ const unreadMessages = ref(0)
 const PAGES_WITHOUT_FOOTER = ['Game', 'Home']
 const hasFooter = computed(() => !PAGES_WITHOUT_FOOTER.includes(route.name))
 const isGameRoute = computed(() => ['Game', 'SpitRoyale'].includes(route.name))
-const isAuthRoute = computed(() => ['Login', 'Register', 'AdminLogin', 'AdminPanel'].includes(route.name))
+const isAuthRoute = computed(() => ['AdminLogin', 'AdminPanel'].includes(route.name))
 
 router.afterEach(() => { mobileOpen.value = false })
 
