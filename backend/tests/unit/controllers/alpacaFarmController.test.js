@@ -17,6 +17,7 @@ function makeReqRes(overrides = {}) {
   const req = {
     user: { id: 7 },
     body: {},
+    query: {},
     ...overrides,
   }
   const res = {
