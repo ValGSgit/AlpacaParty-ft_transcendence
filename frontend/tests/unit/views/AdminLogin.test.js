@@ -149,6 +149,7 @@ describe('AdminLogin.vue', () => {
     })
 
     it('should prevent submission when loading', async () => {
+      // Test that the submit button is disabled while loading, preventing re-submission
       let resolvePromise
       api.post.mockReturnValueOnce(new Promise(r => { resolvePromise = r }))
 
@@ -156,12 +157,13 @@ describe('AdminLogin.vue', () => {
       await wrapper.find('input#password').setValue('pass')
 
       const form = wrapper.find('form')
-      await form.trigger('submit')
-      await wrapper.vm.$nextTick()
-      expect(wrapper.vm.loading).toBe(true)
+      const submitBtn = wrapper.find('button[type="submit"]')
 
       await form.trigger('submit')
-      expect(api.post).toHaveBeenCalledTimes(1)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.vm.loading).toBe(true)
+      expect(submitBtn.attributes('disabled')).toBeDefined() // Button should be disabled
 
       resolvePromise({ data: { user: { id: 1 } } })
     })

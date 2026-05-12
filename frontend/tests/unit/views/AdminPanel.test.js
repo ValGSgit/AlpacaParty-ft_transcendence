@@ -7,7 +7,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import AdminPanel from '../../../src/views/AdminPanel.vue'
 
-vi.mock('../../../src/services/api.js', () => ({\
+vi.mock('../../../src/services/api.js', () => ({
   default: {
     get: vi.fn(),
     post: vi.fn(),
