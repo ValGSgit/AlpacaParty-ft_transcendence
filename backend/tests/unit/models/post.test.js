@@ -136,20 +136,20 @@ describe("Post.update", () => {
   test("updates content field", async () => {
     const updated = { ...mockPost, content: "Updated content" };
     mockPrisma.post.update.mockResolvedValue(updated);
-    const result = await Post.update(1, { content: "Updated content" });
+    const result = await Post.update(1, 42, { content: "Updated content" });
     expect(result.content).toBe("Updated content");
   });
 
   test("updates isPublic with both snake_case and camelCase", async () => {
     const updated = { ...mockPost, isPublic: false };
     mockPrisma.post.update.mockResolvedValue(updated);
-    await Post.update(1, { isPublic: false });
+    await Post.update(1, 42, { isPublic: false });
     expect(mockPrisma.post.update).toHaveBeenCalled();
   });
 
   test("returns existing post when no updates provided", async () => {
     mockPrisma.post.findUnique.mockResolvedValue(mockPost);
-    const result = await Post.update(1, {});
+    const result = await Post.update(1, 42, {});
     expect(result).toEqual(
       expect.objectContaining({
         image_url: "/uploads/test.jpg",
@@ -161,7 +161,7 @@ describe("Post.update", () => {
   test("handles imageUrl field", async () => {
     const updated = { ...mockPost, imageUrl: "/new-image.jpg" };
     mockPrisma.post.update.mockResolvedValue(updated);
-    await Post.update(1, { imageUrl: "/new-image.jpg" });
+    await Post.update(1, 42, { imageUrl: "/new-image.jpg" });
     expect(mockPrisma.post.update).toHaveBeenCalled();
   });
 });
@@ -169,13 +169,13 @@ describe("Post.update", () => {
 describe("Post.delete", () => {
   test("returns true when post is deleted", async () => {
     mockPrisma.post.deleteMany.mockResolvedValue({ count: 1 });
-    const result = await Post.delete(1);
+    const result = await Post.delete(1, 42);
     expect(result).toBe(true);
   });
 
   test("returns false when post not found", async () => {
     mockPrisma.post.deleteMany.mockResolvedValue({ count: 0 });
-    const result = await Post.delete(999);
+    const result = await Post.delete(999, 42);
     expect(result).toBe(false);
   });
 });
