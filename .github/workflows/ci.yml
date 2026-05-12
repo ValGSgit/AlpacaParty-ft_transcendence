@@ -198,6 +198,7 @@ jobs:
       JWT_REFRESH_EXPIRES_IN: 7d
       ADMIN_JWT_SECRET: ci-admin-secret-change
       VAULT_DEV_TOKEN: root
+      AUTH_RATE_LIMIT_MAX: "500"
 
     steps:
       - name: Checkout

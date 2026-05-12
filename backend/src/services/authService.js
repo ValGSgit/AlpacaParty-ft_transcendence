@@ -5,6 +5,7 @@
  */
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { randomBytes } from "crypto";
 import config from "../config/index.js";
 
 const SALT_ROUNDS = 12;
@@ -55,6 +56,7 @@ const AuthService = {
   generatePublicApiToken(user) {
     return jwt.sign({ id: user.id }, config.jwt.publicApiSecret, {
       expiresIn: config.jwt.publicApiExpiresIn,
+      jwtid: randomBytes(16).toString("hex"),
     });
   },
 

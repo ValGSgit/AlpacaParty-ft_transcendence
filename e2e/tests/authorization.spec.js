@@ -103,7 +103,7 @@ test.describe('File upload ownership enforcement', () => {
     expect(ownerDel.ok()).toBeTruthy();
   });
 
-  test('unauthenticated user cannot delete any file', async ({ request }) => {
+  test('unauthenticated user cannot delete any file', async ({ request, playwright }) => {
     const user = await createUser(request, 'auth_noauth_upload');
 
     const upload = await request.post('/api/uploads', {
@@ -119,8 +119,18 @@ test.describe('File upload ownership enforcement', () => {
     expect(upload.status()).toBe(201);
     const fileId = (await upload.json()).files[0].id;
 
-    const delRes = await request.delete(`/api/uploads/${fileId}`);
-    expect(delRes.status()).toBe(401);
+    // Use a fresh context with no cookies — the main `request` fixture retains
+    // the JWT cookie set during createUser, so a naked request would be authenticated.
+    const anonCtx = await playwright.request.newContext({
+      baseURL: process.env.E2E_BASE_URL || 'https://localhost:8443',
+      ignoreHTTPSErrors: true,
+    });
+    try {
+      const delRes = await anonCtx.delete(`/api/uploads/${fileId}`);
+      expect(delRes.status()).toBe(401);
+    } finally {
+      await anonCtx.dispose();
+    }
   });
 });
 
