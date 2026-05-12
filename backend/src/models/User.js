@@ -12,6 +12,7 @@ const SAFE_SELECT = {
   avatar: true,
   bio: true,
   status: true,
+  isBanned: true,
   isOnline: true,
   lastSeen: true,
   createdAt: true,
@@ -59,7 +60,6 @@ const User = {
         userAuth: { create: { passwordHash } },
         userStats: { create: {} },
         userSettings: { create: {} },
-        alpacaFarm: { create: {} },
       },
       select: SAFE_SELECT,
     });
@@ -91,7 +91,6 @@ const User = {
           userAuth: { create: { oauthProvider: provider, oauthId } },
           userStats: { create: {} },
           userSettings: { create: {} },
-          alpacaFarm: { create: {} },
         },
         select: SAFE_SELECT,
       });
@@ -109,7 +108,6 @@ const User = {
         userAuth: { create: { oauthProvider: provider, oauthId } },
         userStats: { create: {} },
         userSettings: { create: {} },
-        alpacaFarm: { create: {} },
       },
       select: SAFE_SELECT,
     });
@@ -225,6 +223,13 @@ const User = {
     await prisma.userAuth.update({
       where: { userId: Number(id) },
       data: { passwordHash },
+    });
+  },
+
+  async incrementTokenVersion(userId) {
+    await prisma.userAuth.update({
+      where: { userId: Number(userId) },
+      data: { tokenVersion: { increment: 1 } },
     });
   },
 

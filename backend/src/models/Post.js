@@ -49,24 +49,32 @@ const Post = {
     return post ? shapePost(post) : null;
   },
 
-  async update(id, fields) {
+  async update(id, authorId, fields) {
     const data = {};
     if (fields.content !== undefined) data.content = fields.content;
     if (fields.imageUrl !== undefined) data.imageUrl = fields.imageUrl;
     if (fields.isPublic !== undefined) data.isPublic = fields.isPublic;
-    if (Object.keys(data).length === 0) return this.findById(id);
+    if (Object.keys(data).length === 0) {
+      const post = await this.findById(id);
+      return post?.author_id === Number(authorId) ? post : null;
+    }
 
-    const post = await prisma.post.update({
-      where: { id: Number(id) },
-      data,
-      include: { author: AUTHOR_SELECT },
-    });
-    return post ? shapePost(post) : null;
+    try {
+      const post = await prisma.post.update({
+        where: { id: Number(id), authorId: Number(authorId) },
+        data,
+        include: { author: AUTHOR_SELECT },
+      });
+      return post ? shapePost(post) : null;
+    } catch (e) {
+      if (e.code === 'P2025') return null;
+      throw e;
+    }
   },
 
-  async delete(postId) {
+  async delete(postId, authorId) {
     const { count } = await prisma.post.deleteMany({
-      where: { id: Number(postId) },
+      where: { id: Number(postId), authorId: Number(authorId) },
     });
     return count > 0;
   },

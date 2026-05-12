@@ -37,10 +37,11 @@ const AuthService = {
 
   /**
    * Generate a refresh token (long-lived).
+   * Embeds tokenVersion so logout can invalidate all outstanding tokens.
    */
   generateRefreshToken(user) {
     return jwt.sign(
-      { id: user.id, type: "refresh" },
+      { id: user.id, type: "refresh", ver: user.userAuth?.tokenVersion ?? 0 },
       config.jwt.refreshSecret,
       {
         expiresIn: config.jwt.refreshExpiresIn,

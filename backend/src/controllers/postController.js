@@ -96,7 +96,7 @@ export const updatePost = async (req, res, next) => {
     ) {
       return res.status(400).json({ error: { message: "invalid imageUrl" } });
     }
-    const post = await Post.update(Number(req.params.id), {
+    const post = await Post.update(Number(req.params.id), req.user.id, {
       content: content?.trim(),
       imageUrl: normalizedImageUrl,
       isPublic,

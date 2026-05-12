@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 
 export function uniqueId(prefix = 'e2e') {
-  return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 }
 
 function getSetCookieHeaders(res) {

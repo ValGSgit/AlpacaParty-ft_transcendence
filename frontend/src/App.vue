@@ -93,7 +93,7 @@
     </footer>
 
     <!-- Floating message button (positioned fixed via global CSS in style.css) -->
-    <div v-if="authStore.isAuthenticated" :class="['bottom-left-nav', { 'with-footer': hasFooter }]">
+    <div v-if="authStore.isAuthenticated && !isAuthRoute" :class="['bottom-left-nav', { 'with-footer': hasFooter }]">
       <button class="message-btn" @click="showMessagesModal = true" title="Messages">
         <AppIcon name="message" :size="22" />
         <span v-if="unreadMessages" class="msg-badge">{{ unreadMessages }}</span>
@@ -109,7 +109,7 @@
     </div>
 
     <!-- AI help desk widget -->
-    <HelpDeskChat v-if="authStore.isAuthenticated" />
+    <HelpDeskChat v-if="authStore.isAuthenticated && !isAuthRoute" />
   </div>
 </template>
 

@@ -17,6 +17,32 @@ async function main() {
     );
   }
 
+  // Seed live demo user (used by E2E tests)
+  {
+    const demoUsername = "live_demo";
+    const demoEmail = "live_demo@alpacaparty.test";
+    const demoPassword = "LiveSeed123!";
+
+    const existing = await prisma.user.findFirst({
+      where: { OR: [{ username: demoUsername }, { email: demoEmail }] },
+    });
+
+    if (!existing) {
+      const passwordHash = await bcrypt.hash(demoPassword, 12);
+      await prisma.user.create({
+        data: {
+          username: demoUsername,
+          email: demoEmail,
+          userAuth: { create: { passwordHash } },
+          userStats: { create: {} },
+          userSettings: { create: {} },
+          alpacaFarm: { create: {} },
+        },
+      });
+      console.log(`✓ Seeded demo user: ${demoUsername} / ${demoEmail}`);
+    }
+  }
+
   // Seed default admin user
   {
     const adminUsername = "admin";

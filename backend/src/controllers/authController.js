@@ -72,6 +72,8 @@ export const login = async (req, res, next) => {
     const valid = await AuthService.comparePassword(password, passwordHash);
     if (!valid) throw new CustomError("Invalid credentials", 401);
 
+    if (user.isBanned) throw new CustomError("Account is banned", 403);
+
     await User.setOnline(user.id);
 
     const accessToken = AuthService.generateAccessToken(user);
@@ -94,6 +96,7 @@ export const logout = async (req, res, next) => {
   try {
     if (req.user) {
       await User.setOffline(req.user.id);
+      await User.incrementTokenVersion(req.user.id);
     }
     // Clear auth cookies to end session client-side.
     res.clearCookie("jwt_token", { path: "/" });
@@ -117,8 +120,14 @@ export const refresh = async (req, res, next) => {
     if (!decoded)
       throw new CustomError("Invalid or expired refresh token", 401);
 
-    const user = await User.findById(decoded.id);
+    const user = await User.findByIdWithPassword(decoded.id);
     if (!user) throw new CustomError("User not found", 401);
+
+    if (user.isBanned) throw new CustomError("Account is banned", 403);
+
+    const currentVersion = user.userAuth?.tokenVersion ?? 0;
+    if (decoded.ver !== currentVersion)
+      throw new CustomError("Refresh token has been revoked", 401);
 
     const accessToken = AuthService.generateAccessToken(user);
     const newRefreshToken = AuthService.generateRefreshToken(user);
