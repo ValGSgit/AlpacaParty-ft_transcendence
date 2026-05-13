@@ -18,14 +18,15 @@ const tempAlpacas = []
 let visitPlayerId = null
 export let friendName = null
 
-export async function changeGame(mode, playerCount = 1) {
+export async function changeGame(mode = 0, playerCount = 1) {
+  gUI.gameMenu = false
+  console.log("changeGame:", mode);
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0) saveGame();
 
   resetMinigame();
-
   gMinigame.value.mode = mode;
-  gMinigame.value.isOnline = (mode === 2 || mode === 4);
+  gMinigame.value.isOnline = (gMinigame.value.mode === 2 || gMinigame.value.mode === 4);
   gUser.value.hp = CONST.HP
   gUser.value.point = 0
   resetAlpaca(gPlayer.value)
@@ -45,9 +46,7 @@ export async function changeGame(mode, playerCount = 1) {
 async function returnFarm() {
   const authStore = useAuthStore()
 
-  if (gMinigame.value.isOnline) {
-    activeClient.disconnect();
-  }
+  activeClient.disconnect();
   clearAnnouncements();
   resetMinigame();
   gMinigame.value.mode = 0;
@@ -77,6 +76,7 @@ function resetMinigame() {
   gMinigame.value.isReady = false;
   gMinigame.value.isActive = false;
   gMinigame.value.isGameOver = false;
+  gMinigame.value.isVisiting = false;
   gMinigame.value.currentRoomName = null;
   gMinigame.value.players = [];
 }
@@ -106,9 +106,9 @@ async function initGameMode(mode, playerCount, tempAlpacas) {
 }
 
 export async function visitFarm(playerId, username){
-  gMinigame.value.mode = 5;
   visitPlayerId = playerId
   friendName = username
   gUI.lobbyMenu = false
   changeGame(5)
+  gMinigame.value.isVisiting = true;
 }

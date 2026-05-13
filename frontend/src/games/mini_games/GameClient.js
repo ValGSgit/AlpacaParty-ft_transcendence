@@ -7,32 +7,39 @@ import { changeGame } from './init';
 export class GameClient {
   constructor() {
     this.socket = null;
-    this.serverObstacles = [];
-    this.roadSpeed = 0;
+    this.serverData = {};
+    this.spitQueue = [];
   }
 
   connect() {
     if (this.socket) return;
 
-    this.socket = io('/alpaca-road', { transports: ['websocket'], withCredentials: true });
-    this.socket.on('connect', () => { debug("✅ FRONTEND: Connected to Server successfully! ID:", this.socket.id); });
-    this.socket.on('connect_error', (err) => { devError("❌ FRONTEND: Socket Connection FAILED!", err.message); });
+    this.socket = io('/minigames', { transports: ['websocket'], withCredentials: true });
+    this.socket.on('connect', () => { console.log("✅ FRONTEND: Connected! ID:", this.socket.id); });
+    this.socket.on('connect_error', (err) => { console.error("❌ FRONTEND: Connection FAILED!", err.message); });
     this.setupListeners();
   }
 
   disconnect() {
     if (this.socket) {
+      this.socket.emit('leave_room');
       this.socket.disconnect();
       this.socket = null;
-      this.serverObstacles = [];
-      debug("Disconnected from server and wiped local data.");
+      this.serverData = {};
+      this.spitQueue = [];
     }
   }
 
-  createRoom(playerName, color) {
+  leaveRoom() {
     if (this.socket) {
-      this.socket.emit('create_room', { name: playerName, color: color });
+      this.socket.emit('leave_room');
+      this.serverData = {};
+      this.spitQueue = [];
     }
+  }
+
+  createRoom(playerName, color, gameType) {
+    if (this.socket) this.socket.emit('create_room', { name: playerName, color: color, gameType: gameType });
   }
 
   joinRoom(playerName, roomId, color) {
@@ -44,26 +51,36 @@ export class GameClient {
   }
 
   sendHit() {
-    if (this.socket) {
-      this.socket.emit('player_hit');
-    }
+    if (this.socket) this.socket.emit('player_hit');
   }
 
   sendHitComplete() {
-    if (this.socket) {
-      this.socket.emit('player_hit_complete');
-    }
+    if (this.socket) this.socket.emit('player_hit_complete');
   }
 
   sendJump() {
-    if (this.socket) {
-      this.socket.emit('player_jump');
-    }
+    if (this.socket) this.socket.emit('player_jump');
   }
 
   sendActive() {
+    if (this.socket) this.socket.emit('player_active');
+  }
+
+  sendPlayerInput(x, y, z, angle) {
     if (this.socket) {
-      this.socket.emit('player_active');
+      this.socket.emit('player_input', { x, y, z, angle });
+    }
+  }
+
+  sendSpit(direction) {
+    if (this.socket) {
+      this.socket.emit('player_spit', { direction: direction });
+    }
+  }
+
+  sendSpitHit(targetId) {
+    if (this.socket) {
+      this.socket.emit('spit_hit', { targetId: targetId });
     }
   }
 
@@ -73,36 +90,59 @@ export class GameClient {
     });
 
     this.socket.on('join_success', (data) => {
-      this.serverObstacles = [];
-      changeGame(gMinigame.value.mode, 1);
-      gUI.lobbyMenu = true;
+      this.serverData = {};
+      this.spitQueue = [];
+      let mode = data.gameType;
+      gMinigame.value.mode = mode;
+
+      changeGame(mode, 1);
       gMinigame.value.currentRoomName = data.roomName;
+
+      gUI.lobbyMenu = mode === 4;
     });
 
     this.socket.on('lobby_update', (playerList) => {
       gMinigame.value.players = playerList;
     });
 
-    this.socket.on('game_start', () => {
+    this.socket.on('game_start', (data) => {
       gUI.lobbyMenu = false;
       gMinigame.value.isActive = true;
-      playCountDown(3);
+
+      if (data && data.instant) {
+        // If the server sends a spawn point, teleport our local player immediately!
+        if (data.spawn && typeof window.setLocalPlayerSpawn === 'function') {
+          window.setLocalPlayerSpawn(data.spawn);
+        }
+      } else {
+        playCountDown(3);
+      }
     });
 
     this.socket.on('level_up', (data) => {
       makeAnnouncement(`LEVEL ${data.level}`, 2000);
-    })
-
-    this.socket.on('tick', (snapshot) => {
-      this.serverObstacles = snapshot.obstacles;
-      gMinigame.value.players = snapshot.players;
-      this.roadSpeed = snapshot.roadSpeed;
     });
 
-    this.socket.on('game_over', () => {
+    this.socket.on('tick', (data) => {
+      gMinigame.value.players = data.players;
+      this.serverData.players = data.players;
+      this.serverData.obstacles = data.obstacles || [];
+      this.serverData.roadSpeed = data.roadSpeed || 0;
+    });
+
+    this.socket.on('player_spit', (data) => {
+      this.spitQueue.push(data);
+    });
+
+    this.socket.on('game_over', (data) => {
       gMinigame.value.isGameOver = true;
+      if (data) {
+        if (data.reason === 'eliminated') makeAnnouncement('Eliminated!', 3000);
+        if (data.reason === 'lastone_standing') {
+          if (data.winnerId === this.socket.id) makeAnnouncement('Congratulations!', 3000);
+        }
+      }
     });
-
   }
 }
 

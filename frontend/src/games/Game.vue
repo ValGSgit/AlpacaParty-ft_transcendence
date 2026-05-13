@@ -85,6 +85,7 @@
 
     <div class="hud-container hud-right">
       <button class="hud-btn" @click="openGameMenu()" title="Mini Games"><AppIcon name="joystick-full" :size="28" /></button>
+      <button v-if="isAuthenticated && !gMinigame.mode" class="hud-btn" @click="openLobbyMenu(5)" title="Visit Farm">🏚️</button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;"><AppIcon name="debug-coin" :size="28" /></button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="openShopMenu()" title="Shop"><AppIcon name="shopping-bags" :size="28" /></button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="openEditMode()" title="Edit Scene"><AppIcon name="pencil-ruler" :size="28" /></button>
@@ -118,29 +119,18 @@
         <button class="close-btn" @click="closeGameMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
       </div>
     </div>
-
-    <div v-if="gUI.lobbyMenu && gMinigame.mode === 2" class="modal-overlay">
-      <div class="shop-title">Spit Royale Lobby
-        <button class="shop-btn" @click="changeGame(2, 1, -1)" title="Spit Royale Online">Create New Room</button>
-        <button v-if="gMinigame.lobby.length > 0" class="shop-btn" @click="changeGame(2, 1)" title="Spit Royale Online">Join Random Room</button>
-        <div v-for="game in gMinigame.lobby">
-          <button class="shop-btn" @click="changeGame(2, 1, game.matchid)" title="Spit Royale Online"><span>{{ game.roomName }}</span></button>
-        </div>
-        <button class="close-btn" @click="closeLobbyMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
-      </div>
-    </div>
-    <MultiplayerLobby v-if="gUI.lobbyMenu && gMinigame.mode === 4" />
-    <div v-if="gUI.lobbyMenu" class="modal-overlay">
+    <MultiplayerLobby v-if="gUI.lobbyMenu && (gMinigame.mode === 2 || gMinigame.mode === 4)" />
+    <div v-if="gUI.lobbyMenu && gMinigame.mode === 5" class="modal-overlay">
       <div class="shop-title">Visit A Friend's Farm
         <div v-for="friend in gMinigame.lobby" :key="friend.id">
           <button class="shop-btn" @click="visitFarm(friend.id, friend.username)">
             {{ friend.username }}
           </button>
         </div>
-        <button class="close-btn" @click="closeLobbyMenu()" title="Close">✖️</button>
+        <button class="close-btn" @click="changeGame(0)" title="Close">✖️</button>
       </div>
     </div>
-    <div v-if="gMinigame.mode === 5" class="edit-mode">
+    <div v-if="gMinigame.mode === 5 && gMinigame.isVisiting" class="edit-mode">
       <div class="shop-title"> Visiting {{ friendName }}'s Farm
       </div>
     </div>
@@ -327,10 +317,10 @@ import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
-import { updateAlpacaRoad } from './mini_games/alpacaRoad.js'
 import { changeGame, visitFarm, friendName } from './mini_games/init.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
+import { updateMinigame } from './mini_games/minigames.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -413,10 +403,8 @@ const gameLoop = () => {
   updateCoins(delta);
   updateSpits(delta)
   updateLighting(delta);
-
-  if (gMinigame.value.isActive && gMinigame.value.mode > 2)
-  {
-    updateAlpacaRoad(delta)
+  if(gMinigame.value.isActive) {
+    updateMinigame(delta);
   }
 
   if (gEngine.value?.controls) {
