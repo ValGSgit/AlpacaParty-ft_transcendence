@@ -54,8 +54,7 @@ const AuthService = {
    */
   generatePublicApiToken(user) {
     return jwt.sign({ id: user.id }, config.jwt.publicApiSecret, {
-      expiresIn: config.jwt.publicApiExpiresIn,
-      jwtid: randomBytes(16).toString("hex"),
+      expiresIn: config.jwt.publicApiExpiresIn
     });
   },
 
