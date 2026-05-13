@@ -4,25 +4,26 @@ import AdminAuthService from '../../../src/services/adminAuthService.js';
 import prisma from '#config/prisma.js';
 import CustomError from '#utils/CustomError.js';
 
-jest.mock('../../../src/services/adminAuthService.js', () => ({
-  default: {
-    verifyToken: jest.fn(),
-  },
-}));
+const mockAdminAuthService = {
+  verifyToken: jest.fn(),
+};
 
-jest.mock('#config/prisma.js', () => ({
-  default: {
-    user: {
-      findUnique: jest.fn(),
-    },
+const mockPrisma = {
+  user: {
+    findUnique: jest.fn(),
   },
-}));
+};
+
+jest.mock('../../../src/services/adminAuthService.js', () => ({ default: mockAdminAuthService }));
+jest.mock('#config/prisma.js', () => ({ default: mockPrisma }));
 
 describe('Admin Middleware', () => {
   let req, res, next;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAdminAuthService.verifyToken.mockClear();
+    mockPrisma.user.findUnique.mockClear();
 
     req = {
       cookies: {},

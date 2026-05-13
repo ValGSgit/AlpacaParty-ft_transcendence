@@ -2,29 +2,20 @@ import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globa
 import express from 'express';
 import request from 'supertest';
 import helpdeskRouter from '../../../src/routes/helpdesk.js';
-import config from '#config/index.js';
-import { authenticate } from '../../../src/middleware/auth.js';
-import { helpdeskLimiter } from '../../../src/middleware/rateLimiters.js';
 
-jest.mock('#config/index.js', () => {
-  const mockConfig = {
-    groq: {
-      apiKeys: [],
-      model: 'mixtral-8x7b-32768',
-    },
-  };
-  return {
-    default: mockConfig,
-  };
-});
+const mockConfig = {
+  groq: {
+    apiKeys: [],
+    model: 'mixtral-8x7b-32768',
+  },
+};
 
-jest.mock('../../../src/middleware/auth.js', () => ({
-  authenticate: jest.fn(),
-}));
+const mockAuthenticate = jest.fn();
+const mockHelpdeskLimiter = jest.fn();
 
-jest.mock('../../../src/middleware/rateLimiters.js', () => ({
-  helpdeskLimiter: jest.fn(),
-}));
+jest.mock('#config/index.js', () => ({ default: mockConfig }));
+jest.mock('../../../src/middleware/auth.js', () => ({ authenticate: mockAuthenticate }));
+jest.mock('../../../src/middleware/rateLimiters.js', () => ({ helpdeskLimiter: mockHelpdeskLimiter }));
 
 jest.mock('express-validator');
 
@@ -36,15 +27,15 @@ describe('Helpdesk Routes', () => {
     jest.clearAllMocks();
 
     // Configure mocks with proper implementation
-    authenticate.mockImplementation((req, res, next) => {
+    mockAuthenticate.mockImplementation((req, res, next) => {
       req.user = { id: 1, username: 'testuser' };
       next();
     });
 
-    helpdeskLimiter.mockImplementation((req, res, next) => next());
+    mockHelpdeskLimiter.mockImplementation((req, res, next) => next());
     
     // Update config object for this test
-    config.groq = {
+    mockConfig.groq = {
       apiKeys: ['test-api-key-1', 'test-api-key-2'],
       model: 'mixtral-8x7b-32768',
     };
@@ -63,7 +54,7 @@ describe('Helpdesk Routes', () => {
 
   describe('POST /api/helpdesk/chat', () => {
     test('should return 503 if no API keys configured', async () => {
-      config.groq.apiKeys = [];
+      mockConfig.groq.apiKeys = [];
 
       const res = await request(app)
         .post('/api/helpdesk/chat')
@@ -191,7 +182,7 @@ describe('Helpdesk Routes', () => {
     });
 
     test('should round-robin through API keys', async () => {
-      config.groq.apiKeys = ['key1', 'key2', 'key3'];
+      mockConfig.groq.apiKeys = ['key1', 'key2', 'key3'];
 
       global.fetch = jest.fn()
         .mockResolvedValueOnce({

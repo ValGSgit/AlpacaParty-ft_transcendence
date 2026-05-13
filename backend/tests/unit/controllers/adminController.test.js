@@ -6,35 +6,32 @@ import AdminAuthService from '../../../src/services/adminAuthService.js';
 import Vault from '../../../src/lib/vault.js';
 import CustomError from '#utils/CustomError.js';
 
-jest.mock('#config/prisma.js', () => ({
-  default: {
-    user: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      count: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
-    post: {
-      count: jest.fn(),
-    },
-    $transaction: jest.fn(),
+const mockPrisma = {
+  user: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
   },
-}));
+  post: {
+    count: jest.fn(),
+  },
+  $transaction: jest.fn(),
+};
 
+jest.mock('#config/prisma.js', () => ({ default: mockPrisma }));
 jest.mock('../../../src/services/authService.js', () => ({
   default: {
     comparePassword: jest.fn(),
   },
 }));
-
 jest.mock('../../../src/services/adminAuthService.js', () => ({
   default: {
     generateToken: jest.fn(),
     verifyToken: jest.fn(),
   },
 }));
-
 jest.mock('../../../src/lib/vault.js', () => ({
   default: {
     read: jest.fn(),

@@ -1,4 +1,6 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
+import * as fs from 'fs';
+import * as https from 'node:https';
 
 jest.mock('fs', () => ({
   existsSync: jest.fn(),
@@ -11,19 +13,9 @@ jest.mock('node:https', () => ({
 
 describe('Vault lib', () => {
   let Vault;
-  let fs;
-  let https;
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    jest.resetModules();
-
-    // Re-import mocked modules after reset
-    const fsModule = await import('fs');
-    const httpsModule = await import('node:https');
-    
-    fs = fsModule;
-    https = httpsModule;
 
     // Setup fs mocks
     fs.existsSync.mockReturnValue(true);
@@ -37,7 +29,7 @@ describe('Vault lib', () => {
       return '';
     });
 
-    // Import Vault after mocking
+    // Import Vault after clearing mocks
     Vault = (await import('../../../src/lib/vault.js')).default;
   });
 

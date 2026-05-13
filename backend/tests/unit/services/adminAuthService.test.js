@@ -23,6 +23,8 @@ jest.mock('../../../src/config/index.js', () => {
 describe('AdminAuthService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockJwt.sign.mockClear();
+    mockJwt.verify.mockClear();
   });
 
   afterEach(() => {
