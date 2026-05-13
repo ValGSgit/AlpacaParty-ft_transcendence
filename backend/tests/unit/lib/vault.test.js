@@ -1,12 +1,17 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import fs from 'fs';
-import https from 'node:https';
 
-jest.mock('fs');
-jest.mock('node:https');
+// Create mock objects
+const mockFs = {
+  existsSync: jest.fn(),
+  readFileSync: jest.fn(),
+};
 
-const mockFs = fs;
-const mockHttps = https;
+const mockHttps = {
+  request: jest.fn(),
+};
+
+jest.unstable_mockModule('fs', () => mockFs);
+jest.unstable_mockModule('node:https', () => mockHttps);
 
 describe('Vault lib', () => {
   let Vault;

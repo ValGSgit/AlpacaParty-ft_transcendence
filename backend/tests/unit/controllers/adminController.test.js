@@ -1,15 +1,45 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import * as adminController from '../../../src/controllers/adminController.js';
-import prisma from '#config/prisma.js';
-import AuthService from '../../../src/services/authService.js';
-import AdminAuthService from '../../../src/services/adminAuthService.js';
-import Vault from '../../../src/lib/vault.js';
-import CustomError from '#utils/CustomError.js';
 
-jest.mock('#config/prisma.js');
-jest.mock('../../../src/services/authService.js');
-jest.mock('../../../src/services/adminAuthService.js');
-jest.mock('../../../src/lib/vault.js');
+// Create mock objects first
+const mockPrisma = {
+  user: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+  post: {
+    count: jest.fn(),
+  },
+};
+
+const mockAuthService = {
+  comparePassword: jest.fn(),
+};
+
+const mockAdminAuthService = {
+  generateToken: jest.fn(),
+  verifyToken: jest.fn(),
+};
+
+const mockVault = {
+  read: jest.fn(),
+  write: jest.fn(),
+  delete: jest.fn(),
+};
+
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule('../../../src/services/authService.js', () => ({ default: mockAuthService }));
+jest.unstable_mockModule('../../../src/services/adminAuthService.js', () => ({ default: mockAdminAuthService }));
+jest.unstable_mockModule('../../../src/lib/vault.js', () => ({ default: mockVault }));
+
+const { default: adminController } = await import('../../../src/controllers/adminController.js');
+const { default: CustomError } = await import('#utils/CustomError.js');
+const prisma = mockPrisma;
+const AuthService = mockAuthService;
+const AdminAuthService = mockAdminAuthService;
+const Vault = mockVault;
 
 describe('adminController', () => {
   let req, res, next;

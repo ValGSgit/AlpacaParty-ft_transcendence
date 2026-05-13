@@ -1,18 +1,34 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import express from 'express';
-import request from 'supertest';
-import helpdeskRouter from '../../../src/routes/helpdesk.js';
-import config from '#config/index.js';
-import { authenticate } from '../../../src/middleware/auth.js';
-import { helpdeskLimiter } from '../../../src/middleware/rateLimiters.js';
 
-jest.mock('#config/index.js');
-jest.mock('../../../src/middleware/auth.js');
-jest.mock('../../../src/middleware/rateLimiters.js');
-jest.mock('express-validator', () => ({
+// Create mocks
+const mockConfig = {
+  groq: {
+    apiKeys: ['test-api-key-1', 'test-api-key-2'],
+    model: 'mixtral-8x7b-32768',
+  },
+};
+
+const mockAuthenticate = jest.fn();
+const mockHelpdeskLimiter = jest.fn();
+
+jest.unstable_mockModule('#config/index.js', () => ({ default: mockConfig }));
+jest.unstable_mockModule('../../../src/middleware/auth.js', () => ({
+  authenticate: mockAuthenticate,
+}));
+jest.unstable_mockModule('../../../src/middleware/rateLimiters.js', () => ({
+  helpdeskLimiter: mockHelpdeskLimiter,
+}));
+jest.unstable_mockModule('express-validator', () => ({
   body: jest.fn().mockReturnThis(),
   validationResult: jest.fn(() => ({ isEmpty: () => true, array: () => [] })),
 }));
+
+import express from 'express';
+import request from 'supertest';
+const { default: helpdeskRouter } = await import('../../../src/routes/helpdesk.js');
+const config = mockConfig;
+const authenticate = mockAuthenticate;
+const helpdeskLimiter = mockHelpdeskLimiter;
 
 describe('Helpdesk Routes', () => {
   let app;

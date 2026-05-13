@@ -1,10 +1,24 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import jwt from 'jsonwebtoken';
-import AdminAuthService from '../../../src/services/adminAuthService.js';
-import config from '../../../src/config/index.js';
 
-jest.mock('jsonwebtoken');
-jest.mock('../../../src/config/index.js');
+// Create mocks
+const mockJwt = {
+  sign: jest.fn(),
+  verify: jest.fn(),
+};
+
+const mockConfig = {
+  admin: {
+    jwtSecret: 'test-secret-key',
+    jwtExpiresIn: '7d',
+  },
+};
+
+jest.unstable_mockModule('jsonwebtoken', () => mockJwt);
+jest.unstable_mockModule('../../../src/config/index.js', () => ({ default: mockConfig }));
+
+const { default: AdminAuthService } = await import('../../../src/services/adminAuthService.js');
+const jwt = mockJwt;
+const config = mockConfig;
 
 describe('AdminAuthService', () => {
   beforeEach(() => {

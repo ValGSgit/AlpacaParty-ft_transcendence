@@ -1,11 +1,23 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import { requireAdmin, requireSuperAdmin } from '../../../src/middleware/admin.js';
-import AdminAuthService from '../../../src/services/adminAuthService.js';
-import prisma from '#config/prisma.js';
-import CustomError from '#utils/CustomError.js';
 
-jest.mock('../../../src/services/adminAuthService.js');
-jest.mock('#config/prisma.js');
+// Create mock objects
+const mockAdminAuthService = {
+  verifyToken: jest.fn(),
+};
+
+const mockPrisma = {
+  user: {
+    findUnique: jest.fn(),
+  },
+};
+
+jest.unstable_mockModule('../../../src/services/adminAuthService.js', () => ({ default: mockAdminAuthService }));
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
+
+const { requireAdmin, requireSuperAdmin } = await import('../../../src/middleware/admin.js');
+const { default: CustomError } = await import('#utils/CustomError.js');
+const AdminAuthService = mockAdminAuthService;
+const prisma = mockPrisma;
 
 describe('Admin Middleware', () => {
   let req, res, next;
@@ -39,7 +51,7 @@ describe('Admin Middleware', () => {
       expect(next).toHaveBeenCalledWith(expect.any(CustomError));
       const error = next.mock.calls[0][0];
       expect(error.message).toContain('Admin authentication required');
-      expect(error.status).toBe(401);
+      expect(error.statusCode).toBe(401);
     });
 
     test('should throw error if token is invalid', async () => {
@@ -51,7 +63,7 @@ describe('Admin Middleware', () => {
       expect(next).toHaveBeenCalledWith(expect.any(CustomError));
       const error = next.mock.calls[0][0];
       expect(error.message).toContain('Invalid or expired admin token');
-      expect(error.status).toBe(401);
+      expect(error.statusCode).toBe(401);
     });
 
     test('should throw error if user not found', async () => {
@@ -64,7 +76,7 @@ describe('Admin Middleware', () => {
       expect(next).toHaveBeenCalledWith(expect.any(CustomError));
       const error = next.mock.calls[0][0];
       expect(error.message).toContain('Admin user not found');
-      expect(error.status).toBe(401);
+      expect(error.statusCode).toBe(401);
     });
 
     test('should throw error if user is banned', async () => {
@@ -84,7 +96,7 @@ describe('Admin Middleware', () => {
       expect(next).toHaveBeenCalledWith(expect.any(CustomError));
       const error = next.mock.calls[0][0];
       expect(error.message).toContain('Account is banned');
-      expect(error.status).toBe(403);
+      expect(error.statusCode).toBe(403);
     });
 
     test('should throw error if user role is not admin or superadmin', async () => {
@@ -104,7 +116,7 @@ describe('Admin Middleware', () => {
       expect(next).toHaveBeenCalledWith(expect.any(CustomError));
       const error = next.mock.calls[0][0];
       expect(error.message).toContain('Insufficient privileges');
-      expect(error.status).toBe(403);
+      expect(error.statusCode).toBe(403);
     });
 
     test('should attach admin user to request and call next on success', async () => {
@@ -176,7 +188,7 @@ describe('Admin Middleware', () => {
       expect(next).toHaveBeenCalledWith(expect.any(CustomError));
       const error = next.mock.calls[0][0];
       expect(error.message).toContain('Admin authentication required');
-      expect(error.status).toBe(401);
+      expect(error.statusCode).toBe(401);
     });
 
     test('should throw error if admin role is not superadmin', async () => {
@@ -191,7 +203,7 @@ describe('Admin Middleware', () => {
       expect(next).toHaveBeenCalledWith(expect.any(CustomError));
       const error = next.mock.calls[0][0];
       expect(error.message).toContain('Superadmin privileges required');
-      expect(error.status).toBe(403);
+      expect(error.statusCode).toBe(403);
     });
 
     test('should call next if admin is superadmin', async () => {
