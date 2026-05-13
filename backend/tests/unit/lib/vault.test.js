@@ -1,16 +1,26 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import fs from 'fs';
-import https from 'node:https';
 
-jest.mock('fs');
-jest.mock('node:https');
+jest.mock('fs', () => ({
+  existsSync: jest.fn(),
+  readFileSync: jest.fn(),
+}));
+
+jest.mock('node:https', () => ({
+  request: jest.fn(),
+}));
 
 describe('Vault lib', () => {
   let Vault;
+  let fs;
+  let https;
 
   beforeEach(async () => {
     jest.clearAllMocks();
     jest.resetModules();
+
+    // Re-import mocked modules after reset
+    fs = (await import('fs')).default;
+    https = (await import('node:https')).default;
 
     // Setup fs mocks
     fs.existsSync.mockReturnValue(true);
@@ -57,7 +67,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
@@ -65,7 +75,7 @@ describe('Vault lib', () => {
       const result = await Vault.read('secret/data/test/path');
 
       expect(result).toEqual({ username: 'testuser', password: 'testpass' });
-      expect(mockHttps.request).toHaveBeenCalled();
+      expect(https.request).toHaveBeenCalled();
     });
 
     test('should handle 404 response by returning null', async () => {
@@ -83,7 +93,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
@@ -108,7 +118,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
@@ -133,7 +143,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
@@ -158,7 +168,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
@@ -181,7 +191,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
@@ -201,7 +211,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation(() => mockReq);
+      https.request.mockImplementation(() => mockReq);
 
       const promise = Vault.read('secret/data/network-error');
       await new Promise(resolve => setImmediate(resolve));
@@ -230,7 +240,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
@@ -259,7 +269,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
@@ -286,7 +296,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
@@ -294,7 +304,7 @@ describe('Vault lib', () => {
       const secretData = { key: 'value', password: 'secret' };
       await Vault.write('secret/data/test/path', secretData);
 
-      expect(mockHttps.request).toHaveBeenCalled();
+      expect(https.request).toHaveBeenCalled();
       expect(mockReq.write).toHaveBeenCalledWith(
         JSON.stringify({ data: secretData })
       );
@@ -311,7 +321,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation(() => mockReq);
+      https.request.mockImplementation(() => mockReq);
 
       await expect(Vault.write('secret/data/error', {})).rejects.toThrow();
     });
@@ -333,14 +343,14 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
 
       await Vault.delete('secret/metadata/test/path');
 
-      expect(mockHttps.request).toHaveBeenCalledWith(
+      expect(https.request).toHaveBeenCalledWith(
         expect.objectContaining({
           method: 'DELETE'
         }),
@@ -359,7 +369,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation(() => mockReq);
+      https.request.mockImplementation(() => mockReq);
 
       await expect(Vault.delete('secret/metadata/error')).rejects.toThrow();
     });
@@ -381,14 +391,14 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
 
       await Vault.read('secret/data/test');
 
-      const callArgs = mockHttps.request.mock.calls[0][0];
+      const callArgs = https.request.mock.calls[0][0];
       expect(callArgs).toEqual(expect.objectContaining({
         hostname: expect.any(String),
         port: expect.any(Number),
@@ -402,7 +412,7 @@ describe('Vault lib', () => {
     });
 
     test('should include CA certificate when available', async () => {
-      mockFs.existsSync.mockReturnValue(true);
+      fs.existsSync.mockReturnValue(true);
 
       const mockResponse = {
         statusCode: 200,
@@ -418,7 +428,7 @@ describe('Vault lib', () => {
         end: jest.fn()
       };
 
-      mockHttps.request.mockImplementation((opts, callback) => {
+      https.request.mockImplementation((opts, callback) => {
         callback(mockResponse);
         return mockReq;
       });
@@ -427,13 +437,13 @@ describe('Vault lib', () => {
 
       // Need to re-import to pick up env var
       jest.resetModules();
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.readFileSync.mockReturnValue('mock-cert');
+      fs.existsSync.mockReturnValue(true);
+      fs.readFileSync.mockReturnValue('mock-cert');
       
       const VaultReloaded = (await import('../../../src/lib/vault.js')).default;
       await VaultReloaded.read('secret/data/test');
 
-      const callArgs = mockHttps.request.mock.calls[0][0];
+      const callArgs = https.request.mock.calls[0][0];
       expect(callArgs.ca).toBeDefined();
     });
   });

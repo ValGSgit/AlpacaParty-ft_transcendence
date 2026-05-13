@@ -4,8 +4,19 @@ import AdminAuthService from '../../../src/services/adminAuthService.js';
 import prisma from '#config/prisma.js';
 import CustomError from '#utils/CustomError.js';
 
-jest.mock('../../../src/services/adminAuthService.js');
-jest.mock('#config/prisma.js');
+jest.mock('../../../src/services/adminAuthService.js', () => ({
+  default: {
+    verifyToken: jest.fn(),
+  },
+}));
+
+jest.mock('#config/prisma.js', () => ({
+  default: {
+    user: {
+      findUnique: jest.fn(),
+    },
+  },
+}));
 
 describe('Admin Middleware', () => {
   let req, res, next;

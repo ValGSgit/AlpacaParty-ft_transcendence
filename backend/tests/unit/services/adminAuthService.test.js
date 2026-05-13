@@ -3,8 +3,22 @@ import jwt from 'jsonwebtoken';
 import AdminAuthService from '../../../src/services/adminAuthService.js';
 import config from '../../../src/config/index.js';
 
-jest.mock('jsonwebtoken');
-jest.mock('../../../src/config/index.js');
+jest.mock('jsonwebtoken', () => ({
+  sign: jest.fn(),
+  verify: jest.fn(),
+}));
+
+jest.mock('../../../src/config/index.js', () => {
+  const mockConfig = {
+    admin: {
+      jwtSecret: 'test-secret-key',
+      jwtExpiresIn: '7d',
+    },
+  };
+  return {
+    default: mockConfig,
+  };
+});
 
 describe('AdminAuthService', () => {
   beforeEach(() => {

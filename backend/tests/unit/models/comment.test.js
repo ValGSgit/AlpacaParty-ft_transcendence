@@ -2,7 +2,22 @@ import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globa
 import Comment from '../../../src/models/Comment.js';
 import prisma from '#config/prisma.js';
 
-jest.mock('#config/prisma.js');
+jest.mock('#config/prisma.js', () => ({
+  default: {
+    comment: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
+      count: jest.fn(),
+    },
+    post: {
+      update: jest.fn(),
+      count: jest.fn(),
+    },
+    $transaction: jest.fn(),
+  },
+}));
 
 describe('Comment Model', () => {
   beforeEach(() => {

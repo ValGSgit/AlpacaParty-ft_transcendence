@@ -6,9 +6,26 @@ import config from '#config/index.js';
 import { authenticate } from '../../../src/middleware/auth.js';
 import { helpdeskLimiter } from '../../../src/middleware/rateLimiters.js';
 
-jest.mock('#config/index.js');
-jest.mock('../../../src/middleware/auth.js');
-jest.mock('../../../src/middleware/rateLimiters.js');
+jest.mock('#config/index.js', () => {
+  const mockConfig = {
+    groq: {
+      apiKeys: [],
+      model: 'mixtral-8x7b-32768',
+    },
+  };
+  return {
+    default: mockConfig,
+  };
+});
+
+jest.mock('../../../src/middleware/auth.js', () => ({
+  authenticate: jest.fn(),
+}));
+
+jest.mock('../../../src/middleware/rateLimiters.js', () => ({
+  helpdeskLimiter: jest.fn(),
+}));
+
 jest.mock('express-validator');
 
 describe('Helpdesk Routes', () => {
