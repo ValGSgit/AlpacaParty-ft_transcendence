@@ -1,8 +1,6 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals'
 
 const mockSetIo = jest.fn()
-const mockInitializeSpitRoyaleNamespace = jest.fn()
-
 
 jest.unstable_mockModule('socket.io', () => ({
   Server: jest.fn().mockImplementation(() => mockIo),
@@ -54,10 +52,6 @@ jest.unstable_mockModule('../../../src/services/notificationService.js', () => (
 
 jest.unstable_mockModule('cookie-parser', () => ({
   default: jest.fn(() => (_req, _res, next) => next()),
-}))
-
-jest.unstable_mockModule('../../../src/services/spitRoyaleNamespace.js', () => ({
-  initializeSpitRoyaleNamespace: mockInitializeSpitRoyaleNamespace,
 }))
 
 jest.unstable_mockModule('../../../src/services/socketAuth.js', () => ({
