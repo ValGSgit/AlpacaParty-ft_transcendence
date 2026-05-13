@@ -14,10 +14,6 @@ import CustomError from "#utils/CustomError.js";
 export const authenticate = async (req, res, next) => {
   try {
     let token = req.cookies.jwt_token;
-    if (!token) {
-      const auth = req.headers.authorization;
-      if (auth?.startsWith("Bearer ")) token = auth.slice(7);
-    }
     if (!token) throw new CustomError("No token provided", 401);
     const decoded = AuthService.verifyToken(token);
     if (!decoded) throw new CustomError("Invalid or expired token", 401);
@@ -39,10 +35,6 @@ export const authenticate = async (req, res, next) => {
 export const optionalAuth = async (req, _res, next) => {
   try {
     let token = req.cookies.jwt_token;
-    if (!token) {
-      const auth = req.headers.authorization;
-      if (auth?.startsWith("Bearer ")) token = auth.slice(7);
-    }
     if (token) {
       const decoded = AuthService.verifyToken(token);
       if (decoded) {

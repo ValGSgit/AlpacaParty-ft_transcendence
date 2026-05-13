@@ -5,19 +5,19 @@
       <router-link to="/login" class="shop-btn">Login</router-link>
       <div class="features">
       <div class="feature-card">
-        <h3><AppIcon name="alpaca" :size="22" /> Raise Alpacas</h3>
+        <h3><AppIcon name="alpaca" :size="44" /> Raise Alpacas</h3>
         <p>Buy, name and customise alpacas with unique colours and speeds.</p>
       </div>
       <div class="feature-card">
-        <h3><AppIcon name="tree" :size="22" /> Build Your Farm</h3>
+        <h3><AppIcon name="tree" :size="44" /> Build Your Farm</h3>
         <p>Plant trees, expand land and decorate your world.</p>
       </div>
       <div class="feature-card">
-        <h3><AppIcon name="moneybag-full" :size="22" /> Earn Coins</h3>
+        <h3><AppIcon name="moneybag-full" :size="44" /> Earn Coins</h3>
         <p>Collect coins to unlock upgrades and grow your herd.</p>
       </div>
         <div class="feature-card">
-        <h3><AppIcon name="joystick-full" :size="22" /> Mini Games</h3>
+        <h3><AppIcon name="joystick-full" :size="44" /> Mini Games</h3>
         <p>Play Mini games with your friends, online and offline.</p>
       </div>
     </div>
@@ -35,7 +35,7 @@
       <button v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="shop-btn">You killed: {{ gUser.point }} <AppIcon name="alpaca" :size="20" /></button>
       <template v-if="gMinigame.mode === 3 || gMinigame.mode === 4">
         <button v-for="player in gMinigame.players" :key="'end-' + player.id" class="shop-btn">
-          {{ player.name || `P${player.id}` }} Score: {{ player.point }} <AppIcon name="score" :size="20" />
+          {{ player.name || `P${player.id}` }} Score: {{ player.point }} <AppIcon name="score" :size="40" />
         </button>
       </template>
       <div class="action-container">
@@ -94,10 +94,10 @@
     
     <div v-if="gUI.shopMenu" class="modal-overlay">
       <div class="shop-title">Mini Shop
-        <button class="shop-btn" @click="openFarmMenu()" title="Upgrade Farm"><AppIcon name="tractor" :size="18" /> Upgrade Farm</button>
-        <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca"><AppIcon name="alpaca-buy" :size="18" /> Buy Alpaca</button>
-        <button class="shop-btn" @click="openItemShop()" title="Buy Item"><AppIcon name="tree" :size="18" /> Buy Item</button>
-        <button class="close-btn" @click="closeShopMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="shop-btn" @click="openFarmMenu()" title="Upgrade Farm"><AppIcon name="tractor" :size="36" /> Upgrade Farm</button>
+        <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca"><AppIcon name="alpaca-buy" :size="36" /> Buy Alpaca</button>
+        <button class="shop-btn" @click="openItemShop()" title="Buy Item"><AppIcon name="tree" :size="36" /> Buy Item</button>
+        <button class="close-btn" @click="closeShopMenu()" title="Close"><AppIcon name="close" :size="24" /></button>
       </div>
     </div>
 
