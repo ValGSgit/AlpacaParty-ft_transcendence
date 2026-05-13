@@ -11,14 +11,12 @@ import { activeClient } from './GameClient.js';
 import { changeFloorColor } from './utils.js';
 
 let activePlayers = [];
-let activeTimer = 1.0;
 
 const { spawnFloatingText } = useFloatingText();
 
 export function shootSpitAction(directionVec) {
   if (!gPlayer.value || gPlayer.value.isDead === 1) return;
 
-  // THE FIX: If directionVec is a Vue PointerEvent (from UI click), ignore it!
   let safeDir = null;
   if (directionVec && typeof directionVec.x === 'number' && typeof directionVec.z === 'number') {
     safeDir = directionVec;
@@ -76,12 +74,29 @@ export async function initSpitRoyalOnline() {
 export function updateSpitRoyal(delta) {
   if (!gMinigame.value.isActive || gMinigame.value.isGameOver) return;
 
+  if (gMinigame.value.spawnData && !gPlayer.value.hasSpawned)
+    spawnPlayer();
+
   syncPlayers(delta);
   spawnEnemySpits();
   streamLocalPosition();
 }
 
+function spawnPlayer() {
+  const spawn = gMinigame.value.spawnData;
+  gPlayer.value.model.position.set(spawn.x, 0, spawn.z);
+  //TODO
+  //gPlayer.value.target.copy(gPlayer.value.model.position);
+  gPlayer.value.model.rotation.y = spawn.angle;
+
+  gPlayer.value.hasSpawned = true;
+  gPlayer.value.isAutoMoving = false;
+  gMinigame.value.spawnData = null;
+}
+
 function streamLocalPosition() {
+  if (!gPlayer.value || !gPlayer.value.hasSpawned) return;
+
   const model = gPlayer.value.model;
   activeClient.sendPlayerInput(model.position.x, model.position.y, model.position.z, model.rotation.y);
 }
@@ -156,8 +171,6 @@ function syncPlayers(delta) {
       if (localAlpaca.socketId === activeClient.socket.id) {
         if (!localAlpaca.hasSpawned) {
           localAlpaca.model.position.set(serverData.x, serverData.y, serverData.z);
-          localAlpaca.target.copy(localAlpaca.model.position); // Updates the click-to-move anchor!
-          localAlpaca.model.rotation.y = serverData.angle;
           localAlpaca.hasSpawned = true;
           localAlpaca.isAutoMoving = false;
         }
