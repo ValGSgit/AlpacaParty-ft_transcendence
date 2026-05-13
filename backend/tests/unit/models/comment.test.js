@@ -1,23 +1,8 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
+import Comment from '../../../src/models/Comment.js';
+import prisma from '#config/prisma.js';
 
-// Create mocks
-const mockPrisma = {
-  comment: {
-    create: jest.fn(),
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-    delete: jest.fn(),
-  },
-  post: {
-    update: jest.fn(),
-  },
-  $transaction: jest.fn(),
-};
-
-jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
-
-const { default: Comment } = await import('../../../src/models/Comment.js');
-const prisma = mockPrisma;
+jest.mock('#config/prisma.js');
 
 describe('Comment Model', () => {
   beforeEach(() => {

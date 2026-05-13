@@ -1,17 +1,9 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
+import fs from 'fs';
+import https from 'node:https';
 
-// Create mock objects
-const mockFs = {
-  existsSync: jest.fn(),
-  readFileSync: jest.fn(),
-};
-
-const mockHttps = {
-  request: jest.fn(),
-};
-
-jest.unstable_mockModule('fs', () => mockFs);
-jest.unstable_mockModule('node:https', () => mockHttps);
+jest.mock('fs');
+jest.mock('node:https');
 
 describe('Vault lib', () => {
   let Vault;
@@ -21,8 +13,8 @@ describe('Vault lib', () => {
     jest.resetModules();
 
     // Setup fs mocks
-    mockFs.existsSync.mockReturnValue(true);
-    mockFs.readFileSync.mockImplementation((path) => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockImplementation((path) => {
       if (path === '/run/vault-keys/keys.env') {
         return 'VAULT_TOKEN=test-token-123';
       }

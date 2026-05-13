@@ -1,23 +1,11 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
+import { requireAdmin, requireSuperAdmin } from '../../../src/middleware/admin.js';
+import AdminAuthService from '../../../src/services/adminAuthService.js';
+import prisma from '#config/prisma.js';
+import CustomError from '#utils/CustomError.js';
 
-// Create mock objects
-const mockAdminAuthService = {
-  verifyToken: jest.fn(),
-};
-
-const mockPrisma = {
-  user: {
-    findUnique: jest.fn(),
-  },
-};
-
-jest.unstable_mockModule('../../../src/services/adminAuthService.js', () => ({ default: mockAdminAuthService }));
-jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
-
-const { requireAdmin, requireSuperAdmin } = await import('../../../src/middleware/admin.js');
-const { default: CustomError } = await import('#utils/CustomError.js');
-const AdminAuthService = mockAdminAuthService;
-const prisma = mockPrisma;
+jest.mock('../../../src/services/adminAuthService.js');
+jest.mock('#config/prisma.js');
 
 describe('Admin Middleware', () => {
   let req, res, next;
