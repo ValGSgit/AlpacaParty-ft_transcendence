@@ -141,14 +141,14 @@ export class Alpaca {
   beingHit(alpaca) {
     if (this.isDead)
       return
-    if (this.hp > 0 && gMinigame.value.mode) // only reduce hp in mini games
+    if (this.hp > 0 && gMinigame.value.mode && gMinigame.value.mode !== 5) // only reduce hp in mini games
     {
       this.hp--
       if (this === gPlayer.value)
         gUser.value.hp--
     }
 
-    if (this.hp === 0) {
+    if (this.hp <= 0) {
       this.isDead = 1 // dead
       removeFromArray(this.model, gCollidables) //remove itself from gCollidables
       alpaca.point++ // credit for the spit owner

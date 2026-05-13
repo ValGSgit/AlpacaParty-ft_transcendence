@@ -22,17 +22,6 @@ import User from "../models/User.js";
 import { MatchManager } from "./MatchManager.js";
 import NotificationService from "./notificationService.js";
 import { socketAuthMiddleware } from "./socketAuth.js";
-import { initializeSpitRoyaleNamespace } from "./spitRoyaleNamespace.js";
-
-/**
- * Compute Elo delta. Simple 32-K factor implementation.
- */
-function calcElo(playerElo, opponentElo, result) {
-  const K = 32;
-  const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
-  const score = result === "win" ? 1 : result === "loss" ? 0 : 0.5;
-  return Math.round(playerElo + K * (score - expected));
-}
 
 export function initializeSocket(httpServer, corsOrigins) {
   const io = new Server(httpServer, {
@@ -45,9 +34,8 @@ export function initializeSocket(httpServer, corsOrigins) {
 
   // Share io with NotificationService so it can push real-time notifications
   NotificationService.setIo(io);
-  initializeSpitRoyaleNamespace(io);
-  const alpacaRoadNamespace = io.of('/alpaca-road');
-  const manager = new MatchManager(alpacaRoadNamespace);
+  const minigamesNamespace = io.of('/minigames');
+  const manager = new MatchManager(minigamesNamespace);
 
   // ── Auth middleware ──────────────────────────────────────────
   io.engine.use(cookieParser());
@@ -153,103 +141,40 @@ export function initializeSocket(httpServer, corsOrigins) {
       await Message.markAsRead(user.id, senderId).catch(() => { });
     });
 
-    // ── Game: matchmaking ────────────────────────────────────
-    socket.on("game:queue", async ({ gameType = "spit_royale" }, ack) => {
+    // ── Group Chat Rooms ─────────────────────────────────────
+    socket.on("room:join", async ({ roomId }, ack) => {
       try {
-        // Look for a waiting game
-        let game = await Game.findWaiting(gameType, user.id);
-        if (game) {
-          game = await Game.joinGame(game.id, user.id);
-          socket.join(`game:${game.id}`);
-          io.to(`game:${game.id}`).emit("game:start", { game });
-        } else {
-          // Create a new waiting game
-          game = await Game.create({ player1Id: user.id, gameType });
-          socket.join(`game:${game.id}`);
-          socket.emit("game:waiting", { gameId: game.id });
-        }
-        ack?.({ ok: true, game });
+        const isMember = await ChatRoom.isMember(roomId, user.id);
+        if (!isMember) return ack?.({ error: "Not a member of this room" });
+        socket.join(`room:${roomId}`);
+        ack?.({ ok: true });
       } catch (err) {
         ack?.({ error: err.message });
       }
     });
 
-    // ── Game: state sync (authoritative server relay) ──
-    socket.on("game:state", async ({ gameId, state }) => {
-      const game = await Game.findById(gameId);
-      if (!game || ![game.player1Id, game.player2Id].includes(user.id)) return;
-      socket.to(`game:${gameId}`).emit("game:state", { from: user.id, state });
-    });
-
-    socket.on(
-      "game:finish",
-      async ({ gameId, winnerId, player1Score, player2Score }, ack) => {
-        try {
-          const game = await Game.findById(gameId);
-          if (!game || !["playing"].includes(game.status))
-            return ack?.({ error: "Invalid game" });
-
-          const finished = await Game.finishGame(gameId, {
-            winnerId,
-            player1Score,
-            player2Score,
-          });
-
-          // Determine results for both players
-          const p1Result =
-            winnerId === game.player1Id
-              ? "win"
-              : winnerId === game.player2Id
-                ? "loss"
-                : "draw";
-          const p2Result =
-            p1Result === "win" ? "loss" : p1Result === "loss" ? "win" : "draw";
-
-          // Update stats & award XP
-          if (game.player2Id) {
-            const [p1Stats, p2Stats] = await Promise.all([
-              Game.getStats(game.player1Id, game.gameType),
-              Game.getStats(game.player2Id, game.gameType),
-            ]);
-            const newP1Elo = calcElo(p1Stats.elo, p2Stats.elo, p1Result);
-            const newP2Elo = calcElo(p2Stats.elo, p1Stats.elo, p2Result);
-
-            await Promise.all([
-              Game.updateStats(game.player1Id, game.gameType, p1Result),
-              Game.updateStats(game.player2Id, game.gameType, p2Result),
-              Game.updateElo(game.player1Id, game.gameType, newP1Elo),
-              Game.updateElo(game.player2Id, game.gameType, newP2Elo),
-            ]);
-          }
-
-          io.to(`game:${gameId}`).emit("game:finished", { game: finished });
-          ack?.({ ok: true });
-        } catch (err) {
-          ack?.({ error: err.message });
-        }
-      },
-    );
-
-    socket.on("game:forfeit", async ({ gameId }, ack) => {
+    socket.on("room:send", async ({ roomId, content }, ack) => {
       try {
-        const game = await Game.findById(gameId);
-        if (!game) return ack?.({ error: "Game not found" });
-        const opponent =
-          game.player1Id === user.id ? game.player2Id : game.player1Id;
-        if (opponent) {
-          await Game.finishGame(gameId, {
-            winnerId: opponent,
-            player1Score: game.player1Score,
-            player2Score: game.player2Score,
-          });
-          io.to(`game:${gameId}`).emit("game:finished", {
-            reason: "forfeit",
-            forfeiter: user.id,
-          });
-        } else {
-          await Game.cancelGame(gameId);
-        }
-        ack?.({ ok: true });
+        if (!content?.trim()) return ack?.({ error: "Empty message" });
+        const isMember = await ChatRoom.isMember(roomId, user.id);
+        if (!isMember) return ack?.({ error: "Not a member" });
+
+        const msg = await ChatRoom.sendMessage({
+          roomId,
+          senderId: user.id,
+          content: content.trim(),
+        });
+        const shaped = {
+          id: msg.id,
+          room_id: msg.roomId ?? roomId,
+          sender_id: msg.senderId,
+          content: msg.content,
+          created_at: msg.createdAt,
+          sender_username: user.username,
+          sender_avatar: user.avatar,
+        };
+        io.to(`room:${roomId}`).emit("room:message", shaped);
+        ack?.({ ok: true, message: shaped });
       } catch (err) {
         ack?.({ error: err.message });
       }

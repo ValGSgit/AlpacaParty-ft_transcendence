@@ -1,8 +1,9 @@
 export class BaseMatch {
-  constructor(matchId, namespace, roomName) {
+  constructor(matchId, namespace, roomName, onStateChange) {
     this.matchId = matchId;
     this.namespace = namespace;
     this.roomName = roomName;
+    this.onStateChange = onStateChange;
 
     this.players = new Map();
     this.status = 'LOBBY';
@@ -52,6 +53,7 @@ export class BaseMatch {
 
     if (allReady && this.status === 'LOBBY') {
       this.start();
+      if (this.onStateChange) this.onStateChange();
     }
   }
 

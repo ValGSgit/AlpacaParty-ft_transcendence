@@ -1,5 +1,11 @@
 import { debug } from "#lib/logger.js";
 import { AlpacaRoadMatch } from "./AlpacaRoadMatch.js";
+import { SpitRoyalMatch } from "./SpitRoyaleMatch.js";
+
+const GAME_REGISTRY = {
+  2: SpitRoyalMatch,
+  4: AlpacaRoadMatch,
+};
 
 export class MatchManager {
   constructor(ioNamespace) {
@@ -12,13 +18,17 @@ export class MatchManager {
 
   broadcastPublicRooms() {
     const publicRooms = [];
-
     for (const match of this.matches.values()) {
-      if (match.status === 'LOBBY' && match.players.size < 4) {
+      const typeStr = Object.keys(GAME_REGISTRY).find(key => GAME_REGISTRY[key] === match.constructor);
+      const currentType = Number(typeStr);
+
+      if ((match.status === 'LOBBY' && match.players.size > 0 && match.players.size < 4 && currentType === 4) ||
+        (match.status === 'PLAYING' && match.players.size > 0 && match.players.size < 10 && currentType === 2)) {
         publicRooms.push({
           id: match.matchId,
           name: match.roomName,
-          playerCount: match.players.size
+          playerCount: match.players.size,
+          gameType: currentType
         });
       }
     }
@@ -29,32 +39,59 @@ export class MatchManager {
     this.io.on('connection', (socket) => {
       this.broadcastPublicRooms();
 
-      socket.on('create_room', ({ name, color }) => {
-        debug(`BACKEND: Received create_room request from ${name}`);
+      const leaveCurrentRoom = () => {
+        const matchId = this.playerToMatch.get(socket.id);
+        if (matchId) {
+          const match = this.matches.get(matchId);
+          if (match) {
+            match.removePlayer(socket.id);
+            if (match.players.size === 0) {
+              match.stop();
+              this.matches.delete(matchId);
+            }
+          }
+          this.playerToMatch.delete(socket.id);
+        }
+      };
+
+      socket.on('create_room', ({ name, color, gameType }) => {
+        console.log(`BACKEND: Received create_room request from ${name}`);
+
+        leaveCurrentRoom();
 
         const roomId = Math.random().toString(36);
         const roomName = `${name}'s Room`;
-        const match = new AlpacaRoadMatch(roomId, this.io, roomName, () => {
+        const MatchClass = GAME_REGISTRY[gameType];
+        const match = new MatchClass(roomId, this.io, roomName, () => {
           this.broadcastPublicRooms();
         });
 
         this.matches.set(roomId, match);
-        match.addPlayer(socket, name, color);
         this.playerToMatch.set(socket.id, roomId);
-        socket.emit('join_success', { roomId: roomId, roomName: roomName });
+        socket.emit('join_success', { roomId: roomId, roomName: roomName, gameType: gameType });
+        match.addPlayer(socket, name, color);
         this.broadcastPublicRooms();
       });
 
       socket.on('join_room', ({ name, roomId, color }) => {
         const match = this.matches.get(roomId);
+        const typeStr = Object.keys(GAME_REGISTRY).find(key => GAME_REGISTRY[key] === match.constructor);
+        const currentType = Number(typeStr);
 
-        if (match && match.status === 'LOBBY' && match.players.size < 4) {
-          match.addPlayer(socket, name, color);
+        if (match && ((match.status === 'LOBBY' && match.players.size < 4 && currentType === 4) ||
+          (match.status === 'PLAYING' && match.players.size < 10 && currentType === 2))) {
+          leaveCurrentRoom();
           this.playerToMatch.set(socket.id, roomId);
-          socket.emit('join_success', { roomId: roomId, roomName: match.roomName });
+          socket.emit('join_success', { roomId: roomId, roomName: match.roomName, gameType: currentType });
+          match.addPlayer(socket, name, color);
           this.broadcastPublicRooms();
         }
       });
+
+      socket.on('leave_room', () => {
+        leaveCurrentRoom();
+        this.broadcastPublicRooms();
+      })
 
       socket.on('ready_toggle', ({ isReady }) => {
         const matchId = this.playerToMatch.get(socket.id);
@@ -81,6 +118,36 @@ export class MatchManager {
         }
       })
 
+      socket.on('player_spit', (data) => {
+        const matchId = this.playerToMatch.get(socket.id);
+        if (matchId) {
+          const match = this.matches.get(matchId);
+          if (match && typeof match.handlePlayerSpit === 'function') {
+            match.handlePlayerSpit(socket.id, data.direction);
+          }
+        }
+      });
+
+      socket.on('player_input', (data) => {
+        const matchId = this.playerToMatch.get(socket.id);
+        if (matchId) {
+          const match = this.matches.get(matchId);
+          if (match && typeof match.handlePlayerInput === 'function') {
+            match.handlePlayerInput(socket.id, data);
+          }
+        }
+      });
+
+      socket.on('spit_hit', ({ targetId }) => {
+        const matchId = this.playerToMatch.get(socket.id);
+        if (matchId) {
+          const match = this.matches.get(matchId);
+          if (match && typeof match.handleSpitHit === 'function') {
+            match.handleSpitHit(socket.id, targetId);
+          }
+        }
+      });
+
       socket.on('player_jump', () => {
         const matchId = this.playerToMatch.get(socket.id);
         if (matchId) {
@@ -106,13 +173,15 @@ export class MatchManager {
         const matchId = this.playerToMatch.get(socket.id);
         if (matchId) {
           const match = this.matches.get(matchId);
-          match.removePlayer(socket.id);
-          this.playerToMatch.delete(socket.id);
-
-          if (match.players.size === 0) {
-            match.stop();
-            this.matches.delete(matchId);
+          if (match) {
+            match.removePlayer(socket.id);
+            this.playerToMatch.delete(socket.id);
+            if (match.players.size <= 0) {
+              match.stop();
+              this.matches.delete(matchId);
+            }
           }
+          this.playerToMatch.delete(socket.id);
           this.broadcastPublicRooms();
         }
       });

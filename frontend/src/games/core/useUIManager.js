@@ -105,7 +105,7 @@ export function useUIManager() {
     gUI.gameMenu = false
     gMinigame.value.mode = game;
     gMinigame.value.lobby = []
-    if (game === 0)
+    if (game === 5)
       await fetchFriends();
   }
 

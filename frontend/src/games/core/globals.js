@@ -24,7 +24,8 @@ export const gMinigame = ref({
   players: [],
   currentRoomName: null,
   publicRooms: [],
-  lobby: []
+  lobby: [],
+  isVisiting: false
 })
 
 export const gUI = reactive({
