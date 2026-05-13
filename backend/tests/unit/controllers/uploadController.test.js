@@ -18,11 +18,13 @@ jest.unstable_mockModule('../../../src/models/File.js', () => ({ default: mockFi
 // Mock uploadService
 const mockSaveFileRecord = jest.fn();
 const mockDeleteFileFromDisk = jest.fn();
+const mockValidateFileMagicBytes = jest.fn().mockResolvedValue(true);
 jest.unstable_mockModule('../../../src/services/uploadService.js', () => ({
   saveFileRecord: mockSaveFileRecord,
   deleteFileFromDisk: mockDeleteFileFromDisk,
+  validateFileMagicBytes: mockValidateFileMagicBytes,
   upload: { single: jest.fn(), array: jest.fn() },
-  default: { upload: { single: jest.fn(), array: jest.fn() }, saveFileRecord: mockSaveFileRecord, deleteFileFromDisk: mockDeleteFileFromDisk },
+  default: { upload: { single: jest.fn(), array: jest.fn() }, saveFileRecord: mockSaveFileRecord, deleteFileFromDisk: mockDeleteFileFromDisk, validateFileMagicBytes: mockValidateFileMagicBytes },
 }));
 
 const { uploadFiles, listMyFiles, deleteFile } = await import('../../../src/controllers/uploadController.js');

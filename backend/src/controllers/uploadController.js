@@ -3,7 +3,7 @@
  * @owner ValGSgit
  */
 import File from '../models/File.js';
-import { saveFileRecord, deleteFileFromDisk } from '../services/uploadService.js';
+import { saveFileRecord, deleteFileFromDisk, validateFileMagicBytes } from '../services/uploadService.js';
 
 /** POST /api/uploads — upload one or more files */
 export const uploadFiles = async (req, res, next) => {
@@ -12,6 +12,18 @@ export const uploadFiles = async (req, res, next) => {
       return res.status(400).json({ error: { message: 'No file uploaded' } });
     }
     const multerFiles = req.files || [req.file];
+
+    // Validate file content against declared MIME type before persisting.
+    for (const file of multerFiles) {
+      const valid = await validateFileMagicBytes(file);
+      if (!valid) {
+        await Promise.all(multerFiles.map((f) => deleteFileFromDisk(f.filename).catch(() => {})));
+        return res.status(400).json({
+          error: { message: `${file.originalname} is not a valid ${file.mimetype} file` },
+        });
+      }
+    }
+
     const records = await Promise.all(multerFiles.map((f) => saveFileRecord(req.user.id, f)));
     res.status(201).json({ files: records });
   } catch (err) { next(err); }

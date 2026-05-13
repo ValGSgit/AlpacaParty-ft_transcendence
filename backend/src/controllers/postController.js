@@ -5,6 +5,18 @@
 import Post from "../models/Post.js";
 import NotificationService from "../services/notificationService.js";
 
+// Remove tags capable of executing scripts without entity-encoding the rest of
+// the text — contentValidator intentionally skips .escape() so Vue templates
+// can render plain text without double-encoding.
+function stripDangerousHtml(str) {
+  return str
+    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+    .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, "")
+    .replace(/<object\b[\s\S]*?<\/object>/gi, "")
+    .replace(/<embed\b[^>]*\/?>/gi, "")
+    .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "");
+}
+
 /** GET /api/posts */
 export const getFeed = async (req, res, next) => {
   try {
@@ -56,7 +68,7 @@ export const createPost = async (req, res, next) => {
     }
     const post = await Post.create({
       authorId: req.user.id,
-      content: content.trim(),
+      content: stripDangerousHtml(content.trim()),
       imageUrl: normalizedImageUrl,
       isPublic: !!isPublic,
     });
@@ -97,7 +109,7 @@ export const updatePost = async (req, res, next) => {
       return res.status(400).json({ error: { message: "invalid imageUrl" } });
     }
     const post = await Post.update(Number(req.params.id), req.user.id, {
-      content: content?.trim(),
+      content: content !== undefined ? stripDangerousHtml(content.trim()) : undefined,
       imageUrl: normalizedImageUrl,
       isPublic,
     });

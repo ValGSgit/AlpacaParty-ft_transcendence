@@ -5,6 +5,15 @@ import Comment from '../models/Comment.js';
 import Post from '../models/Post.js';
 import NotificationService from '../services/notificationService.js';
 
+function stripDangerousHtml(str) {
+  return str
+    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+    .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, "")
+    .replace(/<object\b[\s\S]*?<\/object>/gi, "")
+    .replace(/<embed\b[^>]*\/?>/gi, "")
+    .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "");
+}
+
 /** GET /api/posts/:id/comments */
 export const getComments = async (req, res, next) => {
   try {
@@ -24,7 +33,7 @@ export const createComment = async (req, res, next) => {
     const post = await Post.findById(Number(req.params.id));
     if (!post) return res.status(404).json({ error: { message: 'Post not found' } });
 
-    const comment = await Comment.create({ postId: post.id, authorId: req.user.id, content: content.trim() });
+    const comment = await Comment.create({ postId: post.id, authorId: req.user.id, content: stripDangerousHtml(content.trim()) });
 
     if (post.author_id !== req.user.id) {
       NotificationService.postCommented(post.author_id, req.user.username, post.id).catch(() => {});
@@ -53,7 +62,7 @@ export const repostPost = async (req, res, next) => {
     const post = await Post.findById(Number(req.params.id));
     if (!post) return res.status(404).json({ error: { message: 'Post not found' } });
 
-    const repost = await Post.repost(post.id, req.user.id, comment?.trim() || null);
+    const repost = await Post.repost(post.id, req.user.id, comment ? stripDangerousHtml(comment.trim()) : null);
     if (!repost) return res.status(409).json({ error: { message: 'Already reposted' } });
 
     res.status(201).json({ repost });
