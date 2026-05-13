@@ -14,7 +14,7 @@
  */
 import cookieParser from "cookie-parser";
 import { Server } from "socket.io";
-import ChatRoom from "../models/ChatRoom.js";
+import { debug } from "#lib/logger.js";
 import Friend from "../models/Friend.js";
 import Game from "../models/Game.js";
 import Message from "../models/Message.js";
@@ -74,13 +74,7 @@ export function initializeSocket(httpServer, corsOrigins) {
       socket.join(`user:${user.id}`);
       await markOnline(user.id, socket.id);
 
-      // Join all group chat rooms the user belongs to
-      const rooms = await ChatRoom.getUserRooms(user.id);
-      for (const room of rooms) {
-        socket.join(`room:${room.id}`);
-      }
-
-      console.log(`[socket] ${user.username} connected (${socket.id})`);
+      debug(`[socket] ${user.username} connected (${socket.id})`);
     } catch (err) {
       // console.error("[socket] connection setup failed:", err.message);
       socket.disconnect(true);
@@ -102,6 +96,10 @@ export function initializeSocket(httpServer, corsOrigins) {
           return ack?.({
             error: "Cannot send message: blocked or you have blocked this user",
           });
+
+        const friends = await Friend.areFriends(user.id, Number(receiverId));
+        if (!friends)
+          return ack?.({ error: "You can only message friends" });
         const msg = await Message.create({
           senderId: user.id,
           receiverId,
@@ -203,7 +201,7 @@ export function initializeSocket(httpServer, corsOrigins) {
 
     // ── Disconnect ───────────────────────────────────────────
     socket.on("disconnect", async (reason) => {
-      console.log(`[socket] ${user.username} disconnected: ${reason}`);
+      debug(`[socket] ${user.username} disconnected: ${reason}`);
       await markOffline(user.id, socket.id);
     });
   });

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { reactive } from 'vue'
+import { debug } from '../../services/logger.js'
 import { alpacaHandling } from '../components/alpacaHandling.js'
 import { useEditMode } from '../components/editMode.js'
 import { CONST } from '../config/constants.js'
@@ -76,10 +77,10 @@ export function useInput() {
 
   const onDoubleClick = (e) => {
     // disable double click in mini games
-    if (gMinigame.value.isActive || gMinigame.value.mode)
+    if (gMinigame.value.isActive || (gMinigame.value.mode && gMinigame.value.mode !== 5))
       return
 
-    console.log("double Click!");
+    debug("double Click!");
     const rect = gEngine.value.renderer.domElement.getBoundingClientRect()
     const pointer = new THREE.Vector2()
     pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
@@ -154,7 +155,7 @@ export function useInput() {
   }
 
   const onGamepadConnect = (e) => {
-    console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+    debug("Gamepad connected at index %d: %s. %d buttons, %d axes.",
       e.gamepad.index, e.gamepad.id,
       e.gamepad.buttons.length, e.gamepad.axes.length);
   };

@@ -1,11 +1,12 @@
 import prisma from "#config/prisma.js";
 
 /**
- * PUT /api/users/farmdata
+ * GET /api/users/farmdata
  */
 export const getFarmData = async (req, res, next) => {
-  const id = Number(req.user.id);
-
+  let id = Number(req.user.id);
+  if (req.query.id)
+    id = Number(req.query.id);
   try {
     const farmData = await prisma.alpacaFarm.findFirst({
       where: {
@@ -13,7 +14,6 @@ export const getFarmData = async (req, res, next) => {
       },
     });
 
-    console.log("")
     res.status(200).json({ farmData: farmData });
   } catch (err) {
     next(err);

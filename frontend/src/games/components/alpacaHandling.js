@@ -85,8 +85,11 @@ export function alpacaHandling() {
           const hitAlpaca = findAlpaca(hits[0].object);
 
           if (hitAlpaca && hitAlpaca !== s.owner && hitAlpaca.isDead !== 1) {
-
-            if (gMinigame.value.mode === 1) {
+            if (gMinigame.value.mode === 0 || gMinigame.value.mode === 5) {
+              // fake hit in farm
+              hitAlpaca.beingHit(s.owner);
+            }
+            else if (gMinigame.value.mode === 1) {
               // --- SINGLE PLAYER LOGIC ---
               if (hitAlpaca.hp > 0) spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
               hitAlpaca.beingHit(s.owner);

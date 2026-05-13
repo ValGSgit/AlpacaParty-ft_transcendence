@@ -63,7 +63,6 @@ export function getHerdSizeCost(level) {
 }
 
 export function getHerdSize(level) {
-  console.log(level)
   if (level < HERDSIZES.length)
     return HERDSIZES[level];
   return 0;

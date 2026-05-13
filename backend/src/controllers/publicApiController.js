@@ -33,7 +33,7 @@ export const listUsers = async (req, res, next) => {
     const { search, limit = 20, offset = 0 } = req.query;
     let users;
     if (search) {
-      users = await User.search(search, {
+      users = await User.search(null, search, {
         limit: Number(limit),
         offset: Number(offset),
       });

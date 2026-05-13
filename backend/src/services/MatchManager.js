@@ -1,3 +1,4 @@
+import { debug } from "#lib/logger.js";
 import { AlpacaRoadMatch } from "./AlpacaRoadMatch.js";
 import { SpitRoyalMatch } from "./SpitRoyaleMatch.js";
 
@@ -168,7 +169,7 @@ export class MatchManager {
       })
 
       socket.on('disconnect', () => {
-        console.log('BACKEND: Receive disconnect request');
+        debug('BACKEND: Receive disconnect request');
         const matchId = this.playerToMatch.get(socket.id);
         if (matchId) {
           const match = this.matches.get(matchId);

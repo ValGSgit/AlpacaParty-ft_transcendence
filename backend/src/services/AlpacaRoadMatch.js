@@ -1,4 +1,16 @@
+import { debug } from "#lib/logger.js";
+import Game from "../models/Game.js";
 import { BaseMatch } from "./BaseMatch.js";
+
+const ELO_K = 24;
+const GAME_TYPE = "alpaca_road";
+const MIN_RANKED_PLAYERS = 2;
+
+function calcElo(playerElo, avgOpponentElo, result) {
+  const expected = 1 / (1 + Math.pow(10, (avgOpponentElo - playerElo) / 400));
+  const score = result === "win" ? 1 : 0;
+  return Math.round(playerElo + ELO_K * (score - expected));
+}
 
 export class AlpacaRoadMatch extends BaseMatch {
   constructor(id, namespace, roomName, onStateChange) {
@@ -12,6 +24,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     this.roadSpeed = 0;
     this.timerMultiplier = 1.0;
     this.spawnTimer = 2.0;
+    this.finalized = false;
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
 
@@ -82,7 +95,7 @@ export class AlpacaRoadMatch extends BaseMatch {
 
   handleActive(socketId) {
     const player = this.players.get(socketId);
-    console.log("Handle active:", socketId);
+    debug("Handle active:", socketId);
     if (player && !player.isDead) {
       player.lastActive = Date.now();
       player.isActive = true;
@@ -102,7 +115,7 @@ export class AlpacaRoadMatch extends BaseMatch {
 
       this.roadSpeed = minSpeed + (maxSpeed - minSpeed) * difficultyFactor;
       this.timerMultiplier = Math.max(0.5, this.timerMultiplier - 0.05);
-      console.log(`${this.level}: Speed: ${this.roadSpeed}, TimerMult: ${this.timerMultiplier}`, newLevel);
+      debug(`${this.level}: Speed: ${this.roadSpeed}, TimerMult: ${this.timerMultiplier}`, newLevel);
 
       this.broadcast('level_up', {
         level: this.level,
@@ -173,7 +186,10 @@ export class AlpacaRoadMatch extends BaseMatch {
 
     const allDead = playersArr.length > 0 && playersArr.every(p => p.isDead === true);
     if (allDead && this.status !== 'GAME_OVER') {
-      this.status === 'GAME_OVER';
+      this.status = 'GAME_OVER';
+      this.persistOutcome().catch((err) => {
+        console.error('[alpaca-road] failed to persist outcome:', err.message);
+      });
 
       setTimeout(() => {
         this.isPlaying = false;
@@ -220,10 +236,49 @@ export class AlpacaRoadMatch extends BaseMatch {
     for (const [id, player] of this.players) {
       if (!player.isDead && player.isActive) {
         if (now - player.lastActive > 3000) {
-          console.log(`Server: ${player.name} is inactive!`);
+          debug(`Server: ${player.name} is inactive!`);
           player.isActive = false;
         }
       }
     }
+  }
+
+  async persistOutcome() {
+    if (this.finalized) return;
+    this.finalized = true;
+
+    // Only rank authenticated participants.
+    const ranked = Array.from(this.players.values()).filter((p) =>
+      Number.isFinite(p.userId),
+    );
+    if (ranked.length < MIN_RANKED_PLAYERS) return;
+
+    // Winner = highest score (everyone died, so this is the survival leader).
+    // Ties → whoever appears first in the player list.
+    const winner = ranked.reduce((best, p) =>
+      p.points > best.points ? p : best,
+    );
+
+    const currentStats = await Promise.all(
+      ranked.map((p) => Game.getStats(p.userId, GAME_TYPE)),
+    );
+    const eloByUser = new Map();
+    ranked.forEach((p, i) =>
+      eloByUser.set(p.userId, currentStats[i].elo ?? 1000),
+    );
+    const totalElo = Array.from(eloByUser.values()).reduce((a, b) => a + b, 0);
+
+    await Promise.all(
+      ranked.map(async (p) => {
+        const myElo = eloByUser.get(p.userId);
+        const avgOpp =
+          ranked.length > 1 ? (totalElo - myElo) / (ranked.length - 1) : myElo;
+        const isWinner = p.userId === winner.userId;
+        const result = isWinner ? "win" : "loss";
+        const newElo = calcElo(myElo, avgOpp, result);
+        await Game.updateStats(p.userId, GAME_TYPE, result);
+        await Game.updateElo(p.userId, GAME_TYPE, newElo);
+      }),
+    );
   }
 }

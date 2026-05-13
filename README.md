@@ -2,184 +2,157 @@
 
 # AlpacaParty
 
-> A social web application where users raise virtual alpacas in a 3D farm environment, interact with other users via real-time messaging and a social feed, and earn achievements — built with Vue 3, Express.js, PostgreSQL, and Docker.
+> A social gaming web application where users raise virtual alpacas in a 3D farm, play two real-time multiplayer mini-games, chat with friends, and earn achievements — built with Vue 3, Express.js, PostgreSQL, Socket.IO, ModSecurity, and HashiCorp Vault, deployed via Docker Compose.
 
 ---
 
 ## Description
 
-**AlpacaParty** is a full-stack social gaming platform that combines a 3D alpaca farm (powered by Three.js) with real-time social features including direct messaging, group chat rooms, a social post feed, friend management, organizations, and a gamification system. Users can customize their alpaca farm, earn XP and level up, unlock achievements, compete on leaderboards, and interact with each other in real time through WebSockets.
+**AlpacaParty** is a full-stack social gaming platform that combines a 3D alpaca farm (powered by Three.js) with two real-time multiplayer mini-games (**Spit Royale** and **Alpaca Road**), a social feed, direct messaging, and a friends system. An AI-powered help desk built on the Groq LLM API answers user questions inside the app. Production runs behind nginx + ModSecurity WAF, with HashiCorp Vault holding all production secrets.
 
 ### Key Features
 
-- **3D Alpaca Farm** — Immersive Three.js-powered farm with alpaca customization, shop system, and cloud saves
-- **Real-time Chat** — Direct messages and group chat rooms via Socket.IO
-- **Social Feed** — Create posts with image uploads, likes, and public/private visibility
-- **Friends & Presence** — Add friends, see online status in real time
-- **Organizations** — Create and manage teams/groups with role-based access (owner, admin, member)
-- **Gamification** — XP/level system, 8+ achievements, daily challenges, leaderboards
-- **Admin Dashboard** — User management, site statistics, GDPR data request handling
-- **Public API** — Documented RESTful API with API key authentication and rate limiting
-- **OAuth** — Google and GitHub third-party login
-- **HTTPS Everywhere** — Self-signed TLS certificate via nginx reverse proxy
-- **GDPR Compliance** — Data export (JSON/CSV/XML) and account deletion
-- **Privacy Policy & Terms of Service** — Accessible from every page via the footer
+- **3D Alpaca Farm** — Three.js immersive farm with alpaca customization, shop, building, and cloud saves
+- **Two Real-time Mini-games** — Spit Royale (battle-royale arena, 1v1 + survival vs bots) and Alpaca Road (real-time race) with matchmaking, ELO, and per-game stats
+- **Real-time Chat** — Direct messages and group rooms via Socket.IO; typing indicators, read receipts, in-chat game invites, and block/unblock
+- **Social Feed** — Posts with image uploads, likes, comments, and reposts; public/private visibility
+- **Friends & Presence** — Add friends, see online status, block users
+- **AI Help Desk** — Floating chat widget that streams answers from Groq; system-prompted to know AlpacaParty's features
+- **Gamification** — XP/level, achievements, daily challenges, coin economy, ELO leaderboard
+- **Public API** — 6 RESTful endpoints with `X-API-Key` auth, per-user rate limiting (30 req/min), and an interactive Swagger UI at `/api/docs`
+- **OAuth 2.0** — Google and GitHub login via Passport.js
+- **HTTPS Everywhere** — nginx + self-signed TLS in dev, ModSecurity WAF (OWASP CRS) in prod
+- **Secret Management** — HashiCorp Vault auto-init seeds DB password, JWT secret, OAuth secrets, and Groq keys at startup
+- **GDPR Compliance** — Data export (JSON/CSV/XML), account deletion with grace period
+- **Privacy Policy & Terms of Service** — Linked from every page footer
 
 ---
 
 ## Team Information
 
 | Member | Role(s) | Responsibilities |
-|--------|---------|-----------------|
-| **ValGSgit** | Product Owner, Developer | Product vision & backlog prioritization, Docker & Makefile infrastructure, backend API architecture, auth system (JWT + OAuth), database schema, public API, admin dashboard, gamification service, notifications |
-| **DavidPoetsch** | Technical Lead, Developer | nginx reverse proxy & HTTPS configuration, backend controllers & services, PostgreSQL schema design & optimization |
-| **fankahou** | Developer | Frontend views & components, Three.js 3D game engine, game assets & world rendering, UI/UX design, CSS styling |
-| **LukasStefanek** | Developer | Frontend views & components, Three.js 3D game core, camera systems, alpaca models & animations, game interaction |
+|--------|---------|------------------|
+| **ValGSgit** | Product Owner / Project Manager / Developer | Product vision, backlog & sprint planning, Docker & Makefile infrastructure, backend API architecture, JWT + OAuth, public API, Vault integration, AI help desk, gamification engine, Spit Royale + Alpaca Road servers |
+| **DavidPoetsch** | Technical Lead / Developer | nginx reverse proxy + HTTPS, ModSecurity WAF + OWASP CRS, backend controllers, PostgreSQL schema design & query optimization |
+| **fankahou** | Developer | Frontend views & components, Three.js 3D world rendering, farm/world assets, UI/UX, CSS design system |
+| **LukasStefanek** | Developer | Three.js core engine (camera, alpaca models, animations, interaction), Messages.vue real-time chat UI, Login/Register flows, mini-game clients |
 
 ---
 
 ## Project Management
 
-### Current Status
-- ✅ **19/29 Issues Complete** (66% done)
-- 🔄 **5 In Progress** (Prisma ORM, Vault+WAF, API docs, DB pooling, performance)
-- 📋 **5 In Backlog** (Advanced features + technical debt)
-- **23 Module Points** achieved (164% of 42 curriculum requirement)
-- **Target completion**: May 7, 2026 (30-day sprint — see [ISSUES.md](ISSUES.md))
-- See [ISSUES.md](ISSUES.md) for comprehensive tracking, team assignments, and backlog
-
 ### How We Organized Work
-- **Task Distribution**: Features were divided by domain expertise — backend/infra (ValGSgit, DavidPoetsch) and frontend/game (fankahou, LukasStefanek).
-- **File Ownership**: Each developer owns core files with assigned backups. See [ISSUES.md](ISSUES.md) for detailed ownership map.
-- **Meetings**: Weekly team syncs to review progress, resolve blockers, and plan the next sprint.
-- **Work Breakdown**: Major features were broken into GitHub Issues with clear acceptance criteria.
+
+- **Task Distribution by domain** — Backend & infrastructure (ValGSgit, DavidPoetsch); frontend & 3D game (fankahou, LukasStefanek). Each developer owns a clear set of files; cross-domain features (e.g. real-time chat) were paired.
+- **GitHub Issues** — Every feature was tracked as a GitHub issue with clear acceptance criteria. See [ISSUES.md](ISSUES.md) for the running log.
+- **Weekly syncs** — One team meeting per week to review progress, resolve blockers, and plan the next sprint.
+- **Code reviews** — Non-trivial PRs were reviewed by at least one other team member before merge.
+- **Communication** — Discord server for daily async chat and quick decisions; GitHub issue threads for design discussions.
 
 ### Tools Used
-- **GitHub Issues** — Task tracking, backlog, and bug reports (see [ISSUES.md](ISSUES.md))
-- **Git** — Version control with feature branches and pull requests
-- **Discord** — Daily team communication and quick decisions
 
-### Communication
-All team members communicated via a dedicated Discord server. Async discussions on implementation details happened in GitHub issue threads.
+- **GitHub** — repository, issues, pull requests, code review
+- **Discord** — daily team communication
+- **Docker Compose / Makefile** — reproducible local + production deployments
 
 ---
 
 ## Technical Stack
 
 | Layer | Technology | Justification |
-|-------|-----------|---------------|
-| **Frontend** | Vue 3, Vite, Pinia, Vue Router | Modern reactive framework with excellent developer experience and a mature ecosystem |
-| **3D Engine** | Three.js | Industry-standard WebGL library for the 3D alpaca farm game |
-| **Backend** | Node.js, Express.js | Lightweight, high-performance HTTP framework with easy Socket.IO integration |
-| **Real-time** | Socket.IO | Reliable WebSocket library with automatic reconnection and room-based broadcasting |
-| **Database** | PostgreSQL 16 | Robust relational DB with JSONB support (used for farm state), excellent data integrity |
-| **ORM** | Prisma (with `@prisma/adapter-pg`) | Type-safe database access across all 28 tables; replaces raw SQL |
-| **Auth** | JWT (access + refresh tokens), bcrypt, Passport.js | Secure token-based auth with password hashing and OAuth strategy support |
-| **Reverse Proxy** | nginx + ModSecurity WAF | HTTPS termination, gzip, WebSocket proxying, OWASP CRS firewall |
-| **Secret Management** | HashiCorp Vault | Production secrets (DB creds, API keys, OAuth secrets) fetched at startup; falls back to env vars in dev |
-| **Containerization** | Docker Compose | Single-command deployment with isolated services and reproducible environments |
-| **Testing** | Jest (backend, 13 test files), Vitest (frontend, 8+ files), Playwright (E2E, 14 specs) | Full testing pyramid coverage |
-| **API Docs** | Swagger UI (OpenAPI 3.0) | Interactive docs at `/api/docs`; all 70+ endpoints documented with schemas |
+|-------|------------|---------------|
+| **Frontend framework** | Vue 3 (Composition API) + Vite + Vue Router + Pinia | Modern, reactive, excellent DX, mature ecosystem |
+| **Styling** | Custom design system (CSS variables + scoped CSS) | Consistent dark theme, no framework bloat, full control |
+| **3D engine** | Three.js | Industry-standard WebGL library |
+| **Backend framework** | Node.js + Express.js | Lightweight, easy Socket.IO integration |
+| **Real-time** | Socket.IO (3 namespaces: `/`, `/spit-royale`, `/alpaca-road`) | Reliable WebSocket transport with automatic reconnection and rooms |
+| **Database** | PostgreSQL 16 | Relational integrity + JSONB for flexible farm/game data |
+| **ORM** | Prisma | Type-safe DB access across 27 models |
+| **Auth** | JWT (access + refresh, HTTP-only cookies) + bcrypt + Passport.js | Standard secure pattern; OAuth strategies for Google/GitHub |
+| **AI** | Groq LLM API (llama-3.x) — server-side proxy | Fast streaming completions; key never exposed to the browser |
+| **Reverse proxy + WAF** | nginx + ModSecurity (OWASP CRS 3.3.9) | HTTPS termination, WS upgrade, attack filtering |
+| **Secret management** | HashiCorp Vault (file backend, auto-init + auto-unseal) | All production secrets fetched at backend startup; no plaintext on disk |
+| **Containerization** | Docker Compose (`make up` / `make prod-up`) | Single-command deployment |
+| **API docs** | Swagger UI (OpenAPI 3) at `/api/docs` | Interactive documentation for the public API |
 
 ---
 
 ## Database Schema
 
-The PostgreSQL database contains 28 tables managed via Prisma ORM, organized around users, social interactions, gaming, and content management.
+PostgreSQL with 27 models managed by Prisma ORM, organized around users, social interactions, content, gaming, and compliance.
 
 ### Core Tables and Relationships
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                          users                               │
-│  id, username, email, password_hash, avatar, bio, status,    │
-│  is_public, xp, level, coins, oauth_provider,                │
-│  oauth_id, created_at, last_seen                             │
-└───────────┬──────────────────────────────────────────────────┘
-            │
-   ┌────────┼────────────────────────────────────┐
-   │        │                                    │
-   ▼        ▼                                    ▼
-┌──────┐ ┌───────────┐  ┌───────────────┐  ┌───────────────────┐
-│friends│ │friend_    │  │blocked_users  │  │messages (DMs)     │
-│       │ │requests   │  │               │  │sender→receiver    │
-└──────┘ └───────────┘  └───────────────┘  └───────────────────┘
-   │
-┌──┼───────────────────────────────────────────────────────────┐
-│  │      Social & Content                                      │
-│  │  posts ──── post_likes                                     │
-│  │  organizations ──── organization_members (roles)           │
-│  │  notifications                                             │
-│  │  files                                                     │
-└──────────────────────────────────────────────────────────────┘
-   │
-┌──┼───────────────────────────────────────────────────────────┐
-│  │      Chat                                                  │
-│  │  chat_rooms ──── chat_room_members ──── chat_room_messages │
-└──────────────────────────────────────────────────────────────┘
-   │
-┌──┼───────────────────────────────────────────────────────────┐
-│  │      Gaming & Gamification                                 │
-│  │  games (match history, p1 vs p2, scores)                   │
-│  │  game_stats (per-user per-game-type: wins, losses, elo)    │
-│  │  achievements ──── user_achievements                       │
-│  │  daily_challenges ──── user_daily_challenges               │
-│  │  alpaca_farms (JSONB farm state per user)                  │
-└──────────────────────────────────────────────────────────────┘
-   │
-┌──┼───────────────────────────────────────────────────────────┐
-│  │      Security & Compliance                                 │
-│  │  password_reset_tokens                                     │
-│  │  data_requests (GDPR export/delete)                        │
-└──────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                            User                              │
+│  id · username · email · avatar · bio · status · isOnline    │
+│  isPublic · lastSeen · createdAt                             │
+└───────┬───────────────────────────────────────────────────────┘
+        │ 1:1
+        ├─► UserAuth        (passwordHash, oauthProvider, oauthId, …)
+        ├─► UserStats       (xp, level)
+        ├─► UserSettings    (privacy + per-user prefs)
+        ├─► PublicApi       (apiKey, lastRotated)             1:0..1
+        ├─► AlpacaFarm      (items, alpacas, coins, upgrades — JSONB)
+        │
+        │ 1:N
+        ├─► Friend, FriendRequest, BlockedUser   (social graph)
+        ├─► Message                              (DMs sender↔receiver)
+        ├─► Post — PostLike, Comment, Repost
+        ├─► File                                 (uploads metadata)
+        ├─► Notification
+        ├─► Game (player1Id · player2Id · winnerId, gameType, gameData JSON)
+        ├─► GameStat (per user × gameType: wins · losses · elo · rank)
+        ├─► UserAchievement → Achievement
+        ├─► UserDailyChallenge → DailyChallenge
+        ├─► DataRequest                          (GDPR export/delete)
+        └─► PasswordResetToken
 ```
 
 ### Key Fields and Data Types
 
-| Table | Key Fields | Notes |
-|-------|-----------|-------|
-| `User` | id, username, email, avatar, bio, status, isOnline, lastSeen | Core identity |
-| `UserAuth` | passwordHash, twoFactorEnabled, oauthProvider, oauthId | Auth separated from profile |
+| Model | Key fields | Notes |
+|-------|------------|-------|
+| `User` | id, username, email, avatar, bio, status, isOnline, lastSeen, isPublic | Core identity + profile |
+| `UserAuth` | passwordHash, oauthProvider, oauthId | Auth split from profile |
 | `UserStats` | xp, level | Gamification state |
-| `UserSettings` | isPublic, isAdmin | Privacy + permissions |
-| `Game` | player1Id, player2Id, winnerId, scores, gameType, gameData (JSON) | Supports multiple game types |
-| `GameStat` | userId + gameType unique, elo INT (default 1000) | K=32 ELO system |
-| `AlpacaFarm` | userId (unique), items (JSON), alpacas (JSON), coins, upgrades | Full 3D farm state |
-| `Achievement` / `UserAchievement` | key, xpReward / userId, unlockedAt | Persistent achievement tracking |
+| `PublicApi` | apiKey (hashed), lastRotated | Per-user public API key |
+| `Game` | player1Id, player2Id, winnerId, scores, gameType (`spit_royale` / `alpaca_road`), gameData (JSON) | Match record |
+| `GameStat` | userId × gameType unique, wins, losses, elo (default 1000) | K-32 ELO leaderboard |
+| `AlpacaFarm` | userId unique, items/alpacas/upgrades (JSONB), coins | Full 3D farm save |
+| `Achievement` / `UserAchievement` | key (`first_win`, `level_10`, `social_butter`, …), xpReward / unlockedAt | Persistent progress |
 | `DailyChallenge` / `UserDailyChallenge` | activeDate / completed, completedAt | Rotating challenges |
-| `Post` / `PostLike` / `Comment` / `Repost` | authorId, content, imageUrl, isPublic | Full social content graph |
-| `ChatRoom` / `ChatRoomMember` / `ChatRoomMessage` | role (owner/admin/member) | Role-based room permissions |
-| `OrganizationMember` | orgId, userId, role (owner/admin/member), joinedAt | Role-based org access |
-| `DataRequest` | type (export/delete), status, format (json/csv/xml) | GDPR workflow |
-| `File` | uploaderId, originalName, storedName, mimeType, sizeBytes, url | Secure file metadata |
+| `Post`, `PostLike`, `Comment`, `Repost` | authorId, content, imageUrl, isPublic | Social content graph |
+| `DataRequest` | type (`export`/`delete`), status, format (`json`/`csv`/`xml`) | GDPR workflow |
+| `File` | uploaderId, originalName, storedName, mimeType, sizeBytes | Secure upload metadata |
 
 ---
 
 ## Features List
 
 | Feature | Description | Team Member(s) |
-|---------|-------------|---------------|
-| User Registration & Login | Email/password auth with hashed passwords (bcrypt), JWT access + refresh tokens | ValGSgit, DavidPoetsch |
-| OAuth 2.0 | Google and GitHub third-party login via Passport.js; automatic account linking | ValGSgit |
-| User Profiles | Editable profile: username, email, bio, avatar upload, status, XP/level display, online indicator | ValGSgit, fankahou |
-| Friends System | Send/accept/decline/cancel requests; view friends list with real-time online status; block/unblock | ValGSgit, fankahou |
-| Direct Messaging | Real-time 1-to-1 messaging via Socket.IO, unread counts, read receipts, persistent history | ValGSgit, LukasStefanek |
-| Group Chat Rooms | Create/join/leave rooms, role-based permissions (owner/admin/member) | ValGSgit, LukasStefanek |
-| Social Feed | Create/edit/delete posts with image uploads; likes, comments, reposts; public/private visibility | ValGSgit, fankahou |
-| Organizations | Full CRUD for groups; owner/admin/member roles; add/remove members; filter by membership | ValGSgit |
-| 3D Alpaca Farm | Three.js immersive farm world: alpaca customization, shop, building, camera controls, cloud saves | fankahou, LukasStefanek |
-| Spit Royale Game | Real-time multiplayer arena: 1v1 matchmaking, survival vs. bots, spectator mode, rematch system | ValGSgit, LukasStefanek |
-| Gamification | XP/level system, 6+ achievements, daily challenges, coin economy, ELO leaderboard (K=32) | ValGSgit |
-| Notifications | Real-time notifications for friend requests, messages, likes, achievements, org invites | ValGSgit |
-| Admin Dashboard | Site statistics, user search/edit/delete/promote, GDPR data request handling | ValGSgit |
-| Public API | 10 documented RESTful endpoints with API key auth (`X-API-Key`), rate limiting (100 req/min), Swagger UI at `/api/docs` | ValGSgit |
-| File Uploads | Multi-type upload with MIME whitelist, 10 MB size limit, hashed filenames, preview, delete | ValGSgit, DavidPoetsch |
-| Security (WAF + Vault) | ModSecurity WAF with OWASP CRS; HashiCorp Vault for secret management in production | ValGSgit, DavidPoetsch |
-| HTTPS | Self-signed TLS via nginx, HTTP→HTTPS redirect, HSTS, security headers (CSP, X-Frame-Options) | DavidPoetsch, ValGSgit |
-| Privacy Policy | Comprehensive GDPR-compliant privacy policy page | ValGSgit |
-| Terms of Service | Full terms of service with acceptable use policy | ValGSgit |
-| GDPR Data Management | Export personal data (JSON/CSV/XML), request account deletion, 30-day grace period | ValGSgit |
-| Settings Page | Profile editing, password change, privacy toggle, data export/import, account deletion | ValGSgit, fankahou |
+|---------|-------------|----------------|
+| User Registration & Login | Email/password (bcrypt), JWT access + refresh in HTTP-only cookies | ValGSgit, DavidPoetsch |
+| OAuth 2.0 | Google + GitHub via Passport.js, automatic account linking | ValGSgit |
+| User Profiles | Editable username, bio, status, avatar; XP/level, online indicator, public/private toggle | ValGSgit, fankahou |
+| Friends System | Send/accept/decline/cancel requests; online status; block / unblock | ValGSgit, fankahou |
+| Direct Messaging | Real-time 1-to-1 messaging via Socket.IO; typing indicators; read receipts; persistent history; in-chat game invite | ValGSgit, LukasStefanek |
+| Group Chat Rooms | Create/join/leave; per-room roles (owner/admin/member) | ValGSgit, LukasStefanek |
+| Social Feed | Posts with image uploads; likes, comments, reposts; public/private | ValGSgit, fankahou |
+| 3D Alpaca Farm | Three.js farm world: alpaca customization, shop, building, cloud save (JSONB) | fankahou, LukasStefanek |
+| Spit Royale (Game 1) | Real-time arena: 1v1 matchmaking, survival vs AI bots, spectator, rematch | ValGSgit, LukasStefanek |
+| Alpaca Road (Game 2) | Real-time race: matchmaking, history & ELO tracked separately from Spit Royale | ValGSgit, LukasStefanek |
+| Gamification | XP / level / coins, 6+ achievements, daily challenges, ELO leaderboard | ValGSgit |
+| AI Help Desk | Floating widget; backend proxies user messages + system prompt to Groq LLM API; rate-limited | ValGSgit |
+| Notifications | Real-time notifications for friend requests, messages, likes, comments, achievements, game invites | ValGSgit |
+| Public API | 6 endpoints under `/api/public/*` with X-API-Key auth, 30 req/min rate limit, Swagger UI | ValGSgit |
+| File Uploads | Multi-type, MIME whitelist, 10 MB cap, hashed filenames, preview, delete | ValGSgit, DavidPoetsch |
+| Cybersecurity (WAF + Vault) | nginx + ModSecurity (OWASP CRS), Vault auto-init/unseal/seed; backend reads secrets at startup | ValGSgit, DavidPoetsch |
+| HTTPS | Self-signed TLS in dev, HSTS, security headers (CSP, X-Frame-Options) | DavidPoetsch, ValGSgit |
+| Privacy Policy / Terms | Full GDPR-aligned content, footer links from every page | ValGSgit |
+| GDPR Data Management | Export (JSON/CSV/XML), account deletion request with grace period | ValGSgit |
+| Settings | Profile edit, password change, privacy toggle, API key management, data export, account deletion | ValGSgit, fankahou |
 
 ---
 
@@ -189,84 +162,87 @@ The PostgreSQL database contains 28 tables managed via Prisma ORM, organized aro
 
 | # | Module | Category | Type | Points | Status | Team Member(s) |
 |---|--------|----------|------|--------|--------|----------------|
-| 1 | **Frontend + Backend frameworks** (Vue 3 + Express.js) | Web | Major | **2** | ✅ Done | All |
-| 2 | **Real-time features** (Socket.IO: chat, presence, game sync, notifications) | Web | Major | **2** | ✅ Done | ValGSgit, DavidPoetsch |
-| 3 | **User interaction** (chat, profiles, friends) | Web | Major | **2** | ✅ Done | ValGSgit, fankahou, LukasStefanek |
-| 4 | **Public API** (10 endpoints, API key auth, rate limiting, Swagger UI at `/api/docs`) | Web | Major | **2** | ✅ Done | ValGSgit |
-| 5 | **Notification system** (real-time notifications for all CRUD actions) | Web | Minor | **1** | ✅ Done | ValGSgit |
-| 6 | **File upload and management** (multi-type, MIME validation, 10 MB limit, secure storage, preview, delete) | Web | Minor | **1** | ✅ Done | ValGSgit, DavidPoetsch |
-| 7 | **Standard user management** (profile edit, avatar upload, friends, online status) | User Mgmt | Major | **2** | ✅ Done | ValGSgit, fankahou |
-| 8 | **OAuth 2.0** (Google + GitHub via Passport.js, automatic account linking) | User Mgmt | Minor | **1** | ✅ Done | ValGSgit |
-| 9 | **Advanced permissions system** (admin CRUD, roles: admin/user, role-based views) | User Mgmt | Major | **2** | ✅ Done | ValGSgit |
-| 10 | **Organization system** (create/edit/delete orgs, add/remove members, owner/admin/member roles) | User Mgmt | Major | **2** | ✅ Done | ValGSgit |
-| 11 | **Web-based game** (3D alpaca farm: customization, shop, cloud saves; Spit Royale: 1v1, survival, spectator) | Gaming | Major | **2** | ✅ Done | fankahou, LukasStefanek, ValGSgit |
-| 12 | **Advanced 3D graphics** (Three.js immersive environment, lighting, camera systems, animations) | Gaming | Major | **2** | ✅ Done | fankahou, LukasStefanek |
-| 13 | **Gamification system** (XP/levels, 6+ achievements, daily challenges, coin economy, ELO leaderboard) | Gaming | Minor | **1** | ✅ Done | ValGSgit |
-| 14 | **GDPR compliance** (data export JSON/CSV/XML, account deletion, 30-day grace period) | Data | Minor | **1** | ✅ Done | ValGSgit |
+| 1 | **Use a framework for both frontend and backend** (Vue 3 + Express.js) | Web | Major | **2** | ✅ | All |
+| 2 | **Real-time features (WebSockets)** — Socket.IO: presence, DMs, group chat, game state, notifications | Web | Major | **2** | ✅ | ValGSgit, DavidPoetsch |
+| 3 | **User interaction** — chat (DMs + rooms), profile pages, friends system | Web | Major | **2** | ✅ | All |
+| 4 | **Public API** — 6 RESTful endpoints, X-API-Key auth, rate limit, Swagger UI | Web | Major | **2** | ✅ | ValGSgit |
+| 5 | **ORM** — Prisma across 27 models | Web | Minor | **1** | ✅ | ValGSgit |
+| 6 | **Notification system** — real-time create/update/delete notifications | Web | Minor | **1** | ✅ | ValGSgit |
+| 7 | **File upload and management** — multi-type, validation, secure storage, preview, delete | Web | Minor | **1** | ✅ | ValGSgit, DavidPoetsch |
+| 8 | **Standard user management** — profile edit, avatar upload, friends, online status | User Mgmt | Major | **2** | ✅ | ValGSgit, fankahou |
+| 9 | **OAuth 2.0** — Google + GitHub via Passport.js | User Mgmt | Minor | **1** | ✅ | ValGSgit |
+| 10 | **Game statistics & match history** — `/game/stats`, `/game/history`, leaderboard, achievements | User Mgmt | Minor | **1** | ✅ | ValGSgit |
+| 11 | **LLM system interface** — Groq-backed help desk; backend streams completions, rate limited, system-prompted | AI | Major | **2** | ✅ | ValGSgit |
+| 12 | **WAF/ModSecurity hardened + HashiCorp Vault** — strict ModSecurity with OWASP CRS; Vault auto-init/unseal seeds DB password, JWT secret, OAuth secrets, and Groq keys | Cybersecurity | Major | **2** | ✅ | ValGSgit, DavidPoetsch |
+| 13 | **Web-based game** — Spit Royale: real-time multiplayer arena with clear win/loss rules | Gaming | Major | **2** | ✅ | ValGSgit, LukasStefanek |
+| 14 | **Add another game** — Alpaca Road: second distinct game with independent history + matchmaking via `MatchManager` | Gaming | Major | **2** | ✅ | ValGSgit, LukasStefanek |
+| 15 | **Advanced 3D graphics (Three.js)** — immersive farm world, lighting, cameras, animations | Gaming | Major | **2** | ✅ | fankahou, LukasStefanek |
+| 16 | **Game customization** — power-ups, multiple maps/themes, customizable settings, defaults | Gaming | Minor | **1** | ✅ | fankahou, LukasStefanek |
+| 17 | **Gamification** — achievements, leaderboards, XP/level, daily challenges, persistent in DB, visual feedback | Gaming | Minor | **1** | ✅ | ValGSgit |
 
-### **Total: 23 points** (14 required — 164% of curriculum minimum)
+### **Total: 27 points** (14 required + bonus headroom)
+
+10 Major × 2 + 7 Minor × 1 = 27 points. The 14-point mandatory bar is met by any subset of half these modules; the surplus is intended as headroom in case any module is contested during peer evaluation. Per the subject, the bonus part is capped at 5 additional points beyond the required 14.
+
+> The data-export + deletion features (`GET /api/users/me/export`,
+> `POST /api/users/me/delete-request`, `DataRequest` workflow) still ship
+> as part of the platform's compliance posture, but the team does **not**
+> claim the GDPR Minor module: the subject's "Confirmation emails for
+> data operations" bullet is not currently implemented, so the module
+> would not survive a literal evaluation.
 
 ### Module Implementation Details
 
-1. **Frontend + Backend Frameworks** — Vue 3 with Vite, Pinia state management, Vue Router. Express.js backend with modular controller/service/model architecture.
-
-2. **Real-time Features** — Socket.IO handles: user presence tracking (online/offline), direct messaging, group chat rooms, game state synchronization, farm save/load, and real-time notifications. Connections and disconnections are handled gracefully with automatic reconnection.
-
-3. **User Interaction** — Full chat system (DMs + group rooms), user profile pages with game stats, friend system with add/remove/accept/decline and online status indicators.
-
-4. **Public API** — 10 RESTful endpoints at `/api/public/*`: API documentation (GET /), users listing (GET /users), single user (GET /users/:id), leaderboard (GET /leaderboard), posts feed (GET /posts), create post (POST /posts), update post (PUT /posts/:id), delete post (DELETE /posts/:id), organizations (GET /organizations), mock dataset (GET /mock). Secured with `X-API-Key` header, rate limited to 100 requests/minute. Full Swagger UI at `/api/docs`.
-
-5. **Notification System** — Triggered on friend requests, message receipt, post likes, achievement unlocks, organization invites. Real-time delivery via Socket.IO, with unread count badge in the navbar.
-
-6. **File Upload** — Supports images and documents. Client-side and server-side validation (MIME type whitelist, 10MB size limit). Secure storage with hashed filenames. File preview for images. Upload progress indication. Delete functionality with access control.
-
-7. **Standard User Management** — Editable username, email, bio, status, avatar. Avatar upload with default fallback. Friend system with online status. Dedicated profile page showing level, XP progress, achievements, coins.
-
-8. **OAuth 2.0** — Google and GitHub authentication via Passport.js strategies. Automatic account linking. Callback URLs routed through nginx.
-
-9. **Advanced Permissions** — Admin role can view/edit/delete any user, see all site statistics, and handle GDPR data requests. Regular users see a restricted UI. Admin dashboard with user search and management table.
-
-10. **Organization System** — Full CRUD for organizations. Members have roles (owner, admin, member). Role-based permission checks on all mutation endpoints. View all organizations or filter to membership. Organization creation triggers gamification (`org_founder` achievement).
-
-11. **Web-based Game** — Two games in one view: (a) **3D Alpaca Farm** built with Three.js — customize alpacas, buy items from the shop with coins, build and expand the farm, save progress via Socket.IO to the cloud (JSONB in PostgreSQL); (b) **Spit Royale** — real-time arena shooter with 1v1 matchmaking (ELO-based), survival mode vs. AI bots (6 tactics: charge/flank/strafe/retreat/dodge), spectator mode, and rematch system with 15-second voting window.
-
-12. **Advanced 3D Graphics** — Three.js rendering with custom lighting controls, multiple camera angles, farm world with interactive objects, alpaca models and animations, and smooth performance.
-
-13. **Gamification** — XP awards for wins (with performance bonus breakdown: accuracy, eliminations, powerups collected, survival time, flawless round), losses, posts, and challenges. Automatic level-up system. Achievements: `first_win`, `win_streak_5`, `level_10`, `social_butter` (10 friends), `first_post`, `org_founder`. Daily challenges with rotation. ELO-based competitive leaderboard (K=32).
-
-14. **GDPR Compliance** — Users can request full data export in JSON, CSV, or XML format from Settings. Account deletion with 30-day grace period. Data request tracking in admin dashboard. Privacy Policy details all data collected and user rights.
+1. **Frontend + Backend Frameworks** — Vue 3 + Vite + Pinia + Vue Router on the client; Express.js with modular controller/service/route architecture on the server.
+2. **Real-time features** — Socket.IO with three namespaces. The `/` namespace handles presence, DMs, notifications, and chat-room broadcasts. `/spit-royale` runs the arena lobby and match state machine. `/alpaca-road` ticks the race rooms via `MatchManager` + `AlpacaRoadMatch`. JWT cookies are validated by `socketAuthMiddleware` on every namespace.
+3. **User interaction** — Direct messaging + group rooms, profile pages with stats, friends with online presence, block/unblock.
+4. **Public API** — `/api/public/*` with 6 endpoints (`GET /users`, `GET /users/:id`, `GET /posts`, `POST /posts`, `PUT /posts/:id`, `DELETE /posts/:id`). Authenticated by `X-API-Key`, rate-limited per key (30 req/min). Plus `GET /api/public/` returning a self-describing endpoint listing. Interactive Swagger UI at `/api/docs`.
+5. **ORM** — Prisma + `@prisma/adapter-pg` covers all 27 models with full type safety and migrations.
+6. **Notification system** — Notifications are inserted on friend-request CRUD, post likes, comments, achievement unlocks, and game invites; pushed in real time over Socket.IO and persisted in the `Notification` table.
+7. **File upload** — `multer` accepts images & documents under a MIME whitelist; 10 MB cap; hashed stored names; per-user listing; uploader-only delete; image preview; non-image files require auth to download.
+8. **Standard user management** — Editable profile (username, email, bio, status, avatar). Default avatar served when none uploaded. Friends with real-time presence. Profile page shows level, XP progress, achievements, stats.
+9. **OAuth 2.0** — Google and GitHub Passport strategies; callback URLs proxied via nginx; account auto-link by email.
+10. **Game statistics & match history** — `GET /api/game/stats`, `GET /api/game/history`, `GET /api/game/leaderboard`, `GET /api/game/achievements` — backed by `GameStat` (per game type) and `Game` (match records).
+11. **LLM system interface** — `POST /api/helpdesk/chat` proxies user messages to Groq's LLM API. The backend keeps the API keys (rotates across multiple keys), injects a system prompt that explains AlpacaParty's features, applies a per-user rate limiter, and streams completions back to the floating `HelpDeskChat.vue` widget.
+12. **WAF + Vault** — `nginx_prod` runs ModSecurity with OWASP CRS 3.3.9 rules. Production secrets (DB password, JWT secret, OAuth client secrets, Groq keys) live in HashiCorp Vault. `vault-init` is a one-shot service that initializes Vault on first boot, writes the unseal key + service token to a Docker volume, seeds secrets, then exits. The backend reads `VAULT_TOKEN` at startup and pulls secrets into memory — no plaintext on disk in app containers.
+13. **Web-based game (Spit Royale)** — Real-time arena game over Socket.IO `/spit-royale`. Clear win condition (last alpaca standing). 1v1 matchmaking with ELO; AI-bot survival mode with 6 distinct tactics (charge / flank / strafe / retreat / dodge / kite); spectator slots; rematch voting.
+14. **Add another game (Alpaca Road)** — Second distinct game over Socket.IO `/alpaca-road`. `MatchManager` pairs players and instantiates an `AlpacaRoadMatch`, running its own tick loop. Stats tracked under `gameType = "alpaca_road"` so leaderboards and history are independent of Spit Royale.
+15. **Advanced 3D graphics** — Three.js scene graph with custom lighting, multiple cameras, alpaca model rigging + animation, and an interactive farm world with shop, customization, and editing.
+16. **Game customization** — Both games expose customizable settings (power-ups, maps/themes, match rules) with sensible defaults; the AI bot in Spit Royale plays under the same rule set.
+17. **Gamification** — XP awarded for wins (with performance bonuses: accuracy, eliminations, powerups, survival time, flawless), losses, posts, and challenges. Auto level-up. Achievements: `first_win`, `win_streak_5`, `level_10`, `social_butter` (10 friends), `first_post`, `org_founder`. Daily challenges rotate and persist completions. ELO leaderboard (K = 32). Notifications and progress bars provide visual feedback.
 
 ---
 
 ## Individual Contributions
 
-### ValGSgit (Product Owner, Developer)
-- **Infrastructure**: Docker Compose setup, Makefile with dev/prod targets, .env configuration, SSL certificate generation
-- **Backend Core**: Express.js server architecture, config system, middleware (auth, error handling, API key validation), Swagger/OpenAPI setup at `/api/docs`
-- **Authentication**: JWT access/refresh token system, bcrypt password hashing, OAuth integration (Google + GitHub via Passport.js)
-- **Security**: HashiCorp Vault integration for production secret management (dev fallback to env vars); ModSecurity WAF with OWASP CRS tuned for API endpoints
-- **Database**: Prisma ORM schema (28 tables), PostgreSQL adapter, JSONB columns for flexible game/farm data
-- **API**: All RESTful controllers (auth, users, chat, posts, game, organizations, notifications, uploads, admin, public API — 70+ endpoints total)
-- **Services**: Gamification engine (XP with performance bonuses, level-up, 6+ achievements, daily challenges), notification service, data export service (JSON/CSV/XML), upload service, Spit Royale game namespace (1v1 matchmaking, survival bots, spectator, rematch)
-- **Frontend**: Admin dashboard, Feed view, Profile editor, Settings page, Spit Royale game UI, notification bell, Security dashboard, Public Showcase, ApiDocs
-- **Compliance**: Privacy Policy, Terms of Service, GDPR export/delete functionality, data request admin workflow
+### ValGSgit — Product Owner / Project Manager / Developer
+- **Infrastructure**: Docker Compose (dev + prod), Makefile targets, `.env.example`, SSL cert generation script
+- **Backend core**: Express server bootstrap, configuration system, middleware stack (helmet, cookie-parser, CORS, rate limiters, `authenticate`, `optionalAuth`, `requireApiKey`, error handler)
+- **Auth**: JWT access + refresh in HTTP-only cookies, bcrypt hashing with constant-time compare, OAuth strategies (Google + GitHub) with account linking
+- **Database**: Prisma schema (27 models), migrations, seed data
+- **API surface**: All controllers (auth, users, friends, chat, posts, comments, game, notifications, uploads, public API, helpdesk — 70+ endpoints)
+- **Services**: Gamification engine, NotificationService, dataExportService (JSON/CSV/XML), uploadService, `socketService` for `/`, Spit Royale namespace + AI bot tactics, Alpaca Road namespace with `MatchManager` / `AlpacaRoadMatch`
+- **AI**: Groq LLM proxy (`/helpdesk`) with key rotation and rate limiting; floating `HelpDeskChat.vue` widget
+- **Cybersecurity**: HashiCorp Vault auto-init + auto-unseal + secret seeding; ModSecurity WAF tuned for the API
+- **Frontend**: `Feed.vue`, `Profile.vue`, settings page, public API key management UI, `ApiDocs.vue`, notifications
+- **Compliance**: `PrivacyPolicy.vue`, `TermsOfService.vue`, GDPR export + delete-request flows
 
-### DavidPoetsch (Technical Lead, Developer)
-- **nginx**: Reverse proxy configuration for dev and production, HTTPS/TLS setup, WebSocket proxying, security headers (HSTS, CSP, X-Frame-Options)
-- **Backend**: Controller implementations, PostgreSQL query optimization, route definitions
+### DavidPoetsch — Technical Lead / Developer
+- **nginx**: Reverse-proxy config for dev + prod, HTTPS termination, WS upgrade for Socket.IO, security headers (HSTS, CSP, X-Frame-Options)
+- **WAF**: ModSecurity build + OWASP CRS 3.3.9 ruleset tuning
+- **Backend**: Controller implementations, route definitions, query optimization
 - **Database**: Schema refinements, index strategy, data integrity constraints
 
-### fankahou (Developer)
-- **3D Game**: Three.js game engine architecture, world rendering, farm environment, asset management
-- **Game UI**: Shop interface, HUD overlay, edit mode, lighting controls
-- **Frontend**: Vue 3 views (Home, Profile, Friends, Feed), CSS design system, responsive layouts
-- **Styling**: Global CSS with custom properties, dark theme, color palette
+### fankahou — Developer
+- **3D world**: Three.js farm environment, world rendering, asset management (models + textures)
+- **Game UI**: Shop, HUD overlay, edit mode, lighting controls
+- **Frontend**: `Friends.vue`, parts of `Profile.vue`, CSS design system, dark theme & responsive layouts
 
-### LukasStefanek (Developer)
-- **3D Game**: Three.js core engine, camera system, alpaca models and animations, game interaction mechanics
-- **Game Logic**: Alpaca customization, farm building, coin economy, cloud save/load via Socket.IO
-- **Frontend**: Vue 3 views (Messages, Login, Register), component architecture
-- **Real-time Chat**: Messages.vue DM and group room interface with Socket.IO integration
+### LukasStefanek — Developer
+- **3D engine**: Three.js core (camera system, alpaca models + animations), interaction mechanics
+- **Game logic**: Alpaca customization, farm building, coin economy, cloud save/load over Socket.IO
+- **Mini-game clients**: SpitRoyal + AlpacaRoad client code under `frontend/src/games/mini_games/`
+- **Frontend**: `Login.vue`, `Register.vue`, `Messages.vue` (DM/group chat with Socket.IO integration, typing indicators, read receipts, infinite scroll)
 
 ---
 
@@ -274,32 +250,30 @@ The PostgreSQL database contains 28 tables managed via Prisma ORM, organized aro
 
 ### Prerequisites
 
-- **Docker** (v20+) and **Docker Compose** (v2+)
+- **Docker** (≥ v20) and **Docker Compose** (≥ v2)
 - **Git**
-- **OpenSSL** (for SSL certificate generation)
+- **OpenSSL** (for self-signed cert generation in dev)
 - A modern browser (latest stable Google Chrome recommended)
 
-### Setup and Run
+### Setup and Run (development)
 
 ```bash
-# 1. Clone the repository
+# 1. Clone
 git clone https://github.com/ValGSgit/AlpacaParty.git
 cd AlpacaParty
 
 # 2. Create environment file
 cp .env.example .env
-# Edit .env to set your own DB_PASSWORD, JWT_SECRET, and optionally
-# GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+# Edit .env: set DB_PASSWORD, JWT_SECRET; optionally GOOGLE_*, GITHUB_*, GROQ_API_KEYS
 
-# 3. Generate random secrets (optional — rotates DB_PASSWORD and JWT_SECRET)
+# 3. (Optional) Generate fresh secrets
 make generate-secrets
 
-# 4. Build and start (generates SSL cert automatically)
+# 4. Build & start (auto-generates SSL cert)
 make build && make up
 
-# 5. Open in browser
-# https://localhost:8443
-# Accept the self-signed certificate warning in your browser.
+# 5. Open
+# https://localhost:8443  (accept the self-signed cert warning)
 ```
 
 ### Production Deployment
@@ -308,55 +282,28 @@ make build && make up
 make prod-build && make prod-up
 ```
 
+Production additionally starts the `vault` and `vault-init` services. `vault-init` initializes Vault on first boot, writes unseal key + service token to the `vault_keys` Docker volume, and seeds all secrets. The backend reads `VAULT_TOKEN` from the volume at startup and pulls every secret into memory.
+
 ### Local Development (without Docker)
 
 ```bash
-# Install dependencies
-make install
-
-# Start backend + frontend
-make dev
-# Backend: http://localhost:3000
-# Frontend: http://localhost:5173
+make install         # install backend + frontend deps
+make dev             # backend on :3000, frontend on :5173
 ```
 
 ### Environment Variables
 
-See [.env.example](.env.example) for the full list. Key variables:
+See [.env.example](.env.example) for the full list. Highlights:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DB_PASSWORD` | PostgreSQL password | `changeme` |
-| `JWT_SECRET` | JWT signing secret | — |
-| `VITE_API_URL` | Frontend API base path | `/api` |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth (optional) | — |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth (optional) | — |
-| `API_KEYS` | Comma-separated public API keys | `change-me-to-a-secure-key` |
-
----
-
-## Resources
-
-### Documentation & Tutorials
-- [Vue 3 Documentation](https://vuejs.org/guide/)
-- [Express.js Documentation](https://expressjs.com/)
-- [Socket.IO Documentation](https://socket.io/docs/)
-- [Three.js Documentation](https://threejs.org/docs/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/16/)
-- [Docker Compose Documentation](https://docs.docker.com/compose/)
-- [Pinia State Management](https://pinia.vuejs.org/)
-- [Passport.js OAuth Strategies](http://www.passportjs.org/packages/)
-- [nginx Reverse Proxy Guide](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/)
-
-### AI Usage
-AI tools (GitHub Copilot, ChatGPT) were used to assist with:
-- **Boilerplate generation**: Initial controller/model scaffolding, repetitive CRUD patterns
-- **Configuration**: Docker Compose service definitions, nginx proxy config templates, SSL setup
-- **Debugging**: Identifying Socket.IO connection issues, CORS configuration, JWT refresh flow
-- **Documentation**: README structure, Privacy Policy and Terms of Service content drafting
-- **Testing**: Test case suggestions and mock setup patterns
-
-All AI-generated content was reviewed, tested, and adapted by team members. Every line of code in the project is understood and maintained by the team.
+| Variable | Description |
+|----------|-------------|
+| `DB_PASSWORD` | PostgreSQL password (dev) — overridden by Vault in prod |
+| `JWT_SECRET` | JWT signing secret — overridden by Vault in prod |
+| `VITE_API_URL` | Frontend API base path (default `/api`) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth (optional) |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth (optional) |
+| `GROQ_API_KEYS` | Comma-separated Groq keys for the AI help desk |
+| `API_KEYS` | Default public-API keys for service-level callers |
 
 ---
 
@@ -365,54 +312,82 @@ All AI-generated content was reviewed, tested, and adapted by team members. Ever
 ### System Overview
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Browser (HTTPS)                        │
-│                  https://localhost:8443                   │
-└────────────────────────┬────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                    Browser (HTTPS / WSS)                 │
+│                  https://localhost:8443                  │
+└────────────────────────┬─────────────────────────────────┘
                          │
                   ┌──────▼──────┐
-                  │    nginx    │  ← HTTPS termination, gzip
-                  │   :443/80  │     security headers, proxy
-                  └──┬──────┬──┘
-                     │      │
-           /api/*    │      │  /*
-         /socket.io/ │      │
-                     │      │
-              ┌──────▼──┐ ┌─▼────────┐
-              │ Backend  │ │ Frontend │
-              │ Express  │ │ Vue 3    │
-              │  :3000   │ │ Vite     │
-              │ Socket.IO│ │  :5173   │
-              └────┬─────┘ └──────────┘
-                   │
-            ┌──────▼──────┐
-            │ PostgreSQL  │
-            │    :5432    │
-            └─────────────┘
+                  │    nginx    │ ← HTTPS, ModSecurity WAF,
+                  │  + ModSec   │   gzip, WS upgrade, headers
+                  └──┬───────┬──┘
+            /api/*   │       │   /*
+       /socket.io/   │       │
+                     │       │
+              ┌──────▼─┐  ┌──▼───────┐
+              │ backend│  │ frontend │
+              │Express │  │ Vue 3    │
+              │+SocketIO│ │ (Vite)   │
+              │  :3000 │  │  :5173   │
+              └──┬─────┘  └──────────┘
+                 │
+         ┌───────┼────────┐
+         ▼       ▼        ▼
+   ┌────────┐ ┌──────┐ ┌─────────┐
+   │Postgres│ │Vault │ │Groq API │
+   │  :5432 │ │:8200 │ │ (ext.)  │
+   └────────┘ └──────┘ └─────────┘
 ```
 
-### Services (Docker Compose)
+### Production Services
 
-| Service | Container | Port Mapping |
-|---------|-----------|-------------|
-| nginx | alpacaparty_nginx | **8443 → 443** (HTTPS), 8000 → 80 (HTTP redirect) |
-| backend | alpacaparty_backend | 3000 |
-| frontend | alpacaparty_frontend | 5173 |
-| postgres | alpacaparty_db | 5432 |
+| Service | Container | Purpose |
+|---------|-----------|---------|
+| `nginx` | `alpacaparty_nginx` | Reverse proxy, HTTPS, ModSecurity WAF |
+| `backend` | `alpacaparty_backend` | Express + Socket.IO, port 3000 |
+| `frontend` | `alpacaparty_frontend` | Vite-built Vue 3 SPA |
+| `postgres` | `alpacaparty_db_prod` | PostgreSQL 16 |
+| `vault` | `alpacaparty_vault` | HashiCorp Vault (secret store) |
+| `vault-init` | `alpacaparty_vault_init` | One-shot init/unseal/seed, then exits |
+
+For an interactive system map (request pipeline, route catalog, Socket.IO namespaces, secret flow, and more), open the **Architecture Map** tab on `/docs` once the app is running.
+
+---
+
+## Resources
+
+### Documentation & References
+- [Vue 3](https://vuejs.org/guide/) · [Vue Router](https://router.vuejs.org/) · [Pinia](https://pinia.vuejs.org/)
+- [Express.js](https://expressjs.com/) · [Socket.IO](https://socket.io/docs/) · [Passport.js](http://www.passportjs.org/)
+- [Three.js](https://threejs.org/docs/)
+- [Prisma](https://www.prisma.io/docs) · [PostgreSQL 16](https://www.postgresql.org/docs/16/)
+- [HashiCorp Vault](https://developer.hashicorp.com/vault/docs)
+- [ModSecurity + OWASP CRS](https://coreruleset.org/docs/)
+- [nginx reverse proxy](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/)
+- [Groq API](https://console.groq.com/docs)
+
+### AI Usage
+AI tools (GitHub Copilot, ChatGPT, Claude) were used throughout the project to assist with:
+- **Boilerplate generation** — initial CRUD scaffolds and repetitive controller patterns
+- **Configuration** — Docker Compose snippets, nginx templates, ModSecurity tuning starting points
+- **Debugging** — narrowing down Socket.IO disconnect issues, CORS edge cases, JWT refresh races
+- **Documentation** — README structure, Privacy Policy / Terms of Service drafting, OpenAPI tags
+- **Tests** — test-case scaffolding and mock setup patterns
+- **The in-app help desk itself** — answers to user questions are generated by Groq's LLM API, never by code we wrote
+
+Every AI-assisted line was reviewed, tested, and adapted by the team. We can explain and defend any code in the project.
 
 ---
 
 ## Known Limitations
 
-- SSL uses a self-signed certificate — browsers will show a security warning in development; production requires a valid CA certificate
-- OAuth requires valid Google/GitHub API credentials to be configured in `.env`
-- Vault integration is optional in development (falls back to env vars); required in production
-- The Organizations module has full backend API support but no dedicated frontend route; organization management may be surfaced via the API directly or through future UI work
-- Multi-browser testing (Firefox, Safari, Edge) has not yet been formally verified
+- SSL uses a self-signed certificate in development — production must supply a CA-signed cert.
+- OAuth login requires valid Google/GitHub credentials in `.env`; without them, the OAuth buttons are inert.
+- The Vault integration is mandatory in production; in development the backend falls back to env vars.
+- Firefox / Safari / Edge: tested informally and broadly compatible, but Chrome is the primary supported browser per the subject's requirements.
 
 ---
 
 ## License
 
 See [LICENSE](LICENSE) for details.
-

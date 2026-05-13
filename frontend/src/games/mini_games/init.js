@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../../stores/auth.js';
+import { debug } from '../../services/logger.js';
 import { clearCoins } from '../components/coins.js';
 import { CONST } from '../config/constants.js';
 import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
@@ -14,8 +15,11 @@ import { initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
 const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
 const tempAlpacas = []
+let visitPlayerId = null
+export let friendName = null
 
 export async function changeGame(mode = 0, playerCount = 1) {
+  gUI.gameMenu = false
   console.log("changeGame:", mode);
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0) saveGame();
@@ -50,8 +54,11 @@ async function returnFarm() {
   gUI.lobbyMenu = false;
   gUI.lockCamera = false;
   gUI.cameraMode = 0
+  visitPlayerId = null
 
   gPlayer.value = null
+  clearScene(gScene.value)
+  resetGArrays()
   await initWorld(gScene.value, authStore.isAuthenticated)
   saveGame()
 }
@@ -69,12 +76,13 @@ function resetMinigame() {
   gMinigame.value.isReady = false;
   gMinigame.value.isActive = false;
   gMinigame.value.isGameOver = false;
+  gMinigame.value.isVisiting = false;
   gMinigame.value.currentRoomName = null;
   gMinigame.value.players = [];
 }
 
 async function initGameMode(mode, playerCount, tempAlpacas) {
-  console.log("initGameMode: ", mode);
+  debug("initGameMode: ", mode);
   switch (mode) {
     case 1:
       initSpitRoyalAI(10, tempAlpacas);
@@ -88,7 +96,19 @@ async function initGameMode(mode, playerCount, tempAlpacas) {
     case 4:
       initAlpacaRoadOnline(playerCount, tempAlpacas);
       break;
+    case 5: // visit farm
+      const authStore = useAuthStore();
+      await initWorld(gScene.value, authStore.isAuthenticated, visitPlayerId);
+      break;
     default:
       await returnFarm();
   }
+}
+
+export async function visitFarm(playerId, username){
+  visitPlayerId = playerId
+  friendName = username
+  gUI.lobbyMenu = false
+  changeGame(5)
+  gMinigame.value.isVisiting = true;
 }

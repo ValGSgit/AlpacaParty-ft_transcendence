@@ -116,13 +116,31 @@ export const getUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ error: { message: "User not found" } });
     }
+
+    // Return 404 (not 403) when either side has blocked the other — don't
+    // disclose existence to a user who was blocked.
+    if (req.user && user.id !== req.user.id) {
+      const blocked = await Friend.isBlockedBetween(req.user.id, user.id);
+      if (blocked) {
+        return res.status(404).json({ error: { message: "User not found" } });
+      }
+    }
+
     const isPublic = user.userSettings?.isPublic;
     if (!isPublic && user.id !== req.user?.id) {
       const areFriends = await Friend.areFriends(req.user?.id, user.id);
       if (!areFriends) {
-        return res
-          .status(403)
-          .json({ error: { message: "This profile is private" } });
+        // Include minimal public data so the frontend can render a locked card.
+        return res.status(403).json({
+          error: { message: "This profile is private" },
+          user: {
+            id: user.id,
+            username: user.username,
+            avatar: user.avatar,
+            isOnline: user.isOnline,
+            isPrivate: true,
+          },
+        });
       }
     }
     res.json({ user: shapeUserForClient(user) });
@@ -144,8 +162,8 @@ export const listUsers = async (req, res, next) => {
     const search = req.query.search ? String(req.query.search).trim() : "";
 
     const users = search
-      ? await User.search(search, { limit })
-      : await User.findAll({ limit, offset });
+      ? await User.search(req.user.id, search, { limit })
+      : await User.findAll({ limit, offset, currentUserId: req.user.id });
     const visibleUsers = users.filter((u) => {
       const isPublic = u.userSettings?.isPublic ?? u.isPublic ?? true;
       return isPublic || Number(u.id) === Number(req.user.id);

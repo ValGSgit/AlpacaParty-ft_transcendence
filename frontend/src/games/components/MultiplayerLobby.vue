@@ -13,7 +13,7 @@
           Join {{ room.name }} ({{ room.playerCount }}/10)
         </button>
       </div>
-      <button class="close-btn" @click="closeLobbyMenu()" title="Close">✖️</button>
+      <button class="close-btn" @click="closeLobbyMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
     </div>
     <div v-if="gMinigame.mode === 4">
       <div v-if="!gMinigame.currentRoomName" class="shop-title">
@@ -48,6 +48,7 @@ import { gMinigame, gPlayer, gUser } from '../core/globals.js';
 import { useUIManager } from '../core/useUIManager.js';
 import { activeClient } from '../mini_games/GameClient.js';
 import { changeGame } from '../mini_games/init.js';
+import AppIcon from '../../components/AppIcon.vue'
 
 const { closeLobbyMenu } = useUIManager()
 
@@ -66,7 +67,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  console.log("unmounted");
   if (!gMinigame.value.isActive && !gMinigame.value.isReady) {
     activeClient.disconnect();
     gMinigame.value.currentRoomName = null;

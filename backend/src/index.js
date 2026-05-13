@@ -101,6 +101,7 @@ app.use(
   swaggerUi.serveFiles(swaggerFilePubliApi),
   swaggerUi.setup(swaggerFilePubliApi),
 );
+app.get("/api/docs", (_req, res) => res.redirect(301, "/api/docs/public"));
 
 // API routes
 app.use("/api", routes);

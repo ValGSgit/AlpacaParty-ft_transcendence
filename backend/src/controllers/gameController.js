@@ -35,6 +35,15 @@ export const getLeaderboard = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+/** GET /api/game/leaderboard/coins?limit=10 */
+export const getCoinsLeaderboard = async (req, res, next) => {
+  try {
+    const { limit = 10, offset = 0 } = req.query;
+    const leaderboard = await Game.getCoinsLeaderboard({ limit: Number(limit), offset: Number(offset) });
+    res.json({ leaderboard });
+  } catch (err) { next(err); }
+};
+
 /** GET /api/game/farm */
 export const getFarm = async (req, res, next) => {
   try {

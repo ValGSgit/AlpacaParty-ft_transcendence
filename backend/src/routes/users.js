@@ -29,6 +29,7 @@ import {
   getFarmData,
   updateFarmData,
 } from "#controllers/alpacaFarmController.js";
+import { apiKeyRegenerateLimiter } from "#middleware/rateLimiters.js";
 
 const router = express.Router();
 router.use(authenticate);
@@ -48,7 +49,7 @@ router.get("/me/export", exportMyData);
 router.post("/me/delete-request", requestDeletion);
 router.get("/me/data-requests", listDataRequests);
 router.get("/me/api-key", getApiKey);
-router.post("/me/api-key", generateApiKey);
+router.post("/me/api-key", apiKeyRegenerateLimiter, generateApiKey);
 router.delete("/me/api-key", revokeApiKey);
 router.get("/", listUsers);
 router.get("/:id", idParamValidation(), checkValidation, getUser);

@@ -59,6 +59,10 @@ jest.unstable_mockModule(
 
 const mockFriend = {
   areFriends: jest.fn(),
+  // Added when blocked-user filtering landed (commit 1adec24); getUser calls
+  // this before the visibility check, so without it the controller throws and
+  // every test that expects a status falls through to the default 200.
+  isBlockedBetween: jest.fn().mockResolvedValue(false),
 };
 jest.unstable_mockModule("../../../src/models/Friend.js", () => ({
   default: mockFriend,
@@ -410,7 +414,12 @@ describe("getUser", () => {
   });
 
   test("should return 403 for private profile of non-friend", async () => {
-    const user = { id: 5, username: "bob", isPublic: false };
+    // Privacy lives on the 1:1 UserSettings relation, not on User.isPublic.
+    const user = {
+      id: 5,
+      username: "bob",
+      userSettings: { isPublic: false },
+    };
     mockUser.findById.mockResolvedValue(user);
     mockFriend.areFriends.mockResolvedValue(false);
 
@@ -421,13 +430,38 @@ describe("getUser", () => {
     await getUser(req, res, next);
 
     expect(res._status).toBe(403);
-    expect(res._json).toEqual({
+    expect(res._json).toMatchObject({
       error: { message: "This profile is private" },
     });
   });
 
+  test("should return 404 when the viewer is blocked by the target", async () => {
+    const user = {
+      id: 5,
+      username: "bob",
+      userSettings: { isPublic: true },
+    };
+    mockUser.findById.mockResolvedValue(user);
+    mockFriend.isBlockedBetween.mockResolvedValueOnce(true);
+
+    const { req, res, next } = createReqRes({
+      params: { id: "5" },
+      user: { id: 1, username: "alice" },
+    });
+    await getUser(req, res, next);
+
+    // Block hides existence — 404, not 403.
+    expect(res._status).toBe(404);
+    expect(res._json).toEqual({ error: { message: "User not found" } });
+    expect(mockFriend.areFriends).not.toHaveBeenCalled();
+  });
+
   test("should allow viewing private profile if friends", async () => {
-    const user = { id: 5, username: "bob", isPublic: false };
+    const user = {
+      id: 5,
+      username: "bob",
+      userSettings: { isPublic: false },
+    };
     mockUser.findById.mockResolvedValue(user);
     mockFriend.areFriends.mockResolvedValue(true);
 
@@ -442,7 +476,11 @@ describe("getUser", () => {
   });
 
   test("should allow viewing own private profile", async () => {
-    const user = { id: 1, username: "alice", isPublic: false };
+    const user = {
+      id: 1,
+      username: "alice",
+      userSettings: { isPublic: false },
+    };
     mockUser.findById.mockResolvedValue(user);
 
     const { req, res, next } = createReqRes({
@@ -454,6 +492,7 @@ describe("getUser", () => {
     expect(res._status).toBe(200);
     expect(res._json.user).toBeDefined();
     expect(mockFriend.areFriends).not.toHaveBeenCalled();
+    expect(mockFriend.isBlockedBetween).not.toHaveBeenCalled();
   });
 
   test("should call next on error", async () => {
@@ -510,7 +549,8 @@ describe("listUsers", () => {
     });
     await listUsers(req, res, next);
 
-    expect(mockUser.search).toHaveBeenCalledWith("bob", { limit: 10 });
+    // search() takes the viewer's id first so blocked users get filtered out.
+    expect(mockUser.search).toHaveBeenCalledWith(1, "bob", { limit: 10 });
     expect(res._json.users).toHaveLength(1);
   });
 

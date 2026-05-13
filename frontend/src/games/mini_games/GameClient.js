@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { debug, devError } from '../../services/logger.js';
 import { gMinigame, gUI } from '../core/globals';
 import { makeAnnouncement, playCountDown } from './annoucement';
 import { changeGame } from './init';

@@ -7,7 +7,7 @@ import {
 } from '../controllers/chatController.js';
 import { authenticate } from '../middleware/auth.js';
 import { body } from 'express-validator';
-import { chatRoomCreateValidation, idParamValidation } from '../validators/contentValidator.js';
+import { idParamValidation } from '../validators/contentValidator.js';
 import { checkValidation } from '../validators/validatorUtils.js';
 import { chatSendLimiter } from '../middleware/rateLimiters.js';
 

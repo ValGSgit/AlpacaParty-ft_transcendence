@@ -244,16 +244,6 @@ X-API-Key: ap_your_key_here
           },
         },
         // ─── Chat ──────────────────────────────────────────────────
-        ChatRoom: {
-          type: "object",
-          properties: {
-            id: { type: "integer", example: 3 },
-            name: { type: "string", example: "Alpaca Gamers" },
-            ownerId: { type: "integer", example: 42 },
-            isPrivate: { type: "boolean", example: false },
-            createdAt: { type: "string", format: "date-time" },
-          },
-        },
         Message: {
           type: "object",
           properties: {

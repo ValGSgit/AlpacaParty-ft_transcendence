@@ -82,7 +82,6 @@ export class Alpaca {
     const isIncrease = amount > 0 ? true : false;
     const speedAdjustment = 4.0;
 
-    console.log("isIncrease:", isIncrease);
     if (isIncrease)
     {
       if (this.speedOffset <= 0)
@@ -142,7 +141,7 @@ export class Alpaca {
   beingHit(alpaca) {
     if (this.isDead)
       return
-    if (this.hp > 0 && gMinigame.value.mode) // only reduce hp in mini games
+    if (this.hp > 0 && gMinigame.value.mode && gMinigame.value.mode !== 5) // only reduce hp in mini games
     {
       this.hp--
       if (this === gPlayer.value)
