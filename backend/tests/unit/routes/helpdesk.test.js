@@ -35,19 +35,19 @@ describe('Helpdesk Routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Configure mocks
-    config.groq = {
-      apiKeys: ['test-api-key-1', 'test-api-key-2'],
-      model: 'mixtral-8x7b-32768',
-    };
-
-    // Mock middleware to just pass through
+    // Configure mocks with proper implementation
     authenticate.mockImplementation((req, res, next) => {
       req.user = { id: 1, username: 'testuser' };
       next();
     });
 
     helpdeskLimiter.mockImplementation((req, res, next) => next());
+    
+    // Update config object for this test
+    config.groq = {
+      apiKeys: ['test-api-key-1', 'test-api-key-2'],
+      model: 'mixtral-8x7b-32768',
+    };
 
     app = express();
     app.use(express.json());

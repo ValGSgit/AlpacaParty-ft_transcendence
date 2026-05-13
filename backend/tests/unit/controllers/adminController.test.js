@@ -48,21 +48,6 @@ describe('adminController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Setup prisma mocks
-    prisma.user.findUnique.mockClear();
-    prisma.user.findMany.mockClear();
-    prisma.user.count.mockClear();
-    prisma.user.update.mockClear();
-    prisma.user.delete.mockClear();
-    prisma.post.count.mockClear();
-    
-    // Setup service mocks
-    AuthService.comparePassword.mockClear();
-    AdminAuthService.generateToken.mockClear();
-    AdminAuthService.verifyToken.mockClear();
-    Vault.read.mockClear();
-    Vault.write.mockClear();
-    
     req = {
       body: {},
       params: {},

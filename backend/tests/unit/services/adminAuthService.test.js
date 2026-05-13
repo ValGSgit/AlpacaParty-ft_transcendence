@@ -23,11 +23,6 @@ jest.mock('../../../src/config/index.js', () => {
 describe('AdminAuthService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    config.admin = {
-      jwtSecret: 'test-secret-key',
-      jwtExpiresIn: '7d',
-    };
   });
 
   afterEach(() => {

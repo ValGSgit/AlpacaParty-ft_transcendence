@@ -19,8 +19,11 @@ describe('Vault lib', () => {
     jest.resetModules();
 
     // Re-import mocked modules after reset
-    fs = (await import('fs')).default;
-    https = (await import('node:https')).default;
+    const fsModule = await import('fs');
+    const httpsModule = await import('node:https');
+    
+    fs = fsModule;
+    https = httpsModule;
 
     // Setup fs mocks
     fs.existsSync.mockReturnValue(true);
