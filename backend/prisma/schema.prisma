@@ -63,7 +63,6 @@ model UserAuth {
   twoFactorSecret  String? @db.VarChar(255)
   oauthProvider    String?
   oauthId          String?
-  tokenVersion     Int     @default(0) @map("token_version")
 
   // Relations
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)

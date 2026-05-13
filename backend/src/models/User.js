@@ -226,13 +226,6 @@ const User = {
     });
   },
 
-  async incrementTokenVersion(userId) {
-    await prisma.userAuth.update({
-      where: { userId: Number(userId) },
-      data: { tokenVersion: { increment: 1 } },
-    });
-  },
-
   async setOnline(id, isOnline = true) {
     await prisma.user.update({
       where: { id: Number(id) },

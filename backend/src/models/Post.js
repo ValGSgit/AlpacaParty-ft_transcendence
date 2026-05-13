@@ -59,17 +59,12 @@ const Post = {
       return post?.author_id === Number(authorId) ? post : null;
     }
 
-    try {
-      const post = await prisma.post.update({
-        where: { id: Number(id), authorId: Number(authorId) },
-        data,
-        include: { author: AUTHOR_SELECT },
-      });
-      return post ? shapePost(post) : null;
-    } catch (e) {
-      if (e.code === 'P2025') return null;
-      throw e;
-    }
+    const post = await prisma.post.update({
+      where: { id: Number(id), authorId: Number(authorId) },
+      data,
+      include: { author: AUTHOR_SELECT },
+    });
+    return post ? shapePost(post) : null;
   },
 
   async delete(postId, authorId) {
