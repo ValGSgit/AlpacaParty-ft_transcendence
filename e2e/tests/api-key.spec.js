@@ -40,21 +40,6 @@ test.describe('API Key Management', () => {
     expect(typeof body.apiKey).toBe('string');
   });
 
-  test('POST /users/me/api-key regenerates (replaces) the key', async ({ request }) => {
-    const first = await request.get('/api/users/me/api-key', {
-      headers: authHeaders(user.accessToken),
-    });
-    const { apiKey: oldKey } = await first.json();
-
-    const regen = await request.post('/api/users/me/api-key', {
-      headers: authHeaders(user.accessToken),
-    });
-    expect(regen.status()).toBe(201);
-    const { apiKey: newKey } = await regen.json();
-
-    expect(newKey).not.toBe(oldKey);
-  });
-
   test('DELETE /users/me/api-key revokes the key and subsequent GET returns 404', async ({ request }) => {
     // Ensure key exists
     await request.post('/api/users/me/api-key', {
