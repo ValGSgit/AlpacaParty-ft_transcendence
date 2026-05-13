@@ -17,15 +17,15 @@ Pass with 14
 
 ### 🟢 Major: Implement real-time features using WebSockets or similar technology.
 
-- [ ] Real-time updates across clients.
-- [ ] Handle connection/disconnection gracefully.
-- [ ] Efficient message broadcasting.
+- [x] Real-time updates across clients.
+- [x] Handle connection/disconnection gracefully.
+- [x] Efficient message broadcasting.
 
 ### 🟢 Major: Allow users to interact with other users. The minimum requirements are:
 
-- [ ] A basic chat system (send/receive messages between users).
+- [x] A basic chat system (send/receive messages between users).
 - [x] A profile system (view user information).
-- [ ] A friends system (add/remove friends, see friends list).
+- [x] A friends system (add/remove friends, see friends list).
 
 ### 🟢 Major: A public API to interact with the database with a secured API key, rate limiting, documentation, and at least 5 endpoints:
 
@@ -41,14 +41,14 @@ Pass with 14
 
 ### 🟡 Minor: A complete notification system for all creation, update, and deletion actions.
 
-- [ ] done
+- [x] done
 
 ### 🟡 Minor: Custom-made design system with reusable components
 
 - [x] propercolor palette
 - [x] typography
 - [x] icons
-- [ ] minimum: 10 reusable components
+- [x] minimum: 10 reusable components
 
 ### 🟡❓Minor: Implement advanced search functionality with:
 
@@ -58,12 +58,12 @@ Pass with 14
 
 ### 🟡❓Minor: File upload and management system.
 
-- [ ] Support multiple file types (images, documents, etc.).
-- [ ] Client-side and server-side validation (type, size, format).
-- [ ] Secure file storage with proper access control.
-- [ ] File preview functionality where applicable.
-- [ ] Progress indicators for uploads.
-- [ ] Ability to delete uploaded files.
+- [x] Support multiple file types (images, documents, etc.).
+- [x] Client-side and server-side validation (type, size, format).
+- [x] Secure file storage with proper access control.
+- [x] File preview functionality where applicable.
+- [x] Progress indicators for uploads.
+- [x] Ability to delete uploaded files.
 
 ---
 
@@ -83,9 +83,9 @@ Pass with 14
 ### 🟢 Major: Standard user management and authentication.
 
 - [x] Users can update their profile information.
-- [ ] Users can upload an avatar (with a default avatar if none provided).
+- [x] Users can upload an avatar (with a default avatar if none provided).
 - [ ] Users can add other users as friends and see their online status.
-- [ ] Users have a profile page displaying their information.
+- [x] Users have a profile page displaying their information.
 
 ### 🟡❓Minor: Game statistics and match history (requires a game module).
 
@@ -98,20 +98,13 @@ Pass with 14
 
 - [x] done
 
-### 🟢❓Major: An organization system:
-
-- [ ] Create, edit, and delete organizations.
-- [ ] Add users to organizations.
-- [ ] Remove users from organizations.
-- [ ] View organizations and allow users to perform specific actions within an organization (minimum: create, read, update).
-
 ---
 
 # 6 Gaming and user experience
 
 ### 🟢 Major: Implement a complete web-based game where users can play against each other.
 
-- [ ] The game can be real-time multiplayer (e.g., Pong, Chess, Tic-Tac-Toe, Card
+- [x] The game can be real-time multiplayer (e.g., Pong, Chess, Tic-Tac-Toe, Card
       games, etc.).
 - [x] Players must be able to play live matches.
 - [x] The game must have clear rules and win/loss conditions.
@@ -119,15 +112,15 @@ Pass with 14
 
 ### 🟢 Major: Remote players — Enable two players on separate computers to play the same game in real-time.
 
-- [ ] Handle network latency and disconnections gracefully.
-- [ ] Provide a smooth user experience for remote gameplay.
+- [x] Handle network latency and disconnections gracefully.
+- [x] Provide a smooth user experience for remote gameplay.
 - [ ] Implement reconnection logic.
 
 ### 🟢 Major: Multiplayer game (more than two players).
 
 - [x] Support for three or more players simultaneously.
 - [x] Fair gameplay mechanics for all participants.
-- [ ] Proper synchronization across all clients.
+- [x] Proper synchronization across all clients.
 
 ### 🟢 ❌Major: Add another game with user history and matchmaking.???
 
@@ -155,16 +148,3 @@ Pass with 14
 - [ ] System must be persistent (stored in database)
 - [ ] Visual feedback for users (notifications, progress bars, etc.)
 - [ ] Clear rules and progression mechanics  8 Data and Analytics
-
-### 🟡❌ Minor: Data export and import functionality.
-
-- [ ] Export data in multiple formats (JSON, CSV, XML, etc.).
-- [ ] Import data with validation.
-- [ ] Bulk operations support.
-
-### 🟡❌ Minor: GDPR compliance features.
-
-- [ ] Allow users to request their data.
-- [ ] Data deletion with confirmation.
-- [ ] Export user data in a readable format.
-- [ ] Confirmation emails for data operations.
