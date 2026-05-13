@@ -56,7 +56,7 @@ export async function validateFileMagicBytes(file) {
     return (
       buf.length >= 12 &&
       buf.subarray(0, 4).equals(Buffer.from([0x52, 0x49, 0x46, 0x46])) &&
-      buf.subarray(8, 12).equals(Buffer.from([0x57, 0x45, 0x42, 0x50])))
+      buf.subarray(8, 12).equals(Buffer.from([0x57, 0x45, 0x42, 0x50]))
     );
   }
 
