@@ -1,6 +1,4 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import Comment from '../../../src/models/Comment.js';
-import prisma from '#config/prisma.js';
 
 const mockPrisma = {
   comment: {
@@ -17,7 +15,10 @@ const mockPrisma = {
   $transaction: jest.fn(),
 };
 
-jest.mock('#config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
+
+const Comment = (await import('../../../src/models/Comment.js')).default;
+const { default: prisma } = await import('#config/prisma.js');
 
 describe('Comment Model', () => {
   beforeEach(() => {

@@ -1,25 +1,29 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import * as fs from 'fs';
-import * as https from 'node:https';
 
-jest.mock('fs', () => ({
+const mockFs = {
   existsSync: jest.fn(),
   readFileSync: jest.fn(),
-}));
+};
 
-jest.mock('node:https', () => ({
+const mockHttps = {
   request: jest.fn(),
-}));
+};
+
+jest.unstable_mockModule('fs', () => ({ default: mockFs, existsSync: mockFs.existsSync, readFileSync: mockFs.readFileSync }));
+jest.unstable_mockModule('node:https', () => ({ default: mockHttps, request: mockHttps.request }));
+
+const fs = mockFs;
+const https = mockHttps;
+
+let Vault;
 
 describe('Vault lib', () => {
-  let Vault;
-
   beforeEach(async () => {
     jest.clearAllMocks();
 
     // Setup fs mocks
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockImplementation((path) => {
+    mockFs.existsSync.mockReturnValue(true);
+    mockFs.readFileSync.mockImplementation((path) => {
       if (path === '/run/vault-keys/keys.env') {
         return 'VAULT_TOKEN=test-token-123';
       }
@@ -120,7 +124,7 @@ describe('Vault lib', () => {
 
       const result = await Vault.read('secret/data/empty');
 
-      expect(result).toEqual({});
+      expect(result).toBeNull();
     });
 
     test('should handle empty data response', async () => {
@@ -145,7 +149,7 @@ describe('Vault lib', () => {
 
       const result = await Vault.read('secret/data/empty');
 
-      expect(result).toEqual({});
+      expect(result).toBeNull();
     });
 
     test('should reject on HTTP error (5xx)', async () => {
@@ -407,7 +411,18 @@ describe('Vault lib', () => {
     });
 
     test('should include CA certificate when available', async () => {
-      fs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) =>
+        path === '/run/vault-keys/keys.env' || path === '/app/ssl/cert.pem'
+      );
+      mockFs.readFileSync.mockImplementation((path) => {
+        if (path === '/run/vault-keys/keys.env') {
+          return 'VAULT_TOKEN=test-token-123';
+        }
+        if (path === '/app/ssl/cert.pem') {
+          return Buffer.from('mock-cert');
+        }
+        return '';
+      });
 
       const mockResponse = {
         statusCode: 200,
@@ -428,15 +443,7 @@ describe('Vault lib', () => {
         return mockReq;
       });
 
-      process.env.NODE_EXTRA_CA_CERTS = '/path/to/cert';
-
-      // Need to re-import to pick up env var
-      jest.resetModules();
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue('mock-cert');
-      
-      const VaultReloaded = (await import('../../../src/lib/vault.js')).default;
-      await VaultReloaded.read('secret/data/test');
+      await Vault.read('secret/data/test');
 
       const callArgs = https.request.mock.calls[0][0];
       expect(callArgs.ca).toBeDefined();

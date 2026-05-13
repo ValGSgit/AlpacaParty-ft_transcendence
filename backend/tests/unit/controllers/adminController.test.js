@@ -1,10 +1,11 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import * as adminController from '../../../src/controllers/adminController.js';
-import prisma from '#config/prisma.js';
-import AuthService from '../../../src/services/authService.js';
-import AdminAuthService from '../../../src/services/adminAuthService.js';
-import Vault from '../../../src/lib/vault.js';
 import CustomError from '#utils/CustomError.js';
+
+const mockConfig = {
+  admin: {
+    cookieOptions: {},
+  },
+};
 
 const mockPrisma = {
   user: {
@@ -20,24 +21,31 @@ const mockPrisma = {
   $transaction: jest.fn(),
 };
 
-jest.mock('#config/prisma.js', () => ({ default: mockPrisma }));
-jest.mock('../../../src/services/authService.js', () => ({
-  default: {
-    comparePassword: jest.fn(),
-  },
-}));
-jest.mock('../../../src/services/adminAuthService.js', () => ({
-  default: {
-    generateToken: jest.fn(),
-    verifyToken: jest.fn(),
-  },
-}));
-jest.mock('../../../src/lib/vault.js', () => ({
-  default: {
-    read: jest.fn(),
-    write: jest.fn(),
-  },
-}));
+const mockAuthService = {
+  comparePassword: jest.fn(),
+};
+
+const mockAdminAuthService = {
+  generateToken: jest.fn(),
+  verifyToken: jest.fn(),
+};
+
+const mockVault = {
+  read: jest.fn(),
+  write: jest.fn(),
+};
+
+jest.unstable_mockModule('#config/index.js', () => ({ default: mockConfig }));
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule('../../../src/services/authService.js', () => ({ default: mockAuthService }));
+jest.unstable_mockModule('../../../src/services/adminAuthService.js', () => ({ default: mockAdminAuthService }));
+jest.unstable_mockModule('../../../src/lib/vault.js', () => ({ default: mockVault }));
+
+const adminController = await import('../../../src/controllers/adminController.js');
+const { default: prisma } = await import('#config/prisma.js');
+const { default: AuthService } = await import('../../../src/services/authService.js');
+const { default: AdminAuthService } = await import('../../../src/services/adminAuthService.js');
+const { default: Vault } = await import('../../../src/lib/vault.js');
 
 describe('adminController', () => {
   let req, res, next;
@@ -202,10 +210,9 @@ describe('adminController', () => {
       prisma.user.count
         .mockResolvedValueOnce(100)  // totalUsers
         .mockResolvedValueOnce(5)    // bannedUsers
-        .mockResolvedValueOnce(50)   // totalPosts (via post.count)
-        .mockResolvedValueOnce(20);  // onlineUsers
-      
-      prisma.post = { count: jest.fn().mockResolvedValue(50) };
+        .mockResolvedValueOnce(20);   // onlineUsers
+
+      prisma.post.count.mockResolvedValue(50);
       
       await adminController.getDashboard(req, res, next);
       

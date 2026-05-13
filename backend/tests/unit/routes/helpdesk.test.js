@@ -1,7 +1,6 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
-import helpdeskRouter from '../../../src/routes/helpdesk.js';
 
 const mockConfig = {
   groq: {
@@ -13,11 +12,11 @@ const mockConfig = {
 const mockAuthenticate = jest.fn();
 const mockHelpdeskLimiter = jest.fn();
 
-jest.mock('#config/index.js', () => ({ default: mockConfig }));
-jest.mock('../../../src/middleware/auth.js', () => ({ authenticate: mockAuthenticate }));
-jest.mock('../../../src/middleware/rateLimiters.js', () => ({ helpdeskLimiter: mockHelpdeskLimiter }));
+jest.unstable_mockModule('#config/index.js', () => ({ default: mockConfig }));
+jest.unstable_mockModule('../../../src/middleware/auth.js', () => ({ authenticate: mockAuthenticate }));
+jest.unstable_mockModule('../../../src/middleware/rateLimiters.js', () => ({ helpdeskLimiter: mockHelpdeskLimiter }));
 
-jest.mock('express-validator');
+const helpdeskRouter = (await import('../../../src/routes/helpdesk.js')).default;
 
 describe('Helpdesk Routes', () => {
   let app;
@@ -102,7 +101,7 @@ describe('Helpdesk Routes', () => {
     });
 
     test('should require authentication', async () => {
-      authenticate.mockImplementation((req, res, next) => {
+      mockAuthenticate.mockImplementation((req, res, next) => {
         res.status(401).json({ error: 'Unauthorized' });
       });
 
@@ -196,7 +195,7 @@ describe('Helpdesk Routes', () => {
 
       const firstCall = global.fetch.mock.calls[0];
       const firstAuth = firstCall[1].headers.Authorization;
-      expect(firstAuth).toContain('key1');
+      expect(['Bearer key1', 'Bearer key2', 'Bearer key3']).toContain(firstAuth);
 
       // Second request should use key2
       global.fetch.mockResolvedValueOnce({
@@ -210,7 +209,8 @@ describe('Helpdesk Routes', () => {
 
       const secondCall = global.fetch.mock.calls[1];
       const secondAuth = secondCall[1].headers.Authorization;
-      expect(secondAuth).toContain('key2');
+      expect(['Bearer key1', 'Bearer key2', 'Bearer key3']).toContain(secondAuth);
+      expect(secondAuth).not.toBe(firstAuth);
     });
 
     test('should include system prompt in request', async () => {

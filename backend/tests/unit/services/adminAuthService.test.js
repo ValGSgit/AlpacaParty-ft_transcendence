@@ -1,30 +1,28 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import jwt from 'jsonwebtoken';
-import AdminAuthService from '../../../src/services/adminAuthService.js';
-import config from '../../../src/config/index.js';
-
-jest.mock('jsonwebtoken', () => ({
+const mockJwt = {
   sign: jest.fn(),
   verify: jest.fn(),
-}));
+};
 
-jest.mock('../../../src/config/index.js', () => {
-  const mockConfig = {
-    admin: {
-      jwtSecret: 'test-secret-key',
-      jwtExpiresIn: '7d',
-    },
-  };
-  return {
-    default: mockConfig,
-  };
-});
+const mockConfig = {
+  admin: {
+    jwtSecret: 'test-secret-key',
+    jwtExpiresIn: '7d',
+  },
+};
+
+jest.unstable_mockModule('jsonwebtoken', () => ({ default: mockJwt }));
+jest.unstable_mockModule('../../../src/config/index.js', () => ({ default: mockConfig }));
+
+const jwt = mockJwt;
+const { default: AdminAuthService } = await import('../../../src/services/adminAuthService.js');
+const { default: config } = await import('../../../src/config/index.js');
 
 describe('AdminAuthService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockJwt.sign.mockClear();
-    mockJwt.verify.mockClear();
+    mockConfig.admin.jwtSecret = 'test-secret-key';
+    mockConfig.admin.jwtExpiresIn = '7d';
   });
 
   afterEach(() => {

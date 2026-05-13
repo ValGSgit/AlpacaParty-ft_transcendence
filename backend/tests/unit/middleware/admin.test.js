@@ -1,7 +1,4 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
-import { requireAdmin, requireSuperAdmin } from '../../../src/middleware/admin.js';
-import AdminAuthService from '../../../src/services/adminAuthService.js';
-import prisma from '#config/prisma.js';
 import CustomError from '#utils/CustomError.js';
 
 const mockAdminAuthService = {
@@ -14,16 +11,18 @@ const mockPrisma = {
   },
 };
 
-jest.mock('../../../src/services/adminAuthService.js', () => ({ default: mockAdminAuthService }));
-jest.mock('#config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule('../../../src/services/adminAuthService.js', () => ({ default: mockAdminAuthService }));
+jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
+
+const { requireAdmin, requireSuperAdmin } = await import('../../../src/middleware/admin.js');
+const { default: AdminAuthService } = await import('../../../src/services/adminAuthService.js');
+const { default: prisma } = await import('#config/prisma.js');
 
 describe('Admin Middleware', () => {
   let req, res, next;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockAdminAuthService.verifyToken.mockClear();
-    mockPrisma.user.findUnique.mockClear();
 
     req = {
       cookies: {},
