@@ -200,6 +200,8 @@ model GameStat {
   losses    Int?     @default(0)
   draws     Int?     @default(0)
   elo       Int?     @default(1000)
+  kills     Int?     @default(0)
+  obstacles Int?     @default(0)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -324,13 +326,13 @@ model Comment {
 // ── Reposts ───────────────────────────────────────────────────────────────
 model Repost {
   id        Int      @id @default(autoincrement())
-  postId    Int      @map("post_id")
+  postId    Int?     @map("post_id")
   authorId  Int      @map("author_id")
   comment   String?  @db.Text
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@unique([postId, authorId])
   @@index([postId])
