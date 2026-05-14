@@ -253,6 +253,20 @@ const Friend = {
     return prisma.friend.count({ where: { userId: Number(userId) } });
   },
 
+  async getFriendStatus(viewerId, targetId) {
+    const v = Number(viewerId);
+    const t = Number(targetId);
+    const [friendship, sentRequest, receivedRequest] = await Promise.all([
+      prisma.friend.findFirst({ where: { userId: v, friendId: t } }),
+      prisma.friendRequest.findFirst({ where: { senderId: v, receiverId: t, status: 'pending' } }),
+      prisma.friendRequest.findFirst({ where: { senderId: t, receiverId: v, status: 'pending' } }),
+    ]);
+    if (friendship) return { status: 'friends' };
+    if (sentRequest) return { status: 'pending_sent', requestId: sentRequest.id };
+    if (receivedRequest) return { status: 'pending_received', requestId: receivedRequest.id };
+    return { status: 'none' };
+  },
+
   async blockUser(userId, blockedUserId) {
     await this.removeFriend(userId, blockedUserId);
     return prisma.blockedUser.upsert({

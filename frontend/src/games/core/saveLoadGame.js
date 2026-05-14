@@ -70,7 +70,7 @@ export async function saveGame() {
   try {
     const itemsData = getItemsData();
     debug("gUser:", gUser);
-    const res = await api.put('/users/me/farmdata', {
+    const res = await api.put('/game/farm', {
       items: itemsData,
       alpacas: saveAlpacas,
       coins: gUser.value.coins,
@@ -86,7 +86,7 @@ export async function saveGame() {
 
 async function saveMinigame() {
   try {
-    await api.put('/users/me/farmdata', {
+    await api.put('/game/farm', {
       coins: gUser.value.coins,
     })
     debug('✅ Farm stats synced to server after minigame')

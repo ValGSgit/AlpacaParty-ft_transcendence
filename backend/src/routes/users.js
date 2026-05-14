@@ -25,19 +25,13 @@ import {
 } from "#validators/userValidator.js";
 import { idParamValidation } from "#validators/contentValidator.js";
 import { checkValidation } from "#validators/validatorUtils.js";
-import {
-  getFarmData,
-  updateFarmData,
-} from "#controllers/alpacaFarmController.js";
 import { apiKeyRegenerateLimiter } from "#middleware/rateLimiters.js";
 
 const router = express.Router();
 router.use(authenticate);
 
 router.get("/me", getMe);
-router.get("/me/farmdata", getFarmData);
 router.put("/me", userUpdateValidation(), checkValidation, updateMe);
-router.put("/me/farmdata", updateFarmData);
 router.delete("/me", deleteMe);
 router.put(
   "/me/password",

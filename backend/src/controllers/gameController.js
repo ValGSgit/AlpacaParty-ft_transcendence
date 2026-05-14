@@ -61,18 +61,21 @@ export const saveGameResult = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-/** GET /api/game/farm */
+/** GET /api/game/farm?userId=X — own farm or another user's farm */
 export const getFarm = async (req, res, next) => {
   try {
-    const farm = await Game.getFarm(req.user.id);
+    const userId = req.query.userId ? Number(req.query.userId) : req.user.id;
+    const farm = await Game.getFarm(userId);
     res.json({ farm });
   } catch (err) { next(err); }
 };
 
-/** PUT /api/game/farm */
+/** PUT /api/game/farm — accepts { farmData }, { farm }, or flat { items, alpacas, coins, … } */
 export const saveFarm = async (req, res, next) => {
   try {
-    const farmData = req.body.farmData ?? req.body.farm;
+    const flatKeys = ['items', 'alpacas', 'coins', 'upgrades', 'herdsize'];
+    const isFlat = flatKeys.some((k) => k in req.body);
+    const farmData = req.body.farmData ?? req.body.farm ?? (isFlat ? req.body : null);
     if (!farmData) return res.status(400).json({ error: { message: 'farmData is required' } });
     const farm = await Game.updateFarm(req.user.id, farmData);
     res.json({ farm });
