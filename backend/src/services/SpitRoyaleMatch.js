@@ -110,7 +110,7 @@ export class SpitRoyalMatch extends BaseMatch {
     console.log("alive:", alivePlayers)
     // Require at least 2 players to have joined before triggering a "last alpaca standing" win
     if (this.playersJoined > 1 && alivePlayers.length <= 1) {
-      this.status === 'GAME_OVER'
+      this.status = 'GAME_OVER'
       const winnerId = alivePlayers.length === 1 ? alivePlayers[0].id : null;
       this.endMatch(winnerId, 'lastone_standing');
     }
