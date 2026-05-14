@@ -160,12 +160,19 @@ test.describe('Public API endpoints', () => {
     expect(delBody.message).toBeTruthy();
   });
 
-  test('PUT /public/posts/:id on another user post returns 400', async ({ request }) => {
-    const other = await createUser(request, 'pubapi_other');
-    const keyRes = await request.post('/api/users/me/api-key', {
+  test('PUT /public/posts/:id on another user post returns 400', async ({ request, playwright }) => {
+    // Register the other user in an isolated context so their jwt_token cookie
+    // does not bleed into `request`'s cookie jar and trigger the session check.
+    const otherCtx = await playwright.request.newContext({
+      baseURL: process.env.E2E_BASE_URL || 'https://localhost:8443',
+      ignoreHTTPSErrors: true,
+    });
+    const other = await createUser(otherCtx, 'pubapi_other');
+    const keyRes = await otherCtx.post('/api/users/me/api-key', {
       headers: authHeaders(other.accessToken),
     });
     const otherKey = (await keyRes.json()).apiKey;
+    await otherCtx.dispose();
 
     const createRes = await request.post('/api/public/posts', {
       headers: apiKeyHeaders(apiKey),
@@ -181,12 +188,19 @@ test.describe('Public API endpoints', () => {
     expect(putRes.status()).toBe(400);
   });
 
-  test('DELETE /public/posts/:id on another user post returns 400', async ({ request }) => {
-    const other = await createUser(request, 'pubapi_other2');
-    const keyRes = await request.post('/api/users/me/api-key', {
+  test('DELETE /public/posts/:id on another user post returns 400', async ({ request, playwright }) => {
+    // Same isolation: register the other user in a separate context so their
+    // cookie doesn't contaminate the main request context.
+    const otherCtx = await playwright.request.newContext({
+      baseURL: process.env.E2E_BASE_URL || 'https://localhost:8443',
+      ignoreHTTPSErrors: true,
+    });
+    const other = await createUser(otherCtx, 'pubapi_other2');
+    const keyRes = await otherCtx.post('/api/users/me/api-key', {
       headers: authHeaders(other.accessToken),
     });
     const otherKey = (await keyRes.json()).apiKey;
+    await otherCtx.dispose();
 
     const createRes = await request.post('/api/public/posts', {
       headers: apiKeyHeaders(apiKey),
