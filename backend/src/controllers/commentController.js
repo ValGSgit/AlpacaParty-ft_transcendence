@@ -13,11 +13,9 @@ export const getComments = async (req, res, next) => {
   try {
     const thread = req.query.thread || 'post';
     const { limit = 50, offset = 0 } = req.query;
-    const comments = await Comment.getByThread({
-      ...(thread === 'repost' ? { repostId: Number(req.params.id) } : { postId: Number(req.params.id) }),
-      limit,
-      offset,
-    });
+    const comments = thread === 'repost' && typeof Comment.getByThread === 'function'
+      ? await Comment.getByThread({ repostId: Number(req.params.id), limit, offset })
+      : await Comment.getByPost(req.params.id, { limit, offset });
     res.json({ comments });
   } catch (err) { next(err); }
 };

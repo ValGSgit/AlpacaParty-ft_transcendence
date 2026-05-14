@@ -6,10 +6,9 @@ import prisma from "#config/prisma.js";
 const AUTHOR_SELECT = { select: { username: true, avatar: true } };
 
 function shapeComment(c) {
-  return {
+  const shaped = {
     id: c.id,
     post_id: c.postId,
-    repost_id: c.repostId ?? null,
     author_id: c.authorId,
     content: c.content,
     created_at: c.createdAt,
@@ -17,6 +16,8 @@ function shapeComment(c) {
     author_username: c.author?.username,
     author_avatar: c.author?.avatar,
   };
+  if (c.repostId != null) shaped.repost_id = c.repostId;
+  return shaped;
 }
 
 const Comment = {
@@ -55,6 +56,10 @@ const Comment = {
       skip: Number(offset),
     });
     return comments.map(shapeComment);
+  },
+
+  async getByPost(postId, options = {}) {
+    return this.getByThread({ postId, ...options });
   },
 
   async delete(id, authorId) {
