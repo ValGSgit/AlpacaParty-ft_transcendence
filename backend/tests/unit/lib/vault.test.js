@@ -202,7 +202,6 @@ describe('Vault lib', () => {
       const mockReq = {
         on: jest.fn((event, handler) => {
           if (event === 'error') {
-            // Simulate network error
             setTimeout(() => handler(new Error('ECONNREFUSED')), 0);
           }
         }),
@@ -212,10 +211,9 @@ describe('Vault lib', () => {
 
       https.request.mockImplementation(() => mockReq);
 
-      const promise = Vault.read('secret/data/network-error');
-      await new Promise(resolve => setImmediate(resolve));
-
-      await expect(promise).rejects.toThrow('ECONNREFUSED');
+      // Attach the rejection handler before any await gap so the promise is
+      // never unhandled, regardless of when setTimeout fires.
+      await expect(Vault.read('secret/data/network-error')).rejects.toThrow('ECONNREFUSED');
     });
 
     test('should parse data.data path for KV v2', async () => {
