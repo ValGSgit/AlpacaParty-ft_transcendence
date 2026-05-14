@@ -59,9 +59,7 @@ jest.unstable_mockModule(
 
 const mockFriend = {
   areFriends: jest.fn(),
-  // Added when blocked-user filtering landed (commit 1adec24); getUser calls
-  // this before the visibility check, so without it the controller throws and
-  // every test that expects a status falls through to the default 200.
+  getFriendStatus: jest.fn(),
   isBlockedBetween: jest.fn().mockResolvedValue(false),
 };
 jest.unstable_mockModule("../../../src/models/Friend.js", () => ({
@@ -421,7 +419,7 @@ describe("getUser", () => {
       userSettings: { isPublic: false },
     };
     mockUser.findById.mockResolvedValue(user);
-    mockFriend.areFriends.mockResolvedValue(false);
+    mockFriend.getFriendStatus.mockResolvedValue({ status: 'none' });
 
     const { req, res, next } = createReqRes({
       params: { id: "5" },
@@ -453,7 +451,7 @@ describe("getUser", () => {
     // Block hides existence — 404, not 403.
     expect(res._status).toBe(404);
     expect(res._json).toEqual({ error: { message: "User not found" } });
-    expect(mockFriend.areFriends).not.toHaveBeenCalled();
+    expect(mockFriend.getFriendStatus).not.toHaveBeenCalled();
   });
 
   test("should allow viewing private profile if friends", async () => {
@@ -463,7 +461,7 @@ describe("getUser", () => {
       userSettings: { isPublic: false },
     };
     mockUser.findById.mockResolvedValue(user);
-    mockFriend.areFriends.mockResolvedValue(true);
+    mockFriend.getFriendStatus.mockResolvedValue({ status: 'friends' });
 
     const { req, res, next } = createReqRes({
       params: { id: "5" },
@@ -491,7 +489,7 @@ describe("getUser", () => {
 
     expect(res._status).toBe(200);
     expect(res._json.user).toBeDefined();
-    expect(mockFriend.areFriends).not.toHaveBeenCalled();
+    expect(mockFriend.getFriendStatus).not.toHaveBeenCalled();
     expect(mockFriend.isBlockedBetween).not.toHaveBeenCalled();
   });
 
