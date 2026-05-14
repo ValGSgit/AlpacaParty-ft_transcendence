@@ -5,6 +5,7 @@
  */
 import express from "express";
 import { authenticate } from "#middleware/auth.js";
+import { getFarm, saveFarm } from "#controllers/gameController.js";
 import {
   getMe,
   updateMe,
@@ -42,6 +43,8 @@ router.put(
 router.get("/me/export", exportMyData);
 router.post("/me/delete-request", requestDeletion);
 router.get("/me/data-requests", listDataRequests);
+router.get("/me/farmdata", getFarm);
+router.put("/me/farmdata", saveFarm);
 router.get("/me/api-key", getApiKey);
 router.post("/me/api-key", apiKeyRegenerateLimiter, generateApiKey);
 router.delete("/me/api-key", revokeApiKey);
