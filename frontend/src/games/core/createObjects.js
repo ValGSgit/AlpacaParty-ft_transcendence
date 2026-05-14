@@ -6,6 +6,8 @@ import { Item } from './entities/Item.js';
 import { getModel } from './modelCache.js';
 import { registerEntity } from './registerEntity.js';
 import { attachCollider } from './useCollider.js';
+import { gMinigame } from './globals.js';
+import { initRigidBody } from './useRapier.js';
 
 export async function createAlpaca(
   name = "Alpaca",
@@ -24,6 +26,7 @@ export async function createAlpaca(
   });
 
   registerEntity(alpaca, 'alpaca');
+  initRigidBody(alpaca, position)
   return markRaw(alpaca);
 }
 

@@ -20,6 +20,7 @@ export class Alpaca {
     this.name = options.name || "Alpaca";
     this.model.name = this.name;
     this.color = options.color || "#795740";
+    this.physicsBody = null;
 
     const pos = options.position || [0, 0, 0];
     const rotation = options.rotation || 0;
@@ -110,6 +111,8 @@ export class Alpaca {
     } else {
       updatePlayer(this, delta);
     }
+    if (this.physicsBody)
+      this.updatePhysicsBody()
     handleAnimation(this, this.animDir, this.speed);
   }
 
@@ -151,9 +154,12 @@ export class Alpaca {
     if (this.hp <= 0) {
       this.isDead = 1 // dead
       removeFromArray(this.model, gCollidables) //remove itself from gCollidables
-      alpaca.point++ // credit for the spit owner
-      if (alpaca === gPlayer.value)
-        gUser.value.point++ // for display
+      if (alpaca)
+      {
+        alpaca.point++ // credit for the spit owner
+        if (alpaca === gPlayer.value)
+          gUser.value.point++ // for display
+      }
       if (this === gPlayer.value || (gMinigame.value.isActive && gCollidables.length === 1))
       {
         gMinigame.value.isGameOver = true;
@@ -162,6 +168,30 @@ export class Alpaca {
     }
     else
       this.isDead = -1 // dying
+  }
+
+  updatePhysicsBody(){
+  if (!this.physicsBody)
+    return
+  const translation = this.physicsBody.translation();
+      const rotation = this.physicsBody.rotation();
+      
+      // Transfer Rapier's math to Three.js visuals
+      this.model.position.set(translation.x, translation.y, translation.z);
+      this.model.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+      const pos = this.physicsBody.translation();
+      
+      // If the Alpaca somehow falls below the cylinder
+      if (translation.y < -5) {
+        // Teleport back to center
+        this.physicsBody.setTranslation({ x: 0, y: 5, z: 0 }, true);
+        // Kill its falling momentum
+        this.physicsBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        
+        this.beingHit()
+        if (this === gPlayer.value)
+          gMinigame.value.players[0].hp--
+      }
   }
 }
 

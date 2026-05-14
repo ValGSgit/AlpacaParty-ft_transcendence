@@ -397,6 +397,9 @@ const gameLoop = () => {
       cameraUpdate(player)
     }
   }
+
+  if (gEngine.value.world)
+    gEngine.value.world.step();
   updateInputState()
   updateAlpacas(delta);
   updateCollectables(player, delta);

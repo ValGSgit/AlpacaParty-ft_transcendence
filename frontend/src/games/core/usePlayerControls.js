@@ -1,6 +1,7 @@
+import * as THREE from 'three';
 import { alpacaAI } from '../components/alpacaAI.js';
 import { CONST } from '../config/constants.js';
-import { gAlpacas, gMinigame, gPlayer } from './globals.js';
+import { gAlpacas, gMinigame, gPlayer, gEngine } from './globals.js';
 import { useInput } from './useInput.js';
 import { checkWithinBounds, usePhysics } from './usePhysics.js';
 
@@ -9,6 +10,11 @@ export function usePlayerControls() {
   const { checkCollision } = usePhysics()
 
   const handleJumping = (player, delta) => {
+    if (gEngine.value.world){
+      let isJumping = handleJumpingRapier(player, delta)
+      return (isJumping)
+    }
+    
     const { model } = player;
     let isVerticalMoving = false;
     let keydown = false;
@@ -104,7 +110,10 @@ export function usePlayerControls() {
     const { handleMoving } = alpacaAI(); // for double click moving
     handleSpitting(player);
 
-    if (isWalking) {
+    if (isWalking && gEngine.value.world) {
+      checkMovementRapier(player, dir, speed, nextRotY);
+    }
+    else if (isWalking) {
       checkMovement(model, dir, speed, nextRotY);
     }
     else if (player.isAutoMoving)
@@ -112,6 +121,52 @@ export function usePlayerControls() {
     player.isMoving = isWalking || isJumping || player.isAutoMoving;
     player.animDir = keys.s ? -1 : (player.isMoving ? 1 : 0);
   }
+
+  const handleJumpingRapier = (player, delta) => {
+    if (!player || !player.physicsBody)
+      return false
+    const velocity = player.physicsBody.linvel();
+    const position = player.physicsBody.translation();
+    const isNearFloor = position.y < 0.1;
+    const isMovingSlowlyY = Math.abs(velocity.y) < 0.1;
+    const isGrounded = isMovingSlowlyY && isNearFloor;
+
+    if (keys.space && isGrounded) {
+      player.physicsBody.applyImpulse({ x: 0, y: 150, z: 0 }, true);
+      player.isJumping = true;
+      return true
+    }
+
+    if (isGrounded) {
+      player.isJumping = false;
+      return false;
+    }
+  return true;
+  }
+
+  const checkMovementRapier = (player, dir, speed, nextRotY) => {
+    if (!player || !player.physicsBody)
+      return
+    
+    const vx = Math.sin(nextRotY) * speed * dir;
+    const vz = Math.cos(nextRotY) * speed * dir;
+  
+    const currentVelocity = player.physicsBody.linvel();
+
+    // Apply the new velocity to the brain (Rapier)
+    // We keep 'y' as it is so gravity still works
+    player.physicsBody.setLinvel({ 
+      x: vx * 50, // Multiplier because physics units != pixel units
+      y: currentVelocity.y, 
+      z: vz * 50 
+    }, true);
+  
+    const quaternion = new THREE.Quaternion().setFromAxisAngle(
+        new THREE.Vector3(0, 1, 0), 
+        nextRotY
+    );
+    player.physicsBody.setRotation(quaternion, true);
+  };
 
   return { updatePlayer }
 }

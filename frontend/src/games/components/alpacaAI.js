@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { gMinigame, gPlayer } from '../core/globals.js';
+import { gMinigame, gPlayer , gEngine} from '../core/globals.js';
 import { checkWithinBounds, usePhysics } from '../core/usePhysics.js';
 import { getRandomPos, getRandomTimer } from '../utils/randomValues.js';
 
@@ -20,7 +20,7 @@ export function alpacaAI() {
     ai.timer -= delta;
     if (ai.timer <= 0) {
       // 50% chance to hunt the player if they're in range
-      if (player && !player.isDead) {
+      if (player && !player.isDead && gMinigame.value.mode !== 1) { // mode !== 1 to disable hunting for AI in spit roayle
         const distToPlayer = alpaca.model.position.distanceTo(player.model.position);
         if (distToPlayer < HUNT_RANGE && Math.random() < 0.5) {
           ai.state = 'hunting';
@@ -37,6 +37,11 @@ export function alpacaAI() {
   const handleMoving = (alpaca, delta) => {
     if (alpaca.isDead)
       return
+    if (gEngine.value.world)
+    {
+      handleMovingRapier(alpaca, delta)
+      return
+    }
     const ai = alpaca.ai;
     const model = alpaca.model;
     const target = alpaca.target;
@@ -164,3 +169,91 @@ export function alpacaAI() {
 
   return { updateAI, handleMoving };
 }
+
+const handleMovingRapier = (alpaca, delta) => {
+    if (!alpaca.physicsBody)
+      return
+    const ai = alpaca.ai;
+    const body = alpaca.physicsBody;
+    const currentVel = body.linvel();
+    
+    // Calculate how fast the Alpaca is ACTUALLY moving (horizontal only)
+    const actualSpeed = Math.sqrt(currentVel.x ** 2 + currentVel.z ** 2);
+  
+    // STUCK DETECTION:
+    // If we are in 'moving' state but speed is nearly 0, we hit something.
+    // We use a small threshold (0.2) because physics bodies jitter slightly.
+    if (actualSpeed < 0.2 && ai.state === 'moving') {
+      // Increment a "stuck timer" or check directly
+      ai.stuckFrames = (ai.stuckFrames || 0) + 1;
+  
+      if (ai.stuckFrames > 10) { // If stuck for ~10 frames
+        
+        // Apply a small "Ouch" bounce-back impulse
+        body.applyImpulse({ 
+          x: -currentVel.x * 2, 
+          y: 1.5, // Small hop
+          z: -currentVel.z * 2 
+        }, true);
+  
+        // Force to Idle so it picks a new target
+        ai.state = 'idle';
+        ai.timer = 1.0; 
+        ai.stuckFrames = 0;
+        alpaca.isAutoMoving = false;
+        return; // Exit early
+      }
+    } else {
+      ai.stuckFrames = 0; // Reset if we are moving fine
+    }
+    
+    const model = alpaca.model;
+    const target = alpaca.target;
+
+     // Get current physics position
+    const currentPos = body.translation();
+    const currentPosVec = new THREE.Vector3(currentPos.x, currentPos.y, currentPos.z);
+    
+    const distance = currentPosVec.distanceTo(target);
+  
+    if (distance < 0.8) { // Slightly larger threshold for physics
+      ai.state = 'idle';
+      ai.timer = getRandomTimer();
+      alpaca.isAutoMoving = false;
+      
+      // Stop the body when reaching target
+      const vel = body.linvel();
+      body.setLinvel({ x: 0, y: vel.y, z: 0 }, true);
+    } else {
+      // Calculate Direction
+      const direction = new THREE.Vector3().subVectors(target, currentPosVec).normalize();
+  
+      // Update Rotation (Visuals)
+      dummy.position.copy(currentPosVec);
+      dummy.lookAt(target.x, currentPosVec.y, target.z); // Keep it level
+      model.quaternion.slerp(dummy.quaternion, 5 * delta);
+      
+      // Sync physics rotation to match visual rotation
+      body.setRotation(model.quaternion, true);
+  
+      // Movement via Velocity
+      const speed = alpaca.speed; // No delta here! Linvel is "units per second"
+      const currentVel = body.linvel();
+      
+      body.setLinvel({
+        x: direction.x * speed,
+        y: currentVel.y, // Maintain gravity
+        z: direction.z * speed
+      }, true);
+  
+      // Handling "Stuck" logic
+      // We no longer need checkWithinBounds or checkCollision!
+      // Rapier will naturally stop the alpaca if it hits a tree or wall.
+      
+      // If the alpaca is trying to move but speed is near zero, it's stuck.
+      const actualVel = Math.sqrt(currentVel.x**2 + currentVel.z**2);
+      if (actualVel < 0.1 && distance > 1) {
+         // Optional: Add logic to pick a new target if stuck for too long
+      }
+    }
+  };

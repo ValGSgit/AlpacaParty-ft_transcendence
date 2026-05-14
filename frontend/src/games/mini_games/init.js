@@ -3,7 +3,7 @@ import { useAuthStore } from '../../stores/auth.js';
 import { debug } from '../../services/logger.js';
 import { clearCoins } from '../components/coins.js';
 import { CONST } from '../config/constants.js';
-import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
+import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser, gEngine } from '../core/globals.js';
 import { saveGame } from '../core/saveLoadGame.js';
 import { useGameEngine } from '../core/useGameEngine.js';
 import { initWorld } from '../world/initWorld.js';
@@ -11,6 +11,7 @@ import { initAlpacaRoad, initAlpacaRoadOnline } from './alpacaRoad.js';
 import { clearAnnouncements } from './annoucement.js';
 import { activeClient } from './GameClient.js';
 import { initSpitRoyalAI, initSpitRoyalOnline } from './spitRoyal.js';
+import { initRapier } from '../core/useRapier.js';
 
 const miniGameContainer = ref(null)
 const { clearScene, resetGArrays } = useGameEngine(miniGameContainer)
@@ -20,7 +21,6 @@ export let friendName = null
 
 export async function changeGame(mode = 0, playerCount = 1) {
   gUI.gameMenu = false
-  console.log("changeGame:", mode);
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0) saveGame();
 
@@ -37,9 +37,12 @@ export async function changeGame(mode = 0, playerCount = 1) {
       resetAlpaca(gAlpacas[i])
     }
   }
+  console.log("mode = ", mode)
   clearScene(gScene.value)
   clearCoins()
   resetGArrays()
+  if(mode === 1)// || mode === 2) // for now only with AI
+    await initRapier()
   initGameMode(mode, playerCount, tempAlpacas);
 }
 
@@ -56,6 +59,10 @@ async function returnFarm() {
   gUI.cameraMode = 0
   visitPlayerId = null
 
+  if (gEngine.value.world) {
+      gEngine.value.world.free(); 
+      gEngine.value.world = null; 
+  }
   gPlayer.value = null
   clearScene(gScene.value)
   resetGArrays()
@@ -83,6 +90,7 @@ function resetMinigame() {
 
 async function initGameMode(mode, playerCount, tempAlpacas) {
   debug("initGameMode: ", mode);
+  console.log("test", gPlayer.value)
   switch (mode) {
     case 1:
       initSpitRoyalAI(10, tempAlpacas);

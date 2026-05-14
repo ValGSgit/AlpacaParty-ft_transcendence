@@ -9,6 +9,7 @@ import { getValidRandomPos } from '../utils/spawnRandomly.js';
 import { setupEnvironment } from '../world/sceneBuilder.js';
 import { activeClient } from './GameClient.js';
 import { changeFloorColor } from './utils.js';
+import { initRigidBody } from '../core/useRapier.js';
 
 let activePlayers = [];
 
@@ -30,6 +31,8 @@ export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   setupEnvironment(gScene.value);
   changeFloorColor('#ff0000', '#550000');
   registerEntity(gPlayer.value, 'alpaca');
+  if (!gPlayer.value.physicsBody)
+    initRigidBody(gPlayer.value, gPlayer.value.model.position)
   gScene.value.add(gPlayer.value.model);
   gMinigame.value.players.push({ id: 1, name: gPlayer.value.name, hp: CONST.HP, point: 0 });
 
@@ -43,6 +46,8 @@ export async function initSpitRoyalAI(playerCount, tempAlpacas) {
     } else {
       alpaca = await createAlpaca(null, null, data[0].position, data[0].rotation, data[0].scale);
     }
+    if (!alpaca.physicsBody)
+      initRigidBody(alpaca, data[0].position)
     gScene.value.add(alpaca.model);
   }
 
