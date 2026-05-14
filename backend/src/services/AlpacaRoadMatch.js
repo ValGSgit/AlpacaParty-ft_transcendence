@@ -1,4 +1,4 @@
-import { debug } from "#lib/logger.js";
+import { debug, error } from "#lib/logger.js";
 import Game from "../models/Game.js";
 import { BaseMatch } from "./BaseMatch.js";
 
@@ -188,7 +188,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     if (allDead && this.status !== 'GAME_OVER') {
       this.status = 'GAME_OVER';
       this.persistOutcome().catch((err) => {
-        console.error('[alpaca-road] failed to persist outcome:', err.message);
+        error('[alpaca-road] failed to persist outcome:', err.message);
       });
 
       setTimeout(() => {

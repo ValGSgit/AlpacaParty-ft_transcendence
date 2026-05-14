@@ -4,15 +4,8 @@
 import Comment from '../models/Comment.js';
 import Post from '../models/Post.js';
 import NotificationService from '../services/notificationService.js';
-
-function stripDangerousHtml(str) {
-  return str
-    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
-    .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, "")
-    .replace(/<object\b[\s\S]*?<\/object>/gi, "")
-    .replace(/<embed\b[^>]*\/?>/gi, "")
-    .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "");
-}
+import { stripDangerousHtml } from '../utils/htmlSanitizer.js';
+import { debug } from '#lib/logger.js';
 
 /** GET /api/posts/:id/comments */
 export const getComments = async (req, res, next) => {
@@ -36,7 +29,7 @@ export const createComment = async (req, res, next) => {
     const comment = await Comment.create({ postId: post.id, authorId: req.user.id, content: stripDangerousHtml(content.trim()) });
 
     if (post.author_id !== req.user.id) {
-      NotificationService.postCommented(post.author_id, req.user.username, post.id).catch(() => {});
+      NotificationService.postCommented(post.author_id, req.user.username, post.id).catch((err) => { debug("notification error (postCommented):", err.message); });
     }
 
     res.status(201).json({ comment });

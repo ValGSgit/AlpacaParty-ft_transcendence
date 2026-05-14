@@ -4,18 +4,8 @@
  */
 import Post from "../models/Post.js";
 import NotificationService from "../services/notificationService.js";
-
-// Remove tags capable of executing scripts without entity-encoding the rest of
-// the text — contentValidator intentionally skips .escape() so Vue templates
-// can render plain text without double-encoding.
-function stripDangerousHtml(str) {
-  return str
-    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
-    .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, "")
-    .replace(/<object\b[\s\S]*?<\/object>/gi, "")
-    .replace(/<embed\b[^>]*\/?>/gi, "")
-    .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "");
-}
+import { stripDangerousHtml } from "../utils/htmlSanitizer.js";
+import { debug } from "#lib/logger.js";
 
 /** GET /api/posts */
 export const getFeed = async (req, res, next) => {
@@ -154,7 +144,7 @@ export const likePost = async (req, res, next) => {
         post.author_id,
         req.user.username,
         post.id,
-      ).catch(() => {});
+      ).catch((err) => { debug("notification error (postLiked):", err.message); });
     }
     res.json({ message: "Liked" });
   } catch (err) {

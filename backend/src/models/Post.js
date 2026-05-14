@@ -145,6 +145,7 @@ const Post = {
         },
         orderBy: { createdAt: "desc" },
         take: lim,
+        skip: off,
       }),
     ]);
 

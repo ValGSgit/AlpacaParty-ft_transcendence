@@ -65,7 +65,9 @@ vault kv put secret/alpacaparty \
   groq_api_key1="${GROQ_API_KEY1:-}" \
   groq_api_key2="${GROQ_API_KEY2:-}" \
   groq_api_key3="${GROQ_API_KEY3:-}" \
-  groq_model="${GROQ_MODEL:-}"
+  groq_model="${GROQ_MODEL:-}" \
+  seed_admin_password="${SEED_ADMIN_PASSWORD:-AdminPassword123}" \
+  seed_demo_password="${SEED_DEMO_PASSWORD:-LiveSeed123!}"
 
 echo "[vault-seed] Secrets written."
 

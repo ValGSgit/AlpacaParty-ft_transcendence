@@ -128,7 +128,7 @@ export function initializeSocket(httpServer, corsOrigins) {
 
         // Notification (non-blocking)
         NotificationService.newMessage(receiverId, user.username).catch(
-          () => { },
+          (err) => { debug("notification error (newMessage):", err.message); },
         );
 
         ack?.({ ok: true, message: shaped });
@@ -138,7 +138,7 @@ export function initializeSocket(httpServer, corsOrigins) {
     });
 
     socket.on("dm:read", async ({ senderId }) => {
-      await Message.markAsRead(user.id, senderId).catch(() => { });
+      await Message.markAsRead(user.id, senderId).catch((err) => { debug("markAsRead error:", err.message); });
     });
 
     // Group chat rooms (room:join / room:send) are not yet implemented —

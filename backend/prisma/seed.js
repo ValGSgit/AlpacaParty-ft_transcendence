@@ -21,7 +21,7 @@ async function main() {
   {
     const demoUsername = "live_demo";
     const demoEmail = "live_demo@alpacaparty.test";
-    const demoPassword = "LiveSeed123!";
+    const demoPassword = process.env.SEED_DEMO_PASSWORD || "LiveSeed123!";
 
     const existing = await prisma.user.findFirst({
       where: { OR: [{ username: demoUsername }, { email: demoEmail }] },
@@ -47,7 +47,7 @@ async function main() {
   {
     const adminUsername = "admin";
     const adminEmail = "admin@alpacaparty.local";
-    const adminPassword = "AdminPassword123";
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD || "AdminPassword123";
 
     const existing = await prisma.user.findFirst({
       where: { OR: [{ username: adminUsername }, { email: adminEmail }] },
@@ -69,7 +69,6 @@ async function main() {
         },
       });
       console.log(`✓ Seeded admin user: ${adminUsername} / ${adminEmail}`);
-      console.log(`  Password: ${adminPassword}`);
     }
   }
 }

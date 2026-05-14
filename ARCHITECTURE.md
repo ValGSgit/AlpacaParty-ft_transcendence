@@ -2,7 +2,7 @@
 
 > Full-stack social gaming platform. Users raise alpacas in a 3-D farm, compete in multiplayer mini-games (SpitRoyale, AlpacaRoad), build a social graph, share posts, and earn achievements — all served over HTTPS with real-time WebSocket communication.
 
-*Last updated: 2026-05-14. Reflects all changes through the friend-status and farm-endpoint consolidation.*
+*Last updated: 2026-05-14. Reflects all changes through the cleanup pass: 2FA removal, sanitizer consolidation, feed pagination fix, room-ID hardening, logger adoption, and seed-password vault migration.*
 
 ---
 
@@ -493,7 +493,7 @@ All use `express-validator`. `validatorUtils.checkValidation` converts errors in
 ## 4. Database Schema
 
 ```
-User ──────── UserAuth         (1:1) password hash, oauthProvider/Id, 2FA fields (schema only)
+User ──────── UserAuth         (1:1) password hash, oauthProvider/Id
          ├─── UserStats        (1:1) XP, level
          ├─── UserSettings     (1:1) isPublic
          ├─── PublicApi        (1:1) API key
@@ -521,7 +521,7 @@ User ──────── UserAuth         (1:1) password hash, oauthProvide
 - `AlpacaFarm.items` and `.alpacas` are `Json` — entire farm state is one blob per user.
 - `GameStat` unique on `(userId, gameType)` — stats are per-game-type, not aggregated.
 - Cascade deletes on almost everything from `User` — hard-deleting a user is a full cleanup.
-- `PasswordResetToken` and `twoFactorSecret` exist in schema but no routes implement them yet.
+- `PasswordResetToken` exists in schema but forgot-password / reset-password routes are not yet implemented.
 
 ---
 
@@ -732,40 +732,44 @@ Browser          Nginx           Backend
 
 ## 8. Known Issues & Improvement Areas
 
-### Bugs Fixed in This Codebase
-| File | Bug | Fix applied |
+### Resolved
+
+| File | Bug / Issue | Fix applied |
 |---|---|---|
 | `SpitRoyaleMatch.js:113` | `===` instead of `=` — `status` never set to `GAME_OVER` | Changed to `=` |
-| `socketService.js` | `room:join` / `room:send` referenced `ChatRoom` (not imported, not implemented) — would throw `ReferenceError` | Handlers removed |
+| `socketService.js` | `room:join` / `room:send` referenced `ChatRoom` — `ReferenceError` at runtime | Handlers removed |
 | `docker-entrypoint-prod.sh` | `prisma migrate dev` blocked by `NODE_ENV=production` on first deploy | Changed fallback to `prisma db push` |
-| `UserProfile.vue` | Add Friend button always showed "Add Friend" on page load regardless of actual friendship state | `friend_status` field added to `GET /users/:id`; button shows all four states |
-| `users.js` / `alpacaFarmController.js` | Duplicate farm endpoints at `/users/me/farmdata` and `/game/farm` writing same DB record | Removed `/me/farmdata` route + controller; `/game/farm` is canonical |
+| `UserProfile.vue` | Friend button always showed "Add Friend" regardless of actual friendship state | `friend_status` added to `GET /users/:id`; button reflects all four states |
+| `users.js` / `alpacaFarmController.js` | Duplicate farm endpoints at `/users/me/farmdata` and `/game/farm` | Removed `/me/farmdata`; `/game/farm` is canonical |
+| `schema.prisma` | Dead `twoFactorEnabled` / `twoFactorSecret` columns with no corresponding routes | Dropped from schema; migration `20260514200000_remove_2fa_fields` applied |
+| `postController.js` / `commentController.js` | `stripDangerousHtml` duplicated in both files; missing `<form>` and `<style>` tags | Extracted to `utils/htmlSanitizer.js`; gaps patched |
+| `Post.js` | Repost query in `getFeed()` missing `skip` — feed pagination broken for reposts | Added `skip: off` to repost `findMany` |
+| `MatchManager.js` | Room IDs generated with `Math.random()` — weak, collision-prone | Replaced with `crypto.randomUUID()` |
+| `SpitRoyaleMatch.js` / `MatchManager.js` | `console.log` in hot paths; no logger import | Replaced with `debug()` from `#lib/logger.js` |
+| `AlpacaRoadMatch.js` | `console.error` instead of logger | Replaced with `error()` from `#lib/logger.js` |
+| `GameClient.js` | `console.log` / `console.error` bypassed the frontend logger service | Replaced with `debug` / `devError` |
+| `postController.js` / `commentController.js` / `socketService.js` | Notification failures swallowed silently with `.catch(() => {})` | `.catch` now logs via `debug()` |
+| `seed.js` | Admin + demo passwords hardcoded in source; admin password printed to stdout | Passwords read from `SEED_ADMIN_PASSWORD` / `SEED_DEMO_PASSWORD` env vars (Vault-backed); stdout print removed |
+| `alpacaFarmController.test.js` | Orphaned test file with no corresponding controller | Deleted |
 
 ### Open Issues
 
 **Security**
-- `stripDangerousHtml()` in `postController` is hand-rolled and incomplete — misses `<form>`, `<style>`, and attributes like `onfocus`. Replace with a proper allowlist sanitizer (e.g. `dompurify` server-side or `sanitize-html`).
-- Seed script (`prisma/seed.js`) contains hardcoded demo user and admin passwords in source code. Move to env vars or Vault.
-- Upload magic-byte check only covers images; PDF, CSV, XML, text files are not validated.
+- Upload magic-byte check only covers images; PDF, CSV, XML, and text files are not validated.
 - Vault token has no expiry tracking or auto-refresh; a long-running instance could use an expired token silently.
 
 **Incomplete Implementations**
-- `PasswordResetToken` model and table exist but there are no forgot-password / reset-password routes.
-- `twoFactorEnabled` / `twoFactorSecret` fields exist in `UserAuth` but no 2FA setup, QR, or verify routes.
-- Group chat (`room:join` / `room:send`) was wired in `socketService` but `ChatRoom` model was never implemented; handlers have been removed pending proper implementation.
+- `PasswordResetToken` model exists but forgot-password / reset-password routes are not yet implemented.
+- Group chat (`room:join` / `room:send`) — `ChatRoom` model not implemented; handlers removed pending proper implementation.
 
 **Performance**
-- `Post.getFeed()` fetches all recent reposts in a separate unbounded query then merges — should be paginated/limited at the DB level.
 - `Notification` table has no TTL or cleanup job; old notifications accumulate indefinitely.
 - `dataExportService` loads all user data into memory at once — could OOM for users with large datasets.
 
 **Game**
-- `AlpacaRoadMatch` and `SpitRoyaleMatch` trust client-reported position/hit data without server-side bounds or replay-protection checks, allowing a malicious client to spoof movement or spit hits.
-- `MatchManager` generates room IDs with `Math.random().toString(36)` — not collision-resistant under concurrent load.
-- No heartbeat timeout to auto-close zombie matches (e.g., when all players disconnect without a clean `leave_room`).
+- `AlpacaRoadMatch` and `SpitRoyaleMatch` trust client-reported position/hit data — a malicious client can spoof movement or spit hits.
+- No heartbeat timeout to auto-close zombie matches (e.g., all players disconnect without `leave_room`).
 
 **Minor / Code Quality**
-- `GameClient.js` has `console.log` calls left in production paths.
-- `notificationService` swallows all errors with `.catch(() => {})` — callers cannot retry or observe failures.
 - Admin actions (ban, role change) have no audit log.
-- `proxy_read_timeout 86400` in Nginx (24 h) is excessive for API routes; only the WebSocket path needs it.
+- `proxy_read_timeout 86400` in Nginx is excessive for non-WebSocket API routes.

@@ -54,9 +54,6 @@ Do not re-add any of these claims without shipping the missing bullet.
 
 ## Open work before evaluation
 
-Tight punch-list. Items not on this list are either done or out of scope
-per the [pre-eval plan](.claude/plans/make-a-plan-so-merry-moore.md).
-
 | Item | Owner | Notes |
 |------|-------|-------|
 | Phase A dry-run of all 18 modules on production compose | All | Week-of-eval rehearsal; capture any regression as P1 |

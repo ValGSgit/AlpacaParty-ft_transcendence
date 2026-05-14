@@ -21,6 +21,8 @@ const KEY_MAP = {
   groq_api_key2: "GROQ_API_KEY2",
   groq_api_key3: "GROQ_API_KEY3",
   groq_model: "GROQ_MODEL",
+  seed_admin_password: "SEED_ADMIN_PASSWORD",
+  seed_demo_password: "SEED_DEMO_PASSWORD",
 };
 
 /**
