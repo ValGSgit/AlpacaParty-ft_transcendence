@@ -341,8 +341,13 @@ function avatarColor(username) {
 
 function getPostDisplayId(post) {
   // For reposts, create a unique display ID to prevent state sharing
-  // but keep the original post ID for API calls
-  return post._repostBy ? `repost-${post.id}-by-${post._repostById}` : post.id
+  // Use a stable key that includes repost metadata
+  if (post._repostBy) {
+    const repostId = post._repostById || post._repostBy
+    // Create a unique ID that combines post id, repost author, and creation time
+    return `repost|${post.id}|${repostId}|${post.created_at || ''}`
+  }
+  return `original|${post.id}`
 }
 
 function formatTime(ts) {
@@ -371,10 +376,21 @@ async function fetchPosts() {
   error.value = null
   try {
     const { data } = await api.get('/posts')
-    posts.value = (data.posts || []).map(post => {
+    const newPosts = (data.posts || []).map(post => {
       post._displayId = getPostDisplayId(post)
       return post
     })
+
+    // Clear comment state for posts that are no longer in the feed
+    const newDisplayIds = new Set(newPosts.map(p => p._displayId))
+    for (const key of Object.keys(postComments)) {
+      if (!newDisplayIds.has(key)) {
+        delete postComments[key]
+        delete commentDraft[key]
+      }
+    }
+
+    posts.value = newPosts
   } catch (e) {
     error.value = 'Failed to load posts'
   } finally {

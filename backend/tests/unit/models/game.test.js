@@ -313,8 +313,10 @@ describe("getLeaderboard", () => {
       {
         userId: 1,
         gameType: "spit_royale",
+        kills: 10,
         wins: 10,
         losses: 5,
+        obstacles: 3,
         draws: 2,
         elo: 1200,
         user: { username: "alice", avatar: "/a.png", level: 5 },
@@ -325,8 +327,10 @@ describe("getLeaderboard", () => {
       {
         userId: 1,
         gameType: "spit_royale",
+        kills: 10,
         wins: 10,
         losses: 5,
+        obstacles: 3,
         draws: 2,
         elo: 1200,
         username: "alice",

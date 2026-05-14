@@ -156,3 +156,12 @@ describe('App.vue', () => {
     expect(wrapper.find('.notif-badge').exists()).toBe(true)
   })
 })
+  const { default: api } = await import('../../src/services/api.js')
+  api.get.mockResolvedValue({ data: { notifications: [] } })
+
+  const { default: api } = await import('../../src/services/api.js')
+  api.get.mockResolvedValue({ data: { notifications: [] } })
+
+  const { default: api } = await import('../../src/services/api.js')
+  api.get.mockResolvedValue({ data: { notifications: [] } })
+
