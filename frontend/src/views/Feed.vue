@@ -203,12 +203,12 @@
         </template>
 
         <!-- Comments panel (slide via max-height) -->
-        <section class="comments" :class="{ open: commentsOpen.has(post._displayId) }">
+        <section class="comments" :class="{ open: commentsOpen.has(post.id) }">
           <div class="comments-inner">
-            <div v-if="commentLoading.has(post._displayId)" class="no-comments">Loading…</div>
+            <div v-if="commentLoading.has(post.id)" class="no-comments">Loading…</div>
             <template v-else>
-              <div v-if="!(postComments[post._displayId]?.length)" class="no-comments">No comments yet.</div>
-              <div v-for="c in (postComments[post._displayId] || [])" :key="c.id" class="comment">
+              <div v-if="!(postComments[post.id]?.length)" class="no-comments">No comments yet.</div>
+              <div v-for="c in (postComments[post.id] || [])" :key="c.id" class="comment">
                 <div class="avatar avatar-sm" :class="avatarColor(c.author_username)">
                   <img v-if="c.author_avatar" :src="resolveMediaUrl(c.author_avatar)" :alt="c.author_username" />
                   <span v-else>{{ c.author_username?.slice(0, 2).toUpperCase() }}</span>
@@ -238,7 +238,7 @@
                 <span v-else>{{ authStore.user?.username?.slice(0, 2).toUpperCase() }}</span>
               </div>
               <input
-                v-model="commentDraft[post._displayId]"
+                v-model="commentDraft[post.id]"
                 type="text"
                 placeholder="Reply with a witty alpaca-ism…"
                 maxlength="1000"
@@ -246,7 +246,7 @@
               <button
                 class="btn btn-ghost btn-sm"
                 type="submit"
-                :disabled="!commentDraft[post._displayId]?.trim()"
+                :disabled="!commentDraft[post.id]?.trim()"
               >Reply</button>
             </form>
           </div>
@@ -382,7 +382,7 @@ async function fetchPosts() {
     })
 
     // Clear comment state for posts that are no longer in the feed
-    const newDisplayIds = new Set(newPosts.map(p => p._displayId))
+    const newDisplayIds = new Set(newPosts.map(p => String(p.id)))
     for (const key of Object.keys(postComments)) {
       if (!newDisplayIds.has(key)) {
         delete postComments[key]
@@ -490,32 +490,32 @@ async function deletePost(postId) {
 // ── Comments ──────────────────────────────────────────────────────────────
 
 async function toggleComments(post) {
-  const displayId = post._displayId
-  if (commentsOpen.has(displayId)) {
-    commentsOpen.delete(displayId)
+  const threadKey = String(post.id)
+  if (commentsOpen.has(threadKey)) {
+    commentsOpen.delete(threadKey)
     return
   }
-  commentsOpen.add(displayId)
-  if (!postComments[displayId]) {
-    await loadComments(post.id, displayId)
+  commentsOpen.add(threadKey)
+  if (!postComments[threadKey]) {
+    await loadComments(post.id, threadKey)
   }
 }
 
-async function loadComments(postId, displayId) {
-  commentLoading.add(displayId)
+async function loadComments(postId, threadKey) {
+  commentLoading.add(threadKey)
   try {
     const { data } = await api.get(`/posts/${postId}/comments`)
-    postComments[displayId] = data.comments || []
+    postComments[threadKey] = data.comments || []
   } catch {
-    postComments[displayId] = []
+    postComments[threadKey] = []
   } finally {
-    commentLoading.delete(displayId)
+    commentLoading.delete(threadKey)
   }
 }
 
 async function submitComment(post) {
-  const displayId = post._displayId
-  const content = commentDraft[displayId]?.trim()
+  const threadKey = String(post.id)
+  const content = commentDraft[threadKey]?.trim()
   if (!content) return
   if (content.length > 1000) {
     error.value = 'Comments must be 1000 characters or fewer'
@@ -523,9 +523,9 @@ async function submitComment(post) {
   }
   try {
     const { data } = await api.post(`/posts/${post.id}/comments`, { content })
-    if (!postComments[displayId]) postComments[displayId] = []
-    postComments[displayId].push(data.comment)
-    commentDraft[displayId] = ''
+    if (!postComments[threadKey]) postComments[threadKey] = []
+    postComments[threadKey].push(data.comment)
+    commentDraft[threadKey] = ''
     post.comments_count = (post.comments_count || 0) + 1
   } catch {
     error.value = 'Failed to post comment'
@@ -533,10 +533,10 @@ async function submitComment(post) {
 }
 
 async function deleteComment(post, comment) {
-  const displayId = post._displayId
+  const threadKey = String(post.id)
   try {
     await api.delete(`/posts/${post.id}/comments/${comment.id}`)
-    postComments[displayId] = postComments[displayId].filter(c => c.id !== comment.id)
+    postComments[threadKey] = postComments[threadKey].filter(c => c.id !== comment.id)
     post.comments_count = Math.max(0, (post.comments_count || 1) - 1)
   } catch {
     error.value = 'Failed to delete comment'

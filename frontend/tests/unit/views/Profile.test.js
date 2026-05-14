@@ -25,6 +25,7 @@ function createTestRouter() {
     history: createWebHistory(),
     routes: [
       { path: '/profile', name: 'Profile', component: Profile },
+      { path: '/docs', name: 'ApiDocs', component: { template: '<div>Docs</div>' } },
     ],
   })
 }

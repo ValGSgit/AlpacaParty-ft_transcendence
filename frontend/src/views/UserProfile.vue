@@ -132,6 +132,8 @@
           <img v-if="post.image_url" :src="post.image_url" class="user-post-image" alt="" />
           <div class="user-post-footer">
             <span>{{ post.likes_count || 0 }} likes</span>
+            <span>{{ post.comments_count || 0 }} comments</span>
+            <span>{{ post.reposts_count || 0 }} reposts</span>
             <span>{{ formatDate(post.created_at) }}</span>
           </div>
         </div>
