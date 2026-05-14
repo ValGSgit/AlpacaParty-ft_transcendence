@@ -17,6 +17,20 @@ export const requireApiKey = async (req, res, next) => {
     const userId = await User.findByApiKey(apiKey);
     if (!userId) throw new CustomError("Invalid or revoked api key", 401);
 
+    // If a browser session cookie is also present, the API key must belong to
+    // that same user — prevents using another user's key from an authenticated
+    // session (e.g. Swagger UI with a stolen/borrowed key).
+    const sessionToken = req.cookies?.jwt_token;
+    if (sessionToken) {
+      const session = AuthService.verifyToken(sessionToken);
+      if (session && session.id !== userId) {
+        throw new CustomError(
+          "API key does not belong to the authenticated session",
+          403,
+        );
+      }
+    }
+
     req.userId = userId;
     next();
   } catch (err) {
