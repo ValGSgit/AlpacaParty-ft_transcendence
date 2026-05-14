@@ -98,6 +98,14 @@
         <h3>Game Stats</h3>
         <div class="stats-grid">
           <div class="stat-card">
+            <span class="stat-value">{{ stats.kills || 0 }}</span>
+            <span class="stat-label">Kills</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">{{ stats.obstacles || 0 }}</span>
+            <span class="stat-label">Obstacles</span>
+          </div>
+          <div class="stat-card">
             <span class="stat-value">{{ stats.wins || 0 }}</span>
             <span class="stat-label">Wins</span>
           </div>
@@ -108,6 +116,10 @@
           <div class="stat-card">
             <span class="stat-value">{{ stats.elo || 1000 }}</span>
             <span class="stat-label">ELO</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">{{ winRate }}</span>
+            <span class="stat-label">Win Rate</span>
           </div>
         </div>
       </div>
@@ -129,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
@@ -146,6 +158,14 @@ const error = ref(null)
 const isPrivate = ref(false)
 const friendStatus = ref(null) // { status: 'none'|'pending_sent'|'pending_received'|'friends', requestId? }
 const actionError = ref(null)
+
+const winRate = computed(() => {
+  if (!stats.value) return '—'
+  const total = (stats.value.wins || 0) + (stats.value.losses || 0)
+  if (total === 0) return '0%'
+  const rate = Math.round(((stats.value.wins || 0) / total) * 100)
+  return `${rate}%`
+})
 
 function formatDate(ts) {
   if (!ts) return ''

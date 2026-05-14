@@ -107,8 +107,8 @@
           </span>
           <span class="lb-record">
             <template v-if="gameType === 'coins'">Lv {{ entry.level ?? 1 }}</template>
-            <template v-else-if="gameType === 'spit_royale'">{{ entry.wins ?? 0 }} kills · {{ entry.losses ?? 0 }}L</template>
-            <template v-else>{{ entry.wins ?? 0 }} stages · {{ entry.losses ?? 0 }}L</template>
+            <template v-else-if="gameType === 'spit_royale'">{{ entry.kills ?? 0 }} ⚔ · {{ entry.obstacles ?? 0 }} ◄</template>
+            <template v-else>{{ entry.wins ?? 0 }} stages · {{ entry.obstacles ?? 0 }} ◄</template>
           </span>
         </div>
 

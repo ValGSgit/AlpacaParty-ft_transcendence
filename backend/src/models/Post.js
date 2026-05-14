@@ -123,21 +123,26 @@ const Post = {
             select: { postId: true },
           })
         : Promise.resolve([]),
-      // Fetch recent reposts of public posts by public authors only
+      // Fetch recent reposts — includes tombstones (postId = null) from deleted originals
       prisma.repost.findMany({
         where: {
-          post: {
-            isPublic: true,
-            author: { userSettings: { isPublic: true } },
-            ...(vid !== null
-              ? {
-                  NOT: [
-                    { author: { blockedUsers: { some: { blockedUserId: vid } } } },
-                    { author: { blockedBy: { some: { userId: vid } } } },
-                  ],
-                }
-              : {}),
-          },
+          OR: [
+            { postId: null }, // tombstone: original was deleted
+            {
+              post: {
+                isPublic: true,
+                author: { userSettings: { isPublic: true } },
+                ...(vid !== null
+                  ? {
+                      NOT: [
+                        { author: { blockedUsers: { some: { blockedUserId: vid } } } },
+                        { author: { blockedBy: { some: { userId: vid } } } },
+                      ],
+                    }
+                  : {}),
+              },
+            },
+          ],
         },
         include: {
           post: { include: { author: AUTHOR_SELECT } },
@@ -158,6 +163,34 @@ const Post = {
     // Interleave reposts, deduplicating by (postId, reposter) key
     const seenKeys = new Set(shaped.map((p) => `${p.id}`));
     for (const r of recentReposts) {
+      if (!r.post) {
+        // Tombstone: the original post was deleted, show a placeholder
+        const key = `tombstone-repost-${r.id}`;
+        if (seenKeys.has(key)) continue;
+        seenKeys.add(key);
+        shaped.push({
+          id: `tombstone-${r.id}`,
+          author_id: null,
+          content: null,
+          image_url: null,
+          is_public: false,
+          likes_count: 0,
+          likeCount: 0,
+          comments_count: 0,
+          reposts_count: 0,
+          created_at: r.createdAt,
+          updated_at: r.createdAt,
+          author_username: null,
+          author_avatar: null,
+          user_liked: false,
+          user_reposted: false,
+          _repostBy: r.author?.username,
+          _repostById: r.authorId,
+          _repostComment: r.comment,
+          _deleted: true,
+        });
+        continue;
+      }
       const key = `${r.post.id}-repost-${r.authorId}`;
       if (seenKeys.has(key)) continue;
       seenKeys.add(key);

@@ -110,7 +110,7 @@
       <article
         v-else
         v-for="post in posts"
-        :key="post.id"
+        :key="post._displayId || post.id"
         class="card post"
         :class="{
           'post--mine':     post.author_id === authStore.user?.id,
@@ -127,78 +127,88 @@
           <span v-if="post._repostComment" class="repost-quote">{{ post._repostComment }}</span>
         </div>
 
-        <header class="post-head">
-          <router-link v-if="post.author_id" :to="`/user/${post.author_id}`" class="author-avatar-link">
-            <div class="avatar" :class="avatarColor(post.author_username)">
-              <img v-if="post.author_avatar" :src="resolveMediaUrl(post.author_avatar)" :alt="post.author_username" @error="onPostImageError" />
-              <span v-else>{{ post.author_username?.slice(0, 2).toUpperCase() }}</span>
-            </div>
-          </router-link>
-          <div v-else class="avatar" :class="avatarColor(post.author_username)">
-            <span>{{ post.author_username?.slice(0, 2).toUpperCase() }}</span>
+        <!-- Tombstone: original post was deleted -->
+        <template v-if="post._deleted">
+          <div class="post-tombstone">
+            <svg viewBox="0 0 24 24" class="tombstone-ic" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>The original post was deleted.</span>
           </div>
+        </template>
 
-          <div class="post-meta">
-            <router-link v-if="post.author_id" :to="`/user/${post.author_id}`" class="username">
-              {{ post.author_username }}
-              <span v-if="post.author_id === authStore.user?.id" class="self-tag">you</span>
+        <template v-else>
+          <header class="post-head">
+            <router-link v-if="post.author_id" :to="`/user/${post.author_id}`" class="author-avatar-link">
+              <div class="avatar" :class="avatarColor(post.author_username)">
+                <img v-if="post.author_avatar" :src="resolveMediaUrl(post.author_avatar)" :alt="post.author_username" @error="onPostImageError" />
+                <span v-else>{{ post.author_username?.slice(0, 2).toUpperCase() }}</span>
+              </div>
             </router-link>
-            <span v-else class="username">{{ post.author_username || 'Unknown' }}</span>
-            <span class="dot-sep">·</span>
-            <time class="ts" :title="new Date(post.created_at).toLocaleString()">{{ formatTime(post.created_at) }}</time>
+            <div v-else class="avatar" :class="avatarColor(post.author_username)">
+              <span>{{ post.author_username?.slice(0, 2).toUpperCase() }}</span>
+            </div>
+
+            <div class="post-meta">
+              <router-link v-if="post.author_id" :to="`/user/${post.author_id}`" class="username">
+                {{ post.author_username }}
+                <span v-if="post.author_id === authStore.user?.id" class="self-tag">you</span>
+              </router-link>
+              <span v-else class="username">{{ post.author_username || 'Unknown' }}</span>
+              <span class="dot-sep">·</span>
+              <time class="ts" :title="new Date(post.created_at).toLocaleString()">{{ formatTime(post.created_at) }}</time>
+            </div>
+
+            <button
+              v-if="post.author_id === authStore.user?.id"
+              class="icon-btn danger"
+              title="Delete post"
+              @click="deletePost(post.id)"
+            >
+              <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+            </button>
+          </header>
+
+          <div class="post-body">
+            <p class="post-text">{{ post.content }}</p>
+            <img
+              v-if="post.image_url"
+              :src="resolveMediaUrl(post.image_url)"
+              class="post-image"
+              alt="post image"
+              @error="onPostImageError"
+            />
           </div>
 
-          <button
-            v-if="post.author_id === authStore.user?.id"
-            class="icon-btn danger"
-            title="Delete post"
-            @click="deletePost(post.id)"
-          >
-            <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
-          </button>
-        </header>
+          <!-- Action pills -->
+          <footer class="post-actions">
+            <button class="pill pill-like" :class="{ on: post.user_liked }" @click="toggleLike(post)">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M12 21s-7-4.6-9.5-9.1C1 8.5 3 5 6.4 5c2 0 3.4 1 4.6 2.6l1 1.4 1-1.4C14.2 6 15.6 5 17.6 5 21 5 23 8.5 21.5 11.9 19 16.4 12 21 12 21Z"/></svg>
+              <span class="count">{{ post.likes_count || 0 }}</span>
+            </button>
 
-        <div class="post-body">
-          <p class="post-text">{{ post.content }}</p>
-          <img
-            v-if="post.image_url"
-            :src="resolveMediaUrl(post.image_url)"
-            class="post-image"
-            alt="post image"
-            @error="onPostImageError"
-          />
-        </div>
+            <button class="pill pill-comment" :class="{ on: commentsOpen.has(post._displayId) }" @click="toggleComments(post)">
+              <svg viewBox="0 0 24 24" class="ic"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.5A8 8 0 1 1 21 12Z"/></svg>
+              <span class="count">{{ post.comments_count || 0 }}</span>
+            </button>
 
-        <!-- Action pills -->
-        <footer class="post-actions">
-          <button class="pill pill-like" :class="{ on: post.user_liked }" @click="toggleLike(post)">
-            <svg viewBox="0 0 24 24" class="ic"><path d="M12 21s-7-4.6-9.5-9.1C1 8.5 3 5 6.4 5c2 0 3.4 1 4.6 2.6l1 1.4 1-1.4C14.2 6 15.6 5 17.6 5 21 5 23 8.5 21.5 11.9 19 16.4 12 21 12 21Z"/></svg>
-            <span class="count">{{ post.likes_count || 0 }}</span>
-          </button>
-
-          <button class="pill pill-comment" :class="{ on: commentsOpen.has(post.id) }" @click="toggleComments(post)">
-            <svg viewBox="0 0 24 24" class="ic"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.5A8 8 0 1 1 21 12Z"/></svg>
-            <span class="count">{{ post.comments_count || 0 }}</span>
-          </button>
-
-          <button
-            v-if="authStore.isAuthenticated"
-            class="pill pill-repost"
-            :class="{ on: post.user_reposted }"
-            @click="openRepostModal(post)"
-          >
-            <svg viewBox="0 0 24 24" class="ic"><path d="M7 7h11l-2-2M17 17H6l2 2"/><path d="M18 7v4M6 17v-4"/></svg>
-            <span class="count">{{ post.reposts_count || 0 }}</span>
-          </button>
-        </footer>
+            <button
+              v-if="authStore.isAuthenticated"
+              class="pill pill-repost"
+              :class="{ on: post.user_reposted }"
+              @click="openRepostModal(post)"
+            >
+              <svg viewBox="0 0 24 24" class="ic"><path d="M7 7h11l-2-2M17 17H6l2 2"/><path d="M18 7v4M6 17v-4"/></svg>
+              <span class="count">{{ post.reposts_count || 0 }}</span>
+            </button>
+          </footer>
+        </template>
 
         <!-- Comments panel (slide via max-height) -->
-        <section class="comments" :class="{ open: commentsOpen.has(post.id) }">
+        <section class="comments" :class="{ open: commentsOpen.has(post._displayId) }">
           <div class="comments-inner">
-            <div v-if="commentLoading.has(post.id)" class="no-comments">Loading…</div>
+            <div v-if="commentLoading.has(post._displayId)" class="no-comments">Loading…</div>
             <template v-else>
-              <div v-if="!(postComments[post.id]?.length)" class="no-comments">No comments yet.</div>
-              <div v-for="c in (postComments[post.id] || [])" :key="c.id" class="comment">
+              <div v-if="!(postComments[post._displayId]?.length)" class="no-comments">No comments yet.</div>
+              <div v-for="c in (postComments[post._displayId] || [])" :key="c.id" class="comment">
                 <div class="avatar avatar-sm" :class="avatarColor(c.author_username)">
                   <img v-if="c.author_avatar" :src="resolveMediaUrl(c.author_avatar)" :alt="c.author_username" />
                   <span v-else>{{ c.author_username?.slice(0, 2).toUpperCase() }}</span>
@@ -228,7 +238,7 @@
                 <span v-else>{{ authStore.user?.username?.slice(0, 2).toUpperCase() }}</span>
               </div>
               <input
-                v-model="commentDraft[post.id]"
+                v-model="commentDraft[post._displayId]"
                 type="text"
                 placeholder="Reply with a witty alpaca-ism…"
                 maxlength="1000"
@@ -236,7 +246,7 @@
               <button
                 class="btn btn-ghost btn-sm"
                 type="submit"
-                :disabled="!commentDraft[post.id]?.trim()"
+                :disabled="!commentDraft[post._displayId]?.trim()"
               >Reply</button>
             </form>
           </div>
@@ -322,12 +332,17 @@ const commentDraft = reactive({})
 const repostModalPost = ref(null)
 const repostComment = ref('')
 
-/* Deterministic avatar color from username hash */
 function avatarColor(username) {
   const colors = ['av-cyan', 'av-gold', 'av-pink', 'av-aqua', 'av-mint', 'av-violet']
   let hash = 0
   for (const c of (username || '')) hash = (hash * 31 + c.charCodeAt(0)) & 0x7fffffff
   return colors[hash % colors.length]
+}
+
+function getPostDisplayId(post) {
+  // For reposts, create a unique display ID to prevent state sharing
+  // but keep the original post ID for API calls
+  return post._repostBy ? `repost-${post.id}-by-${post._repostById}` : post.id
 }
 
 function formatTime(ts) {
@@ -356,7 +371,10 @@ async function fetchPosts() {
   error.value = null
   try {
     const { data } = await api.get('/posts')
-    posts.value = data.posts || []
+    posts.value = (data.posts || []).map(post => {
+      post._displayId = getPostDisplayId(post)
+      return post
+    })
   } catch (e) {
     error.value = 'Failed to load posts'
   } finally {
@@ -456,30 +474,32 @@ async function deletePost(postId) {
 // ── Comments ──────────────────────────────────────────────────────────────
 
 async function toggleComments(post) {
-  if (commentsOpen.has(post.id)) {
-    commentsOpen.delete(post.id)
+  const displayId = post._displayId
+  if (commentsOpen.has(displayId)) {
+    commentsOpen.delete(displayId)
     return
   }
-  commentsOpen.add(post.id)
-  if (!postComments[post.id]) {
-    await loadComments(post.id)
+  commentsOpen.add(displayId)
+  if (!postComments[displayId]) {
+    await loadComments(post.id, displayId)
   }
 }
 
-async function loadComments(postId) {
-  commentLoading.add(postId)
+async function loadComments(postId, displayId) {
+  commentLoading.add(displayId)
   try {
     const { data } = await api.get(`/posts/${postId}/comments`)
-    postComments[postId] = data.comments || []
+    postComments[displayId] = data.comments || []
   } catch {
-    postComments[postId] = []
+    postComments[displayId] = []
   } finally {
-    commentLoading.delete(postId)
+    commentLoading.delete(displayId)
   }
 }
 
 async function submitComment(post) {
-  const content = commentDraft[post.id]?.trim()
+  const displayId = post._displayId
+  const content = commentDraft[displayId]?.trim()
   if (!content) return
   if (content.length > 1000) {
     error.value = 'Comments must be 1000 characters or fewer'
@@ -487,9 +507,9 @@ async function submitComment(post) {
   }
   try {
     const { data } = await api.post(`/posts/${post.id}/comments`, { content })
-    if (!postComments[post.id]) postComments[post.id] = []
-    postComments[post.id].push(data.comment)
-    commentDraft[post.id] = ''
+    if (!postComments[displayId]) postComments[displayId] = []
+    postComments[displayId].push(data.comment)
+    commentDraft[displayId] = ''
     post.comments_count = (post.comments_count || 0) + 1
   } catch {
     error.value = 'Failed to post comment'
@@ -497,9 +517,10 @@ async function submitComment(post) {
 }
 
 async function deleteComment(post, comment) {
+  const displayId = post._displayId
   try {
     await api.delete(`/posts/${post.id}/comments/${comment.id}`)
-    postComments[post.id] = postComments[post.id].filter(c => c.id !== comment.id)
+    postComments[displayId] = postComments[displayId].filter(c => c.id !== comment.id)
     post.comments_count = Math.max(0, (post.comments_count || 1) - 1)
   } catch {
     error.value = 'Failed to delete comment'
@@ -705,6 +726,18 @@ onMounted(fetchPosts)
 .repost-banner a { color: var(--primary); text-decoration: none; }
 .repost-ic { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; flex-shrink: 0; }
 .repost-quote { border-left: 2px solid var(--primary); padding-left: 6px; color: var(--text-secondary); font-style: italic; }
+
+.post-tombstone {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 12px;
+  background: rgba(255,255,255,.03);
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+.tombstone-ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; flex-shrink: 0; opacity: .5; }
 
 .author-avatar-link { text-decoration: none; flex-shrink: 0; }
 .post-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }

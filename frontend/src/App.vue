@@ -205,6 +205,22 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
     // the handshake and validated by socketAuthMiddleware. No client-side token.
     const sock = connectSocket()
     sock.on('notification', () => { unreadCount.value++ })
+
+    // Keep own online badge in sync with socket state
+    sock.on('connect', () => {
+      if (authStore.user) authStore.user.isOnline = true
+    })
+    sock.on('disconnect', () => {
+      if (authStore.user) authStore.user.isOnline = false
+    })
+    sock.on('presence', ({ userId, isOnline }) => {
+      if (authStore.user && Number(userId) === Number(authStore.user.id)) {
+        authStore.user.isOnline = isOnline
+      }
+    })
+    // If already connected when the watcher runs, mark online immediately
+    if (sock.connected && authStore.user) authStore.user.isOnline = true
+
     fetchNotifications()
   } else {
     disconnectSocket()
