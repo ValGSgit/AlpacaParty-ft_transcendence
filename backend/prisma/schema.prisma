@@ -309,17 +309,20 @@ model Post {
 
 // ── Comments ─────────────────────────────────────────────────────────────
 model Comment {
-  id        Int      @id @default(autoincrement())
-  postId    Int      @map("post_id")
-  authorId  Int      @map("author_id")
-  content   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id        Int       @id @default(autoincrement())
+  postId    Int?      @map("post_id")
+  repostId  Int?      @map("repost_id")
+  authorId  Int       @map("author_id")
+  content   String    @db.Text
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  repost Repost? @relation(fields: [repostId], references: [id], onDelete: Cascade)
+  author User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([postId])
+  @@index([repostId])
   @@map("comment")
 }
 
@@ -329,10 +332,12 @@ model Repost {
   postId    Int?     @map("post_id")
   authorId  Int      @map("author_id")
   comment   String?  @db.Text
+  commentsCount Int?  @default(0) @map("comments_count")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   post   Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
   author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments Comment[]
 
   @@unique([postId, authorId])
   @@index([postId])

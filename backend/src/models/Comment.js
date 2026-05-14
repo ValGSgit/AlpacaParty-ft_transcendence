@@ -9,6 +9,7 @@ function shapeComment(c) {
   return {
     id: c.id,
     post_id: c.postId,
+    repost_id: c.repostId ?? null,
     author_id: c.authorId,
     content: c.content,
     created_at: c.createdAt,
@@ -19,27 +20,35 @@ function shapeComment(c) {
 }
 
 const Comment = {
-  async create({ postId, authorId, content }) {
+  async create({ postId = null, repostId = null, authorId, content }) {
     const comment = await prisma.$transaction(async (tx) => {
       const c = await tx.comment.create({
-        data: { postId: Number(postId), authorId: Number(authorId), content },
+        data: {
+          postId: postId !== null ? Number(postId) : null,
+          repostId: repostId !== null ? Number(repostId) : null,
+          authorId: Number(authorId),
+          content,
+        },
         include: { author: AUTHOR_SELECT },
       });
-      const count = await tx.comment.count({
-        where: { postId: Number(postId) },
-      });
-      await tx.post.update({
-        where: { id: Number(postId) },
-        data: { commentsCount: count },
-      });
+      if (postId !== null) {
+        const count = await tx.comment.count({ where: { postId: Number(postId) } });
+        await tx.post.update({ where: { id: Number(postId) }, data: { commentsCount: count } });
+      } else if (repostId !== null) {
+        const count = await tx.comment.count({ where: { repostId: Number(repostId) } });
+        await tx.repost.update({ where: { id: Number(repostId) }, data: { commentsCount: count } });
+      }
       return c;
     });
     return shapeComment(comment);
   },
 
-  async getByPost(postId, { limit = 50, offset = 0 } = {}) {
+  async getByThread({ postId = null, repostId = null, limit = 50, offset = 0 } = {}) {
     const comments = await prisma.comment.findMany({
-      where: { postId: Number(postId) },
+      where: {
+        ...(postId !== null ? { postId: Number(postId) } : {}),
+        ...(repostId !== null ? { repostId: Number(repostId) } : {}),
+      },
       include: { author: AUTHOR_SELECT },
       orderBy: { createdAt: "asc" },
       take: Number(limit),
@@ -55,13 +64,13 @@ const Comment = {
     if (!comment || comment.authorId !== Number(authorId)) return false;
     await prisma.$transaction(async (tx) => {
       await tx.comment.delete({ where: { id: Number(id) } });
-      const count = await tx.comment.count({
-        where: { postId: comment.postId },
-      });
-      await tx.post.update({
-        where: { id: comment.postId },
-        data: { commentsCount: count },
-      });
+      if (comment.postId !== null) {
+        const count = await tx.comment.count({ where: { postId: comment.postId } });
+        await tx.post.update({ where: { id: comment.postId }, data: { commentsCount: count } });
+      } else if (comment.repostId !== null) {
+        const count = await tx.comment.count({ where: { repostId: comment.repostId } });
+        await tx.repost.update({ where: { id: comment.repostId }, data: { commentsCount: count } });
+      }
     });
     return true;
   },

@@ -161,7 +161,7 @@
               v-if="post.author_id === authStore.user?.id"
               class="icon-btn danger"
               title="Delete post"
-              @click="deletePost(post.id)"
+              @click="deletePost(post.source_post_id || post.id)"
             >
               <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
             </button>
@@ -203,12 +203,12 @@
         </template>
 
         <!-- Comments panel (slide via max-height) -->
-        <section class="comments" :class="{ open: commentsOpen.has(post.id) }">
+        <section class="comments" :class="{ open: commentsOpen.has(post._threadKey) }">
           <div class="comments-inner">
-            <div v-if="commentLoading.has(post.id)" class="no-comments">Loading…</div>
+            <div v-if="commentLoading.has(post._threadKey)" class="no-comments">Loading…</div>
             <template v-else>
-              <div v-if="!(postComments[post.id]?.length)" class="no-comments">No comments yet.</div>
-              <div v-for="c in (postComments[post.id] || [])" :key="c.id" class="comment">
+              <div v-if="!(postComments[post._threadKey]?.length)" class="no-comments">No comments yet.</div>
+              <div v-for="c in (postComments[post._threadKey] || [])" :key="c.id" class="comment">
                 <div class="avatar avatar-sm" :class="avatarColor(c.author_username)">
                   <img v-if="c.author_avatar" :src="resolveMediaUrl(c.author_avatar)" :alt="c.author_username" />
                   <span v-else>{{ c.author_username?.slice(0, 2).toUpperCase() }}</span>
@@ -238,7 +238,7 @@
                 <span v-else>{{ authStore.user?.username?.slice(0, 2).toUpperCase() }}</span>
               </div>
               <input
-                v-model="commentDraft[post.id]"
+                v-model="commentDraft[post._threadKey]"
                 type="text"
                 placeholder="Reply with a witty alpaca-ism…"
                 maxlength="1000"
@@ -246,7 +246,7 @@
               <button
                 class="btn btn-ghost btn-sm"
                 type="submit"
-                :disabled="!commentDraft[post.id]?.trim()"
+                :disabled="!commentDraft[post._threadKey]?.trim()"
               >Reply</button>
             </form>
           </div>
@@ -350,6 +350,10 @@ function getPostDisplayId(post) {
   return `original|${post.id}`
 }
 
+function getThreadKey(post) {
+  return `${post.thread_type || 'post'}|${post.thread_id || post.id}`
+}
+
 function formatTime(ts) {
   if (!ts) return ''
   const d = new Date(ts)
@@ -378,11 +382,12 @@ async function fetchPosts() {
     const { data } = await api.get('/posts')
     const newPosts = (data.posts || []).map(post => {
       post._displayId = getPostDisplayId(post)
+      post._threadKey = getThreadKey(post)
       return post
     })
 
     // Clear comment state for posts that are no longer in the feed
-    const newDisplayIds = new Set(newPosts.map(p => String(p.id)))
+    const newDisplayIds = new Set(newPosts.map(p => p._threadKey))
     for (const key of Object.keys(postComments)) {
       if (!newDisplayIds.has(key)) {
         delete postComments[key]
@@ -458,6 +463,7 @@ async function createPost() {
 }
 
 async function toggleLike(post) {
+  const targetPostId = post.source_post_id || post.id
   const wasLiked = post.user_liked
   post.user_liked = !wasLiked
   post.likes_count = wasLiked
@@ -465,9 +471,9 @@ async function toggleLike(post) {
     : (post.likes_count || 0) + 1
   try {
     if (wasLiked) {
-      await api.delete(`/posts/${post.id}/like`)
+      await api.delete(`/posts/${targetPostId}/like`)
     } else {
-      await api.post(`/posts/${post.id}/like`)
+      await api.post(`/posts/${targetPostId}/like`)
     }
   } catch {
     post.user_liked = wasLiked
@@ -490,21 +496,21 @@ async function deletePost(postId) {
 // ── Comments ──────────────────────────────────────────────────────────────
 
 async function toggleComments(post) {
-  const threadKey = String(post.id)
+  const threadKey = post._threadKey || getThreadKey(post)
   if (commentsOpen.has(threadKey)) {
     commentsOpen.delete(threadKey)
     return
   }
   commentsOpen.add(threadKey)
   if (!postComments[threadKey]) {
-    await loadComments(post.id, threadKey)
+    await loadComments(post.thread_id || post.id, threadKey, post.thread_type || 'post')
   }
 }
 
-async function loadComments(postId, threadKey) {
+async function loadComments(threadId, threadKey, threadType = 'post') {
   commentLoading.add(threadKey)
   try {
-    const { data } = await api.get(`/posts/${postId}/comments`)
+    const { data } = await api.get(`/posts/${threadId}/comments?thread=${threadType}`)
     postComments[threadKey] = data.comments || []
   } catch {
     postComments[threadKey] = []
@@ -514,7 +520,7 @@ async function loadComments(postId, threadKey) {
 }
 
 async function submitComment(post) {
-  const threadKey = String(post.id)
+  const threadKey = post._threadKey || getThreadKey(post)
   const content = commentDraft[threadKey]?.trim()
   if (!content) return
   if (content.length > 1000) {
@@ -522,7 +528,7 @@ async function submitComment(post) {
     return
   }
   try {
-    const { data } = await api.post(`/posts/${post.id}/comments`, { content })
+    const { data } = await api.post(`/posts/${post.thread_id || post.id}/comments?thread=${post.thread_type || 'post'}`, { content })
     if (!postComments[threadKey]) postComments[threadKey] = []
     postComments[threadKey].push(data.comment)
     commentDraft[threadKey] = ''
@@ -533,9 +539,9 @@ async function submitComment(post) {
 }
 
 async function deleteComment(post, comment) {
-  const threadKey = String(post.id)
+  const threadKey = post._threadKey || getThreadKey(post)
   try {
-    await api.delete(`/posts/${post.id}/comments/${comment.id}`)
+    await api.delete(`/posts/${post.thread_id || post.id}/comments/${comment.id}?thread=${post.thread_type || 'post'}`)
     postComments[threadKey] = postComments[threadKey].filter(c => c.id !== comment.id)
     post.comments_count = Math.max(0, (post.comments_count || 1) - 1)
   } catch {
@@ -548,7 +554,7 @@ async function deleteComment(post, comment) {
 async function openRepostModal(post) {
   if (post.user_reposted) {
     try {
-      await api.delete(`/posts/${post.id}/repost`)
+      await api.delete(`/posts/${post.source_post_id || post.id}/repost`)
       post.reposts_count = Math.max(0, (post.reposts_count || 1) - 1)
       post.user_reposted = false
     } catch (e) {
@@ -570,7 +576,7 @@ async function submitRepost(withComment) {
   if (!post) return
   const comment = withComment ? repostComment.value.trim() : null
   try {
-    await api.post(`/posts/${post.id}/repost`, { comment })
+    await api.post(`/posts/${post.source_post_id || post.id}/repost`, { comment })
     post.reposts_count = (post.reposts_count || 0) + 1
     post.user_reposted = true
     closeRepostModal()
