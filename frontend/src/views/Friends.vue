@@ -62,8 +62,12 @@
             @keyup.enter="searchUsers"
             class="search-input"
           />
-          <button class="btn-primary btn-sm" @click="searchUsers()" :disabled="searchingUsers">
-            {{ searchingUsers ? 'Searching…' : 'Search' }}
+          <button
+            class="btn-primary btn-sm"
+            @click="searchUsers(true)"
+            :disabled="usersFetcher.loading"
+          >
+            {{ usersFetcher.loading ? "Searching…" : "Search" }}
           </button>
         </div>
 
@@ -238,9 +242,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import api from '../services/api.js'
 import { useAuthStore } from '../stores/auth.js'
 
-const authStore = useAuthStore()
+const authStore = useAuthStore();
 
-const activeTab = ref('friends')
+const activeTab = ref("friends");
 const tabs = [
   { key: 'friends',  label: 'Friends' },
   { key: 'requests', label: 'Requests' },
@@ -248,13 +252,13 @@ const tabs = [
 ]
 const tabIndex = computed(() => tabs.findIndex(t => t.key === activeTab.value))
 
-const friends  = ref([])
-const received = ref([])
-const sent     = ref([])
-const blocked  = ref([])
-const loading  = ref(false)
-const error    = ref(null)
-const newFriendId = ref('')
+const friends = ref([]);
+const received = ref([]);
+const sent = ref([]);
+const blocked = ref([]);
+const loading = ref(false);
+const error = ref(null);
+const newFriendId = ref("");
 
 const friendSearch = ref('')
 const friendSort = ref('name')
@@ -266,116 +270,141 @@ const searchPageSize = 10
 const searchingUsers = ref(false)
 const requestedIds = ref(new Set())
 
-const pendingCount = computed(() => received.value.length)
+const usersFetcher = ref(new ListFetcher());
+const friendsFetcher = ref(new ListFetcher());
 
-const filteredFriends = computed(() => {
-  let list = [...friends.value]
-  if (friendSearch.value) {
-    const q = friendSearch.value.toLowerCase()
-    list = list.filter(f => f.username?.toLowerCase().includes(q))
-  }
-  if (friendSort.value === 'online') {
-    list.sort((a, b) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0))
-  } else if (friendSort.value === 'level') {
-    list.sort((a, b) => (b.level || 1) - (a.level || 1))
+const pendingCount = computed(() => received.value.length);
+
+async function fetchFriends(searchChanged = false) {
+  loading.value = true;
+  error.value = null;
+
+  let sort = {};
+  if (friendSort.value === "online") {
+    sort.online = "desc";
+  } else if (friendSort.value === "level") {
+    sort.level = "desc";
   } else {
-    list.sort((a, b) => (a.username || '').localeCompare(b.username || ''))
+    sort.username = "desc";
   }
-  return list
-})
 
-async function fetchFriends() {
-  loading.value = true
-  error.value = null
-  try {
-    const { data } = await api.get('/friends')
-    friends.value = data.friends
-    syncRequestedIds()
-  } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to load friends'
-  } finally {
-    loading.value = false
+  if (searchChanged) {
+    const searchValue = friendSearch.value.trim();
+    if (!searchValue) {
+      loading.value = false;
+      return;
+    }
+    let filter = {};
+    filter.username = searchValue;
+    friendsFetcher.value.updateParams({
+      filter,
+    });
   }
+
+  try {
+    friendsFetcher.value.updateParams({
+      pageSize: 5,
+      sort,
+    });
+    const { data } = await friendsFetcher.value.fetch("/friends");
+    friends.value = data.friends || [];
+  } catch (e) {
+    error.value = "Failed to fetch friends";
+  }
+  loading.value = false;
 }
 
 async function fetchRequests() {
-  loading.value = true
-  error.value = null
+  loading.value = true;
+  error.value = null;
   try {
-    const { data } = await api.get('/friends/requests')
-    received.value = data.received
-    sent.value = data.sent
-    syncRequestedIds()
+    const { data } = await api.get("/friends/requests");
+    received.value = data.received;
+    sent.value = data.sent;
+    syncRequestedIds();
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to load requests'
+    error.value = e.response?.data?.error?.message || "Failed to load requests";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function fetchBlocked() {
-  loading.value = true
-  error.value = null
+  loading.value = true;
+  error.value = null;
   try {
-    const { data } = await api.get('/friends/blocked')
-    blocked.value = data.blocked
+    const { data } = await api.get("/friends/blocked");
+    blocked.value = data.blocked;
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to load blocked users'
+    error.value =
+      e.response?.data?.error?.message || "Failed to load blocked users";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function syncRequestedIds() {
-  const nextIds = new Set()
-  for (const friend of friends.value) nextIds.add(Number(friend.id))
+  const nextIds = new Set();
+  for (const friend of friends.value) nextIds.add(Number(friend.id));
   for (const request of sent.value) {
-    const rid = request.receiverId || request.receiver?.id || request.receiverId
-    if (rid != null) nextIds.add(Number(rid))
+    const rid =
+      request.receiverId || request.receiver?.id || request.receiverId;
+    if (rid != null) nextIds.add(Number(rid));
   }
-  requestedIds.value = nextIds
+  requestedIds.value = nextIds;
 }
 
 async function sendRequest() {
   try {
-    await api.post('/friends/requests', { userId: Number(newFriendId.value) })
-    newFriendId.value = ''
-    await fetchRequests()
-    activeTab.value = 'requests'
+    await api.post("/friends/requests", { userId: Number(newFriendId.value) });
+    newFriendId.value = "";
+    await fetchRequests();
+    activeTab.value = "requests";
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to send request'
+    error.value = e.response?.data?.error?.message || "Failed to send request";
   }
 }
 
-async function searchUsers() {
-  if (!userSearch.value.trim()) return
-  searchingUsers.value = true
-  try {
-    const { data } = await api.get('/users', {
-      params: {
-        search: userSearch.value.trim(), 
-        limit: searchPageSize,
-        offset: searchPage.value * searchPageSize,
-        excludeUserId: authStore.user.id
-      },
+async function searchUsers(searchChanged = false) {
+  loading.value = true;
+
+  let sort = {};
+  sort.createdAt = "desc";
+
+  if (searchChanged) {
+    const searchValue = userSearch.value.trim();
+    if (!searchValue) {
+      loading.value = false;
+      return;
+    }
+    let filter = {};
+    filter.username = searchValue;
+    usersFetcher.value.updateParams({
+      filter,
     });
+  }
+  try {
+    usersFetcher.value.updateParams({
+      sort,
+    });
+    const { data } = await usersFetcher.value.fetch("/users");
     searchResults.value = data.users || [];
-    searchTotal.value = data.total || searchResults.value.length
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Search failed'
+    console.log(e);
+    error.value = e.response?.data?.error?.message || "Search failed";
   } finally {
-    searchingUsers.value = false
+    loading.value = false;
   }
 }
 
 async function sendRequestToUser(userId) {
   if (Number(userId) === Number(authStore.user?.id)) {
-    error.value = 'Cannot friend yourself'
-    return
+    error.value = "Cannot friend yourself";
+    return;
   }
   try {
-    await api.post('/friends/requests', { userId })
-    requestedIds.value = new Set([...requestedIds.value, Number(userId)])
+    await api.post("/friends/requests", { userId });
+    requestedIds.value = new Set([...requestedIds.value, Number(userId)]);
   } catch (e) {
     if (e.response?.status === 403) {
       error.value = e.response?.data?.error?.message || 'You cannot send a friend request to this user'
@@ -387,20 +416,22 @@ async function sendRequestToUser(userId) {
 
 async function acceptRequest(id) {
   try {
-    await api.put(`/friends/requests/${id}/accept`)
-    await Promise.all([fetchFriends(), fetchRequests()])
-    activeTab.value = 'friends'
+    await api.put(`/friends/requests/${id}/accept`);
+    await Promise.all([fetchFriends(), fetchRequests()]);
+    activeTab.value = "friends";
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to accept request'
+    error.value =
+      e.response?.data?.error?.message || "Failed to accept request";
   }
 }
 
 async function declineRequest(id) {
   try {
-    await api.put(`/friends/requests/${id}/decline`)
-    await fetchRequests()
+    await api.put(`/friends/requests/${id}/decline`);
+    await fetchRequests();
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to decline request'
+    error.value =
+      e.response?.data?.error?.message || "Failed to decline request";
   }
 }
 
@@ -417,38 +448,38 @@ async function blockFromRequest(requestId, senderId) {
 
 async function removeFriend(id) {
   try {
-    await api.delete(`/friends/${id}`)
-    await fetchFriends()
+    await api.delete(`/friends/${id}`);
+    await fetchFriends();
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to remove friend'
+    error.value = e.response?.data?.error?.message || "Failed to remove friend";
   }
 }
 
 async function blockUser(id) {
   try {
-    await api.post('/friends/block', { userId: id })
-    await Promise.all([fetchFriends(), fetchBlocked()])
+    await api.post("/friends/block", { userId: id });
+    await Promise.all([fetchFriends(), fetchBlocked()]);
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to block user'
+    error.value = e.response?.data?.error?.message || "Failed to block user";
   }
 }
 
 async function unblockUser(id) {
   try {
-    await api.delete(`/friends/block/${id}`)
-    await fetchBlocked()
+    await api.delete(`/friends/block/${id}`);
+    await fetchBlocked();
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to unblock user'
+    error.value = e.response?.data?.error?.message || "Failed to unblock user";
   }
 }
 
 function loadTab(tab) {
-  if (tab === 'friends')  fetchFriends()
-  if (tab === 'requests') fetchRequests()
-  if (tab === 'blocked')  fetchBlocked()
+  if (tab === "friends") fetchFriends();
+  if (tab === "requests") fetchRequests();
+  if (tab === "blocked") fetchBlocked();
 }
 
-watch(activeTab, loadTab)
+watch(activeTab, loadTab);
 onMounted(() => {
   fetchFriends()
   fetchRequests()

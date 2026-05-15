@@ -241,13 +241,52 @@ const User = {
     });
   },
 
-  async findAll({ limit = 50, offset = 0 } = {}, publicOnly = true) {
-    let whereClause = undefined;
-    if (publicOnly === true) {
-      whereClause = {
-        userSettings: { isPublic: true },
-      };
+  filterToPrismaWhere(filter = {}) {
+    let whereClause = {
+      AND: [],
+    };
+
+    for (const [key, value] of Object.entries(filter)) {
+      if (value === undefined || value === null || value === "") continue;
+      if (key === "username" || key === "bio") {
+        whereClause.AND.push({
+          [key]: { contains: value, mode: "insensitive" },
+        });
+      } else if (key === "public" && value === true) {
+        whereClause.AND.push({ userSettings: { isPublic: true } });
+      }
     }
+
+    if (whereClause.AND.length === 0) {
+      delete whereClause.AND;
+    }
+
+    return whereClause;
+  },
+
+  sortToPrismaOrderBy(sort = {}) {
+    let orderByArray = [];
+
+    for (const [key, value] of Object.entries(sort)) {
+      if (value !== "asc" && value !== "desc") continue;
+      if (
+        key === "createdAt" ||
+        key === "id" ||
+        key === "online" ||
+        key === "username"
+      ) {
+        orderByArray.push({ [key]: value });
+      } else if (key === "level" || "xp") {
+        orderByArray.push({ userStats: { [key]: value } });
+      }
+    }
+    return orderByArray;
+  },
+
+  async findAll({ limit = 50, offset = 0, filter = {}, sort = {} } = {}) {
+    const whereClause = this.filterToPrismaWhere(filter);
+
+    const orderByObj = this.sortToPrismaOrderBy(sort);
 
     const userCount = await prisma.user.count({ where: whereClause });
 
@@ -264,7 +303,7 @@ const User = {
         createdAt: true,
         userSettings: { select: { isPublic: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: orderByObj,
       take: Number(limit),
       skip: Number(offset),
     });
@@ -277,41 +316,19 @@ const User = {
   },
 
   async search(
-    term,
-    { limit = 20, offset = 0 } = {},
+    { limit = 20, offset = 0, filter = {}, sort = {} } = {},
     excludeUserId = -1,
-    publicOnly = true,
   ) {
-    const whereObj =
-      publicOnly === false
-        ? {
-            AND: [
-              {
-                OR: [
-                  { username: { contains: term, mode: "insensitive" } },
-                  { bio: { contains: term, mode: "insensitive" } },
-                ],
-              },
-            ],
-            NOT: { id: excludeUserId },
-          }
-        : {
-            AND: [
-              {
-                OR: [
-                  { username: { contains: term, mode: "insensitive" } },
-                  { bio: { contains: term, mode: "insensitive" } },
-                ],
-              },
-              { userSettings: { isPublic: true } },
-            ],
-            NOT: { id: excludeUserId },
-          };
+    const whereClause = this.filterToPrismaWhere(filter);
+    whereClause.NOT = [];
+    whereClause.NOT.push({ id: excludeUserId });
 
-    const userCount = await prisma.user.count({ where: whereObj });
+    const orderByObj = this.sortToPrismaOrderBy(sort);
+
+    const userCount = await prisma.user.count({ where: whereClause });
 
     const usersFound = await prisma.user.findMany({
-      where: whereObj,
+      where: whereClause,
       select: {
         id: true,
         username: true,
@@ -319,7 +336,7 @@ const User = {
         isOnline: true,
         userSettings: { select: { isPublic: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: orderByObj,
       take: Number(limit),
       skip: offset,
     });

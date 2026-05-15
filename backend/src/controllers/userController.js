@@ -173,18 +173,16 @@ export const getUser = async (req, res, next) => {
  */
 export const listUsers = async (req, res, next) => {
   try {
-    const pageSize =
-      Number(req.query.pageSize) || Number(req.query.limit) || 50;
-    const page = Number(req.query.page) || 1;
-    const limit = Math.min(pageSize, 100);
-    const offset = Number(req.query.offset) || Math.max((page - 1) * limit, 0);
-    const search = req.query.search ? String(req.query.search).trim() : "";
+    const limit = Math.min(req.query.limit || 50, 100);
+    const offset = Math.max(0, Number(req.query.offset) || 0);
+    const filter = req.query.filter;
+    const sort = req.query.sort;
     const excludeUserId = Number(req.query.excludeUserId) || undefined;
 
-    const searchRes =
-      search && search.length > 0
-        ? await User.search(search, { limit, offset }, excludeUserId, false)
-        : await User.findAll({ limit, offset }, false);
+    const searchRes = await User.search(
+      { limit, offset, filter, sort },
+      excludeUserId,
+    );
     const users = searchRes.usersFound;
     const total = searchRes.userCount;
 
@@ -194,7 +192,6 @@ export const listUsers = async (req, res, next) => {
       limit,
       offset,
       pageSize: limit,
-      currentPage: page,
     });
   } catch (err) {
     next(err);

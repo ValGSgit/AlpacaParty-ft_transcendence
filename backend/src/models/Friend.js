@@ -48,12 +48,17 @@ const Friend = {
     });
     if (blocked) {
       // If receiver blocked sender, return 403. If sender blocked receiver, reject as well.
-      throw Object.assign(new Error('Cannot send friend request due to block'), { status: 403 });
+      throw Object.assign(
+        new Error("Cannot send friend request due to block"),
+        { status: 403 },
+      );
     }
 
     const alreadyFriends = await this.areFriends(sender, receiver);
     if (alreadyFriends)
-      throw Object.assign(new Error("You are already friends"), { status: 409 });
+      throw Object.assign(new Error("You are already friends"), {
+        status: 409,
+      });
 
     const existing = await prisma.friendRequest.findFirst({
       where: {
@@ -160,9 +165,68 @@ const Friend = {
     });
   },
 
-  async getFriends(userId, { limit = 50, offset = 0 } = {}) {
+  filterToPrismaWhere(filter = {}) {
+    let whereClause = {};
+    let friendFilters = {};
+
+    for (const [key, value] of Object.entries(filter)) {
+      if (value === undefined || value === null || value === "") continue;
+
+      if (key === "username") {
+        friendFilters.username = { contains: value, mode: "insensitive" };
+      }
+    }
+
+    if (Object.keys(friendFilters).length > 0) {
+      whereClause.friend = friendFilters;
+    }
+
+    return whereClause;
+  },
+
+  sortToPrismaOrderBy(sort = {}) {
+    let orderByArray = [];
+
+    for (const [key, value] of Object.entries(sort)) {
+      if (value === undefined || value === null || value === "") continue;
+
+      const direction = String(value).toLowerCase();
+      if (direction !== "asc" && direction !== "desc") {
+        continue;
+      }
+
+      if (key === "username") {
+        orderByArray.push({
+          friend: { username: direction },
+        });
+      } else if (key === "level") {
+        orderByArray.push({
+          friend: { userStats: { level: direction } },
+        });
+      } else if (key === "online") {
+        orderByArray.push({
+          friend: { isOnline: direction },
+        });
+      }
+    }
+    return orderByArray;
+  },
+
+  async getFriends(
+    userId,
+    { limit = 50, offset = 0, filter = {}, sort = {} } = {},
+  ) {
+    let whereClause = this.filterToPrismaWhere(filter);
+    whereClause.userId = Number(userId);
+
+    const orderByClause = this.sortToPrismaOrderBy(sort);
+
+    const count = await prisma.friend.count({
+      where: whereClause,
+    });
+
     const rows = await prisma.friend.findMany({
-      where: { userId: Number(userId) },
+      where: whereClause,
       include: {
         friend: {
           select: {
@@ -175,14 +239,12 @@ const Friend = {
           },
         },
       },
-      orderBy: [
-        { friend: { isOnline: "desc" } },
-        { friend: { username: "asc" } },
-      ],
+      orderBy: orderByClause,
       take: Number(limit),
       skip: Number(offset),
     });
-    return rows.map((r) => shapeFriend(r.friend));
+    const friends = rows.map((r) => shapeFriend(r.friend));
+    return { friends, count };
   },
 
   async getOnlineFriends(userId) {

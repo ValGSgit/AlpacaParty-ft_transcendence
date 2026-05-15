@@ -26,7 +26,11 @@ import {
 } from "#validators/userValidator.js";
 import { idParamValidation } from "#validators/contentValidator.js";
 import { checkValidation } from "#validators/validatorUtils.js";
-import { apiKeyRegenerateLimiter } from "#middleware/rateLimiters.js";
+import {
+  getFarmData,
+  updateFarmData,
+} from "#controllers/alpacaFarmController.js";
+import { paginationValidation } from "#validators/paginationValidator.js";
 
 const router = express.Router();
 router.use(authenticate);
@@ -48,7 +52,7 @@ router.put("/me/farmdata", saveFarm);
 router.get("/me/api-key", getApiKey);
 router.post("/me/api-key", apiKeyRegenerateLimiter, generateApiKey);
 router.delete("/me/api-key", revokeApiKey);
-router.get("/", listUsers);
+router.get("/", paginationValidation(100), checkValidation, listUsers);
 router.get("/:id", idParamValidation(), checkValidation, getUser);
 
 export default router;
