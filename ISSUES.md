@@ -19,7 +19,7 @@
 | # | Module | Category | Pts | Status | Demo path |
 |---|--------|----------|-----|--------|-----------|
 | 1 | Vue + Express frameworks | Web · Major | 2 | ✅ | Any page load |
-| 2 | Real-time via Socket.IO (3 namespaces) | Web · Major | 2 | ✅ | DM, presence toggle, bell toast |
+| 2 | Real-time via Socket.IO (2 namespaces: `/` + `/minigames`) | Web · Major | 2 | ✅ | DM, presence toggle, bell toast |
 | 3 | User interaction (DMs, group rooms, friends) | Web · Major | 2 | ✅ | `/messages` + `/friends` + `/user/:id` |
 | 4 | Public API (6 endpoints, X-API-Key, 30 req/min) | Web · Major | 2 | ✅ | `GET /api/public/` + Swagger at `/api/docs` |
 | 5 | Prisma ORM across 27 models | Web · Minor | 1 | ✅ | Any DB-backed request |

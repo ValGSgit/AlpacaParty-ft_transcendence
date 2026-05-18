@@ -5,11 +5,12 @@
  * Endpoints:
  *   GET    /api/public/users          — list public users
  *   GET    /api/public/users/:id      — get a public user profile
- *   GET    /api/public/leaderboard    — game leaderboard
  *   GET    /api/public/posts          — public feed
+ *   POST   /api/public/posts          — create a post
+ *   PUT    /api/public/posts/:id      — update a post
+ *   DELETE /api/public/posts/:id      — delete a post
  */
 import User from "../models/User.js";
-import Game from "../models/Game.js";
 import Post from "../models/Post.js";
 import CustomError from "#utils/CustomError.js";
 
@@ -59,28 +60,6 @@ export const getUser = async (req, res, next) => {
     if (!user || !isUserPublic(user))
       throw new CustomError("User not found", 404);
     res.json({ user: toPublicUser(user) });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/**
- * GET /api/public/leaderboard?gameType=spit_royale
- */
-export const getLeaderboard = async (req, res, next) => {
-  try {
-    const { gameType = "spit_royale", limit = 20, offset = 0 } = req.query;
-    const leaderboard = await Game.getLeaderboard(gameType, {
-      limit: Number(limit),
-      offset: Number(offset),
-      publicOnly: true,
-    });
-    const shaped = leaderboard.map((row) => ({
-      ...row,
-      username: row.username,
-      avatar: row.avatar,
-    }));
-    res.json({ leaderboard: shaped });
   } catch (err) {
     next(err);
   }

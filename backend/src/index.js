@@ -121,7 +121,7 @@ app.get("/", (_req, res) => {
       posts: "/api/posts",
       notifications: "/api/notifications",
       uploads: "/api/uploads",
-      admin: "/api/admin",
+      helpdesk: "/api/helpdesk",
       publicApi: "/api/public",
     },
   });
