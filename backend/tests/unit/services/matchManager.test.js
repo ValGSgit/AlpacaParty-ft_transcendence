@@ -1,6 +1,8 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals'
 
-// Shared mock instance returned by every `new AlpacaRoadMatch(...)` call
+// Shared mock instance returned by every `new AlpacaRoadMatch(...)` call.
+// `constructor` is patched after the mocks are loaded so that
+// MatchManager's GAME_REGISTRY lookup (`match.constructor`) resolves.
 const mockMatch = {
   addPlayer: jest.fn(),
   toggleReady: jest.fn(),
@@ -16,15 +18,27 @@ const mockMatch = {
   roomName: '',
 }
 
+const mockAlpacaRoadMatchCtor = jest.fn().mockImplementation((id, ns, roomName) => {
+  mockMatch.matchId = id
+  mockMatch.roomName = roomName
+  return mockMatch
+})
+
+const mockSpitRoyalMatchCtor = jest.fn().mockImplementation(() => mockMatch)
+
 jest.unstable_mockModule('../../../src/services/AlpacaRoadMatch.js', () => ({
-  AlpacaRoadMatch: jest.fn().mockImplementation((id, ns, roomName) => {
-    mockMatch.matchId = id
-    mockMatch.roomName = roomName
-    return mockMatch
-  }),
+  AlpacaRoadMatch: mockAlpacaRoadMatchCtor,
+}))
+
+jest.unstable_mockModule('../../../src/services/SpitRoyaleMatch.js', () => ({
+  SpitRoyalMatch: mockSpitRoyalMatchCtor,
 }))
 
 const { MatchManager } = await import('../../../src/services/MatchManager.js')
+
+// Make GAME_REGISTRY[4] === mockMatch.constructor so the registry lookup
+// inside broadcastPublicRooms / join_room finds Alpaca Road (gameType 4).
+mockMatch.constructor = mockAlpacaRoadMatchCtor
 
 function makeIo() {
   let connectionHandler
@@ -53,6 +67,7 @@ beforeEach(() => {
   jest.clearAllMocks()
   mockMatch.players = new Map()
   mockMatch.status = 'LOBBY'
+  mockMatch.constructor = mockAlpacaRoadMatchCtor
   mockMatch.addPlayer.mockReset()
   mockMatch.toggleReady.mockReset()
   mockMatch.handlePlayerHit.mockReset()
@@ -90,7 +105,7 @@ describe('broadcastPublicRooms', () => {
     io.emit.mockClear()
     manager.broadcastPublicRooms()
     expect(io.emit).toHaveBeenCalledWith('available_rooms', [
-      { id: mockMatch.matchId, name: mockMatch.roomName, playerCount: 1 },
+      { id: mockMatch.matchId, name: mockMatch.roomName, playerCount: 1, gameType: 4 },
     ])
   })
 
@@ -111,7 +126,7 @@ describe('create_room', () => {
     const manager = new MatchManager(io)
     const socket = makeSocket('s1')
     io._trigger(socket)
-    socket._trigger('create_room', { name: 'Alice', color: 'red' })
+    socket._trigger('create_room', { name: 'Alice', color: 'red', gameType: 4 })
 
     expect(mockMatch.addPlayer).toHaveBeenCalledWith(socket, 'Alice', 'red')
     expect(socket.emit).toHaveBeenCalledWith('join_success', expect.objectContaining({ roomName: expect.any(String) }))
@@ -128,7 +143,7 @@ describe('join_room', () => {
     // Create a room with socket1
     const s1 = makeSocket('s1')
     io._trigger(s1)
-    s1._trigger('create_room', { name: 'Alice', color: 'red' })
+    s1._trigger('create_room', { name: 'Alice', color: 'red', gameType: 4 })
     const roomId = manager.playerToMatch.get('s1')
 
     // A second socket joins
@@ -156,7 +171,7 @@ describe('join_room', () => {
 
     const s1 = makeSocket('s1')
     io._trigger(s1)
-    s1._trigger('create_room', { name: 'Alice', color: 'red' })
+    s1._trigger('create_room', { name: 'Alice', color: 'red', gameType: 4 })
     const roomId = manager.playerToMatch.get('s1')
 
     // Simulate 4 players already in the room
@@ -178,7 +193,7 @@ describe('join_room', () => {
 
     const s1 = makeSocket('s1')
     io._trigger(s1)
-    s1._trigger('create_room', { name: 'Alice', color: 'red' })
+    s1._trigger('create_room', { name: 'Alice', color: 'red', gameType: 4 })
     const roomId = manager.playerToMatch.get('s1')
     mockMatch.status = 'PLAYING'
 
@@ -196,7 +211,7 @@ describe('ready_toggle', () => {
     const manager = new MatchManager(io)
     const socket = makeSocket('s1')
     io._trigger(socket)
-    socket._trigger('create_room', { name: 'Alice', color: 'red' })
+    socket._trigger('create_room', { name: 'Alice', color: 'red', gameType: 4 })
     socket._trigger('ready_toggle', { isReady: true })
     expect(mockMatch.toggleReady).toHaveBeenCalledWith('s1', true)
   })
@@ -217,7 +232,7 @@ describe('player events', () => {
     const manager = new MatchManager(io)
     const socket = makeSocket('s1')
     io._trigger(socket)
-    socket._trigger('create_room', { name: 'A', color: 'r' })
+    socket._trigger('create_room', { name: 'A', color: 'r', gameType: 4 })
     socket._trigger('player_hit')
     expect(mockMatch.handlePlayerHit).toHaveBeenCalledWith('s1')
   })
@@ -236,7 +251,7 @@ describe('player events', () => {
     const manager = new MatchManager(io)
     const socket = makeSocket('s1')
     io._trigger(socket)
-    socket._trigger('create_room', { name: 'A', color: 'r' })
+    socket._trigger('create_room', { name: 'A', color: 'r', gameType: 4 })
     socket._trigger('player_hit_complete')
     expect(mockMatch.handlePlayerHitComplete).toHaveBeenCalledWith('s1')
   })
@@ -255,7 +270,7 @@ describe('player events', () => {
     const manager = new MatchManager(io)
     const socket = makeSocket('s1')
     io._trigger(socket)
-    socket._trigger('create_room', { name: 'A', color: 'r' })
+    socket._trigger('create_room', { name: 'A', color: 'r', gameType: 4 })
     socket._trigger('player_jump')
     expect(mockMatch.handlePlayerJump).toHaveBeenCalledWith('s1')
   })
@@ -274,7 +289,7 @@ describe('player events', () => {
     const manager = new MatchManager(io)
     const socket = makeSocket('s1')
     io._trigger(socket)
-    socket._trigger('create_room', { name: 'A', color: 'r' })
+    socket._trigger('create_room', { name: 'A', color: 'r', gameType: 4 })
     socket._trigger('player_active')
     expect(mockMatch.handleActive).toHaveBeenCalledWith('s1')
   })
@@ -295,7 +310,7 @@ describe('disconnect', () => {
     const manager = new MatchManager(io)
     const socket = makeSocket('s1')
     io._trigger(socket)
-    socket._trigger('create_room', { name: 'Alice', color: 'red' })
+    socket._trigger('create_room', { name: 'Alice', color: 'red', gameType: 4 })
     const roomId = manager.playerToMatch.get('s1')
 
     // Simulate match now empty after remove
@@ -314,7 +329,7 @@ describe('disconnect', () => {
     const manager = new MatchManager(io)
     const socket = makeSocket('s1')
     io._trigger(socket)
-    socket._trigger('create_room', { name: 'Alice', color: 'red' })
+    socket._trigger('create_room', { name: 'Alice', color: 'red', gameType: 4 })
 
     // Simulate another player staying in the match
     mockMatch.players.set('s2', {})
