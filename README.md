@@ -19,6 +19,7 @@
 - **Friends & Presence** — Add friends, see online status, block users
 - **AI Help Desk** — Floating chat widget that streams answers from Groq; system-prompted to know AlpacaParty's features
 - **Gamification** — XP/level, achievements, daily challenges, coin economy, ELO leaderboard
+- **Admin Panel** — Role-based access control (admin/superadmin), system statistics, content moderation, user management (admin/superadmin only)
 - **Public API** — 6 RESTful endpoints with `X-API-Key` auth, per-user rate limiting (30 req/min), and an interactive Swagger UI at `/api/docs`
 - **OAuth 2.0** — Google and GitHub login via Passport.js
 - **HTTPS Everywhere** — nginx + self-signed TLS in dev, ModSecurity WAF (OWASP CRS) in prod
@@ -144,6 +145,7 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
 | Spit Royale (Game 1) | Real-time arena: 1v1 matchmaking, survival vs AI bots, spectator, rematch | ValGSgit, LukasStefanek |
 | Alpaca Road (Game 2) | Real-time race: matchmaking, history & ELO tracked separately from Spit Royale | ValGSgit, LukasStefanek |
 | Gamification | XP / level / coins, 6+ achievements, daily challenges, ELO leaderboard | ValGSgit |
+| Admin Panel | Role-based access control, system statistics, content moderation (admin/superadmin only) | ValGSgit |
 | AI Help Desk | Floating widget; backend proxies user messages + system prompt to Groq LLM API; rate-limited | ValGSgit |
 | Notifications | Real-time notifications for friend requests, messages, likes, comments, achievements, game invites | ValGSgit |
 | Public API | 6 endpoints under `/api/public/*` with X-API-Key auth, 30 req/min rate limit, Swagger UI | ValGSgit |
@@ -217,14 +219,15 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
 
 ### ValGSgit — Product Owner / Project Manager / Developer
 - **Infrastructure**: Docker Compose (dev + prod), Makefile targets, `.env.example`, SSL cert generation script
-- **Backend core**: Express server bootstrap, configuration system, middleware stack (helmet, cookie-parser, CORS, rate limiters, `authenticate`, `optionalAuth`, `requireApiKey`, error handler)
-- **Auth**: JWT access + refresh in HTTP-only cookies, bcrypt hashing with constant-time compare, OAuth strategies (Google + GitHub) with account linking
+- **Backend core**: Express server bootstrap, configuration system, middleware stack (helmet, cookie-parser, CORS, rate limiters, `authenticate`, `optionalAuth`, `requireApiKey`, `admin`, error handler)
+- **Auth**: JWT access + refresh in HTTP-only cookies, bcrypt hashing with constant-time compare, OAuth strategies (Google + GitHub) with account linking, admin JWT token generation
 - **Database**: Prisma schema (27 models), migrations, seed data
-- **API surface**: All controllers (auth, users, friends, chat, posts, comments, game, notifications, uploads, public API, helpdesk — 70+ endpoints)
-- **Services**: Gamification engine, NotificationService, dataExportService (JSON/CSV/XML), uploadService, `socketService` for the `/` namespace, `MatchManager` on the `/minigames` namespace dispatching `SpitRoyalMatch` (with AI bot tactics) and `AlpacaRoadMatch`
+- **API surface**: All controllers (auth, users, friends, chat, posts, comments, game, notifications, uploads, public API, helpdesk, admin — 75+ endpoints)
+- **Services**: Gamification engine, NotificationService, dataExportService (JSON/CSV/XML), uploadService, adminAuthService, `socketService` for the `/` namespace, `MatchManager` on the `/minigames` namespace dispatching `SpitRoyalMatch` (with AI bot tactics) and `AlpacaRoadMatch`
+- **Admin Panel**: Role-based access control (admin/superadmin), `adminController`, `adminAuthService`, `admin.js` middleware, admin route definitions, system statistics endpoints
 - **AI**: Groq LLM proxy (`/helpdesk`) with key rotation and rate limiting; floating `HelpDeskChat.vue` widget
-- **Cybersecurity**: HashiCorp Vault auto-init + auto-unseal + secret seeding; ModSecurity WAF tuned for the API
-- **Frontend**: `Feed.vue`, `Profile.vue`, settings page, public API key management UI, `ApiDocs.vue`, notifications
+- **Cybersecurity**: HashiCorp Vault auto-init + auto-unseal + secret seeding; ModSecurity WAF tuned for the API; API key session validation
+- **Frontend**: `Feed.vue`, `Profile.vue`, settings page, public API key management UI, `ApiDocs.vue`, `AdminPanel.vue`, `AdminLogin.vue`, notifications
 - **Compliance**: `PrivacyPolicy.vue`, `TermsOfService.vue`, GDPR export + delete-request flows
 
 ### DavidPoetsch — Technical Lead / Developer

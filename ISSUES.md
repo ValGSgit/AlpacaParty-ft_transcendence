@@ -1,9 +1,9 @@
 # AlpacaParty — Issues & Project Management
 
-**Last Updated**: May 11, 2026
+**Last Updated**: May 18, 2026
 **Product Owner**: ValGSgit
-**Status**: Evaluation-ready (28 module points claimed; 14 required by subject)
-**Peer Evaluation**: 1–2 weeks out (target window May 18 – May 25, 2026)
+**Status**: Evaluation-ready (27 module points claimed; 14 required by subject)
+**Peer Evaluation**: 3–4 weeks out (target window June 1 - June 15, 2026)
 
 > This file mirrors the canonical claim ledger in [`README.md`](README.md)
 > (module table at `README.md:167–185`). When the two diverge, the README
@@ -54,9 +54,11 @@ Do not re-add any of these claims without shipping the missing bullet.
 
 ## Open work before evaluation
 
-| Item | Owner | Notes |
-|------|-------|-------|
-| Phase A dry-run of all 18 modules on production compose | All | Week-of-eval rehearsal; capture any regression as P1 |
+| Item | Owner | Target | Notes |
+|------|-------|--------|-------|
+| **Documentation refresh** | All | June 15 | README, ISSUES.md, Points.md must stay current with merged features |
+| **Phase A dry-run of all 17 modules on production compose** | All | June 1 | Week-of-eval rehearsal; capture any regression as P1 |
+| **Admin panel functional testing** | ValGSgit | May 31 | Verify all admin endpoints work in prod environment |
 
 ### Closed in this audit (2026-05-11)
 
@@ -77,7 +79,33 @@ them. Documented so the team isn't surprised mid-demo.
 
 ---
 
-## Recent activity (since 2026-04-07)
+## Recent activity (since May 11, 2026)
+
+**Admin Implementation Merged** (May 18, 2026)
+- Merged `backend` branch into `dev` after backend PR containing admin functionality
+- Added `adminController.js` with login/logout/stats endpoints
+- Added `adminAuthService.js` for admin-specific JWT token generation
+- Added `admin.js` middleware for role-based authorization
+- Added `admin.js` routes for admin panel access
+- Admin users can now view system statistics, manage content, and access admin dashboard
+- Resolved 2 merge conflicts (deleted `matchManager.test.js`, fixed `socketService.test.js`)
+
+**API Key Session Validation** (May 14-15, 2026)
+- Fixed critical security issue where users could use other users' API keys
+- Session validation now uses JWT cookie as session anchor for public API requests
+- E2E tests updated to verify API key is validated against correct user session
+
+**Bug Fixes & Cleanup** (May 11-17, 2026)
+- SpitRoyaleMatch: fixed game status assignment (=== vs =)
+- socketService: removed orphaned ChatRoom handlers
+- Production entrypoint: replaced `prisma migrate dev` with `prisma db push` for initial deploy
+- Removed unused `photobooth.js` (orphan dev-only HTTP server)
+- Removed fake `/api/public/leaderboard` and `/api/public/mock` endpoints from discovery
+- Documentation cleanup: aligned README/ISSUES/Points.md on namespace count (2 namespaces: `/` + `/minigames`)
+
+---
+
+## Recent activity (since 2026-04-07 through 2026-05-11)
 
 ~120 commits landed across backend, frontend, infra, and tests. Highlights:
 
@@ -220,3 +248,4 @@ the full PR-by-PR history, use `git log`.
 | 2026-04-07 | ValGSgit (PO) | Codebase audit: confirmed #30, #31, #32 done; updated completion to 24/29. |
 | 2026-05-11 | ValGSgit (PO) | Full rewrite. Aligned to README's 28-pt / 18-module table (removed Organizations + Advanced Permissions claims). Corrected counts (27 models, 6 endpoints, 6 services, 30 req/min). Dropped April sprint plan and obsolete cleanup notes. Logged ~120 post-April-7 commits. Fixed `/help` route as part of the audit. |
 | 2026-05-11 | ValGSgit (PO) | Subject re-read (v21.1). Two literal-spec gaps closed: (a) LLM helpdesk now streams Groq SSE chunks end-to-end (backend forwards as `text/event-stream`, frontend consumes via `getReader`/`TextDecoder`); (b) GDPR Minor claim dropped because "confirmation emails for data operations" is unimplemented — features stay, claim does not. Total moves from 28 → 27 pts (10 Major × 2 + 7 Minor × 1). |
+| 2026-05-18 | ValGSgit (PO) | Admin panel feature merged from `backend` branch into `dev`. Updated docs: README Key Features + Features List, ISSUES.md recent activity, added admin implementation details to contributions. API key session validation security fix documented. Documentation update target set to June 15, 2026. |
