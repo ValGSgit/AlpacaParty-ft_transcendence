@@ -3,13 +3,19 @@
  */
 import Comment from '../models/Comment.js';
 import Post from '../models/Post.js';
+import prisma from '#config/prisma.js';
 import NotificationService from '../services/notificationService.js';
+import { stripDangerousHtml } from '../utils/htmlSanitizer.js';
+import { debug } from '#lib/logger.js';
 
 /** GET /api/posts/:id/comments */
 export const getComments = async (req, res, next) => {
   try {
+    const thread = req.query.thread || 'post';
     const { limit = 50, offset = 0 } = req.query;
-    const comments = await Comment.getByPost(req.params.id, { limit, offset });
+    const comments = thread === 'repost' && typeof Comment.getByThread === 'function'
+      ? await Comment.getByThread({ repostId: Number(req.params.id), limit, offset })
+      : await Comment.getByPost(req.params.id, { limit, offset });
     res.json({ comments });
   } catch (err) { next(err); }
 };
@@ -17,17 +23,32 @@ export const getComments = async (req, res, next) => {
 /** POST /api/posts/:id/comments */
 export const createComment = async (req, res, next) => {
   try {
+    const thread = req.query.thread || 'post';
     const { content } = req.body;
     if (!content?.trim()) return res.status(400).json({ error: { message: 'content is required' } });
     if (content.length > 2000) return res.status(400).json({ error: { message: 'comment must be 2000 characters or fewer' } });
 
+    if (thread === 'repost') {
+      const repost = await prisma.repost.findUnique({
+        where: { id: Number(req.params.id) },
+        include: { author: true },
+      });
+      if (!repost) return res.status(404).json({ error: { message: 'Repost not found' } });
+
+      const comment = await Comment.create({ repostId: repost.id, authorId: req.user.id, content: stripDangerousHtml(content.trim()) });
+      if (repost.authorId !== req.user.id) {
+        NotificationService.postCommented(repost.authorId, req.user.username, repost.postId || repost.id).catch((err) => { debug("notification error (postCommented):", err.message); });
+      }
+      return res.status(201).json({ comment });
+    }
+
     const post = await Post.findById(Number(req.params.id));
     if (!post) return res.status(404).json({ error: { message: 'Post not found' } });
 
-    const comment = await Comment.create({ postId: post.id, authorId: req.user.id, content: content.trim() });
+    const comment = await Comment.create({ postId: post.id, authorId: req.user.id, content: stripDangerousHtml(content.trim()) });
 
     if (post.author_id !== req.user.id) {
-      NotificationService.postCommented(post.author_id, req.user.username, post.id).catch(() => {});
+      NotificationService.postCommented(post.author_id, req.user.username, post.id).catch((err) => { debug("notification error (postCommented):", err.message); });
     }
 
     res.status(201).json({ comment });
@@ -53,7 +74,7 @@ export const repostPost = async (req, res, next) => {
     const post = await Post.findById(Number(req.params.id));
     if (!post) return res.status(404).json({ error: { message: 'Post not found' } });
 
-    const repost = await Post.repost(post.id, req.user.id, comment?.trim() || null);
+    const repost = await Post.repost(post.id, req.user.id, comment ? stripDangerousHtml(comment.trim()) : null);
     if (!repost) return res.status(409).json({ error: { message: 'Already reposted' } });
 
     res.status(201).json({ repost });

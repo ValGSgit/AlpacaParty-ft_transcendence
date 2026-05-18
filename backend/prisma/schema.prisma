@@ -17,6 +17,8 @@ model User {
   avatar    String?   @default("/avatars/default.svg") @db.VarChar(512)
   bio       String?   @default("") @db.Text
   status    String?   @default("Hey there! I am using AlpacaParty") @db.VarChar(255)
+  role      String    @default("user") @db.VarChar(20)
+  isBanned  Boolean   @default(false) @map("is_banned")
   isOnline  Boolean?  @default(false) @map("is_online")
   lastSeen  DateTime? @default(now()) @map("last_seen") @db.Timestamptz
   createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
@@ -55,12 +57,10 @@ model User {
 }
 
 model UserAuth {
-  id               Int     @id @default(autoincrement())
-  passwordHash     String? @db.VarChar(255)
-  twoFactorEnabled Boolean @default(false)
-  twoFactorSecret  String? @db.VarChar(255)
-  oauthProvider    String?
-  oauthId          String?
+  id            Int     @id @default(autoincrement())
+  passwordHash  String? @db.VarChar(255)
+  oauthProvider String?
+  oauthId       String?
 
   // Relations
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -200,6 +200,8 @@ model GameStat {
   losses    Int?     @default(0)
   draws     Int?     @default(0)
   elo       Int?     @default(1000)
+  kills     Int?     @default(0)
+  obstacles Int?     @default(0)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -307,30 +309,35 @@ model Post {
 
 // ── Comments ─────────────────────────────────────────────────────────────
 model Comment {
-  id        Int      @id @default(autoincrement())
-  postId    Int      @map("post_id")
-  authorId  Int      @map("author_id")
-  content   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id        Int       @id @default(autoincrement())
+  postId    Int?      @map("post_id")
+  repostId  Int?      @map("repost_id")
+  authorId  Int       @map("author_id")
+  content   String    @db.Text
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  repost Repost? @relation(fields: [repostId], references: [id], onDelete: Cascade)
+  author User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([postId])
+  @@index([repostId])
   @@map("comment")
 }
 
 // ── Reposts ───────────────────────────────────────────────────────────────
 model Repost {
   id        Int      @id @default(autoincrement())
-  postId    Int      @map("post_id")
+  postId    Int?     @map("post_id")
   authorId  Int      @map("author_id")
   comment   String?  @db.Text
+  commentsCount Int?  @default(0) @map("comments_count")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments Comment[]
 
   @@unique([postId, authorId])
   @@index([postId])

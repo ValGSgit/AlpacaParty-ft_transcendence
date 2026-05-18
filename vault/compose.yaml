@@ -52,11 +52,16 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_PUBLIC_API_SECRET: ${JWT_PUBLIC_API_SECRET}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
       API_KEYS: ${API_KEYS:-change-me-to-a-secure-key}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GROQ_API_KEY1: ${GROQ_API_KEY1:-}
+      GROQ_API_KEY2: ${GROQ_API_KEY2:-}
+      GROQ_API_KEY3: ${GROQ_API_KEY3:-}
+      GROQ_MODEL: ${GROQ_MODEL:-}
     volumes:
       - ssl:/vault/ssl:ro
       - ./init:/vault/init:ro

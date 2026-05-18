@@ -127,7 +127,7 @@ export const updatePost = async (req, res, next) => {
     if (existingPost.author_id !== req.userId)
       throw new CustomError("Can not modify post of other user", 400);
 
-    const post = await Post.update(postId, {
+    const post = await Post.update(postId, req.userId, {
       content,
       imageUrl: imageUrl || null,
       isPublic,
@@ -152,7 +152,7 @@ export const deletePost = async (req, res, next) => {
     if (existingPost.author_id !== req.userId)
       throw new CustomError("Can not delete post of other user", 400);
 
-    await Post.delete(id);
+    await Post.delete(id, req.userId);
     res.json({ message: "Post deleted" });
   } catch (err) {
     next(err);

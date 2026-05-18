@@ -59,7 +59,7 @@ describe('App.vue', () => {
       global: { plugins: [pinia, router] },
     })
 
-    expect(wrapper.find('.logo-text').text()).toBe('Alpaca Party!')
+    expect(wrapper.find('.logo-text').text()).toBe('AlpacaParty')
   })
 
   it('shows login/register links when not authenticated', () => {
@@ -156,3 +156,4 @@ describe('App.vue', () => {
     expect(wrapper.find('.notif-badge').exists()).toBe(true)
   })
 })
+

@@ -4,6 +4,8 @@
  */
 import Post from "../models/Post.js";
 import NotificationService from "../services/notificationService.js";
+import { stripDangerousHtml } from "../utils/htmlSanitizer.js";
+import { debug } from "#lib/logger.js";
 
 /** GET /api/posts */
 export const getFeed = async (req, res, next) => {
@@ -56,7 +58,7 @@ export const createPost = async (req, res, next) => {
     }
     const post = await Post.create({
       authorId: req.user.id,
-      content: content.trim(),
+      content: stripDangerousHtml(content.trim()),
       imageUrl: normalizedImageUrl,
       isPublic: !!isPublic,
     });
@@ -96,8 +98,8 @@ export const updatePost = async (req, res, next) => {
     ) {
       return res.status(400).json({ error: { message: "invalid imageUrl" } });
     }
-    const post = await Post.update(Number(req.params.id), {
-      content: content?.trim(),
+    const post = await Post.update(Number(req.params.id), req.user.id, {
+      content: content !== undefined ? stripDangerousHtml(content.trim()) : undefined,
       imageUrl: normalizedImageUrl,
       isPublic,
     });
@@ -142,7 +144,7 @@ export const likePost = async (req, res, next) => {
         post.author_id,
         req.user.username,
         post.id,
-      ).catch(() => {});
+      ).catch((err) => { debug("notification error (postLiked):", err.message); });
     }
     res.json({ message: "Liked" });
   } catch (err) {

@@ -79,8 +79,10 @@ help:
 	@echo "$(YELLOW)Database$(RESET)"
 	@echo "  $(GREEN)make seed-live$(RESET)            Seed sample data (dev)"
 	@echo "  $(GREEN)make seed-live-reset$(RESET)      Reset and reseed sample data (dev)"
+	@echo "  $(GREEN)make seed-admin$(RESET)           Seed default admin user (dev)"
 	@echo "  $(GREEN)make prod-seed-live$(RESET)       Seed sample data (prod)"
 	@echo "  $(GREEN)make prod-seed-live-reset$(RESET) Reset and reseed sample data (prod)"
+	@echo "  $(GREEN)make prod-seed-admin$(RESET)      Seed default admin user (prod)"
 	@echo ""
 	@echo "$(YELLOW)Security$(RESET)"
 	@echo "  $(GREEN)make vault-status$(RESET)              Show Vault seal/HA status (dev)"
@@ -162,6 +164,9 @@ generate-secrets:
 	@JWT=$$(openssl rand -hex 40) && \
 	  sed -i "s|^JWT_PUBLIC_API_SECRET=.*|JWT_PUBLIC_API_SECRET=$$JWT|" .env && \
 	  echo "$(GREEN)✓ JWT_PUBLIC_API_SECRET randomised$(RESET)"
+	@JWT=$$(openssl rand -hex 40) && \
+	  sed -i "s|^ADMIN_JWT_SECRET=.*|ADMIN_JWT_SECRET=$$JWT|" .env && \
+	  echo "$(GREEN)✓ ADMIN_JWT_SECRET randomised$(RESET)"
 	@echo "$(GREEN)✓ DATABASE_URL synced with DB credentials$(RESET)"
 	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
 
@@ -313,6 +318,14 @@ seed-live: seed-example
 seed-live-reset: seed-example-reset
 prod-seed-live: prod-seed-example
 prod-seed-live-reset: prod-seed-example-reset
+
+seed-admin:
+	@echo "$(CYAN)⏳ Seeding admin user...$(RESET)"
+	$(DC) exec backend npm run seed
+
+prod-seed-admin:
+	@echo "$(CYAN)⏳ Seeding admin user (prod)...$(RESET)"
+	$(DC_PROD) exec backend npm run seed
 
 # ── SECURITY / VAULT ────────────────────────────────────────
 vault-status:

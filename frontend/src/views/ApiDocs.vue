@@ -432,7 +432,6 @@ const { users } = await res.json();</pre>
                   <div class="am-rg-head"><span class="am-prefix">/users</span><span class="am-rg-label">Users</span></div>
                   <ul class="am-rl">
                     <li><span class="am-verb am-v-mix">CRUD</span><span>/me</span></li>
-                    <li><span class="am-verb am-v-mix">G·P</span><span>/me/farmdata</span></li>
                     <li><span class="am-verb am-v-put">PUT</span><span>/me/password</span></li>
                     <li><span class="am-verb am-v-get">GET</span><span>/me/export <em class="am-note">GDPR</em></span></li>
                     <li><span class="am-verb am-v-mix">P·G</span><span>/me/delete-request · /me/data-requests</span></li>
@@ -724,8 +723,7 @@ const { users } = await res.json();</pre>
                 <span class="am-card-sub">match order</span>
               </div>
               <ul class="am-rl am-rl--nginx">
-                <li><span class="am-verb am-v-mix">SPC</span><span>/api/users/me</span><em class="am-note">cache headers</em></li>
-                <li><span class="am-verb am-v-mix">SPC</span><span>/api/users/me/farmdata</span><em class="am-note">cache headers</em></li>
+                <li><span class="am-verb am-v-mix">SPC</span><span>/api/users/me</span><em class="am-note">WAF bypass</em></li>
                 <li><span class="am-verb am-v-get">→</span><span>/api/*</span><em class="am-note">backend:3000</em></li>
                 <li><span class="am-verb am-v-post">⇅</span><span>/socket.io/*</span><em class="am-note">WS upgrade</em></li>
                 <li><span class="am-verb am-v-get">→</span><span>/uploads/*</span><em class="am-note">backend:3000</em></li>

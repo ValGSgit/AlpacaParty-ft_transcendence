@@ -29,7 +29,7 @@ const router = express.Router();
  *     tags: [Posts]
  *     summary: Get the social feed (public posts + friends' posts)
  *     security:
- *       - BearerAuth: []
+ *       - X-API-KEY: []
  *     parameters:
  *       - $ref: '#/components/parameters/limitParam'
  *       - $ref: '#/components/parameters/offsetParam'

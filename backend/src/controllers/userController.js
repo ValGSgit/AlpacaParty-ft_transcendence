@@ -126,10 +126,14 @@ export const getUser = async (req, res, next) => {
       }
     }
 
+    const friendStatus =
+      req.user && user.id !== req.user.id
+        ? await Friend.getFriendStatus(req.user.id, user.id)
+        : null;
+
     const isPublic = user.userSettings?.isPublic;
     if (!isPublic && user.id !== req.user?.id) {
-      const areFriends = await Friend.areFriends(req.user?.id, user.id);
-      if (!areFriends) {
+      if (friendStatus?.status !== 'friends') {
         // Include minimal public data so the frontend can render a locked card.
         return res.status(403).json({
           error: { message: "This profile is private" },
@@ -140,10 +144,11 @@ export const getUser = async (req, res, next) => {
             isOnline: user.isOnline,
             isPrivate: true,
           },
+          friend_status: friendStatus,
         });
       }
     }
-    res.json({ user: shapeUserForClient(user) });
+    res.json({ user: shapeUserForClient(user), friend_status: friendStatus });
   } catch (err) {
     next(err);
   }

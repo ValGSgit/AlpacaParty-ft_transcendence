@@ -55,11 +55,11 @@ export class MatchManager {
       };
 
       socket.on('create_room', ({ name, color, gameType }) => {
-        console.log(`BACKEND: Received create_room request from ${name}`);
+        debug(`BACKEND: Received create_room request from ${name}`);
 
         leaveCurrentRoom();
 
-        const roomId = Math.random().toString(36);
+        const roomId = crypto.randomUUID();
         const roomName = `${name}'s Room`;
         const MatchClass = GAME_REGISTRY[gameType];
         const match = new MatchClass(roomId, this.io, roomName, () => {

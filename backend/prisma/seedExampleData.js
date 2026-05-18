@@ -8,8 +8,6 @@ const cfg = {
   users: Number(process.env.SEED_USERS || 2400),
   posts: Number(process.env.SEED_POSTS || 1400),
   dmMessages: Number(process.env.SEED_DM_MESSAGES || 6000),
-  rooms: Number(process.env.SEED_ROOMS || 40),
-  roomMessages: Number(process.env.SEED_ROOM_MESSAGES || 7000),
   notifications: Number(process.env.SEED_NOTIFICATIONS || 250),
   avgFriends: Number(process.env.SEED_AVG_FRIENDS || 27),
 };
@@ -401,8 +399,6 @@ async function main() {
     usersCount,
     postsCount,
     dmCount,
-    roomsCount,
-    roomMsgCount,
     notifCount,
     achievementCount,
   ] = await Promise.all([
@@ -432,7 +428,7 @@ async function main() {
 
   console.log("[seed-live] Done");
   console.log(
-    `[seed-live] users=${usersCount}, posts=${postsCount}, dms=${dmCount}, rooms=${roomsCount}, roomMessages=${roomMsgCount}, notifications=${notifCount}, achievements=${achievementCount}`,
+    `[seed-live] users=${usersCount}, posts=${postsCount}, dms=${dmCount}, notifications=${notifCount}, achievements=${achievementCount}`,
   );
   console.log(`[seed-live] Shared password for seeded users: ${seedPassword}`);
   console.log("[seed-live] Seeded accounts: live_admin, live_demo, live_mod");

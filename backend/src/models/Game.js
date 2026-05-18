@@ -139,6 +139,8 @@ const Game = {
       wins: s.wins,
       losses: s.losses,
       draws: s.draws,
+      kills: s.kills ?? 0,
+      obstacles: s.obstacles ?? 0,
       elo: s.elo,
       username: s.user.username,
       avatar: s.user.avatar,

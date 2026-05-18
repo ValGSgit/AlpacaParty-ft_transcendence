@@ -196,7 +196,9 @@ jobs:
       GITHUB_CALLBACK_URL: https://localhost:8443/api/auth/github/callback
       JWT_EXPIRES_IN: 1h
       JWT_REFRESH_EXPIRES_IN: 7d
+      ADMIN_JWT_SECRET: ci-admin-secret-change
       VAULT_DEV_TOKEN: root
+      AUTH_RATE_LIMIT_MAX: "500"
 
     steps:
       - name: Checkout

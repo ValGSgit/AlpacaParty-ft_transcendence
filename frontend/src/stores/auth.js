@@ -95,7 +95,7 @@ export const useAuthStore = defineStore("auth", () => {
     } catch (e) {
       // 401 here just means "no valid session" — expected on first load.
       user.value = null;
-      if (e?.response?.status !== 401) devError(e);
+      //if (e?.response?.status !== 401) devError(e);
     } finally {
       loading.value = false;
     }

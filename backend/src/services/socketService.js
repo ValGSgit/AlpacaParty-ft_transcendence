@@ -128,7 +128,7 @@ export function initializeSocket(httpServer, corsOrigins) {
 
         // Notification (non-blocking)
         NotificationService.newMessage(receiverId, user.username).catch(
-          () => { },
+          (err) => { debug("notification error (newMessage):", err.message); },
         );
 
         ack?.({ ok: true, message: shaped });
@@ -138,47 +138,11 @@ export function initializeSocket(httpServer, corsOrigins) {
     });
 
     socket.on("dm:read", async ({ senderId }) => {
-      await Message.markAsRead(user.id, senderId).catch(() => { });
+      await Message.markAsRead(user.id, senderId).catch((err) => { debug("markAsRead error:", err.message); });
     });
 
-    // ── Group Chat Rooms ─────────────────────────────────────
-    socket.on("room:join", async ({ roomId }, ack) => {
-      try {
-        const isMember = await ChatRoom.isMember(roomId, user.id);
-        if (!isMember) return ack?.({ error: "Not a member of this room" });
-        socket.join(`room:${roomId}`);
-        ack?.({ ok: true });
-      } catch (err) {
-        ack?.({ error: err.message });
-      }
-    });
-
-    socket.on("room:send", async ({ roomId, content }, ack) => {
-      try {
-        if (!content?.trim()) return ack?.({ error: "Empty message" });
-        const isMember = await ChatRoom.isMember(roomId, user.id);
-        if (!isMember) return ack?.({ error: "Not a member" });
-
-        const msg = await ChatRoom.sendMessage({
-          roomId,
-          senderId: user.id,
-          content: content.trim(),
-        });
-        const shaped = {
-          id: msg.id,
-          room_id: msg.roomId ?? roomId,
-          sender_id: msg.senderId,
-          content: msg.content,
-          created_at: msg.createdAt,
-          sender_username: user.username,
-          sender_avatar: user.avatar,
-        };
-        io.to(`room:${roomId}`).emit("room:message", shaped);
-        ack?.({ ok: true, message: shaped });
-      } catch (err) {
-        ack?.({ error: err.message });
-      }
-    });
+    // Group chat rooms (room:join / room:send) are not yet implemented —
+    // ChatRoom model does not exist. Handlers removed to prevent ReferenceError.
 
     // ── Alpaca farm data sync (offline -> server) ────────────
     socket.on("farm:save", async ({ farmData }, ack) => {

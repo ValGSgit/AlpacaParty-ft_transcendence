@@ -2,7 +2,6 @@ import { jest, describe, test, expect, beforeEach } from '@jest/globals'
 
 const mockSetIo = jest.fn()
 
-
 jest.unstable_mockModule('socket.io', () => ({
   Server: jest.fn().mockImplementation(() => mockIo),
 }))

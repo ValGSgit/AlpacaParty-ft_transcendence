@@ -26,7 +26,9 @@ const router = express.Router();
 
 // Keep strict limits in production, but allow larger volume in dev/e2e runs.
 // The global /api limiter (1000/15 min) is too loose to prevent brute-force.
-const authLimiterMax = process.env.NODE_ENV === "production" ? 50 : 1000;
+// AUTH_RATE_LIMIT_MAX env var overrides the default (useful for CI/E2E runs).
+const authLimiterMax = parseInt(process.env.AUTH_RATE_LIMIT_MAX, 10) ||
+  (process.env.NODE_ENV === "production" ? 50 : 1000);
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: authLimiterMax,

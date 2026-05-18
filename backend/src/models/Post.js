@@ -9,6 +9,8 @@ const AUTHOR_SELECT = { select: { username: true, avatar: true } };
 function shapePost(p, likedIds = null, repostedIds = null, repostMeta = null) {
   const shaped = {
     id: p.id,
+    thread_type: 'post',
+    thread_id: p.id,
     author_id: p.authorId,
     content: p.content,
     image_url: p.imageUrl,
@@ -28,6 +30,10 @@ function shapePost(p, likedIds = null, repostedIds = null, repostMeta = null) {
     shaped._repostBy = repostMeta.username;
     shaped._repostById = repostMeta.authorId;
     shaped._repostComment = repostMeta.comment;
+    shaped.thread_type = 'repost';
+    shaped.thread_id = repostMeta.repostId;
+    shaped.source_post_id = p.id;
+    shaped.comments_count = repostMeta.commentsCount ?? 0;
   }
   return shaped;
 }
@@ -49,24 +55,27 @@ const Post = {
     return post ? shapePost(post) : null;
   },
 
-  async update(id, fields) {
+  async update(id, authorId, fields) {
     const data = {};
     if (fields.content !== undefined) data.content = fields.content;
     if (fields.imageUrl !== undefined) data.imageUrl = fields.imageUrl;
     if (fields.isPublic !== undefined) data.isPublic = fields.isPublic;
-    if (Object.keys(data).length === 0) return this.findById(id);
+    if (Object.keys(data).length === 0) {
+      const post = await this.findById(id);
+      return post?.author_id === Number(authorId) ? post : null;
+    }
 
     const post = await prisma.post.update({
-      where: { id: Number(id) },
+      where: { id: Number(id), authorId: Number(authorId) },
       data,
       include: { author: AUTHOR_SELECT },
     });
     return post ? shapePost(post) : null;
   },
 
-  async delete(postId) {
+  async delete(postId, authorId) {
     const { count } = await prisma.post.deleteMany({
-      where: { id: Number(postId) },
+      where: { id: Number(postId), authorId: Number(authorId) },
     });
     return count > 0;
   },
@@ -120,21 +129,26 @@ const Post = {
             select: { postId: true },
           })
         : Promise.resolve([]),
-      // Fetch recent reposts of public posts by public authors only
+      // Fetch recent reposts — includes tombstones (postId = null) from deleted originals
       prisma.repost.findMany({
         where: {
-          post: {
-            isPublic: true,
-            author: { userSettings: { isPublic: true } },
-            ...(vid !== null
-              ? {
-                  NOT: [
-                    { author: { blockedUsers: { some: { blockedUserId: vid } } } },
-                    { author: { blockedBy: { some: { userId: vid } } } },
-                  ],
-                }
-              : {}),
-          },
+          OR: [
+            { postId: null }, // tombstone: original was deleted
+            {
+              post: {
+                isPublic: true,
+                author: { userSettings: { isPublic: true } },
+                ...(vid !== null
+                  ? {
+                      NOT: [
+                        { author: { blockedUsers: { some: { blockedUserId: vid } } } },
+                        { author: { blockedBy: { some: { userId: vid } } } },
+                      ],
+                    }
+                  : {}),
+              },
+            },
+          ],
         },
         include: {
           post: { include: { author: AUTHOR_SELECT } },
@@ -142,6 +156,7 @@ const Post = {
         },
         orderBy: { createdAt: "desc" },
         take: lim,
+        skip: off,
       }),
     ]);
 
@@ -152,18 +167,52 @@ const Post = {
     const shaped = posts.map((p) => shapePost(p, likedIds, repostedIds));
 
     // Interleave reposts, deduplicating by (postId, reposter) key
-    const seenKeys = new Set(shaped.map((p) => `${p.id}`));
+    const seenKeys = new Set(shaped.map((p) => `${p.thread_type || 'post'}|${p.id}`));
     for (const r of recentReposts) {
-      const key = `${r.post.id}-repost-${r.authorId}`;
+      if (!r.post) {
+        // Tombstone: the original post was deleted, show a placeholder
+        const key = `tombstone-repost-${r.id}`;
+        if (seenKeys.has(key)) continue;
+        seenKeys.add(key);
+        shaped.push({
+          id: `tombstone-${r.id}`,
+          thread_type: 'repost',
+          thread_id: r.id,
+          source_post_id: null,
+          author_id: null,
+          content: null,
+          image_url: null,
+          is_public: false,
+          likes_count: 0,
+          likeCount: 0,
+          comments_count: 0,
+          reposts_count: 0,
+          created_at: r.createdAt,
+          updated_at: r.createdAt,
+          author_username: null,
+          author_avatar: null,
+          user_liked: false,
+          user_reposted: false,
+          _repostBy: r.author?.username,
+          _repostById: r.authorId,
+          _repostComment: r.comment,
+          _deleted: true,
+        });
+        continue;
+      }
+      const key = `repost|${r.id}`;
       if (seenKeys.has(key)) continue;
       seenKeys.add(key);
       const repostShaped = shapePost(r.post, likedIds, repostedIds, {
         username: r.author?.username,
         authorId: r.authorId,
         comment: r.comment,
+        repostId: r.id,
+        commentsCount: r.commentsCount,
       });
       // Use the repost record's timestamp so reposts are ordered by repost time
       repostShaped.created_at = r.createdAt;
+      repostShaped.id = r.id;
       shaped.push(repostShaped);
     }
 
@@ -242,6 +291,7 @@ const Post = {
       post_id: repost.postId,
       author_id: repost.authorId,
       comment: repost.comment,
+      comments_count: repost.commentsCount ?? 0,
       created_at: repost.createdAt,
       author_username: repost.author?.username,
       author_avatar: repost.author?.avatar,

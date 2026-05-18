@@ -5,6 +5,7 @@
  */
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { randomBytes } from "crypto";
 import config from "../config/index.js";
 
 const SALT_ROUNDS = 12;
@@ -40,7 +41,7 @@ const AuthService = {
    */
   generateRefreshToken(user) {
     return jwt.sign(
-      { id: user.id, type: "refresh" },
+      { id: user.id, type: "refresh"},
       config.jwt.refreshSecret,
       {
         expiresIn: config.jwt.refreshExpiresIn,
@@ -53,7 +54,7 @@ const AuthService = {
    */
   generatePublicApiToken(user) {
     return jwt.sign({ id: user.id }, config.jwt.publicApiSecret, {
-      expiresIn: config.jwt.publicApiExpiresIn,
+      expiresIn: config.jwt.publicApiExpiresIn
     });
   },
 
