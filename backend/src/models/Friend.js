@@ -247,6 +247,13 @@ const Friend = {
     return { friends, count };
   },
 
+  async isFriend(userId, friendId) {
+    const friend = await prisma.friend.findFirst({
+      where: { userId, friendId },
+    });
+    return friend ? true : false;
+  },
+
   async getOnlineFriends(userId) {
     const rows = await prisma.friend.findMany({
       where: { userId: Number(userId), friend: { isOnline: true } },
@@ -320,13 +327,19 @@ const Friend = {
     const t = Number(targetId);
     const [friendship, sentRequest, receivedRequest] = await Promise.all([
       prisma.friend.findFirst({ where: { userId: v, friendId: t } }),
-      prisma.friendRequest.findFirst({ where: { senderId: v, receiverId: t, status: 'pending' } }),
-      prisma.friendRequest.findFirst({ where: { senderId: t, receiverId: v, status: 'pending' } }),
+      prisma.friendRequest.findFirst({
+        where: { senderId: v, receiverId: t, status: "pending" },
+      }),
+      prisma.friendRequest.findFirst({
+        where: { senderId: t, receiverId: v, status: "pending" },
+      }),
     ]);
-    if (friendship) return { status: 'friends' };
-    if (sentRequest) return { status: 'pending_sent', requestId: sentRequest.id };
-    if (receivedRequest) return { status: 'pending_received', requestId: receivedRequest.id };
-    return { status: 'none' };
+    if (friendship) return { status: "friends" };
+    if (sentRequest)
+      return { status: "pending_sent", requestId: sentRequest.id };
+    if (receivedRequest)
+      return { status: "pending_received", requestId: receivedRequest.id };
+    return { status: "none" };
   },
 
   async blockUser(userId, blockedUserId) {
@@ -341,6 +354,13 @@ const Friend = {
       update: {},
       create: { userId: Number(userId), blockedUserId: Number(blockedUserId) },
     });
+  },
+
+  async isBlocked(userId, blockedUserId) {
+    const blocked = await prisma.blockedUser.findFirst({
+      where: { userId, blockedUserId },
+    });
+    return blocked ? true : false;
   },
 
   async unblockUser(userId, blockedUserId) {

@@ -217,11 +217,18 @@
                 <button
                   class="btn-primary btn-sm"
                   @click="sendRequestToUser(u.id)"
-                  :disabled="requestedIds.has(Number(u.id))"
+                  :disabled="requestedIds.has(Number(u.id)) || u.is_friend"
                 >
                   {{ requestedIds.has(Number(u.id)) ? "Sent ✓" : "Add Friend" }}
                 </button>
-                <button class="btn-ghost" @click="blockUser(u.id)">
+                <button
+                  class="btn-ghost"
+                  @click="
+                    blockUser(u.id);
+                    searchUsers();
+                  "
+                  :disabled="u.is_blocked"
+                >
                   Block
                 </button>
               </div>
@@ -554,7 +561,7 @@ async function searchUsers(searchChanged = false) {
     });
     const { data } = await usersFetcher.value.fetch("/users");
     searchResults.value = data.users || [];
-    searchTotal.value = data.total || data.meta?.total || 0;
+    console.log(data.users);
   } catch (e) {
     console.log(e);
     error.value = e.response?.data?.error?.message || "Search failed";

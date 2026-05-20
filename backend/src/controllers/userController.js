@@ -147,7 +147,7 @@ export const getUser = async (req, res, next) => {
 
     const isPublic = user.userSettings?.isPublic;
     if (!isPublic && user.id !== req.user?.id) {
-      if (friendStatus?.status !== 'friends') {
+      if (friendStatus?.status !== "friends") {
         // Include minimal public data so the frontend can render a locked card.
         return res.status(403).json({
           error: { message: "This profile is private" },
@@ -185,6 +185,12 @@ export const listUsers = async (req, res, next) => {
     );
     const users = searchRes.usersFound;
     const total = searchRes.userCount;
+
+    // add friend flag
+    for (const u of users) {
+      u.is_friend = await Friend.isFriend(req.userId, u.id);
+      u.is_blocked = await Friend.isBlocked(req.userId, u.id);
+    }
 
     res.json({
       users,
