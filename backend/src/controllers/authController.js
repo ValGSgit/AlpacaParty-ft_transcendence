@@ -41,7 +41,7 @@ export const register = async (req, res, next) => {
 
     res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
     res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
-    res.status(201).json({ user, accessToken });
+    res.status(201).json({ user });
   } catch (err) {
     next(err);
   }
@@ -79,7 +79,7 @@ export const login = async (req, res, next) => {
 
     res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
     res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
-    res.json({ user: safeUser, accessToken });
+    res.json({ user: safeUser });
     GamificationService.onLogin(user.id).catch(() => {});
   } catch (err) {
     next(err);

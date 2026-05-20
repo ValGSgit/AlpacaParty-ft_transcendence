@@ -3,8 +3,13 @@ import { debug, devError } from '../../services/logger.js'
 import { useAuthStore } from '../../stores/auth.js'
 import { gAlpacas, gDecorations, gItems, gMinigame, gPlayer, gUser } from './globals.js'
 
+let _saveTimer = null
+export function saveGame() {
+  clearTimeout(_saveTimer)
+  _saveTimer = setTimeout(_doSave, 300)
+}
 
-export async function saveGame() {
+async function _doSave() {
   const authStore = useAuthStore()
   if (!authStore.isAuthenticated || !authStore.user) {
     debug("user not logged in, not saving")

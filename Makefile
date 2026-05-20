@@ -247,7 +247,7 @@ prod-e2e: prod-seed-live
 	@echo "$(CYAN)Running E2E tests against production build…$(RESET)"
 	docker run --rm \
 	  --network alpacaparty_net \
-	  -e E2E_BASE_URL=https://nginx:8443 \
+	  -e E2E_BASE_URL=https://nginx:443 \
 	  -e E2E_API_KEY=$$(grep '^API_KEYS=' .env | cut -d= -f2- | cut -d, -f1) \
 	  -e PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
 	  alpacaparty-e2e npm test

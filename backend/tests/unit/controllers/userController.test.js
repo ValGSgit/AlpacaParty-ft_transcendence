@@ -75,7 +75,8 @@ jest.unstable_mockModule("../../../src/config/index.js", () => ({
 
 // Mock fs to prevent import-time side effects when the controller loads.
 jest.unstable_mockModule("fs", () => ({
-  default: { mkdirSync: jest.fn(), writeFileSync: jest.fn() },
+  default: { existsSync: jest.fn(() => false), mkdirSync: jest.fn(), writeFileSync: jest.fn() },
+  existsSync: jest.fn(() => false),
   mkdirSync: jest.fn(),
   writeFileSync: jest.fn(),
 }));

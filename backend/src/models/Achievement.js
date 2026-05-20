@@ -25,15 +25,18 @@ const Achievement = {
     const achievement = await prisma.achievement.findUnique({ where: { key: achievementKey } });
     if (!achievement) return null;
 
-    await prisma.userAchievement.upsert({
-        where: {
-          userId_achievementId: {
-            userId: Number(userId),
-            achievementId: achievement.id,
-          },
+    const existing = await prisma.userAchievement.findUnique({
+      where: {
+        userId_achievementId: {
+          userId: Number(userId),
+          achievementId: achievement.id,
         },
-        update: {},
-        create: { userId: Number(userId), achievementId: achievement.id },
+      },
+    });
+    if (existing) return null;
+
+    await prisma.userAchievement.create({
+      data: { userId: Number(userId), achievementId: achievement.id },
     });
     return { achievement };
   },
