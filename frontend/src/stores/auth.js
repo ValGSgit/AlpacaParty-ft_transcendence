@@ -8,6 +8,7 @@ import { ref, computed } from "vue";
 import api from "../services/api.js";
 import { devError } from "../services/logger.js";
 import { disconnectSocket } from "../services/socket.js";
+import { useCookieConsent } from "../composables/useCookieConsent.js";
 
 export const useAuthStore = defineStore("auth", () => {
   // ── State ───────────────────────────────────────────────────
@@ -38,6 +39,7 @@ export const useAuthStore = defineStore("auth", () => {
         { retryOnAuth: false },
       );
       user.value = data.user;
+      useCookieConsent().accept();
       return data;
     } catch (err) {
       error.value = err.response?.data?.error?.message || "Registration failed";
@@ -60,6 +62,7 @@ export const useAuthStore = defineStore("auth", () => {
         { retryOnAuth: false },
       );
       user.value = data.user;
+      useCookieConsent().accept();
       return data;
     } catch (err) {
       error.value = err.response?.data?.error?.message || "Login failed";
@@ -91,11 +94,11 @@ export const useAuthStore = defineStore("auth", () => {
     loading.value = true;
     try {
       const { data } = await api.get("/auth/me", { retryOnAuth: false });
-      user.value = data.user;
+      if (data.user)
+        user.value = data.user;
     } catch (e) {
       // 401 here just means "no valid session" — expected on first load.
       user.value = null;
-      //if (e?.response?.status !== 401) devError(e);
     } finally {
       loading.value = false;
     }
