@@ -10,6 +10,7 @@ const mockPrisma = {
   },
   userAchievement: {
     findMany: jest.fn(),
+    findUnique: jest.fn(),
     create: jest.fn(),
     upsert: jest.fn(),
   },
