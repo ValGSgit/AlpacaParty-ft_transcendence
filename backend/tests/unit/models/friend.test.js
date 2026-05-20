@@ -67,6 +67,52 @@ describe('sendRequest', () => {
     }
   });
 
+  test('throws 403 when a block exists between users', async () => {
+    mockPrisma.blockedUser.findFirst.mockResolvedValue({ id: 1 });
+    await expect(Friend.sendRequest(1, 2)).rejects.toMatchObject({
+      message: 'Cannot send friend request due to block',
+      status: 403,
+    });
+  });
+
+  test('throws 409 when users are already friends', async () => {
+    mockPrisma.blockedUser.findFirst.mockResolvedValue(null);
+    mockPrisma.friend.findFirst.mockResolvedValue({ id: 1 }); // areFriends → true
+    await expect(Friend.sendRequest(1, 2)).rejects.toMatchObject({
+      message: 'You are already friends',
+      status: 409,
+    });
+  });
+
+  test('returns alreadyPending when same-direction pending request exists', async () => {
+    mockPrisma.blockedUser.findFirst.mockResolvedValue(null);
+    mockPrisma.friend.findFirst.mockResolvedValue(null);
+    const pendingRequest = { id: 5, senderId: 1, receiverId: 2, status: 'pending' };
+    mockPrisma.friendRequest.findFirst.mockResolvedValue(pendingRequest);
+
+    const result = await Friend.sendRequest(1, 2);
+
+    expect(result).toEqual({ request: pendingRequest, alreadyPending: true });
+    expect(mockPrisma.friendRequest.upsert).not.toHaveBeenCalled();
+  });
+
+  test('re-sends a declined request by updating it to pending', async () => {
+    mockPrisma.blockedUser.findFirst.mockResolvedValue(null);
+    mockPrisma.friend.findFirst.mockResolvedValue(null);
+    const declinedRequest = { id: 7, senderId: 2, receiverId: 1, status: 'declined' };
+    mockPrisma.friendRequest.findFirst.mockResolvedValue(declinedRequest);
+    const updated = { id: 7, senderId: 1, receiverId: 2, status: 'pending' };
+    mockPrisma.friendRequest.update.mockResolvedValue(updated);
+
+    const result = await Friend.sendRequest(1, 2);
+
+    expect(mockPrisma.friendRequest.update).toHaveBeenCalledWith({
+      where: { id: 7 },
+      data: { senderId: 1, receiverId: 2, status: 'pending' },
+    });
+    expect(result).toEqual(updated);
+  });
+
   test('auto-accepts a reverse pending request', async () => {
     const reverseRequest = { id: 9, senderId: 2, receiverId: 1, status: 'pending' };
     const accepted = { ...reverseRequest, status: 'accepted' };

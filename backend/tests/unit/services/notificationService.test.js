@@ -162,3 +162,31 @@ describe('NotificationService.dataRequestCompleted', () => {
     }));
   });
 });
+
+describe('NotificationService.postCommented', () => {
+  test('should create post_comment notification', async () => {
+    mockNotification.create.mockResolvedValue(fakeNotification);
+    await NotificationService.postCommented(42, 'alice', 5);
+    expect(mockNotification.create).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 42,
+      type: 'post_comment',
+      title: 'New Comment',
+      message: 'alice commented on your post.',
+      referenceType: 'post',
+      referenceId: 5,
+    }));
+  });
+});
+
+describe('NotificationService.broadcastAll', () => {
+  test('should emit to all connected clients when io is set', () => {
+    const emitFn = jest.fn();
+    NotificationService.setIo({ emit: emitFn });
+    NotificationService.broadcastAll('test_event', { foo: 'bar' });
+    expect(emitFn).toHaveBeenCalledWith('test_event', { foo: 'bar' });
+  });
+
+  test('should not throw when io is null', () => {
+    expect(() => NotificationService.broadcastAll('test_event', {})).not.toThrow();
+  });
+});
