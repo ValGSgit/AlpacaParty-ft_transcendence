@@ -26,11 +26,8 @@ import {
 } from "#validators/userValidator.js";
 import { idParamValidation } from "#validators/contentValidator.js";
 import { checkValidation } from "#validators/validatorUtils.js";
-import {
-  getFarmData,
-  updateFarmData,
-} from "#controllers/alpacaFarmController.js";
 import { paginationValidation } from "#validators/paginationValidator.js";
+import { apiKeyRegenerateLimiter } from "#middleware/rateLimiters.js";
 
 const router = express.Router();
 router.use(authenticate);

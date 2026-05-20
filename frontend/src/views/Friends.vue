@@ -1,11 +1,5 @@
-<!--
-  Friends View — manage friends, requests, and blocks
-  @owner fankahou
--->
 <template>
   <div class="friends-page">
-
-    <!-- ── Page Header ── -->
     <div class="page-header">
       <div class="header-left">
         <h1 class="page-title">Friends</h1>
@@ -13,7 +7,7 @@
       </div>
       <div class="header-stats">
         <div class="stat-pill">
-          <span class="stat-num">{{ friends.length }}</span>
+          <span class="stat-num">{{ totalFriends }}</span>
           <span class="stat-label">Friends</span>
         </div>
         <div v-if="pendingCount" class="stat-pill pend">
@@ -23,7 +17,6 @@
       </div>
     </div>
 
-    <!-- ── Tab bar ── -->
     <div class="tab-bar">
       <button
         v-for="(tab, i) in tabs"
@@ -32,54 +25,84 @@
         @click="activeTab = tab.key"
       >
         {{ tab.label }}
-        <span v-if="tab.key === 'requests' && pendingCount" class="tab-badge">{{ pendingCount }}</span>
+        <span v-if="tab.key === 'requests' && pendingCount" class="tab-badge">{{
+          pendingCount
+        }}</span>
       </button>
-      <div class="tab-underline" :style="{ transform: `translateX(${tabIndex * 100}%)` }"></div>
+      <div
+        class="tab-underline"
+        :style="{ transform: `translateX(${tabIndex * 100}%)` }"
+      ></div>
     </div>
 
-    <!-- ── Error toast ── -->
     <transition name="err-fade">
       <div v-if="error" class="error-toast" role="alert">
-        <svg viewBox="0 0 20 20" fill="currentColor" class="err-icon"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+        <svg viewBox="0 0 20 20" fill="currentColor" class="err-icon">
+          <path
+            fill-rule="evenodd"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+            clip-rule="evenodd"
+          />
+        </svg>
         <span>{{ error }}</span>
         <button class="err-close" @click="error = null">×</button>
       </div>
     </transition>
 
-    <!-- ── Skeleton loading ── -->
     <div v-if="loading" class="skeleton-list">
       <div v-for="n in 4" :key="n" class="skeleton-card"></div>
     </div>
 
-      <!-- Discover users -->
-      <div class="discover-section">
-        <h3>Discover Users</h3>
-        <div class="search-toolbar">
-          <input
-            v-model="userSearch"
-            type="text"
-            placeholder="Search all users…"
-            @keyup.enter="searchUsers"
-            class="search-input"
-          />
-          <button
-            class="btn-primary btn-sm"
-            @click="searchUsers(true)"
-            :disabled="usersFetcher.loading"
+    <transition name="tab-slide" mode="out-in">
+      <div
+        v-if="activeTab === 'friends' && !loading"
+        key="friends"
+        class="tab-pane"
+      >
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fill-rule="evenodd"
+                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <input
+              v-model="friendSearch"
+              type="text"
+              placeholder="Search friends…"
+              class="search-input"
+              @keyup.enter="() => fetchFriends(true)"
+            />
+          </div>
+          <select
+            v-model="friendSort"
+            class="sort-select"
+            @change="
+              friendsFetcher.updateParams({ page: 1 });
+              fetchFriends();
+            "
           >
-            {{ usersFetcher.loading ? "Searching…" : "Search" }}
-          </button>
+            <option value="name">Name</option>
+            <option value="online">Online first</option>
+            <option value="level">Level</option>
+          </select>
         </div>
 
-        <ul v-if="filteredFriends.length" class="card-list">
+        <ul v-if="friends.length" class="card-list">
           <li
-            v-for="(f, i) in filteredFriends"
+            v-for="(f, i) in friends"
             :key="f.id"
             class="friend-card"
             :style="{ animationDelay: `${i * 55}ms` }"
           >
             <div class="avatar-wrap">
-              <img :src="f.avatar || '/avatars/default.svg'" class="avatar" alt="" />
+              <img
+                :src="f.avatar || '/avatars/default.svg'"
+                class="avatar"
+                alt=""
+              />
               <span class="status-dot" :class="{ online: f.is_online }"></span>
             </div>
             <div class="user-info">
@@ -88,16 +111,50 @@
                 <span class="level-badge">Lv {{ f.level || 1 }}</span>
                 <span class="meta-dot"></span>
                 <span :class="['status-text', { online: f.is_online }]">
-                  {{ f.is_online ? 'Online' : 'Offline' }}
+                  {{ f.is_online ? "Online" : "Offline" }}
                 </span>
               </div>
             </div>
             <div class="card-actions">
-              <button class="btn-ghost btn-danger-ghost" @click="removeFriend(f.id)">Remove</button>
+              <button
+                class="btn-ghost btn-danger-ghost"
+                @click="removeFriend(f.id)"
+              >
+                Remove
+              </button>
               <button class="btn-ghost" @click="blockUser(f.id)">Block</button>
             </div>
           </li>
         </ul>
+
+        <div v-if="friendsFetcher.multiplePages()" class="pagination">
+          <button
+            class="btn-ghost pag-btn"
+            :disabled="friendsFetcher.isFirstPage()"
+            @click="
+              friendsFetcher.previousPage();
+              fetchFriends();
+            "
+          >
+            ‹ Prev
+          </button>
+          <span class="page-info"
+            >{{ friendsFetcher.page }} /
+            {{
+              Math.ceil(friendsFetcher.total / friendsFetcher.pageSize)
+            }}</span
+          >
+          <button
+            class="btn-ghost pag-btn"
+            :disabled="friendsFetcher.isLastPage()"
+            @click="
+              friendsFetcher.nextPage();
+              fetchFriends();
+            "
+          >
+            Next ›
+          </button>
+        </div>
 
         <div v-else class="empty-state">
           <span class="empty-icon">🦙</span>
@@ -105,7 +162,6 @@
           <p v-else>No friends yet — start by discovering users below!</p>
         </div>
 
-        <!-- Discover section -->
         <div class="discover-section">
           <div class="section-header">
             <h3 class="section-title">Discover Users</h3>
@@ -113,11 +169,27 @@
 
           <div class="toolbar">
             <div class="search-wrap">
-              <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
-              <input v-model="userSearch" type="text" placeholder="Search all users…" @keyup.enter="searchUsers" class="search-input" />
+              <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fill-rule="evenodd"
+                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <input
+                v-model="userSearch"
+                type="text"
+                placeholder="Search all users…"
+                @keyup.enter="() => searchUsers(true)"
+                class="search-input"
+              />
             </div>
-            <button class="btn-primary" @click="searchUsers" :disabled="searchingUsers">
-              {{ searchingUsers ? '…' : 'Search' }}
+            <button
+              class="btn-primary"
+              @click="() => searchUsers(true)"
+              :disabled="searchingUsers"
+            >
+              {{ searchingUsers ? "…" : "Search" }}
             </button>
           </div>
 
@@ -129,7 +201,11 @@
               :style="{ animationDelay: `${i * 45}ms` }"
             >
               <div class="avatar-wrap">
-                <img :src="u.avatar || '/avatars/default.svg'" class="avatar" alt="" />
+                <img
+                  :src="u.avatar || '/avatars/default.svg'"
+                  class="avatar"
+                  alt=""
+                />
               </div>
               <div class="user-info">
                 <span class="username">{{ u.username }}</span>
@@ -143,43 +219,101 @@
                   @click="sendRequestToUser(u.id)"
                   :disabled="requestedIds.has(Number(u.id))"
                 >
-                  {{ requestedIds.has(Number(u.id)) ? 'Sent ✓' : 'Add Friend' }}
+                  {{ requestedIds.has(Number(u.id)) ? "Sent ✓" : "Add Friend" }}
                 </button>
-                <button class="btn-ghost" @click="blockUser(u.id)">Block</button>
+                <button class="btn-ghost" @click="blockUser(u.id)">
+                  Block
+                </button>
               </div>
             </li>
           </ul>
 
-          <div v-if="searchTotal > searchPageSize" class="pagination">
-            <button class="btn-ghost pag-btn" :disabled="searchPage === 0" @click="searchPage--; searchUsers()">‹ Prev</button>
-            <span class="page-info">{{ searchPage + 1 }} / {{ Math.ceil(searchTotal / searchPageSize) }}</span>
-            <button class="btn-ghost pag-btn" :disabled="(searchPage + 1) * searchPageSize >= searchTotal" @click="searchPage++; searchUsers()">Next ›</button>
+          <div v-if="usersFetcher.multiplePages()" class="pagination">
+            <button
+              class="btn-ghost pag-btn"
+              :disabled="usersFetcher.isFirstPage()"
+              @click="
+                usersFetcher.previousPage();
+                searchUsers();
+              "
+            >
+              ‹ Prev
+            </button>
+            <span class="page-info"
+              >{{ usersFetcher.page }} /
+              {{ Math.ceil(usersFetcher.total / usersFetcher.pageSize) }}</span
+            >
+            <button
+              class="btn-ghost pag-btn"
+              :disabled="usersFetcher.isLastPage()"
+              @click="
+                usersFetcher.nextPage();
+                searchUsers();
+              "
+            >
+              Next ›
+            </button>
           </div>
-          <p v-else-if="userSearch && !searchResults.length && !searchingUsers" class="empty-inline">No users found.</p>
+          <p
+            v-else-if="userSearch && !searchResults.length && !searchingUsers"
+            class="empty-inline"
+          >
+            No users found.
+          </p>
         </div>
       </div>
 
-      <!-- ══ Requests ══ -->
-      <div v-else-if="activeTab === 'requests' && !loading" key="requests" class="tab-pane">
-
+      <div
+        v-else-if="activeTab === 'requests' && !loading"
+        key="requests"
+        class="tab-pane"
+      >
         <div class="sub-section">
           <h3 class="sub-title">
             <span class="sub-title-dot received"></span>
             Received
           </h3>
           <ul v-if="received.length" class="card-list">
-            <li v-for="(r, i) in received" :key="r.id" class="friend-card" :style="{ animationDelay: `${i * 55}ms` }">
+            <li
+              v-for="(r, i) in received"
+              :key="r.id"
+              class="friend-card"
+              :style="{ animationDelay: `${i * 55}ms` }"
+            >
               <div class="avatar-wrap">
-                <img :src="r.sender?.avatar || r.sender_avatar || r.senderAvatar || '/avatars/default.svg'" class="avatar" alt="" />
+                <img
+                  :src="
+                    r.sender?.avatar ||
+                    r.sender_avatar ||
+                    r.senderAvatar ||
+                    '/avatars/default.svg'
+                  "
+                  class="avatar"
+                  alt=""
+                />
               </div>
               <div class="user-info">
-                <span class="username">{{ r.sender?.username || r.sender_username || r.senderUsername }}</span>
+                <span class="username">{{
+                  r.sender?.username || r.sender_username || r.senderUsername
+                }}</span>
                 <span class="req-label incoming">Wants to be your friend</span>
               </div>
               <div class="card-actions">
-                <button class="btn-primary btn-sm" @click="acceptRequest(r.id)">Accept</button>
-                <button class="btn-ghost btn-danger-ghost btn-sm" @click="declineRequest(r.id)">Decline</button>
-                <button class="btn-ghost btn-sm" @click="blockFromRequest(r.id, r.senderId)">Block</button>
+                <button class="btn-primary btn-sm" @click="acceptRequest(r.id)">
+                  Accept
+                </button>
+                <button
+                  class="btn-ghost btn-danger-ghost btn-sm"
+                  @click="declineRequest(r.id)"
+                >
+                  Decline
+                </button>
+                <button
+                  class="btn-ghost btn-sm"
+                  @click="blockFromRequest(r.id, r.senderId)"
+                >
+                  Block
+                </button>
               </div>
             </li>
           </ul>
@@ -195,12 +329,30 @@
             Sent
           </h3>
           <ul v-if="sent.length" class="card-list">
-            <li v-for="(r, i) in sent" :key="r.id" class="friend-card" :style="{ animationDelay: `${i * 55}ms` }">
+            <li
+              v-for="(r, i) in sent"
+              :key="r.id"
+              class="friend-card"
+              :style="{ animationDelay: `${i * 55}ms` }"
+            >
               <div class="avatar-wrap">
-                <img :src="r.receiver?.avatar || r.receiver_avatar || r.receiverAvatar || '/avatars/default.svg'" class="avatar" alt="" />
+                <img
+                  :src="
+                    r.receiver?.avatar ||
+                    r.receiver_avatar ||
+                    r.receiverAvatar ||
+                    '/avatars/default.svg'
+                  "
+                  class="avatar"
+                  alt=""
+                />
               </div>
               <div class="user-info">
-                <span class="username">{{ r.receiver?.username || r.receiver_username || r.receiverUsername }}</span>
+                <span class="username">{{
+                  r.receiver?.username ||
+                  r.receiver_username ||
+                  r.receiverUsername
+                }}</span>
                 <span class="req-label pending">Pending response</span>
               </div>
               <span class="status-tag">Pending</span>
@@ -213,18 +365,32 @@
         </div>
       </div>
 
-      <!-- ══ Blocked ══ -->
-      <div v-else-if="activeTab === 'blocked' && !loading" key="blocked" class="tab-pane">
+      <div
+        v-else-if="activeTab === 'blocked' && !loading"
+        key="blocked"
+        class="tab-pane"
+      >
         <ul v-if="blocked.length" class="card-list">
-          <li v-for="(b, i) in blocked" :key="b.id" class="friend-card blocked-card" :style="{ animationDelay: `${i * 55}ms` }">
+          <li
+            v-for="(b, i) in blocked"
+            :key="b.id"
+            class="friend-card blocked-card"
+            :style="{ animationDelay: `${i * 55}ms` }"
+          >
             <div class="avatar-wrap">
-              <img :src="b.avatar || '/avatars/default.svg'" class="avatar avatar-blocked" alt="" />
+              <img
+                :src="b.avatar || '/avatars/default.svg'"
+                class="avatar avatar-blocked"
+                alt=""
+              />
             </div>
             <div class="user-info">
               <span class="username">{{ b.username }}</span>
               <span class="req-label blocked">Blocked</span>
             </div>
-            <button class="btn-ghost btn-sm" @click="unblockUser(b.id)">Unblock</button>
+            <button class="btn-ghost btn-sm" @click="unblockUser(b.id)">
+              Unblock
+            </button>
           </li>
         </ul>
         <div v-else class="empty-state">
@@ -232,27 +398,30 @@
           <p>No blocked users.</p>
         </div>
       </div>
-
     </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import api from '../services/api.js'
-import { useAuthStore } from '../stores/auth.js'
+import { ref, computed, onMounted, watch } from "vue";
+import api from "../services/api.js";
+import { useAuthStore } from "../stores/auth.js";
+import ListFetcher from "../utils/ListFetcher.js";
 
 const authStore = useAuthStore();
 
 const activeTab = ref("friends");
 const tabs = [
-  { key: 'friends',  label: 'Friends' },
-  { key: 'requests', label: 'Requests' },
-  { key: 'blocked',  label: 'Blocked' },
-]
-const tabIndex = computed(() => tabs.findIndex(t => t.key === activeTab.value))
+  { key: "friends", label: "Friends" },
+  { key: "requests", label: "Requests" },
+  { key: "blocked", label: "Blocked" },
+];
+const tabIndex = computed(() =>
+  tabs.findIndex((t) => t.key === activeTab.value),
+);
 
 const friends = ref([]);
+const totalFriends = ref(0);
 const received = ref([]);
 const sent = ref([]);
 const blocked = ref([]);
@@ -260,15 +429,12 @@ const loading = ref(false);
 const error = ref(null);
 const newFriendId = ref("");
 
-const friendSearch = ref('')
-const friendSort = ref('name')
-const userSearch = ref('')
-const searchResults = ref([])
-const searchTotal = ref(0)
-const searchPage = ref(0)
-const searchPageSize = 10
-const searchingUsers = ref(false)
-const requestedIds = ref(new Set())
+const friendSearch = ref("");
+const friendSort = ref("name");
+const userSearch = ref("");
+const searchResults = ref([]);
+const searchingUsers = ref(false);
+const requestedIds = ref(new Set());
 
 const usersFetcher = ref(new ListFetcher());
 const friendsFetcher = ref(new ListFetcher());
@@ -288,30 +454,32 @@ async function fetchFriends(searchChanged = false) {
     sort.username = "desc";
   }
 
+  let filterUsed = false;
   if (searchChanged) {
     const searchValue = friendSearch.value.trim();
-    if (!searchValue) {
-      loading.value = false;
-      return;
-    }
     let filter = {};
-    filter.username = searchValue;
-    friendsFetcher.value.updateParams({
-      filter,
-    });
+    if (searchValue) {
+      filter.username = searchValue;
+      filterUsed = true;
+    }
+    friendsFetcher.value.updateParams({ filter });
   }
 
   try {
     friendsFetcher.value.updateParams({
-      pageSize: 5,
       sort,
     });
     const { data } = await friendsFetcher.value.fetch("/friends");
     friends.value = data.friends || [];
+
+    if (!filterUsed) {
+      totalFriends.value = data.total;
+    }
   } catch (e) {
     error.value = "Failed to fetch friends";
+  } finally {
+    loading.value = false;
   }
-  loading.value = false;
 }
 
 async function fetchRequests() {
@@ -366,34 +534,32 @@ async function sendRequest() {
 }
 
 async function searchUsers(searchChanged = false) {
-  loading.value = true;
+  searchingUsers.value = true;
+  error.value = null;
 
-  let sort = {};
-  sort.createdAt = "desc";
+  let sort = { createdAt: "desc" };
 
-  if (searchChanged) {
+  if (searchChanged === true) {
     const searchValue = userSearch.value.trim();
-    if (!searchValue) {
-      loading.value = false;
-      return;
-    }
     let filter = {};
-    filter.username = searchValue;
-    usersFetcher.value.updateParams({
-      filter,
-    });
+    if (searchValue) {
+      filter.username = searchValue;
+    }
+    usersFetcher.value.updateParams({ filter });
   }
+
   try {
     usersFetcher.value.updateParams({
       sort,
     });
     const { data } = await usersFetcher.value.fetch("/users");
     searchResults.value = data.users || [];
+    searchTotal.value = data.total || data.meta?.total || 0;
   } catch (e) {
     console.log(e);
     error.value = e.response?.data?.error?.message || "Search failed";
   } finally {
-    loading.value = false;
+    searchingUsers.value = false;
   }
 }
 
@@ -407,9 +573,12 @@ async function sendRequestToUser(userId) {
     requestedIds.value = new Set([...requestedIds.value, Number(userId)]);
   } catch (e) {
     if (e.response?.status === 403) {
-      error.value = e.response?.data?.error?.message || 'You cannot send a friend request to this user'
+      error.value =
+        e.response?.data?.error?.message ||
+        "You cannot send a friend request to this user";
     } else {
-      error.value = e.response?.data?.error?.message || 'Failed to send request'
+      error.value =
+        e.response?.data?.error?.message || "Failed to send request";
     }
   }
 }
@@ -437,12 +606,12 @@ async function declineRequest(id) {
 
 async function blockFromRequest(requestId, senderId) {
   try {
-    await api.put(`/friends/requests/${requestId}/decline`)
-    await api.post('/friends/block', { userId: senderId })
-    await Promise.all([fetchRequests(), fetchBlocked()])
-    activeTab.value = 'blocked'
+    await api.put(`/friends/requests/${requestId}/decline`);
+    await api.post("/friends/block", { userId: senderId });
+    await Promise.all([fetchRequests(), fetchBlocked()]);
+    activeTab.value = "blocked";
   } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to block user'
+    error.value = e.response?.data?.error?.message || "Failed to block user";
   }
 }
 
@@ -481,10 +650,10 @@ function loadTab(tab) {
 
 watch(activeTab, loadTab);
 onMounted(() => {
-  fetchFriends()
-  fetchRequests()
-  fetchBlocked()
-})
+  fetchFriends();
+  fetchRequests();
+  fetchBlocked();
+});
 </script>
 
 <style scoped>
@@ -546,7 +715,9 @@ onMounted(() => {
   background: rgba(255, 79, 79, 0.08);
   border-color: rgba(255, 79, 79, 0.25);
 }
-.stat-pill.pend .stat-num { color: #ff8585; }
+.stat-pill.pend .stat-num {
+  color: #ff8585;
+}
 
 .stat-num {
   font-size: 1rem;
@@ -583,7 +754,9 @@ onMounted(() => {
   letter-spacing: 0.01em;
   position: relative;
 }
-.tab.active { color: #fff; }
+.tab.active {
+  color: #fff;
+}
 
 .tab-badge {
   position: absolute;
@@ -626,8 +799,14 @@ onMounted(() => {
   color: #ff8888;
   font-size: 0.84rem;
 }
-.err-icon { width: 15px; height: 15px; flex-shrink: 0; }
-.error-toast span { flex: 1; }
+.err-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.error-toast span {
+  flex: 1;
+}
 .err-close {
   background: none;
   border: none;
@@ -638,36 +817,70 @@ onMounted(() => {
   line-height: 1;
   transition: color 0.15s;
 }
-.err-close:hover { color: #ff8888; }
+.err-close:hover {
+  color: #ff8888;
+}
 
-.err-fade-enter-active, .err-fade-leave-active { transition: all 0.22s ease; }
-.err-fade-enter-from, .err-fade-leave-to { opacity: 0; transform: translateY(-6px); }
+.err-fade-enter-active,
+.err-fade-leave-active {
+  transition: all 0.22s ease;
+}
+.err-fade-enter-from,
+.err-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
 
 /* ── skeleton ────────────────────────────────────────────── */
-.skeleton-list { display: flex; flex-direction: column; gap: 0.65rem; }
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
 .skeleton-card {
   height: 74px;
   border-radius: 14px;
-  background: linear-gradient(90deg,
-    rgba(255,255,255,0.04) 25%,
-    rgba(255,255,255,0.09) 50%,
-    rgba(255,255,255,0.04) 75%
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.04) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 @keyframes shimmer {
-  from { background-position: 200% 0; }
-  to   { background-position: -200% 0; }
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 /* ── tab slide transition ─────────────────────────────────── */
-.tab-slide-enter-active, .tab-slide-leave-active { transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1); }
-.tab-slide-enter-from { opacity: 0; transform: translateY(10px); }
-.tab-slide-leave-to  { opacity: 0; transform: translateY(-6px); }
+.tab-slide-enter-active,
+.tab-slide-leave-active {
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tab-slide-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.tab-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
 
 /* ── card list ───────────────────────────────────────────── */
-.card-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.card-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
 
 /* ── friend card ─────────────────────────────────────────── */
 .friend-card {
@@ -679,7 +892,11 @@ onMounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 14px;
   backdrop-filter: blur(12px);
-  transition: border-color 0.2s, background 0.2s, transform 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    transform 0.2s,
+    box-shadow 0.2s;
   animation: card-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
   cursor: default;
 }
@@ -687,7 +904,9 @@ onMounted(() => {
   border-color: rgba(0, 232, 122, 0.22);
   background: rgba(12, 14, 22, 0.96);
   transform: translateX(4px);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(0, 232, 122, 0.05);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(0, 232, 122, 0.05);
 }
 
 .blocked-card:hover {
@@ -696,8 +915,14 @@ onMounted(() => {
 }
 
 @keyframes card-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── avatar ──────────────────────────────────────────────── */
@@ -713,8 +938,13 @@ onMounted(() => {
   border: 2px solid rgba(255, 255, 255, 0.08);
   transition: border-color 0.2s;
 }
-.friend-card:hover .avatar { border-color: rgba(0, 232, 122, 0.35); }
-.avatar-blocked { filter: grayscale(0.7); opacity: 0.6; }
+.friend-card:hover .avatar {
+  border-color: rgba(0, 232, 122, 0.35);
+}
+.avatar-blocked {
+  filter: grayscale(0.7);
+  opacity: 0.6;
+}
 
 .status-dot {
   position: absolute;
@@ -731,12 +961,23 @@ onMounted(() => {
   animation: online-pulse 2.4s ease-in-out infinite;
 }
 @keyframes online-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 232, 122, 0.55); }
-  60%       { box-shadow: 0 0 0 5px rgba(0, 232, 122, 0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 232, 122, 0.55);
+  }
+  60% {
+    box-shadow: 0 0 0 5px rgba(0, 232, 122, 0);
+  }
 }
 
 /* ── user info ───────────────────────────────────────────── */
-.user-info { flex: 1; display: flex; flex-direction: column; gap: 0.28rem; overflow: hidden; }
+.user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  overflow: hidden;
+}
 
 .username {
   font-size: 0.92rem;
@@ -747,7 +988,11 @@ onMounted(() => {
   text-overflow: ellipsis;
 }
 
-.user-meta { display: flex; align-items: center; gap: 0.45rem; }
+.user-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
 
 .level-badge {
   display: inline-flex;
@@ -770,16 +1015,27 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.status-text { font-size: 0.75rem; color: rgba(255, 255, 255, 0.35); }
-.status-text.online { color: #00e87a; }
+.status-text {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+.status-text.online {
+  color: #00e87a;
+}
 
 .req-label {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.35);
 }
-.req-label.incoming { color: #00f0ff; }
-.req-label.pending  { color: rgba(255, 200, 80, 0.8); }
-.req-label.blocked  { color: rgba(255, 92, 92, 0.7); }
+.req-label.incoming {
+  color: #00f0ff;
+}
+.req-label.pending {
+  color: rgba(255, 200, 80, 0.8);
+}
+.req-label.blocked {
+  color: rgba(255, 92, 92, 0.7);
+}
 
 .status-tag {
   font-size: 0.72rem;
@@ -792,7 +1048,11 @@ onMounted(() => {
 }
 
 /* ── card actions ────────────────────────────────────────── */
-.card-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.card-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
 
 /* ── buttons ─────────────────────────────────────────────── */
 .btn-ghost {
@@ -805,14 +1065,20 @@ onMounted(() => {
   padding: 0.32rem 0.75rem;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.18s, border-color 0.18s, color 0.18s;
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    color 0.18s;
 }
 .btn-ghost:hover {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.2);
   color: #e8e8f0;
 }
-.btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 .btn-danger-ghost {
   border-color: rgba(255, 92, 92, 0.25);
@@ -835,13 +1101,27 @@ onMounted(() => {
   cursor: pointer;
   white-space: nowrap;
   box-shadow: 0 2px 12px rgba(0, 232, 122, 0.25);
-  transition: transform 0.14s, box-shadow 0.18s, opacity 0.18s;
+  transition:
+    transform 0.14s,
+    box-shadow 0.18s,
+    opacity 0.18s;
 }
-.btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(0, 232, 122, 0.4); }
-.btn-primary:active:not(:disabled) { transform: translateY(0); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(0, 232, 122, 0.4);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-.btn-sm { padding: 0.28rem 0.65rem; font-size: 0.78rem; }
+.btn-sm {
+  padding: 0.28rem 0.65rem;
+  font-size: 0.78rem;
+}
 
 /* ── toolbar ─────────────────────────────────────────────── */
 .toolbar {
@@ -874,9 +1154,14 @@ onMounted(() => {
   font-size: 0.88rem;
   padding: 0.62rem 0.9rem 0.62rem 2.1rem;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
 }
-.search-input::placeholder { color: rgba(255, 255, 255, 0.22); }
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.22);
+}
 .search-input:focus {
   border-color: rgba(0, 232, 122, 0.4);
   background: rgba(0, 232, 122, 0.03);
@@ -895,12 +1180,18 @@ onMounted(() => {
   flex-shrink: 0;
   transition: border-color 0.2s;
 }
-.sort-select:focus { border-color: rgba(0, 232, 122, 0.35); }
+.sort-select:focus {
+  border-color: rgba(0, 232, 122, 0.35);
+}
 
 /* ── discover section ────────────────────────────────────── */
-.discover-section { margin-top: 2.5rem; }
+.discover-section {
+  margin-top: 2.5rem;
+}
 
-.section-header { margin-bottom: 1rem; }
+.section-header {
+  margin-bottom: 1rem;
+}
 
 .section-title {
   font-size: 0.95rem;
@@ -914,7 +1205,9 @@ onMounted(() => {
 }
 
 /* ── sub-sections (requests) ─────────────────────────────── */
-.sub-section { margin-bottom: 2rem; }
+.sub-section {
+  margin-bottom: 2rem;
+}
 
 .sub-title {
   display: flex;
@@ -936,8 +1229,14 @@ onMounted(() => {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.sub-title-dot.received { background: #00f0ff; box-shadow: 0 0 6px rgba(0, 240, 255, 0.4); }
-.sub-title-dot.sent     { background: rgba(255, 200, 80, 0.85); box-shadow: 0 0 6px rgba(255, 200, 80, 0.3); }
+.sub-title-dot.received {
+  background: #00f0ff;
+  box-shadow: 0 0 6px rgba(0, 240, 255, 0.4);
+}
+.sub-title-dot.sent {
+  background: rgba(255, 200, 80, 0.85);
+  box-shadow: 0 0 6px rgba(255, 200, 80, 0.3);
+}
 
 /* ── empty states ────────────────────────────────────────── */
 .empty-state {
@@ -949,9 +1248,15 @@ onMounted(() => {
   gap: 0.75rem;
   text-align: center;
 }
-.empty-state.compact { padding: 1.5rem 1rem; }
+.empty-state.compact {
+  padding: 1.5rem 1rem;
+}
 
-.empty-icon { font-size: 2.5rem; line-height: 1; opacity: 0.5; }
+.empty-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  opacity: 0.5;
+}
 
 .empty-state p {
   font-size: 0.88rem;
@@ -974,7 +1279,10 @@ onMounted(() => {
   gap: 0.75rem;
   padding: 1rem 0 0;
 }
-.pag-btn { min-width: 72px; justify-content: center; }
+.pag-btn {
+  min-width: 72px;
+  justify-content: center;
+}
 .page-info {
   font-size: 0.82rem;
   color: rgba(255, 255, 255, 0.35);
@@ -984,10 +1292,23 @@ onMounted(() => {
 
 /* ── responsive ──────────────────────────────────────────── */
 @media (max-width: 600px) {
-  .friends-page { padding: 1.5rem 1rem 3rem; }
-  .page-title { font-size: 1.6rem; }
-  .friend-card { padding: 0.75rem 0.85rem; gap: 0.75rem; }
-  .card-actions { flex-wrap: wrap; }
-  .btn-ghost, .btn-primary { font-size: 0.75rem; padding: 0.28rem 0.55rem; }
+  .friends-page {
+    padding: 1.5rem 1rem 3rem;
+  }
+  .page-title {
+    font-size: 1.6rem;
+  }
+  .friend-card {
+    padding: 0.75rem 0.85rem;
+    gap: 0.75rem;
+  }
+  .card-actions {
+    flex-wrap: wrap;
+  }
+  .btn-ghost,
+  .btn-primary {
+    font-size: 0.75rem;
+    padding: 0.28rem 0.55rem;
+  }
 }
 </style>
