@@ -75,6 +75,152 @@ export const getDashboard = async (req, res, next) => {
   }
 };
 
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+export const getAnalytics = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(now.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const [
+      coinAgg,
+      topHolders,
+      gameTypeCounts,
+      totalMatches,
+      spitLeaderboard,
+      roadLeaderboard,
+      recentUsers,
+      levelDistribution,
+      topAchievements,
+      totalXP,
+      activeMatches,
+    ] = await Promise.all([
+      // Coin economy — aggregate
+      prisma.alpacaFarm.aggregate({ _sum: { coins: true }, _avg: { coins: true } }),
+
+      // Top 10 coin holders
+      prisma.alpacaFarm.findMany({
+        orderBy: { coins: 'desc' },
+        take: 10,
+        select: { coins: true, userId: true, user: { select: { username: true, avatar: true } } },
+      }),
+
+      // Game counts & wins grouped by type
+      prisma.gameStat.groupBy({
+        by: ['gameType'],
+        _sum: { wins: true, losses: true },
+        _count: { userId: true },
+      }),
+
+      // Total matches played
+      prisma.gameStat.aggregate({ _sum: { wins: true, losses: true } }),
+
+      // Top 5 Spit Royale ELO
+      prisma.gameStat.findMany({
+        where: { gameType: 'spit_royale' },
+        orderBy: { elo: 'desc' },
+        take: 5,
+        select: { elo: true, wins: true, userId: true, user: { select: { username: true } } },
+      }),
+
+      // Top 5 Alpaca Road ELO
+      prisma.gameStat.findMany({
+        where: { gameType: 'alpaca_road' },
+        orderBy: { elo: 'desc' },
+        take: 5,
+        select: { elo: true, wins: true, userId: true, user: { select: { username: true } } },
+      }),
+
+      // New users per day last 7 days
+      prisma.user.findMany({
+        where: { createdAt: { gte: sevenDaysAgo } },
+        select: { createdAt: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+
+      // Level distribution
+      prisma.userStats.groupBy({ by: ['level'], _count: { userId: true }, orderBy: { level: 'asc' } }),
+
+      // Top 8 most unlocked achievements
+      prisma.userAchievement.groupBy({
+        by: ['achievementId'],
+        _count: { userId: true },
+        orderBy: { _count: { userId: 'desc' } },
+        take: 8,
+      }),
+
+      // Total XP distributed
+      prisma.userStats.aggregate({ _sum: { xp: true } }),
+
+      // Active matches (game rows with status playing)
+      prisma.gameStat.count({ where: { wins: { gt: 0 } } }),
+    ]);
+
+    // Enrich achievement IDs with names
+    const achievementIds = topAchievements.map(a => a.achievementId);
+    const achievementMeta = await prisma.achievement.findMany({
+      where: { id: { in: achievementIds } },
+      select: { id: true, key: true, name: true },
+    });
+    const achById = Object.fromEntries(achievementMeta.map(a => [a.id, a]));
+
+    // Build registrations-per-day map (last 7 days)
+    const dayMap = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      dayMap[d.toISOString().slice(0, 10)] = 0;
+    }
+    for (const u of recentUsers) {
+      const key = u.createdAt.toISOString().slice(0, 10);
+      if (dayMap[key] !== undefined) dayMap[key]++;
+    }
+
+    res.json({
+      coins: {
+        total: coinAgg._sum.coins ?? 0,
+        average: Math.round(coinAgg._avg.coins ?? 0),
+        topHolders: topHolders.map(f => ({
+          userId: f.userId,
+          username: f.user.username,
+          avatar: f.user.avatar,
+          coins: f.coins ?? 0,
+        })),
+      },
+      games: {
+        totalWins: totalMatches._sum.wins ?? 0,
+        totalLosses: totalMatches._sum.losses ?? 0,
+        byType: gameTypeCounts.map(g => ({
+          gameType: g.gameType,
+          players: g._count.userId,
+          wins: g._sum.wins ?? 0,
+          losses: g._sum.losses ?? 0,
+        })),
+        topElo: {
+          spit_royale: spitLeaderboard.map(r => ({ userId: r.userId, username: r.user.username, elo: r.elo, wins: r.wins })),
+          alpaca_road: roadLeaderboard.map(r => ({ userId: r.userId, username: r.user.username, elo: r.elo, wins: r.wins })),
+        },
+      },
+      users: {
+        newThisWeek: recentUsers.length,
+        byDay: Object.entries(dayMap).map(([date, count]) => ({ date, count })),
+        levelDistribution: levelDistribution.map(l => ({ level: l.level, count: l._count.userId })),
+        activeGamers: activeMatches,
+        totalXP: totalXP._sum.xp ?? 0,
+      },
+      achievements: {
+        topUnlocked: topAchievements.map(a => ({
+          key: achById[a.achievementId]?.key ?? '',
+          name: achById[a.achievementId]?.name ?? '',
+          count: a._count.userId,
+        })),
+      },
+    });
+  } catch (err) { next(err); }
+};
+
 // ── User management ───────────────────────────────────────────────────────────
 
 /**

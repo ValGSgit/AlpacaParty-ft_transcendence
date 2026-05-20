@@ -6,6 +6,8 @@ import Post from "../models/Post.js";
 import NotificationService from "../services/notificationService.js";
 import { stripDangerousHtml } from "../utils/htmlSanitizer.js";
 import { debug } from "#lib/logger.js";
+import GamificationService from "../services/GamificationService.js";
+import prisma from "#config/prisma.js";
 
 /** GET /api/posts */
 export const getFeed = async (req, res, next) => {
@@ -63,6 +65,10 @@ export const createPost = async (req, res, next) => {
       isPublic: !!isPublic,
     });
     res.status(201).json({ post });
+    const postCount = await prisma.post.count(
+      { where: { authorId: req.user.id } });
+    if (postCount === 1)
+      GamificationService.unlock(req.user.id, 'spit_facts').catch(() => {});
   } catch (err) {
     next(err);
   }

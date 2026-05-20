@@ -4,7 +4,7 @@
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import User, { shapeUserForClient } from "../models/User.js";
-import Achievement from "../models/Achievement.js";
+import GamificationService from "../services/GamificationService.js";
 import AuthService from "../services/authService.js";
 import { oauthTokensForUser } from "../services/oauthService.js";
 import config from "../config/index.js";
@@ -35,11 +35,7 @@ export const register = async (req, res, next) => {
     const passwordHash = await AuthService.hashPassword(password);
     const user = await User.create({ username, email, passwordHash });
 
-    try {
-      await Achievement.unlock(user.id, "first_login");
-    } catch {
-      // Avoid failing registration if achievement bookkeeping is unavailable.
-    }
+    GamificationService.onLogin(user.id).catch(() => {});
     const accessToken = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
 
@@ -84,6 +80,7 @@ export const login = async (req, res, next) => {
     res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
     res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
     res.json({ user: safeUser, accessToken });
+    GamificationService.onLogin(user.id).catch(() => {});
   } catch (err) {
     next(err);
   }

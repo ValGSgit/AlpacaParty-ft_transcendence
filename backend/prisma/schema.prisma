@@ -82,9 +82,12 @@ model PublicApi {
 }
 
 model UserStats {
-  userId Int  @id @map("user_id")
-  xp     Int? @default(0)
-  level  Int? @default(1)
+  userId         Int       @id @map("user_id")
+  xp             Int?      @default(0)
+  level          Int?      @default(0)
+  winStreak      Int?      @default(0) @map("win_streak")
+  loginStreak    Int?      @default(0) @map("login_streak")
+  lastLoginDate  DateTime? @map("last_login_date")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -113,6 +113,10 @@ const NotificationService = {
       referenceType: 'data_request',
     });
   },
+
+  broadcastAll(event, data) {
+    if (io) io.emit(event, data);
+  },
 };
 
 export default NotificationService;

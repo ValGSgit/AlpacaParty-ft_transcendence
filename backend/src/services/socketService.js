@@ -21,6 +21,7 @@ import Message from "../models/Message.js";
 import User from "../models/User.js";
 import { MatchManager } from "./MatchManager.js";
 import NotificationService from "./notificationService.js";
+import GamificationService from "./GamificationService.js";
 import { socketAuthMiddleware } from "./socketAuth.js";
 
 export function initializeSocket(httpServer, corsOrigins) {
@@ -126,6 +127,8 @@ export function initializeSocket(httpServer, corsOrigins) {
         // Echo back to sender
         socket.emit("dm:message", shaped);
 
+        GamificationService.onMessageSent(user.id).catch(() => {});
+
         // Notification (non-blocking)
         NotificationService.newMessage(receiverId, user.username).catch(
           (err) => { debug("notification error (newMessage):", err.message); },
@@ -140,9 +143,6 @@ export function initializeSocket(httpServer, corsOrigins) {
     socket.on("dm:read", async ({ senderId }) => {
       await Message.markAsRead(user.id, senderId).catch((err) => { debug("markAsRead error:", err.message); });
     });
-
-    // Group chat rooms (room:join / room:send) are not yet implemented —
-    // ChatRoom model does not exist. Handlers removed to prevent ReferenceError.
 
     // ── Alpaca farm data sync (offline -> server) ────────────
     socket.on("farm:save", async ({ farmData }, ack) => {

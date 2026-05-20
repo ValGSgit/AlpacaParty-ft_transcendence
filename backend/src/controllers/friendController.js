@@ -5,6 +5,7 @@
 import Friend from '../models/Friend.js';
 import User from '../models/User.js';
 import NotificationService from '../services/notificationService.js';
+import GamificationService from '../services/GamificationService.js';
 
 /** GET /api/friends — list my friends */
 export const listFriends = async (req, res, next) => {
@@ -57,6 +58,8 @@ export const sendRequest = async (req, res, next) => {
 
     if (result.autoAccepted) {
       await NotificationService.friendAccepted(request.senderId, req.user.username);
+      checkSocialButterfly(req.user.id).catch(() => {});
+      checkSocialButterfly(Number(userId)).catch(() => {});
       return res.status(200).json({ request, autoAccepted: true });
     }
 
@@ -76,8 +79,15 @@ export const acceptRequest = async (req, res, next) => {
     if (!request) return res.status(404).json({ error: { message: 'Request not found' } });
     await NotificationService.friendAccepted(request.senderId, req.user.username);
     res.json({ request });
+    checkSocialButterfly(req.user.id).catch(() => {});
+    checkSocialButterfly(request.senderId).catch(() => {});
   } catch (err) { next(err); }
 };
+
+async function checkSocialButterfly(userId) {
+  const count = await Friend.count(userId);
+  if (count >= 5) await GamificationService.unlock(userId, 'social_butterfly');
+}
 
 /** PUT /api/friends/requests/:id/decline */
 export const declineRequest = async (req, res, next) => {

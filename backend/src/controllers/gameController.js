@@ -5,6 +5,7 @@
  */
 import Game from '../models/Game.js';
 import Achievement from '../models/Achievement.js';
+import GamificationService from '../services/GamificationService.js';
 
 /** GET /api/game/stats?gameType=spit_royale */
 export const getStats = async (req, res, next) => {
@@ -58,6 +59,12 @@ export const saveGameResult = async (req, res, next) => {
     await Game.updateStats(req.user.id, gameType, result);
     const stats = await Game.getStats(req.user.id, gameType);
     res.json({ stats });
+
+    if (result === 'win') {
+      GamificationService.onWin(req.user.id, gameType).catch(() => {});
+    } else if (result === 'loss') {
+      GamificationService.onLoss(req.user.id).catch(() => {});
+    }
   } catch (err) { next(err); }
 };
 
@@ -79,6 +86,7 @@ export const saveFarm = async (req, res, next) => {
     if (!farmData) return res.status(400).json({ error: { message: 'farmData is required' } });
     const farm = await Game.updateFarm(req.user.id, farmData);
     res.json({ farm });
+    GamificationService.onFarmSave(req.user.id, farmData).catch(() => {});
   } catch (err) { next(err); }
 };
 

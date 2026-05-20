@@ -1,5 +1,6 @@
 import { debug, error } from "#lib/logger.js";
 import Game from "../models/Game.js";
+import GamificationService from "./GamificationService.js";
 import { BaseMatch } from "./BaseMatch.js";
 
 const ELO_K = 24;
@@ -278,6 +279,12 @@ export class AlpacaRoadMatch extends BaseMatch {
         const newElo = calcElo(myElo, avgOpp, result);
         await Game.updateStats(p.userId, GAME_TYPE, result);
         await Game.updateElo(p.userId, GAME_TYPE, newElo);
+
+        if (isWinner) {
+          await GamificationService.onWin(p.userId, GAME_TYPE);
+        } else {
+          await GamificationService.onLoss(p.userId);
+        }
       }),
     );
   }

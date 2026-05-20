@@ -131,6 +131,35 @@ async function sendSuggestion(text) {
   await send()
 }
 
+async function* streamChunks(resp) {
+  const reader = resp.body.getReader()
+  const decoder = new TextDecoder('utf-8')
+  let buffer = ''
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done)
+      break
+    buffer += decoder.decode(value, { stream: true })
+    const events = buffer.split('\n\n')
+    buffer = events.pop() ?? ''
+    for (const evt of events) {
+      const line = evt.trim()
+      if (!line.startsWith('data:'))
+        continue
+      const payload = line.slice(5).trim()
+      if (payload === '[DONE]')
+      { reader.cancel().catch(() => {}); return }
+      let json
+      try { json = JSON.parse(payload) }
+        catch { continue } // malformed keep-alive frame
+      if (json.error)
+        throw new Error('Stream interrupted, please try again.')
+      if (json.content)
+        yield json.content
+    }
+  }
+}
+
 async function send() {
   const text = draft.value.trim()
   if (!text || loading.value || text.length > MAX_CHARS) return

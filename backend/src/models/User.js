@@ -9,6 +9,7 @@ const SAFE_SELECT = {
   id: true,
   username: true,
   email: true,
+  role: u.role ?? 'user',
   avatar: true,
   bio: true,
   status: true,

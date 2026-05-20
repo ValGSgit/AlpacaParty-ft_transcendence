@@ -5,6 +5,7 @@ import {
   adminLogout,
   getMe,
   getDashboard,
+  getAnalytics,
   getUsers,
   updateUserRole,
   banUser,
@@ -25,6 +26,7 @@ router.use(requireAdmin);
 
 router.get("/me", getMe);
 router.get("/dashboard", getDashboard);
+router.get("/analytics", getAnalytics);
 
 // User management
 router.get("/users", getUsers);

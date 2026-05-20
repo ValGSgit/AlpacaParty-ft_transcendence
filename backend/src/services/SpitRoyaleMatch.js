@@ -1,8 +1,19 @@
-import { debug } from "#lib/logger.js";
+import { debug, error } from "#lib/logger.js";
 import { BaseMatch } from "./BaseMatch.js";
+import Game from "../models/Game.js";
+import GamificationService from "./GamificationService.js";
 
 const ARENA_RADIUS = 25;
 const PLAYER_RADIUS = 2;
+const ELO_K = 32;
+const GAME_TYPE = 'spit_royale';
+const MIN_RANKED_PLAYERS = 2;
+
+function calcElo(playerElo, avgOpponentElo, result) {
+  const expected = 1 / (1 + Math.pow(10, (avgOpponentElo - playerElo) / 400));
+  const score = result === 'win' ? 1 : 0;
+  return Math.round(playerElo + ELO_K * (score - expected));
+}
 
 export class SpitRoyalMatch extends BaseMatch {
   constructor(id, namespace, roomName, onStateChange) {
@@ -10,6 +21,7 @@ export class SpitRoyalMatch extends BaseMatch {
     this.tickRate = 33;
     this.isPlaying = false;
     this.playersJoined = 0;
+    this.finalized = false;
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
 
@@ -54,7 +66,6 @@ export class SpitRoyalMatch extends BaseMatch {
     if (this.status === 'LOBBY') {
       this.status = 'PLAYING';
       this.isPlaying = true;
-      //if (this.onStateChange) this.onStateChange();
     }
 
     socket.emit('game_start', { instant: true, spawn });
@@ -109,22 +120,60 @@ export class SpitRoyalMatch extends BaseMatch {
 
     const alivePlayers = Array.from(this.players.values()).filter(p => p.alive);
     debug("alive:", alivePlayers.length);
-    // Require at least 2 players to have joined before triggering a "last alpaca standing" win
     if (this.playersJoined > 1 && alivePlayers.length <= 1) {
-      this.status = 'GAME_OVER'
-      const winnerId = alivePlayers.length === 1 ? alivePlayers[0].id : null;
-      this.endMatch(winnerId, 'lastone_standing');
+      this.status = 'GAME_OVER';
+      const winnerSocketId = alivePlayers.length === 1 ? alivePlayers[0].id : null;
+      this.endMatch(winnerSocketId, 'lastone_standing');
     }
   }
 
-  endMatch(winnerPlayerId, reason) {
+  endMatch(winnerSocketId, reason) {
     this.isPlaying = false;
-
-    this.broadcast('game_over', {
-      reason,
-      winnerId: winnerPlayerId,
-    });
+    this.broadcast('game_over', { reason, winnerId: winnerSocketId });
+    this._persistOutcome(winnerSocketId).catch((err) =>
+      error('[spit-royale] failed to persist outcome:', err.message),
+    );
     this.stop();
+  }
+
+  async _persistOutcome(winnerSocketId) {
+    if (this.finalized) return;
+    this.finalized = true;
+
+    const ranked = Array.from(this.players.values()).filter((p) =>
+      Number.isFinite(p.userId),
+    );
+    if (ranked.length < MIN_RANKED_PLAYERS) return;
+
+    const winnerPlayer = winnerSocketId
+      ? ranked.find((p) => p.id === winnerSocketId)
+      : null;
+
+    const currentStats = await Promise.all(
+      ranked.map((p) => Game.getStats(p.userId, GAME_TYPE)),
+    );
+    const eloByUser = new Map();
+    ranked.forEach((p, i) => eloByUser.set(p.userId, currentStats[i].elo ?? 1000));
+    const totalElo = Array.from(eloByUser.values()).reduce((a, b) => a + b, 0);
+
+    await Promise.all(
+      ranked.map(async (p) => {
+        const myElo = eloByUser.get(p.userId);
+        const avgOpp = ranked.length > 1 ? (totalElo - myElo) / (ranked.length - 1) : myElo;
+        const isWinner = winnerPlayer != null && p.userId === winnerPlayer.userId;
+        const result = isWinner ? 'win' : 'loss';
+        const newElo = calcElo(myElo, avgOpp, result);
+
+        await Game.updateStats(p.userId, GAME_TYPE, result);
+        await Game.updateElo(p.userId, GAME_TYPE, newElo);
+
+        if (isWinner) {
+          await GamificationService.onWin(p.userId, GAME_TYPE);
+        } else {
+          await GamificationService.onLoss(p.userId);
+        }
+      }),
+    );
   }
 
   update() {
