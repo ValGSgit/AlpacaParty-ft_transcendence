@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
+import { devWarn } from '../../services/logger.js';
 import { createAlpaca } from '../core/createObjects.js';
 import { gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
@@ -105,7 +106,7 @@ function spawnEnemySpits() {
         }
         shooter.spit();
       } catch (e) {
-        console.warn("Skipped enemy spit rendering due to loading state.");
+        devWarn("Skipped enemy spit rendering due to loading state.");
       }
     }
   }

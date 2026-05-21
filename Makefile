@@ -181,7 +181,7 @@ ssl-certs:
 	    -out ssl/cert.pem \
 	    -days 365 \
 	    -subj '/CN=localhost' \
-	    -addext 'subjectAltName=DNS:localhost,DNS:frontend,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1' \
+	    -addext 'subjectAltName=DNS:localhost,DNS:frontend,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1,IP:10.13.10.5,DNS:10.13.10.5.nip.io' \
 	    2>/dev/null && \
 	  echo "$(GREEN)✓ Self-signed certificate generated in ssl/$(RESET)"; \
 	else \

@@ -1,6 +1,7 @@
 import { gScene } from '../core/globals.js';
 import * as GRADIENT from "../utils/createGradient.js"
 import api from '../../services/api.js';
+import { devError } from '../../services/logger.js';
 
 export function changeFloorColor(top, bottom){
   const floorMat = gScene.value?.floor?.material?.[1];
@@ -20,6 +21,6 @@ export async function saveGameResult(gameType, result) {
   try {
     await api.post('/game/result', { gameType, result });
   } catch (err) {
-    console.error('Failed to save game result:', err);
+    devError('Failed to save game result:', err);
   }
 }

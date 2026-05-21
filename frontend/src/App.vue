@@ -5,8 +5,6 @@
 -->
 <template>
   <div id="app">
-    <IconSprite />
-
     <!-- Top navbar — hidden on full-screen auth pages -->
     <nav v-if="!isAuthRoute" :class="['navbar', { scrolled }]">
       <div class="nav-bar-glow"></div>
@@ -122,7 +120,6 @@ import api from './services/api.js'
 import { devError } from './services/logger.js'
 import { connectSocket, disconnectSocket } from './services/socket.js'
 import AppIcon from './components/AppIcon.vue'
-import IconSprite from './components/IconSprite.vue'
 import HelpDeskChat from './components/HelpDeskChat.vue'
 import Messages from './views/Messages.vue'
 
