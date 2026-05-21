@@ -283,8 +283,7 @@ export const deleteMe = async (req, res, next) => {
 export const getApiKey = async (req, res, next) => {
   try {
     const apiKey = await User.getApiKey(req.user.id);
-    if (!apiKey) throw new CustomError("api key not found", 404);
-    res.json({ apiKey });
+    res.json({ apiKey: apiKey || null });
   } catch (err) {
     next(err);
   }

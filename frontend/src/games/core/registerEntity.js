@@ -1,4 +1,5 @@
 import { gAlpacas, gCollectables, gCollidables, gDecorations, gEditables, gItems} from './globals.js';
+import { devWarn } from '../../services/logger.js';
 
 export function registerEntity(entity, type) {
 
@@ -36,6 +37,6 @@ export function registerEntity(entity, type) {
       break;
 
     default:
-      console.warn(`Registry Warning: Unknown entity type '${type}'`);
+      devWarn(`Registry Warning: Unknown entity type '${type}'`);
   }
 }

@@ -145,6 +145,7 @@ export const likePost = async (req, res, next) => {
     if (!post)
       return res.status(404).json({ error: { message: "Post not found" } });
     await Post.like(post.id, req.user.id);
+    const newLikesCount = (post.likes_count ?? 0) + 1;
     if (post.author_id !== req.user.id) {
       NotificationService.postLiked(
         post.author_id,
@@ -152,6 +153,7 @@ export const likePost = async (req, res, next) => {
         post.id,
       ).catch((err) => { debug("notification error (postLiked):", err.message); });
     }
+    GamificationService.onPostLiked(post.author_id, newLikesCount).catch(() => {});
     res.json({ message: "Liked" });
   } catch (err) {
     next(err);

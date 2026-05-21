@@ -316,6 +316,7 @@ import { useInput } from './core/useInput.js'
 import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
+import { devError } from '../services/logger.js'
 import './game.css'
 import { changeGame, visitFarm, friendName } from './mini_games/init.js'
 import { getHearts } from './utils/uiHelpers.js'
@@ -365,7 +366,7 @@ onMounted(async () => {
   }
 
   if (!gEngine.value) {
-    console.error('Init failed: Scene not returned from globalEngine.')
+    devError('Init failed: Scene not returned from globalEngine.')
   }
   else
   {
