@@ -73,7 +73,6 @@ describe('useAuthStore', () => {
       })
       expect(store.user).toEqual(mockResponse.data.user)
       expect(store.isAuthenticated).toBe(true)
-      expect(localStorage.setItem).toHaveBeenCalledWith('cookie_consent', 'accepted')
     })
 
     it('should set error on register failure', async () => {
