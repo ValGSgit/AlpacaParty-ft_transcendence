@@ -138,6 +138,10 @@ const notifications = ref([])
 const unreadCount = ref(0)
 const unreadMessages = ref(0)
 
+watch(showMessagesModal, (open) => {
+  if (open) unreadMessages.value = 0
+})
+
 const PAGES_WITHOUT_FOOTER = ['Game', 'Home']
 const hasFooter = computed(() => !PAGES_WITHOUT_FOOTER.includes(route.name))
 const isGameRoute = computed(() => ['Game', 'SpitRoyale'].includes(route.name))
@@ -223,6 +227,12 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
     if (sock.connected && authStore.user) authStore.user.isOnline = true
 
     fetchNotifications()
+    api.get('/chat/unread')
+      .then(({ data }) => { unreadMessages.value = data.count || 0 })
+      .catch(() => {})
+    sock.on('dm:message', () => {
+      if (!showMessagesModal.value) unreadMessages.value++
+    })
   } else {
     disconnectSocket()
     unreadCount.value = 0
