@@ -43,7 +43,7 @@ export class SpitRoyalMatch extends BaseMatch {
     player.z = spawn.z;
     player.angle = spawn.angle;
     player.hp = 3;
-    player.alive = true;
+    player.isDead = false;
     player.point = 0;
 
     this.playersJoined++;
@@ -62,7 +62,7 @@ export class SpitRoyalMatch extends BaseMatch {
   removePlayer(socketId) {
     const player = this.players.get(socketId);
     if (player) {
-      player.alive = false;
+      player.isDead = true;
     }
     super.removePlayer(socketId);
     this.checkWinCondition();
@@ -70,7 +70,7 @@ export class SpitRoyalMatch extends BaseMatch {
 
   handlePlayerInput(socketId, { x, y, z, angle }) {
     const player = this.players.get(socketId);
-    if (player && player.alive) {
+    if (player && !player.isDead) {
       if (x !== undefined) player.x = x;
       if (y !== undefined) player.y = y;
       if (z !== undefined) player.z = z;
@@ -80,7 +80,7 @@ export class SpitRoyalMatch extends BaseMatch {
 
   handlePlayerSpit(socketId, direction) {
     const player = this.players.get(socketId);
-    if (player && player.alive) {
+    if (player && !player.isDead) {
       this.broadcast('player_spit', { ownerId: socketId, direction: direction });
     }
   }
@@ -89,12 +89,11 @@ export class SpitRoyalMatch extends BaseMatch {
     const target = this.players.get(targetId);
     const owner = this.players.get(ownerId);
 
-    if (target && target.alive) {
+    if (target && !target.isDead) {
       target.hp -= 1;
       if (owner) owner.point++;
 
       if (target.hp <= 0) {
-        target.alive = false;
         target.isDead = true;
 
         this.namespace.to(targetId).emit('game_over', { reason: 'eliminated' });
@@ -106,8 +105,7 @@ export class SpitRoyalMatch extends BaseMatch {
   checkWinCondition() {
     if (!this.isPlaying) return;
 
-    const alivePlayers = Array.from(this.players.values()).filter(p => p.alive);
-    console.log("alive:", alivePlayers)
+    const alivePlayers = Array.from(this.players.values()).filter(p => !p.isDead);
     // Require at least 2 players to have joined before triggering a "last alpaca standing" win
     if (this.playersJoined > 1 && alivePlayers.length <= 1) {
       this.status === 'GAME_OVER'
@@ -134,7 +132,7 @@ export class SpitRoyalMatch extends BaseMatch {
       name: p.name,
       hp: p.hp,
       point: p.point,
-      isDead: !p.alive,
+      isDead: p.isDead,
       color: p.color,
       x: p.x,
       y: p.y,
