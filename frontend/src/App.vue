@@ -168,6 +168,13 @@ async function fetchNotifications() {
   } catch (e) { devError(e) }
 }
 
+async function fetchUnreadMessages() {
+  try {
+    const { data } = await api.get('/chat/unread')
+    unreadMessages.value = data.count || 0
+  } catch { /* ignore */ }
+}
+
 async function markNotifRead(n) {
   if (!n.is_read) {
     try {
@@ -227,9 +234,7 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
     if (sock.connected && authStore.user) authStore.user.isOnline = true
 
     fetchNotifications()
-    api.get('/chat/unread')
-      .then(({ data }) => { unreadMessages.value = data.count || 0 })
-      .catch(() => {})
+    fetchUnreadMessages()
     sock.on('dm:message', () => {
       if (!showMessagesModal.value) unreadMessages.value++
     })
