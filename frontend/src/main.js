@@ -17,9 +17,7 @@ app.use(pinia)
 
 ;(async () => {
   const authStore = useAuthStore()
-  if (localStorage.getItem('cookie_consent') === 'accepted') {
-    await authStore.fetchUser()
-  }
+  await authStore.fetchUser()
   app.use(router)
   app.mount('#app')
 })()
