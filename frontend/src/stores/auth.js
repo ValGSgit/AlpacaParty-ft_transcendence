@@ -91,11 +91,11 @@ export const useAuthStore = defineStore("auth", () => {
     loading.value = true;
     try {
       const { data } = await api.get("/auth/me", { retryOnAuth: false });
-      user.value = data.user;
+      if (data.user)
+        user.value = data.user;
     } catch (e) {
       // 401 here just means "no valid session" — expected on first load.
       user.value = null;
-      //if (e?.response?.status !== 401) devError(e);
     } finally {
       loading.value = false;
     }

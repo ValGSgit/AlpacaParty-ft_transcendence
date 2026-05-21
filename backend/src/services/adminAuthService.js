@@ -12,7 +12,7 @@ const AdminAuthService = {
 
   verifyToken(token) {
     try {
-      return jwt.verify(token, config.admin.jwtSecret);
+      return jwt.verify(token, config.admin.jwtSecret, { algorithms: ['HS256'] });
     } catch {
       return null;
     }

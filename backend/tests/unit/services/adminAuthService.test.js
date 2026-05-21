@@ -130,7 +130,7 @@ describe('AdminAuthService', () => {
 
       const result = AdminAuthService.verifyToken('valid-token');
 
-      expect(jwt.verify).toHaveBeenCalledWith('valid-token', 'test-secret-key');
+      expect(jwt.verify).toHaveBeenCalledWith('valid-token', 'test-secret-key', { algorithms: ['HS256'] });
       expect(result).toEqual(payload);
     });
 
@@ -174,7 +174,7 @@ describe('AdminAuthService', () => {
 
       AdminAuthService.verifyToken('token');
 
-      expect(jwt.verify).toHaveBeenCalledWith('token', 'custom-secret');
+      expect(jwt.verify).toHaveBeenCalledWith('token', 'custom-secret', { algorithms: ['HS256'] });
     });
 
     test('should verify multiple tokens correctly', () => {

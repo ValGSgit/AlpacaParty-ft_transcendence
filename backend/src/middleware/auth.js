@@ -16,7 +16,7 @@ export const authenticate = async (req, res, next) => {
     let token = req.cookies.jwt_token;
     if (!token) throw new CustomError("No token provided", 401);
     const decoded = AuthService.verifyToken(token);
-    if (!decoded) throw new CustomError("Invalid or expired token", 401);
+    if (!decoded || decoded.type === "refresh") throw new CustomError("Invalid or expired token", 401);
 
     const user = await User.findById(decoded.id);
     if (!user) throw new CustomError("User not found", 401);

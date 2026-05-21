@@ -110,6 +110,7 @@
 
     <!-- AI help desk widget -->
     <HelpDeskChat v-if="authStore.isAuthenticated && !isAuthRoute" />
+
   </div>
 </template>
 
@@ -137,6 +138,10 @@ const notifications = ref([])
 const unreadCount = ref(0)
 const unreadMessages = ref(0)
 
+watch(showMessagesModal, (open) => {
+  if (open) unreadMessages.value = 0
+})
+
 const PAGES_WITHOUT_FOOTER = ['Game', 'Home']
 const hasFooter = computed(() => !PAGES_WITHOUT_FOOTER.includes(route.name))
 const isGameRoute = computed(() => ['Game', 'SpitRoyale'].includes(route.name))
@@ -161,6 +166,13 @@ async function fetchNotifications() {
     notifications.value = data.notifications || []
     unreadCount.value = notifications.value.filter(n => !n.is_read).length
   } catch (e) { devError(e) }
+}
+
+async function fetchUnreadMessages() {
+  try {
+    const { data } = await api.get('/chat/unread')
+    unreadMessages.value = data.count || 0
+  } catch { /* ignore */ }
 }
 
 async function markNotifRead(n) {
@@ -222,6 +234,10 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
     if (sock.connected && authStore.user) authStore.user.isOnline = true
 
     fetchNotifications()
+    fetchUnreadMessages()
+    sock.on('dm:message', () => {
+      if (!showMessagesModal.value) unreadMessages.value++
+    })
   } else {
     disconnectSocket()
     unreadCount.value = 0

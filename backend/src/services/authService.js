@@ -64,7 +64,7 @@ const AuthService = {
    */
   verifyToken(token) {
     try {
-      return jwt.verify(token, config.jwt.secret);
+      return jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'] });
     } catch {
       return null;
     }
@@ -76,7 +76,7 @@ const AuthService = {
    */
   verifyRefreshToken(token) {
     try {
-      return jwt.verify(token, config.jwt.refreshSecret);
+      return jwt.verify(token, config.jwt.refreshSecret, { algorithms: ['HS256'] });
     } catch {
       return null;
     }
@@ -88,7 +88,7 @@ const AuthService = {
    */
   verifyPublicApiToken(token) {
     try {
-      return jwt.verify(token, config.jwt.publicApiSecret);
+      return jwt.verify(token, config.jwt.publicApiSecret, { algorithms: ['HS256'] });
     } catch {
       return null;
     }
