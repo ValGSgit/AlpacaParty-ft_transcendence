@@ -186,10 +186,17 @@ export const listUsers = async (req, res, next) => {
     const users = searchRes.usersFound;
     const total = searchRes.userCount;
 
-    // add friend flag
+    // add additional flags
+    const userId = Number(req.user.id);
     for (const u of users) {
-      u.is_friend = await Friend.isFriend(req.userId, u.id);
-      u.is_blocked = await Friend.isBlocked(req.userId, u.id);
+      u.is_friend = await Friend.isFriend(userId, u.id);
+      u.is_blocked = await Friend.isBlocked(userId, u.id);
+      const { requestSent, requestReceived } = await Friend.requestInfo(
+        userId,
+        u.id,
+      );
+      u.request_sent = requestSent ?? false;
+      u.request_received = requestReceived ?? false;
     }
 
     res.json({

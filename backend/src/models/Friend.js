@@ -154,6 +154,23 @@ const Friend = {
       );
   },
 
+  async requestInfo(senderId, receiverId) {
+    const friendRequest = await prisma.friendRequest.findFirst({
+      where: {
+        status: "pending",
+        OR: [
+          { senderId, receiverId },
+          { senderId: receiverId, receiverId: senderId },
+        ],
+      },
+    });
+
+    return {
+      requestSent: friendRequest?.senderId === senderId,
+      requestReceived: friendRequest?.receiverId === senderId,
+    };
+  },
+
   async removeFriend(userId, friendId) {
     await prisma.friend.deleteMany({
       where: {

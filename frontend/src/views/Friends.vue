@@ -216,20 +216,10 @@
               <div class="card-actions">
                 <button
                   class="btn-primary btn-sm"
-                  @click="sendRequestToUser(u.id)"
-                  :disabled="requestedIds.has(Number(u.id)) || u.is_friend"
+                  @click="onAddFriendBtnPressed(u)"
+                  :disabled="u.request_sent || u.is_friend"
                 >
-                  {{ requestedIds.has(Number(u.id)) ? "Sent ✓" : "Add Friend" }}
-                </button>
-                <button
-                  class="btn-ghost"
-                  @click="
-                    blockUser(u.id);
-                    searchUsers();
-                  "
-                  :disabled="u.is_blocked"
-                >
-                  Block
+                  {{ u.request_sent || u.is_friend ? "Sent ✓" : "Add Friend" }}
                 </button>
               </div>
             </li>
@@ -441,12 +431,15 @@ const friendSort = ref("name");
 const userSearch = ref("");
 const searchResults = ref([]);
 const searchingUsers = ref(false);
-const requestedIds = ref(new Set());
-
 const usersFetcher = ref(new ListFetcher());
 const friendsFetcher = ref(new ListFetcher());
 
 const pendingCount = computed(() => received.value.length);
+
+async function onAddFriendBtnPressed(user) {
+  await sendRequestToUser(user.id);
+  searchUsers();
+}
 
 async function fetchFriends(searchChanged = false) {
   loading.value = true;
@@ -461,13 +454,11 @@ async function fetchFriends(searchChanged = false) {
     sort.username = "desc";
   }
 
-  let filterUsed = false;
+  let filter = {};
   if (searchChanged) {
     const searchValue = friendSearch.value.trim();
-    let filter = {};
-    if (searchValue) {
+    if (searchValue && searchValue != "") {
       filter.username = searchValue;
-      filterUsed = true;
     }
     friendsFetcher.value.updateParams({ filter });
   }
@@ -479,7 +470,7 @@ async function fetchFriends(searchChanged = false) {
     const { data } = await friendsFetcher.value.fetch("/friends");
     friends.value = data.friends || [];
 
-    if (!filterUsed) {
+    if (filter.username === undefined) {
       totalFriends.value = data.total;
     }
   } catch (e) {
@@ -496,7 +487,6 @@ async function fetchRequests() {
     const { data } = await api.get("/friends/requests");
     received.value = data.received;
     sent.value = data.sent;
-    syncRequestedIds();
   } catch (e) {
     error.value = e.response?.data?.error?.message || "Failed to load requests";
   } finally {
@@ -516,17 +506,6 @@ async function fetchBlocked() {
   } finally {
     loading.value = false;
   }
-}
-
-function syncRequestedIds() {
-  const nextIds = new Set();
-  for (const friend of friends.value) nextIds.add(Number(friend.id));
-  for (const request of sent.value) {
-    const rid =
-      request.receiverId || request.receiver?.id || request.receiverId;
-    if (rid != null) nextIds.add(Number(rid));
-  }
-  requestedIds.value = nextIds;
 }
 
 async function sendRequest() {
@@ -561,9 +540,7 @@ async function searchUsers(searchChanged = false) {
     });
     const { data } = await usersFetcher.value.fetch("/users");
     searchResults.value = data.users || [];
-    console.log(data.users);
   } catch (e) {
-    console.log(e);
     error.value = e.response?.data?.error?.message || "Search failed";
   } finally {
     searchingUsers.value = false;
@@ -577,7 +554,7 @@ async function sendRequestToUser(userId) {
   }
   try {
     await api.post("/friends/requests", { userId });
-    requestedIds.value = new Set([...requestedIds.value, Number(userId)]);
+    // requestedIds.value = new Set([...requestedIds.value, Number(userId)]);
   } catch (e) {
     if (e.response?.status === 403) {
       error.value =
