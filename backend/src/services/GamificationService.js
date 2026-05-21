@@ -147,34 +147,15 @@ const GamificationService = {
     if (!Number.isFinite(userId)) return;
 
     await this.unlock(userId, 'first_login');
+  },
 
-    // Login streak for "dedicated" (7 consecutive days)
-    const stats = await prisma.userStats.findUnique({ where: { userId } });
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // ── Post events ───────────────────────────────────────────────────────────
 
-    let newStreak = 1;
-    if (stats?.lastLoginDate) {
-      const last = new Date(stats.lastLoginDate);
-      last.setHours(0, 0, 0, 0);
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
+  async onPostLiked(postAuthorId, newLikesCount) {
+    postAuthorId = Number(postAuthorId);
+    if (!Number.isFinite(postAuthorId)) return;
 
-      if (last.getTime() === today.getTime()) {
-        newStreak = stats.loginStreak ?? 1; // already logged in today, keep streak
-      } else if (last.getTime() === yesterday.getTime()) {
-        newStreak = (stats.loginStreak ?? 0) + 1; // consecutive day
-      }
-      // else streak resets to 1
-    }
-
-    await prisma.userStats.upsert({
-      where:  { userId },
-      update: { loginStreak: newStreak, lastLoginDate: new Date() },
-      create: { userId, loginStreak: newStreak, lastLoginDate: new Date() },
-    });
-
-    if (newStreak >= 7) await this.unlock(userId, 'dedicated');
+    if (newLikesCount >= 10) await this.unlock(postAuthorId, 'kinda_relatable');
   },
 
   // ── Farm events ───────────────────────────────────────────────────────────

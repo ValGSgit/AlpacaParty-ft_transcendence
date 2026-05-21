@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { gMinigame, gPlayer } from '../core/globals.js';
+import { devWarn } from '../../services/logger.js';
 import { checkWithinBounds, usePhysics } from '../core/usePhysics.js';
 import { getRandomPos, getRandomTimer } from '../utils/randomValues.js';
 
@@ -155,7 +156,7 @@ export function alpacaAI() {
         handleHunting(alpaca, delta);
         break;
       default:
-        console.warn(`Unknown AI state: ${alpaca.ai.state}`);
+        devWarn(`Unknown AI state: ${alpaca.ai.state}`);
         alpaca.ai.state = 'idle';
         break;
     }

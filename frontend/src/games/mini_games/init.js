@@ -20,7 +20,7 @@ export let friendName = null
 
 export async function changeGame(mode = 0, playerCount = 1) {
   gUI.gameMenu = false
-  console.log("changeGame:", mode);
+  debug("changeGame:", mode);
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0) saveGame();
 

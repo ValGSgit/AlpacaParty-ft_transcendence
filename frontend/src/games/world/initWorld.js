@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { createAlpaca, createDecoration, createItem } from '../core/createObjects.js'
+import { devError } from '../../services/logger.js'
 import { shopItems } from '../core/entities/Item.js'
 import { gPlayer } from '../core/globals.js'
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js'
@@ -12,7 +13,7 @@ export async function initWorld(scene, isAuthenticated = false, visitPlayerId) {
     try {
       data = await loadGameData(visitPlayerId)
     } catch (e) {
-      console.error('Failed to load game data, starting fresh.', e)
+      devError('Failed to load game data, starting fresh.', e)
     }
   }
 
