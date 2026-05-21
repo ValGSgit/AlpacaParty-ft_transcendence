@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { editLight } from '../components/editLight.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca } from '../core/createObjects.js';
@@ -13,6 +14,7 @@ import { changeFloorColor } from './utils.js';
 let activePlayers = [];
 
 const { spawnFloatingText } = useFloatingText();
+const { setTimeOfDay } = editLight();
 
 export function shootSpitAction(directionVec) {
   if (!gPlayer.value || gPlayer.value.isDead === 1) return;
@@ -29,6 +31,9 @@ export function shootSpitAction(directionVec) {
 export async function initSpitRoyalAI(playerCount, tempAlpacas) {
   setupEnvironment(gScene.value);
   changeFloorColor('#ff0000', '#550000');
+  setTimeOfDay('sunset')
+  gUI.isLightCycling = false;
+
   registerEntity(gPlayer.value, 'alpaca');
   gScene.value.add(gPlayer.value.model);
   gMinigame.value.players.push({ id: 1, name: gPlayer.value.name, hp: CONST.HP, point: 0 });
@@ -56,6 +61,8 @@ export async function initSpitRoyalOnline() {
 
   setupEnvironment(gScene.value);
   changeFloorColor('#ff0000', '#550000');
+  setTimeOfDay('sunset')
+  gUI.isLightCycling = false;
 
   activePlayers.length = 0;
   gPlayer.value.point = 0;
@@ -85,8 +92,6 @@ export function updateSpitRoyal(delta) {
 function spawnPlayer() {
   const spawn = gMinigame.value.spawnData;
   gPlayer.value.model.position.set(spawn.x, 0, spawn.z);
-  //TODO
-  //gPlayer.value.target.copy(gPlayer.value.model.position);
   gPlayer.value.model.rotation.y = spawn.angle;
 
   gPlayer.value.hasSpawned = true;
@@ -111,7 +116,7 @@ function spawnEnemySpits() {
 
     if (shooter && shooter.socketId !== activeClient.socket.id && typeof shooter.spit === 'function') {
       try {
-        // THE FIX: Only rotate if direction is a valid Vector. Prevents NaN matrix corruption!
+        // Only rotate if direction is a valid Vector. Prevents NaN matrix corruption!
         if (spitData.direction && typeof spitData.direction.x === 'number' && typeof spitData.direction.z === 'number') {
           const dir = new THREE.Vector3(spitData.direction.x, 0, spitData.direction.z).normalize();
           if (!isNaN(dir.x) && !isNaN(dir.z)) {
