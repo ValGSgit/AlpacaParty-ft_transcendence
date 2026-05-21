@@ -176,30 +176,40 @@ describe("GET /api/users", () => {
     await createTestUsers(10);
   });
 
-  test("200 — list users first page", async () => {
-    const page = 1;
-    const pageSize = 2;
+  test("200 — list users", async () => {
     const res = await request
-      .get(`/api/users?page=${page}&pageSize=${pageSize}`)
+      .get(`/api/users`)
+      .set("Cookie", [`jwt_token=${validToken}`]);
+
+    const users = res.body.users;
+    expect(users.length).toBe(11);
+    expect(res.status).toBe(200);
+  });
+
+  test("200 — list users first page", async () => {
+    const limit = 2;
+    const offset = 0;
+    const res = await request
+      .get(`/api/users?limit=${limit}&offset=${offset}`)
       .set("Cookie", [`jwt_token=${validToken}`]);
 
     const users = res.body.users;
     expect(users.length).toBe(2);
-    expect(res.body.currentPage).toBe(1);
+    expect(res.body.offset).toBe(0);
     expect(res.body.pageSize).toBe(2);
     expect(res.status).toBe(200);
   });
 
   test("200 — list users second page", async () => {
-    const page = 2;
-    const pageSize = 3;
+    const limit = 3;
+    const offset = 2;
     const res = await request
-      .get(`/api/users?page=${page}&pageSize=${pageSize}`)
+      .get(`/api/users?limit=${limit}&offset=${offset}`)
       .set("Cookie", [`jwt_token=${validToken}`]);
 
     const users = res.body.users;
     expect(users.length).toBe(3);
-    expect(res.body.currentPage).toBe(2);
+    expect(res.body.offset).toBe(2);
     expect(res.body.pageSize).toBe(3);
     expect(res.status).toBe(200);
   });

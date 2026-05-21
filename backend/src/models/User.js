@@ -36,7 +36,7 @@ export function shapeUserForClient(u) {
     avatar: u.avatar,
     bio: u.bio,
     status: u.status,
-    role: u.role ?? 'user',
+    role: u.role ?? "user",
     is_public: u.userSettings?.isPublic ?? true,
     is_online: u.isOnline,
     isOnline: u.isOnline,
@@ -338,7 +338,7 @@ const User = {
       },
       orderBy: orderByObj,
       take: Number(limit),
-      skip: offset,
+      skip: Number(offset),
     });
     return { usersFound, userCount };
   },

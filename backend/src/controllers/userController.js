@@ -32,7 +32,7 @@ export const updateMe = async (req, res, next) => {
     status !== undefined ||
     avatar !== undefined ||
     is_public !== undefined;
-  
+
   try {
     if (username) {
       const current = req.user?.username;
@@ -67,12 +67,12 @@ export const updateMe = async (req, res, next) => {
       ...(is_public !== undefined && { isPublic: !!is_public }),
     });
 
-    res.status(200).json({ 
-      user: shapeUserForClient(updatedUser)
+    res.status(200).json({
+      user: shapeUserForClient(updatedUser),
     });
-    
+
     if (hasProfileChange) {
-      GamificationService.unlock(id, 'profile_polisher').catch(() => {});
+      GamificationService.unlock(id, "profile_polisher").catch(() => {});
     }
   } catch (err) {
     next(err);
@@ -227,7 +227,7 @@ export const exportMyData = async (req, res, next) => {
       `attachment; filename="alpacaparty-data.${extension}"`,
     );
     res.send(data);
-    GamificationService.unlock(req.user.id, 'data_explorer').catch(() => {});
+    GamificationService.unlock(req.user.id, "data_explorer").catch(() => {});
   } catch (err) {
     next(err);
   }

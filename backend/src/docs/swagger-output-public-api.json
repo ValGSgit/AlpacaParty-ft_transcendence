@@ -37,17 +37,22 @@
         "description": "Get users",
         "parameters": [
           {
-            "name": "search",
-            "in": "query",
-            "type": "string"
-          },
-          {
             "name": "limit",
             "in": "query",
             "type": "string"
           },
           {
             "name": "offset",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "sort",
             "in": "query",
             "type": "string"
           }
