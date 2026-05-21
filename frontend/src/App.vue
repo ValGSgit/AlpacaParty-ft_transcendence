@@ -111,8 +111,6 @@
     <!-- AI help desk widget -->
     <HelpDeskChat v-if="authStore.isAuthenticated && !isAuthRoute" />
 
-    <!-- Cookie consent banner (guests only, until consent is given) -->
-    <CookieConsent @accepted="authStore.fetchUser()" />
   </div>
 </template>
 
@@ -127,7 +125,6 @@ import AppIcon from './components/AppIcon.vue'
 import IconSprite from './components/IconSprite.vue'
 import HelpDeskChat from './components/HelpDeskChat.vue'
 import Messages from './views/Messages.vue'
-import CookieConsent from './components/CookieConsent.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()

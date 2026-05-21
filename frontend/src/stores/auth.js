@@ -8,7 +8,6 @@ import { ref, computed } from "vue";
 import api from "../services/api.js";
 import { devError } from "../services/logger.js";
 import { disconnectSocket } from "../services/socket.js";
-import { useCookieConsent } from "../composables/useCookieConsent.js";
 
 export const useAuthStore = defineStore("auth", () => {
   // ── State ───────────────────────────────────────────────────
@@ -39,7 +38,6 @@ export const useAuthStore = defineStore("auth", () => {
         { retryOnAuth: false },
       );
       user.value = data.user;
-      useCookieConsent().accept();
       return data;
     } catch (err) {
       error.value = err.response?.data?.error?.message || "Registration failed";
@@ -62,7 +60,6 @@ export const useAuthStore = defineStore("auth", () => {
         { retryOnAuth: false },
       );
       user.value = data.user;
-      useCookieConsent().accept();
       return data;
     } catch (err) {
       error.value = err.response?.data?.error?.message || "Login failed";
