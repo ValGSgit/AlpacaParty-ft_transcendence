@@ -5,19 +5,19 @@
       <router-link to="/login" class="shop-btn">Login</router-link>
       <div class="features">
       <div class="feature-card">
-        <h3><AppIcon name="alpaca" :size="22" /> Raise Alpacas</h3>
+        <h3><AppIcon name="alpaca" :size="36" /> Raise Alpacas</h3>
         <p>Buy, name and customise alpacas with unique colours and speeds.</p>
       </div>
       <div class="feature-card">
-        <h3><AppIcon name="tree" :size="22" /> Build Your Farm</h3>
+        <h3><AppIcon name="barn" :size="36" /> Build Your Farm</h3>
         <p>Plant trees, expand land and decorate your world.</p>
       </div>
       <div class="feature-card">
-        <h3><AppIcon name="moneybag-full" :size="22" /> Earn Coins</h3>
+        <h3><AppIcon name="coin" :size="36" /> Earn Coins</h3>
         <p>Collect coins to unlock upgrades and grow your herd.</p>
       </div>
         <div class="feature-card">
-        <h3><AppIcon name="joystick-full" :size="22" /> Mini Games</h3>
+        <h3><AppIcon name="joystick-full" :size="36" /> Mini Games</h3>
         <p>Play Mini games with your friends, online and offline.</p>
       </div>
     </div>
@@ -32,10 +32,10 @@
     <div class="shop-title">
       <div v-if="!gUser.hp">Game Over! Final Score:</div>
       <div v-if="gUser.hp">You Won! Final Score:</div>
-      <button v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="shop-btn">You killed: {{ gUser.point }} <AppIcon name="alpaca" :size="20" /></button>
+      <button v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="shop-btn">Score: {{ gUser.point }} <AppIcon name="alpaca" :size="36" /></button>
       <template v-if="gMinigame.mode === 3 || gMinigame.mode === 4">
         <button v-for="player in gMinigame.players" :key="'end-' + player.id" class="shop-btn">
-          {{ player.name || `P${player.id}` }} Score: {{ player.point }} <AppIcon name="score" :size="20" />
+          {{ player.name || `P${player.id}` }} Score: {{ player.point }} <AppIcon name="score" :size="24" />
         </button>
       </template>
       <div class="action-container">
@@ -54,20 +54,20 @@
       id="coin-hud"
       v-if="gMinigame.mode === 0 || gMinigame.isGameOver"
       class="stat" :class="{ 'overlay': gMinigame.isGameOver }">
-      <span class="hud-coins"><AppIcon name="moneybag-full" :size="20" /> {{ gUser.coins }}</span>
+      <span class="hud-coins"><AppIcon name="coin" :size="36" /> {{ gUser.coins }}</span>
     </div>
       <template v-if="gMinigame.mode === 1 || gMinigame.mode === 2">
         <div v-for="player in gMinigame.players" :key="'ui-' + player.id" class="stat multiplayer-row">
           <span class="p-name">{{ player.name || `P${player.id}`}}:</span>
           <span class="p-hp">{{ getHearts(player.hp) }}</span>
-          <span class="p-point"><AppIcon name="alpaca" :size="18" /> {{ player.point }}</span>
+          <span class="p-point"><AppIcon name="alpaca" :size="36" /> {{ player.point }}</span>
         </div>
       </template>
       <template v-if="gMinigame.mode > 2 &&!gMinigame.isGameOver">
         <div v-for="player in gMinigame.players" :key="'ui-' + player.id" class="stat multiplayer-row">
           <span class="p-name">{{ player.name || `P${player.id}`}}:</span>
           <span class="p-hp">{{ getHearts(player.hp) }}</span>
-          <span class="p-point"><AppIcon name="score" :size="18" /> {{ player.point }}</span>
+          <span class="p-point"><AppIcon name="score" :size="24" /> {{ player.point }}</span>
         </div>
       </template>
   </div>
@@ -85,20 +85,20 @@
 
     <div class="hud-container hud-right">
       <button class="hud-btn" @click="openGameMenu()" title="Mini Games"><AppIcon name="joystick-full" :size="28" /></button>
-      <button v-if="isAuthenticated && !gMinigame.mode" class="hud-btn" @click="openLobbyMenu(5)" title="Visit Farm">🏚️</button>
-      <button v-if="!gMinigame.mode" class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;"><AppIcon name="debug-coin" :size="28" /></button>
+      <button v-if="isAuthenticated && !gMinigame.mode" class="hud-btn" @click="openLobbyMenu(5)" title="Visit Farm"><AppIcon name="barn" :size="28" /></button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="openShopMenu()" title="Shop"><AppIcon name="shopping-bags" :size="28" /></button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="openEditMode()" title="Edit Scene"><AppIcon name="pencil-ruler" :size="28" /></button>
-      <button v-if="!gMinigame.mode" class="hud-btn" @click="openLightMenu()" title="Edit Light"><AppIcon name="sun-full" :size="28" /></button>
+      <button v-if="!gMinigame.mode" class="hud-btn" @click="openLightMenu()" title="Edit Light"><AppIcon name="sun-full" :size="30" /></button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="changeCamera()" title="Change Camera"><AppIcon name="camera-farm" :size="28" /></button>
+      <button v-if="!gMinigame.mode" class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;"><AppIcon name="debug-coin" :size="28" /></button>
     </div>
     
     <div v-if="gUI.shopMenu" class="modal-overlay">
       <div class="shop-title">Mini Shop
-        <button class="shop-btn" @click="openFarmMenu()" title="Upgrade Farm"><AppIcon name="tractor" :size="18" /> Upgrade Farm</button>
-        <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca"><AppIcon name="alpaca-buy" :size="18" /> Buy Alpaca</button>
-        <button class="shop-btn" @click="openItemShop()" title="Buy Item"><AppIcon name="tree" :size="18" /> Buy Item</button>
-        <button class="close-btn" @click="closeShopMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="shop-btn" @click="openFarmMenu()" title="Upgrade Farm"><AppIcon name="tractor" :size="32" /> Upgrade Farm</button>
+        <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca"><AppIcon name="alpaca-buy" :size="32" /> Buy Alpaca</button>
+        <button class="shop-btn" @click="openItemShop()" title="Buy Item"><AppIcon name="barn" :size="32" /> Buy Item</button>
+        <button class="close-btn" @click="closeShopMenu()" title="Close"><AppIcon name="close" :size="18" /></button>
       </div>
     </div>
 
@@ -146,16 +146,16 @@
         <button class="itemshop-card" @click="increaseFarmSize(gUser.upgrades)">
           <span class="item-name">Increase Farm Size</span>
           <div class="icon-container">
-            <span style="position: relative; bottom: 10px;"><AppIcon name="tractor" :size="32" /></span>
-            <span class="item-cost"><AppIcon name="coin" :size="16" /> {{ getUpgradeCost(gUser.upgrades)}}</span>
+            <span style="position: relative; bottom: 10px;"><AppIcon name="tractor" :size="84" /></span>
+            <span class="item-cost"> {{ getUpgradeCost(gUser.upgrades)}} <AppIcon name="coin" :size="36" /> </span>
           </div>
         </button>
 
         <button class="itemshop-card" @click="increaseHerdSize(gUser.herdsize)">
           <span class="item-name">Increase Herd Size</span>
           <div class="icon-container">
-            <span style="position: relative; bottom: 10px;"><AppIcon name="alpaca" :size="32" /></span>
-            <span class="item-cost"><AppIcon name="coin" :size="16" /> {{ getHerdSizeCost(gUser.herdsize) }}</span>
+            <span style="position: relative; bottom: 5px;"><AppIcon name="alpaca" :size="72" /></span>
+            <span class="item-cost"> {{ getHerdSizeCost(gUser.herdsize) }} <AppIcon name="coin" :size="36" /> </span>
           </div>
         </button>
       </div>
@@ -173,7 +173,7 @@
             <span class="item-name">{{ item.name }}</span>
             <div class="icon-container">
               <img :src="item.icon" :alt="item.name" class="item-icon" />
-              <span class="item-cost">{{ item.cost }} <AppIcon name="coin" :size="16" /></span>
+              <span class="item-cost">{{ item.cost }} <AppIcon name="coin" :size="36" /></span>
             </div>
           </button>
         </div>
@@ -242,7 +242,7 @@
     <div v-if="gUI.editMode" class="edit-mode">
       <div class="shop-title"> Edit Mode
           <div v-if="gEditState.selected" class="edit-actions">
-            <button class="shop-btn" @click="sellItem()"><AppIcon name="moneybag-full" :size="18" /> Sell Item</button>
+            <button class="shop-btn" @click="sellItem()"><AppIcon name="coin" :size="18" /> Sell Item</button>
             <button class="shop-btn" @click="cancelPlacement()">Cancel <AppIcon name="close" :size="14" /></button>
           </div>
       <button class="close-btn" @click="closeEditMode()" title="Close"><AppIcon name="close" :size="16" /></button>
@@ -258,7 +258,7 @@
           <span>Rotate</span>
         </div>
         <div class="control-row">
-          <span>⇧ Shift + Scroll</span>
+          <span><AppIcon name="scroll-icon" :size="16" /> Shift + Scroll</span>
           <span>Scale</span>
         </div>
       </div>
@@ -273,10 +273,10 @@
             <span class="slider"></span>
           </label>
         </div>
-        <button class="shop-btn" @click="setTimeOfDay('sunrise')"><AppIcon name="sunrise" :size="18" /> Sunrise</button>
-        <button class="shop-btn" @click="setTimeOfDay('day')"><AppIcon name="sun-full" :size="18" /> Day</button>
-        <button class="shop-btn" @click="setTimeOfDay('sunset')"><AppIcon name="sunset" :size="18" /> Sunset</button>
-        <button class="shop-btn" @click="setTimeOfDay('night')"><AppIcon name="night" :size="18" /> Night</button>
+        <button class="shop-btn" @click="setTimeOfDay('sunrise')"><AppIcon name="sunrise" :size="30" /> Sunrise</button>
+        <button class="shop-btn" @click="setTimeOfDay('day')"><AppIcon name="sun-full" :size="30" /> Day</button>
+        <button class="shop-btn" @click="setTimeOfDay('sunset')"><AppIcon name="sunset" :size="30" /> Sunset</button>
+        <button class="shop-btn" @click="setTimeOfDay('night')"><AppIcon name="night" :size="30" /> Night</button>
         <button class="close-btn" @click="closeLightMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
       </div>
     </div>
@@ -285,8 +285,8 @@
 
 <!---------------------- SCRIPT ------------------------->
 <script setup>
-import MultiplayerLobby from './components/MultiplayerLobby.vue'
 import AppIcon from '../components/AppIcon.vue'
+import MultiplayerLobby from './components/MultiplayerLobby.vue'
 
 import { storeToRefs } from 'pinia'
 import * as THREE from 'three'
@@ -317,10 +317,10 @@ import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import './game.css'
-import { changeGame, visitFarm, friendName } from './mini_games/init.js'
+import { changeGame, friendName, visitFarm } from './mini_games/init.js'
+import { updateMinigame } from './mini_games/minigames.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
-import { updateMinigame } from './mini_games/minigames.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
