@@ -175,7 +175,9 @@ export const listUsers = async (req, res, next) => {
   try {
     const limit = Math.min(req.query.limit || 50, 100);
     const offset = Math.max(0, Number(req.query.offset) || 0);
-    const filter = req.query.filter;
+    const filter = req.query.search
+      ? { username: req.query.search, ...(req.query.filter || {}) }
+      : req.query.filter;
     const sort = req.query.sort;
     const excludeUserId = Number(req.query.excludeUserId) || undefined;
 
@@ -292,7 +294,8 @@ export const deleteMe = async (req, res, next) => {
 export const getApiKey = async (req, res, next) => {
   try {
     const apiKey = await User.getApiKey(req.user.id);
-    res.json({ apiKey: apiKey || null });
+    if (!apiKey) return res.status(404).json({ error: { message: "No API key found" } });
+    res.json({ apiKey });
   } catch (err) {
     next(err);
   }
