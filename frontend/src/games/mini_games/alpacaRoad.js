@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import * as PRIMITIVES from '../assets/primitives.js';
 import { debug } from '../../services/logger.js';
+import * as PRIMITIVES from '../assets/primitives.js';
 import { useCoinUI } from '../components/coins.js';
 import { editLight } from '../components/editLight.js';
 import { useFloatingText } from '../components/floatingText.js';
@@ -562,7 +562,9 @@ function checkAlpaca(alpaca) {
     spawnFloatingText(alpaca.model, '-💔', 'hearts');
     if (alpaca.hp === 0) {
       alpaca.isDead = true;
-      alivePlayers--;
+      setTimeout(() => {
+        alivePlayers--;
+      }, 1500);
     }
   }
 }
@@ -620,7 +622,7 @@ function endMinigame() {
     playerPoints = activePlayers[0].point || 0;
   }
 
-  const earnedCoins = Math.floor(playerPoints / 1);
+  const earnedCoins = Math.floor(playerPoints / 2);
   debug(`Minigame Over! Points: ${playerPoints}, Coins: ${earnedCoins}`);
 
   if (earnedCoins > 0) {
