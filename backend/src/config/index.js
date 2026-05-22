@@ -91,12 +91,16 @@ const config = {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+      callbackUrl:
+        process.env.GOOGLE_CALLBACK_URL ||
+        "https://localhost:8443/api/auth/google/callback",
     },
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-      callbackUrl: process.env.GITHUB_CALLBACK_URL,
+      callbackUrl:
+        process.env.GITHUB_CALLBACK_URL ||
+        "https://localhost:8443/api/auth/github/callback",
     },
   },
 
