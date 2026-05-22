@@ -22,13 +22,12 @@ export const validateConfig = () => {
   requireConfig(config.jwt.secret, "JWT_SECRET");
   requireConfig(config.jwt.refreshSecret, "JWT_REFRESH_SECRET");
   requireConfig(config.jwt.publicApiSecret, "JWT_PUBLIC_API_SECRET");
+  requireConfig(config.jwt.adminSecret, "JWT_ADMIN_SECRET");
   requireConfig(config.jwt.expiresIn, "JWT_EXPIRES_IN");
   requireConfig(config.jwt.refreshExpiresIn, "JWT_REFRESH_EXPIRES_IN");
   requireConfig(config.jwt.publicApiExpiresIn, "JWT_PUBLIC_API_EXPIRES_IN");
-  // Admin JWT (optional in test/dev, required only in production with admin features)
-  if (process.env.NODE_ENV === "production") {
-    requireConfig(config.admin.jwtSecret, "ADMIN_JWT_SECRET");
-  }
+  requireConfig(config.jwt.adminExpiresIn, "JWT_ADMIN_EXPIRES_IN");
+
   // SSL
   requireConfig(config.ssl.certPath, "SSL_CERT_PATH");
   requireConfig(config.ssl.keyPath, "SSL_KEY_PATH");

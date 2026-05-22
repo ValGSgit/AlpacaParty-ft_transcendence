@@ -22,14 +22,16 @@ services:
       JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-1h}"
       JWT_REFRESH_EXPIRES_IN: "${JWT_REFRESH_EXPIRES_IN:-7d}"
       JWT_PUBLIC_API_EXPIRES_IN: "${JWT_PUBLIC_API_EXPIRES_IN:-30d}"
-      CORS_ORIGINS: ${CORS_ORIGINS:-https://localhost:8443}
-      FRONTEND_URL: ${FRONTEND_URL:-https://localhost:8443}
-      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://localhost:8443/api/auth/google/callback}
-      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-https://localhost:8443/api/auth/github/callback}
+      JWT_ADMIN_EXPIRES_IN: "${JWT_ADMIN_EXPIRES_IN:-30d}"
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      FRONTEND_URL: ${FRONTEND_URL}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL}
       SSL_CERT_PATH: /app/ssl/cert.pem
       SSL_KEY_PATH: /app/ssl/key.pem
       UPLOAD_DIR: /app/uploads
       AUTH_RATE_LIMIT_MAX: "${AUTH_RATE_LIMIT_MAX:-}"
+      PUBLIC_API_HOST: "${PUBLIC_API_HOST}"
 
       # ── Vault bootstrap ────────────────────────────────────────
       VAULT_ADDR: https://vault:8200

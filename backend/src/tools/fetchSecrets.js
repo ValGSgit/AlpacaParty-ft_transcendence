@@ -11,7 +11,7 @@ const KEY_MAP = {
   jwt_secret: "JWT_SECRET",
   jwt_refresh_secret: "JWT_REFRESH_SECRET",
   jwt_public_api_secret: "JWT_PUBLIC_API_SECRET",
-  admin_jwt_secret: "ADMIN_JWT_SECRET",
+  jwt_admin_secret: "JWT_ADMIN_SECRET",
   api_keys: "API_KEYS",
   google_client_id: "GOOGLE_CLIENT_ID",
   google_client_secret: "GOOGLE_CLIENT_SECRET",

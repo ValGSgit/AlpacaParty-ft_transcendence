@@ -13,6 +13,7 @@
     "#middleware/*.js": "./src/middleware/*.js",
     "#routes/*.js": "./src/routes/*.js",
     "#services/*.js": "./src/services/*.js",
+    "#tools/*.js": "./src/tools/*.js",
     "#utils/*.js": "./src/utils/*.js",
     "#models/*.js": "./src/models/*.js",
     "#validators/*.js": "./src/validators/*.js"

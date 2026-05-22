@@ -6,26 +6,11 @@
  * Centralised config from environment variables.
  * See .env.example at the project root for required variables.
  */
-import dotenv from "dotenv";
 import { validateConfig } from "./validateConfig.js";
 import ms from "ms";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import { loadEnv } from "#tools/loadEnv.js";
 
-// Load env vars in both Docker and local dev.
-// - Docker: secrets mounted at /run/secrets/.env
-// - Local: project root .env (one level above /backend)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const localEnvPath = path.resolve(__dirname, "../../../.env");
-if (fs.existsSync("/run/secrets/.env")) {
-  dotenv.config({ path: "/run/secrets/.env" });
-} else if (fs.existsSync(localEnvPath)) {
-  dotenv.config({ path: localEnvPath });
-} else {
-  dotenv.config();
-}
+loadEnv();
 
 const config = {
   port: parseInt(process.env.API_PORT, 10), // needed fallback for testing
@@ -33,23 +18,15 @@ const config = {
   envIsProd: process.env.NODE_ENV === "production",
   envIsDev: process.env.NODE_ENV === "development",
 
-  admin: {
-    jwtSecret: process.env.ADMIN_JWT_SECRET,
-    jwtExpiresIn: '1h',
-    cookieOptions: {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 1000,
-      path: '/',
-    },
-  },
-
   jwt: {
     secret: process.env.JWT_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
+    publicApiSecret: process.env.JWT_PUBLIC_API_SECRET,
+    adminSecret: process.env.JWT_ADMIN_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+    publicApiExpiresIn: process.env.JWT_PUBLIC_API_EXPIRES_IN,
+    adminExpiresIn: process.env.JWT_ADMIN_EXPIRES_IN,
     cookieOptions: {
       httpOnly: true,
       secure: true,
@@ -64,8 +41,13 @@ const config = {
       maxAge: ms(process.env.JWT_REFRESH_EXPIRES_IN),
       path: "/api/auth/refresh",
     },
-    publicApiSecret: process.env.JWT_PUBLIC_API_SECRET,
-    publicApiExpiresIn: process.env.JWT_PUBLIC_API_EXPIRES_IN,
+    cookieOptionsAdmin: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: ms(process.env.JWT_ADMIN_EXPIRES_IN),
+      path: "/",
+    },
   },
 
   // PostgreSQL connection (Issue #7)
@@ -109,16 +91,12 @@ const config = {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      callbackUrl:
-        process.env.GOOGLE_CALLBACK_URL ||
-        "https://localhost:8443/api/auth/google/callback",
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL,
     },
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-      callbackUrl:
-        process.env.GITHUB_CALLBACK_URL ||
-        "https://localhost:8443/api/auth/github/callback",
+      callbackUrl: process.env.GITHUB_CALLBACK_URL,
     },
   },
 
@@ -135,7 +113,7 @@ const config = {
       process.env.GROQ_API_KEY2,
       process.env.GROQ_API_KEY3,
     ].filter(Boolean),
-    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+    model: process.env.GROQ_MODEL || "llama-3.1-8b-instant",
   },
 
   // File uploads
@@ -159,14 +137,8 @@ const config = {
     // so even when upload is allowed (see allowedMimeTypes), we never serve
     // it inline — uploadSecurity.js forces Content-Disposition: attachment
     // for any mime type not listed here.
-    imageMimeTypes: [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-    ],
+    imageMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
   },
-
 };
 
 export default config;

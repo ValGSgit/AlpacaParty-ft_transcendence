@@ -147,6 +147,7 @@ generate-secrets:
 	  cp .env.example .env; \
 	  echo "$(GREEN)✓ Created .env from .env.example$(RESET)"; \
 	fi
+	@$(MAKE) --no-print-directory set-ip
 	@DB_NAME=$$(grep '^DB_NAME=' .env | cut -d= -f2-); \
 	  DB_NAME=$${DB_NAME:-alpacaparty}; \
 	  DB_USER=$$(grep '^DB_USER=' .env | cut -d= -f2-); \
@@ -165,10 +166,27 @@ generate-secrets:
 	  sed -i "s|^JWT_PUBLIC_API_SECRET=.*|JWT_PUBLIC_API_SECRET=$$JWT|" .env && \
 	  echo "$(GREEN)✓ JWT_PUBLIC_API_SECRET randomised$(RESET)"
 	@JWT=$$(openssl rand -hex 40) && \
-	  sed -i "s|^ADMIN_JWT_SECRET=.*|ADMIN_JWT_SECRET=$$JWT|" .env && \
-	  echo "$(GREEN)✓ ADMIN_JWT_SECRET randomised$(RESET)"
+	  sed -i "s|^JWT_ADMIN_SECRET=.*|JWT_ADMIN_SECRET=$$JWT|" .env && \
+	  echo "$(GREEN)✓ JWT_ADMIN_SECRET randomised$(RESET)"
 	@echo "$(GREEN)✓ DATABASE_URL synced with DB credentials$(RESET)"
 	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
+
+.PHONY: set-ip
+set-ip:
+	@OS=$$(uname -s); \
+	if [ "$$OS" = "Darwin" ]; then \
+		MAC_IFACE=$$(route get default | awk '/interface:/ {print $$2}'); \
+		IP=$$(ipconfig getifaddr $$MAC_IFACE); \
+		sed -i '' "s/{MY_IP}/$$IP/g" .env; \
+	else \
+		IP=$$(hostname -I | awk '{print $$1}'); \
+		sed -i "s/{MY_IP}/$$IP/g" .env; \
+	fi; \
+	if [ -z "$$IP" ]; then \
+		echo "Error: Could not detect IP address."; \
+		exit 1; \
+	fi; \
+	echo "$(GREEN)✓ Successfully updated .env with IP: $$IP$(RESET)"
 
 # ── SSL CERTIFICATES ────────────────────────────────────────
 # Generates a self-signed certificate for local HTTPS development.
@@ -176,19 +194,31 @@ generate-secrets:
 ssl-certs:
 	@mkdir -p ssl
 	@if [ ! -f ssl/cert.pem ]; then \
-	  openssl req -x509 -newkey rsa:2048 -nodes \
-	    -keyout ssl/key.pem \
-	    -out ssl/cert.pem \
-	    -days 365 \
-	    -subj '/CN=localhost' \
-	    -addext 'subjectAltName=DNS:localhost,DNS:frontend,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1,IP:10.13.10.5,DNS:10.13.10.5.nip.io' \
-	    2>/dev/null && \
-	  echo "$(GREEN)✓ Self-signed certificate generated in ssl/$(RESET)"; \
+		echo "Detecting active local IP..."; \
+		OS=$$(uname -s); \
+		if [ "$$OS" = "Darwin" ]; then \
+			MAC_IFACE=$$(route get default | awk '/interface:/ {print $$2}'); \
+			IP=$$(ipconfig getifaddr $$MAC_IFACE); \
+		else \
+			IP=$$(hostname -I | awk '{print $$1}'); \
+		fi; \
+		if [ -z "$$IP" ]; then \
+			echo "Error: Could not detect IP address."; exit 1; \
+		fi; \
+		echo "Generating certificate for IP: $$IP"; \
+		openssl req -x509 -newkey rsa:2048 -nodes \
+			-keyout ssl/key.pem \
+			-out ssl/cert.pem \
+			-days 365 \
+			-subj '/CN=localhost' \
+			-addext "subjectAltName=DNS:localhost,DNS:frontend,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1,IP:$$IP,DNS:$$IP.nip.io" \
+			2>/dev/null && \
+		echo "$(GREEN)✓ Self-signed certificate generated in ssl/$(RESET)"; \
 	else \
-	  echo "$(YELLOW)  Certificate already exists — skipping$(RESET)"; \
+		echo "$(YELLOW)  Certificate already exists — skipping$(RESET)"; \
 	fi
-	chmod +rw ssl/key.pem
-	chmod +rw ssl/cert.pem
+	@chmod +rw ssl/key.pem
+	@chmod +rw ssl/cert.pem
 
 # Ensure .env exists with real secrets before any prod command.
 # Does NOT regenerate if .env already exists (keeps DB password stable).

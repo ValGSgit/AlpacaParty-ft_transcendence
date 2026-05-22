@@ -70,6 +70,16 @@ jest.unstable_mockModule(
   }),
 );
 
+const mockGamificationService = {
+  unlock: jest.fn().mockResolvedValue(true),
+};
+jest.unstable_mockModule(
+  "../../../src/services/GamificationService.js",
+  () => ({
+    default: mockGamificationService,
+  }),
+);
+
 const mockFriend = {
   areFriends: jest.fn(),
   getFriendStatus: jest.fn(),

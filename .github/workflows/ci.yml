@@ -107,7 +107,7 @@ jobs:
           echo "Prisma db push failed after 3 attempts"
           npx prisma validate || true
           exit 1
-        
+
       - name: Generate Prisma client
         run: npx prisma generate
 
@@ -196,7 +196,7 @@ jobs:
       GITHUB_CALLBACK_URL: https://localhost:8443/api/auth/github/callback
       JWT_EXPIRES_IN: 1h
       JWT_REFRESH_EXPIRES_IN: 7d
-      ADMIN_JWT_SECRET: ci-admin-secret-change
+      JWT_ADMIN_SECRET: ci-admin-secret-change
       VAULT_DEV_TOKEN: root
       AUTH_RATE_LIMIT_MAX: "500"
 

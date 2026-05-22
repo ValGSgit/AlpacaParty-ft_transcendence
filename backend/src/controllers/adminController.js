@@ -1,6 +1,5 @@
 import prisma from "#config/prisma.js";
 import AuthService from "../services/authService.js";
-import AdminAuthService from "../services/adminAuthService.js";
 import Vault from "../lib/vault.js";
 import config from "../config/index.js";
 import CustomError from "#utils/CustomError.js";
@@ -14,7 +13,8 @@ import CustomError from "#utils/CustomError.js";
 export const adminLogin = async (req, res, next) => {
   try {
     const { username, password } = req.body;
-    if (!username || !password) throw new CustomError("Username and password required", 400);
+    if (!username || !password)
+      throw new CustomError("Username and password required", 400);
 
     let user = await prisma.user.findUnique({
       where: { username },
@@ -26,9 +26,13 @@ export const adminLogin = async (req, res, next) => {
         include: { userAuth: true },
       });
     }
-    if (!user || !user.userAuth?.passwordHash) throw new CustomError("Invalid credentials", 401);
+    if (!user || !user.userAuth?.passwordHash)
+      throw new CustomError("Invalid credentials", 401);
 
-    const valid = await AuthService.comparePassword(password, user.userAuth.passwordHash);
+    const valid = await AuthService.comparePassword(
+      password,
+      user.userAuth.passwordHash,
+    );
     if (!valid) throw new CustomError("Invalid credentials", 401);
 
     if (user.role !== "admin" && user.role !== "superadmin") {
@@ -36,9 +40,11 @@ export const adminLogin = async (req, res, next) => {
     }
     if (user.isBanned) throw new CustomError("Account is banned", 403);
 
-    const token = AdminAuthService.generateToken(user);
-    res.cookie("admin_jwt_token", token, config.admin.cookieOptions);
-    res.json({ user: { id: user.id, username: user.username, role: user.role } });
+    const token = AuthService.generateAdminToken(user);
+    res.cookie("admin_jwt_token", token, config.jwt.cookieOptionsAdmin);
+    res.json({
+      user: { id: user.id, username: user.username, role: user.role },
+    });
   } catch (err) {
     next(err);
   }
@@ -63,12 +69,13 @@ export const getMe = (req, res) => {
 
 export const getDashboard = async (req, res, next) => {
   try {
-    const [totalUsers, bannedUsers, totalPosts, onlineUsers] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { isBanned: true } }),
-      prisma.post.count(),
-      prisma.user.count({ where: { isOnline: true } }),
-    ]);
+    const [totalUsers, bannedUsers, totalPosts, onlineUsers] =
+      await Promise.all([
+        prisma.user.count(),
+        prisma.user.count({ where: { isBanned: true } }),
+        prisma.post.count(),
+        prisma.user.count({ where: { isOnline: true } }),
+      ]);
     res.json({ totalUsers, bannedUsers, totalPosts, onlineUsers });
   } catch (err) {
     next(err);
@@ -98,18 +105,25 @@ export const getAnalytics = async (req, res, next) => {
       activeMatches,
     ] = await Promise.all([
       // Coin economy — aggregate
-      prisma.alpacaFarm.aggregate({ _sum: { coins: true }, _avg: { coins: true } }),
+      prisma.alpacaFarm.aggregate({
+        _sum: { coins: true },
+        _avg: { coins: true },
+      }),
 
       // Top 10 coin holders
       prisma.alpacaFarm.findMany({
-        orderBy: { coins: 'desc' },
+        orderBy: { coins: "desc" },
         take: 10,
-        select: { coins: true, userId: true, user: { select: { username: true, avatar: true } } },
+        select: {
+          coins: true,
+          userId: true,
+          user: { select: { username: true, avatar: true } },
+        },
       }),
 
       // Game counts & wins grouped by type
       prisma.gameStat.groupBy({
-        by: ['gameType'],
+        by: ["gameType"],
         _sum: { wins: true, losses: true },
         _count: { userId: true },
       }),
@@ -119,35 +133,49 @@ export const getAnalytics = async (req, res, next) => {
 
       // Top 5 Spit Royale ELO
       prisma.gameStat.findMany({
-        where: { gameType: 'spit_royale' },
-        orderBy: { elo: 'desc' },
+        where: { gameType: "spit_royale" },
+        orderBy: { elo: "desc" },
         take: 5,
-        select: { elo: true, wins: true, userId: true, user: { select: { username: true } } },
+        select: {
+          elo: true,
+          wins: true,
+          userId: true,
+          user: { select: { username: true } },
+        },
       }),
 
       // Top 5 Alpaca Road ELO
       prisma.gameStat.findMany({
-        where: { gameType: 'alpaca_road' },
-        orderBy: { elo: 'desc' },
+        where: { gameType: "alpaca_road" },
+        orderBy: { elo: "desc" },
         take: 5,
-        select: { elo: true, wins: true, userId: true, user: { select: { username: true } } },
+        select: {
+          elo: true,
+          wins: true,
+          userId: true,
+          user: { select: { username: true } },
+        },
       }),
 
       // New users per day last 7 days
       prisma.user.findMany({
         where: { createdAt: { gte: sevenDaysAgo } },
         select: { createdAt: true },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: "asc" },
       }),
 
       // Level distribution
-      prisma.userStats.groupBy({ by: ['level'], _count: { userId: true }, orderBy: { level: 'asc' } }),
+      prisma.userStats.groupBy({
+        by: ["level"],
+        _count: { userId: true },
+        orderBy: { level: "asc" },
+      }),
 
       // Top 8 most unlocked achievements
       prisma.userAchievement.groupBy({
-        by: ['achievementId'],
+        by: ["achievementId"],
         _count: { userId: true },
-        orderBy: { _count: { userId: 'desc' } },
+        orderBy: { _count: { userId: "desc" } },
         take: 8,
       }),
 
@@ -159,12 +187,12 @@ export const getAnalytics = async (req, res, next) => {
     ]);
 
     // Enrich achievement IDs with names
-    const achievementIds = topAchievements.map(a => a.achievementId);
+    const achievementIds = topAchievements.map((a) => a.achievementId);
     const achievementMeta = await prisma.achievement.findMany({
       where: { id: { in: achievementIds } },
       select: { id: true, key: true, name: true },
     });
-    const achById = Object.fromEntries(achievementMeta.map(a => [a.id, a]));
+    const achById = Object.fromEntries(achievementMeta.map((a) => [a.id, a]));
 
     // Build registrations-per-day map (last 7 days)
     const dayMap = {};
@@ -182,7 +210,7 @@ export const getAnalytics = async (req, res, next) => {
       coins: {
         total: coinAgg._sum.coins ?? 0,
         average: Math.round(coinAgg._avg.coins ?? 0),
-        topHolders: topHolders.map(f => ({
+        topHolders: topHolders.map((f) => ({
           userId: f.userId,
           username: f.user.username,
           avatar: f.user.avatar,
@@ -192,33 +220,48 @@ export const getAnalytics = async (req, res, next) => {
       games: {
         totalWins: totalMatches._sum.wins ?? 0,
         totalLosses: totalMatches._sum.losses ?? 0,
-        byType: gameTypeCounts.map(g => ({
+        byType: gameTypeCounts.map((g) => ({
           gameType: g.gameType,
           players: g._count.userId,
           wins: g._sum.wins ?? 0,
           losses: g._sum.losses ?? 0,
         })),
         topElo: {
-          spit_royale: spitLeaderboard.map(r => ({ userId: r.userId, username: r.user.username, elo: r.elo, wins: r.wins })),
-          alpaca_road: roadLeaderboard.map(r => ({ userId: r.userId, username: r.user.username, elo: r.elo, wins: r.wins })),
+          spit_royale: spitLeaderboard.map((r) => ({
+            userId: r.userId,
+            username: r.user.username,
+            elo: r.elo,
+            wins: r.wins,
+          })),
+          alpaca_road: roadLeaderboard.map((r) => ({
+            userId: r.userId,
+            username: r.user.username,
+            elo: r.elo,
+            wins: r.wins,
+          })),
         },
       },
       users: {
         newThisWeek: recentUsers.length,
         byDay: Object.entries(dayMap).map(([date, count]) => ({ date, count })),
-        levelDistribution: levelDistribution.map(l => ({ level: l.level, count: l._count.userId })),
+        levelDistribution: levelDistribution.map((l) => ({
+          level: l.level,
+          count: l._count.userId,
+        })),
         activeGamers: activeMatches,
         totalXP: totalXP._sum.xp ?? 0,
       },
       achievements: {
-        topUnlocked: topAchievements.map(a => ({
-          key: achById[a.achievementId]?.key ?? '',
-          name: achById[a.achievementId]?.name ?? '',
+        topUnlocked: topAchievements.map((a) => ({
+          key: achById[a.achievementId]?.key ?? "",
+          name: achById[a.achievementId]?.name ?? "",
           count: a._count.userId,
         })),
       },
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ── User management ───────────────────────────────────────────────────────────
@@ -229,7 +272,10 @@ export const getAnalytics = async (req, res, next) => {
 export const getUsers = async (req, res, next) => {
   try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(req.query.limit, 10) || 20),
+    );
     const search = req.query.search?.trim() || "";
 
     const where = search
@@ -278,7 +324,10 @@ export const updateUserRole = async (req, res, next) => {
     const validRoles = ["user", "admin", "superadmin"];
 
     if (!validRoles.includes(role)) throw new CustomError("Invalid role", 400);
-    if ((role === "admin" || role === "superadmin") && req.admin.role !== "superadmin") {
+    if (
+      (role === "admin" || role === "superadmin") &&
+      req.admin.role !== "superadmin"
+    ) {
       throw new CustomError("Only superadmins can grant admin roles", 403);
     }
 
@@ -339,7 +388,8 @@ export const deleteUser = async (req, res, next) => {
       throw new CustomError("Only superadmins can delete users", 403);
     }
     const id = parseInt(req.params.id, 10);
-    if (id === req.admin.id) throw new CustomError("Cannot delete yourself", 400);
+    if (id === req.admin.id)
+      throw new CustomError("Cannot delete yourself", 400);
 
     await prisma.user.delete({ where: { id } });
     res.json({ message: "User deleted" });

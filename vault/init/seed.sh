@@ -33,8 +33,8 @@ if [ -z "$IS_DEV" ]; then
   if [ -z "${JWT_PUBLIC_API_SECRET:-}" ]; then
     echo "[vault-seed] ERROR: JWT_PUBLIC_API_SECRET must be set before seeding" >&2; exit 1
   fi
-  if [ -z "${ADMIN_JWT_SECRET:-}" ]; then
-    echo "[vault-seed] ERROR: ADMIN_JWT_SECRET must be set before seeding" >&2; exit 1
+  if [ -z "${JWT_ADMIN_SECRET:-}" ]; then
+    echo "[vault-seed] ERROR: JWT_ADMIN_SECRET must be set before seeding" >&2; exit 1
   fi
 fi
 
@@ -50,14 +50,13 @@ fi
 
 echo "[vault-seed] Writing secrets to secret/alpacaparty ..."
 vault kv put secret/alpacaparty \
-  db_user="${DB_USER:-alpacaparty}" \
+  db_user="${DB_USER:-alpacapartyUser}" \
   db_password="${DB_PASSWORD}" \
   db_name="${DB_NAME:-alpacaparty}" \
   jwt_secret="${JWT_SECRET}" \
   jwt_refresh_secret="${JWT_REFRESH_SECRET}" \
   jwt_public_api_secret="${JWT_PUBLIC_API_SECRET}" \
-  admin_jwt_secret="${ADMIN_JWT_SECRET:-change-me-admin-secret}" \
-  api_keys="${API_KEYS:-change-me-to-a-secure-key}" \
+  jwt_admin_secret="${JWT_ADMIN_SECRET:-change-me-admin-secret}" \
   google_client_id="${GOOGLE_CLIENT_ID:-}" \
   google_client_secret="${GOOGLE_CLIENT_SECRET:-}" \
   github_client_id="${GITHUB_CLIENT_ID:-}" \

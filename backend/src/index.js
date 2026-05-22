@@ -96,16 +96,11 @@ if (config.envIsDev) {
     swaggerUi.setup(swaggerSpec),
   );
 }
-// Serve the spec with the real request host so Swagger UI calls the same origin, not localhost.
-app.get("/api/docs/public/swagger.json", (req, res) => {
-  res.json({ ...swaggerFilePubliApi, host: req.get("host") || swaggerFilePubliApi.host });
-});
 app.use(
   "/api/docs/public",
-  swaggerUi.serve,
-  swaggerUi.setup(null, { swaggerOptions: { url: "/api/docs/public/swagger.json" } }),
+  swaggerUi.serveFiles(swaggerFilePubliApi),
+  swaggerUi.setup(swaggerFilePubliApi),
 );
-app.get("/api/docs", (_req, res) => res.redirect(301, "/api/docs/public"));
 
 // API routes
 app.use("/api", routes);

@@ -72,7 +72,7 @@ export const updateMe = async (req, res, next) => {
     });
 
     if (hasProfileChange) {
-      GamificationService.unlock(id, "profile_polisher").catch(() => {});
+      await GamificationService.unlock(id, "profile_polisher").catch(() => {});
     }
   } catch (err) {
     next(err);
@@ -229,7 +229,9 @@ export const exportMyData = async (req, res, next) => {
       `attachment; filename="alpacaparty-data.${extension}"`,
     );
     res.send(data);
-    GamificationService.unlock(req.user.id, "data_explorer").catch(() => {});
+    await GamificationService.unlock(req.user.id, "data_explorer").catch(
+      () => {},
+    );
   } catch (err) {
     next(err);
   }
@@ -294,7 +296,8 @@ export const deleteMe = async (req, res, next) => {
 export const getApiKey = async (req, res, next) => {
   try {
     const apiKey = await User.getApiKey(req.user.id);
-    if (!apiKey) return res.status(404).json({ error: { message: "No API key found" } });
+    if (!apiKey)
+      return res.status(404).json({ error: { message: "No API key found" } });
     res.json({ apiKey });
   } catch (err) {
     next(err);
