@@ -108,7 +108,7 @@ describe("GET /api/public/users", () => {
 
   test("200 — list users with filter", async () => {
     const res = await request
-      .get(`/api/public/users?search=${user.username}`)
+      .get(`/api/public/users?filter[username]=${user.username}`)
       .set("X-API-Key", `${user.apiKey}`);
     expect(res.status).toBe(200);
     expect(res.body.users).toHaveLength(1);
@@ -125,7 +125,7 @@ describe("GET /api/public/users", () => {
 
   test("200 — list users with valid offset", async () => {
     let res = await request
-      .get(`/api/public/users?limit=2&offset=2`)
+      .get(`/api/public/users?limit=2&offset=2&sort[createdAt]=desc`)
       .set("X-API-Key", `${user.apiKey}`);
 
     expect(res.status).toBe(200);
@@ -133,7 +133,7 @@ describe("GET /api/public/users", () => {
     const user1 = res.body.users[0];
 
     res = await request
-      .get(`/api/public/users?limit=2&offset=4`)
+      .get(`/api/public/users?limit=2&offset=4&sort[createdAt]=desc`)
       .set("X-API-Key", `${user.apiKey}`);
 
     expect(res.status).toBe(200);

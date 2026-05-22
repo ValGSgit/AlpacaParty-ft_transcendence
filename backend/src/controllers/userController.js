@@ -32,7 +32,7 @@ export const updateMe = async (req, res, next) => {
     status !== undefined ||
     avatar !== undefined ||
     is_public !== undefined;
-  
+
   try {
     if (username) {
       const current = req.user?.username;
@@ -67,12 +67,12 @@ export const updateMe = async (req, res, next) => {
       ...(is_public !== undefined && { isPublic: !!is_public }),
     });
 
-    res.status(200).json({ 
-      user: shapeUserForClient(updatedUser)
+    res.status(200).json({
+      user: shapeUserForClient(updatedUser),
     });
-    
+
     if (hasProfileChange) {
-      GamificationService.unlock(id, 'profile_polisher').catch(() => {});
+      GamificationService.unlock(id, "profile_polisher").catch(() => {});
     }
   } catch (err) {
     next(err);
@@ -147,7 +147,7 @@ export const getUser = async (req, res, next) => {
 
     const isPublic = user.userSettings?.isPublic;
     if (!isPublic && user.id !== req.user?.id) {
-      if (friendStatus?.status !== 'friends') {
+      if (friendStatus?.status !== "friends") {
         // Include minimal public data so the frontend can render a locked card.
         return res.status(403).json({
           error: { message: "This profile is private" },
@@ -173,29 +173,38 @@ export const getUser = async (req, res, next) => {
  */
 export const listUsers = async (req, res, next) => {
   try {
-    const pageSize =
-      Number(req.query.pageSize) || Number(req.query.limit) || 50;
-    const page = Number(req.query.page) || 1;
-    const limit = Math.min(pageSize, 100);
-    const offset = Number(req.query.offset) || Math.max((page - 1) * limit, 0);
-    const search = req.query.search ? String(req.query.search).trim() : "";
+    const limit = Math.min(req.query.limit || 50, 100);
+    const offset = Math.max(0, Number(req.query.offset) || 0);
+    const filter = req.query.filter;
+    const sort = req.query.sort;
+    const excludeUserId = Number(req.query.excludeUserId) || undefined;
 
-    const users = search
-      ? await User.search(req.user.id, search, { limit })
-      : await User.findAll({ limit, offset, currentUserId: req.user.id });
-    const visibleUsers = users.filter((u) => {
-      const isPublic = u.userSettings?.isPublic ?? u.isPublic ?? true;
-      return isPublic || Number(u.id) === Number(req.user.id);
-    });
-    const total = await User.count();
+    const searchRes = await User.search(
+      { limit, offset, filter, sort },
+      excludeUserId,
+    );
+    const users = searchRes.usersFound;
+    const total = searchRes.userCount;
+
+    // add additional flags
+    const userId = Number(req.user.id);
+    for (const u of users) {
+      u.is_friend = await Friend.isFriend(userId, u.id);
+      u.is_blocked = await Friend.isBlocked(userId, u.id);
+      const { requestSent, requestReceived } = await Friend.requestInfo(
+        userId,
+        u.id,
+      );
+      u.request_sent = requestSent ?? false;
+      u.request_received = requestReceived ?? false;
+    }
 
     res.json({
-      users: visibleUsers,
+      users,
       total,
       limit,
       offset,
       pageSize: limit,
-      currentPage: page,
     });
   } catch (err) {
     next(err);
@@ -218,7 +227,7 @@ export const exportMyData = async (req, res, next) => {
       `attachment; filename="alpacaparty-data.${extension}"`,
     );
     res.send(data);
-    GamificationService.unlock(req.user.id, 'data_explorer').catch(() => {});
+    GamificationService.unlock(req.user.id, "data_explorer").catch(() => {});
   } catch (err) {
     next(err);
   }

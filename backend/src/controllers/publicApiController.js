@@ -28,25 +28,22 @@ const isUserPublic = (user) => {
   return user?.userSettings?.isPublic === true;
 };
 
-/** GET /api/public/users?search=&limit=20&offset=0 */
+/** GET /api/public/users?filter[username]=&limit=20&offset=0 */
 export const listUsers = async (req, res, next) => {
   try {
-    const { search, limit = 20, offset = 0 } = req.query;
-    let users;
-    if (search) {
-      users = await User.search(null, search, {
-        limit: Number(limit),
-        offset: Number(offset),
-      });
-    } else {
-      users = await User.findAll({
-        limit: Number(limit),
-        offset: Number(offset),
-      });
-    }
+    const limit = req.query.limit ?? 20;
+    const offset = req.query.offset ?? 0;
+    const filter = req.query.filter;
+    const sort = req.query.sort;
+
+    const searchRes = await User.search({ limit, offset, filter, sort });
+    const users = searchRes.usersFound;
+    const total = searchRes.userCount;
+
     // Strip private profiles and remove sensitive fields.
     res.json({
       users: users.filter((u) => isUserPublic(u)).map((u) => toPublicUser(u)),
+      total,
     });
   } catch (err) {
     next(err);

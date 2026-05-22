@@ -36,7 +36,7 @@ export function shapeUserForClient(u) {
     avatar: u.avatar,
     bio: u.bio,
     status: u.status,
-    role: u.role ?? 'user',
+    role: u.role ?? "user",
     is_public: u.userSettings?.isPublic ?? true,
     is_online: u.isOnline,
     isOnline: u.isOnline,
@@ -241,17 +241,57 @@ const User = {
     });
   },
 
-  async findAll({ limit = 50, offset = 0, currentUserId = null } = {}) {
-    const blockFilter = currentUserId
-      ? {
-          // exclude users that currentUser has blocked
-          blockedBy: { none: { userId: Number(currentUserId) } },
-          // exclude users that have blocked currentUser
-          blockedUsers: { none: { blockedUserId: Number(currentUserId) } },
-        }
-      : {};
-    return prisma.user.findMany({
-      where: blockFilter,
+  filterToPrismaWhere(filter = {}) {
+    let whereClause = {
+      AND: [],
+    };
+
+    for (const [key, value] of Object.entries(filter)) {
+      if (value === undefined || value === null || value === "") continue;
+      if (key === "username" || key === "bio") {
+        whereClause.AND.push({
+          [key]: { contains: value, mode: "insensitive" },
+        });
+      } else if (key === "public" && value === true) {
+        whereClause.AND.push({ userSettings: { isPublic: true } });
+      }
+    }
+
+    if (whereClause.AND.length === 0) {
+      delete whereClause.AND;
+    }
+
+    return whereClause;
+  },
+
+  sortToPrismaOrderBy(sort = {}) {
+    let orderByArray = [];
+
+    for (const [key, value] of Object.entries(sort)) {
+      if (value !== "asc" && value !== "desc") continue;
+      if (
+        key === "createdAt" ||
+        key === "id" ||
+        key === "online" ||
+        key === "username"
+      ) {
+        orderByArray.push({ [key]: value });
+      } else if (key === "level" || "xp") {
+        orderByArray.push({ userStats: { [key]: value } });
+      }
+    }
+    return orderByArray;
+  },
+
+  async findAll({ limit = 50, offset = 0, filter = {}, sort = {} } = {}) {
+    const whereClause = this.filterToPrismaWhere(filter);
+
+    const orderByObj = this.sortToPrismaOrderBy(sort);
+
+    const userCount = await prisma.user.count({ where: whereClause });
+
+    const usersFound = await prisma.user.findMany({
+      where: whereClause,
       select: {
         id: true,
         username: true,
@@ -263,31 +303,32 @@ const User = {
         createdAt: true,
         userSettings: { select: { isPublic: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: orderByObj,
       take: Number(limit),
       skip: Number(offset),
     });
+
+    return { usersFound, userCount };
   },
 
   async count() {
     return prisma.user.count();
   },
 
-  async search(currentUserId, term, { limit = 20, offset = 0 } = {}) {
-    const blockFilter = currentUserId
-      ? {
-          blockedBy: { none: { userId: Number(currentUserId) } },
-          blockedUsers: { none: { blockedUserId: Number(currentUserId) } },
-        }
-      : {};
-    return prisma.user.findMany({
-      where: {
-        OR: [
-          { username: { startsWith: term, mode: "insensitive" } },
-          { bio: { contains: term, mode: "insensitive" } },
-        ],
-        ...blockFilter,
-      },
+  async search(
+    { limit = 20, offset = 0, filter = {}, sort = {} } = {},
+    excludeUserId = -1,
+  ) {
+    const whereClause = this.filterToPrismaWhere(filter);
+    whereClause.NOT = [];
+    whereClause.NOT.push({ id: excludeUserId });
+
+    const orderByObj = this.sortToPrismaOrderBy(sort);
+
+    const userCount = await prisma.user.count({ where: whereClause });
+
+    const usersFound = await prisma.user.findMany({
+      where: whereClause,
       select: {
         id: true,
         username: true,
@@ -295,10 +336,11 @@ const User = {
         isOnline: true,
         userSettings: { select: { isPublic: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: orderByObj,
       take: Number(limit),
       skip: Number(offset),
     });
+    return { usersFound, userCount };
   },
 
   async deleteById(id) {

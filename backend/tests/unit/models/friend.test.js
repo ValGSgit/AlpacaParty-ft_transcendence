@@ -1,7 +1,7 @@
 /**
  * Friend Model Unit Tests
  */
-import { jest, describe, test, expect, beforeEach } from '@jest/globals';
+import { jest, describe, test, expect, beforeEach } from "@jest/globals";
 
 const mockPrisma = {
   friendRequest: {
@@ -28,17 +28,17 @@ const mockPrisma = {
   $transaction: jest.fn(),
 };
 
-jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
+jest.unstable_mockModule("#config/prisma.js", () => ({ default: mockPrisma }));
 
-const { default: Friend } = await import('../../../src/models/Friend.js');
+const { default: Friend } = await import("../../../src/models/Friend.js");
 
 beforeEach(() => jest.clearAllMocks());
 
 // ── sendRequest ──────────────────────────────────────────────────────────────
-describe('sendRequest', () => {
-  test('creates a friend request via upsert', async () => {
+describe("sendRequest", () => {
+  test("creates a friend request via upsert", async () => {
     mockPrisma.friendRequest.findFirst.mockResolvedValue(null);
-    const request = { id: 1, senderId: 1, receiverId: 2, status: 'pending' };
+    const request = { id: 1, senderId: 1, receiverId: 2, status: "pending" };
     mockPrisma.friendRequest.upsert.mockResolvedValue(request);
     const result = await Friend.sendRequest(1, 2);
     expect(mockPrisma.friendRequest.findFirst).toHaveBeenCalledWith({
@@ -48,18 +48,20 @@ describe('sendRequest', () => {
           { senderId: 2, receiverId: 1 },
         ],
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
     expect(mockPrisma.friendRequest.upsert).toHaveBeenCalledWith({
       where: { senderId_receiverId: { senderId: 1, receiverId: 2 } },
-      update: { status: 'pending' },
-      create: { senderId: 1, receiverId: 2, status: 'pending' },
+      update: { status: "pending" },
+      create: { senderId: 1, receiverId: 2, status: "pending" },
     });
     expect(result).toEqual(request);
   });
 
-  test('throws error when trying to friend yourself', async () => {
-    await expect(Friend.sendRequest(1, 1)).rejects.toThrow('Cannot friend yourself');
+  test("throws error when trying to friend yourself", async () => {
+    await expect(Friend.sendRequest(1, 1)).rejects.toThrow(
+      "Cannot friend yourself",
+    );
     try {
       await Friend.sendRequest(1, 1);
     } catch (e) {
@@ -67,27 +69,32 @@ describe('sendRequest', () => {
     }
   });
 
-  test('throws 403 when a block exists between users', async () => {
+  test("throws 403 when a block exists between users", async () => {
     mockPrisma.blockedUser.findFirst.mockResolvedValue({ id: 1 });
     await expect(Friend.sendRequest(1, 2)).rejects.toMatchObject({
-      message: 'Cannot send friend request due to block',
+      message: "Cannot send friend request due to block",
       status: 403,
     });
   });
 
-  test('throws 409 when users are already friends', async () => {
+  test("throws 409 when users are already friends", async () => {
     mockPrisma.blockedUser.findFirst.mockResolvedValue(null);
     mockPrisma.friend.findFirst.mockResolvedValue({ id: 1 }); // areFriends → true
     await expect(Friend.sendRequest(1, 2)).rejects.toMatchObject({
-      message: 'You are already friends',
+      message: "You are already friends",
       status: 409,
     });
   });
 
-  test('returns alreadyPending when same-direction pending request exists', async () => {
+  test("returns alreadyPending when same-direction pending request exists", async () => {
     mockPrisma.blockedUser.findFirst.mockResolvedValue(null);
     mockPrisma.friend.findFirst.mockResolvedValue(null);
-    const pendingRequest = { id: 5, senderId: 1, receiverId: 2, status: 'pending' };
+    const pendingRequest = {
+      id: 5,
+      senderId: 1,
+      receiverId: 2,
+      status: "pending",
+    };
     mockPrisma.friendRequest.findFirst.mockResolvedValue(pendingRequest);
 
     const result = await Friend.sendRequest(1, 2);
@@ -96,29 +103,41 @@ describe('sendRequest', () => {
     expect(mockPrisma.friendRequest.upsert).not.toHaveBeenCalled();
   });
 
-  test('re-sends a declined request by updating it to pending', async () => {
+  test("re-sends a declined request by updating it to pending", async () => {
     mockPrisma.blockedUser.findFirst.mockResolvedValue(null);
     mockPrisma.friend.findFirst.mockResolvedValue(null);
-    const declinedRequest = { id: 7, senderId: 2, receiverId: 1, status: 'declined' };
+    const declinedRequest = {
+      id: 7,
+      senderId: 2,
+      receiverId: 1,
+      status: "declined",
+    };
     mockPrisma.friendRequest.findFirst.mockResolvedValue(declinedRequest);
-    const updated = { id: 7, senderId: 1, receiverId: 2, status: 'pending' };
+    const updated = { id: 7, senderId: 1, receiverId: 2, status: "pending" };
     mockPrisma.friendRequest.update.mockResolvedValue(updated);
 
     const result = await Friend.sendRequest(1, 2);
 
     expect(mockPrisma.friendRequest.update).toHaveBeenCalledWith({
       where: { id: 7 },
-      data: { senderId: 1, receiverId: 2, status: 'pending' },
+      data: { senderId: 1, receiverId: 2, status: "pending" },
     });
     expect(result).toEqual(updated);
   });
 
-  test('auto-accepts a reverse pending request', async () => {
-    const reverseRequest = { id: 9, senderId: 2, receiverId: 1, status: 'pending' };
-    const accepted = { ...reverseRequest, status: 'accepted' };
+  test("auto-accepts a reverse pending request", async () => {
+    const reverseRequest = {
+      id: 9,
+      senderId: 2,
+      receiverId: 1,
+      status: "pending",
+    };
+    const accepted = { ...reverseRequest, status: "accepted" };
     mockPrisma.friendRequest.findFirst.mockResolvedValue(reverseRequest);
 
-    const acceptSpy = jest.spyOn(Friend, 'acceptRequest').mockResolvedValue(accepted);
+    const acceptSpy = jest
+      .spyOn(Friend, "acceptRequest")
+      .mockResolvedValue(accepted);
 
     const result = await Friend.sendRequest(1, 2);
 
@@ -131,22 +150,24 @@ describe('sendRequest', () => {
 });
 
 // ── acceptRequest ────────────────────────────────────────────────────────────
-describe('acceptRequest', () => {
-  test('accepts request and creates friend records', async () => {
+describe("acceptRequest", () => {
+  test("accepts request and creates friend records", async () => {
     const request = { id: 1, senderId: 2, receiverId: 1 };
     mockPrisma.friendRequest.findFirst.mockResolvedValue(request);
-    const updatedRequest = { ...request, status: 'accepted' };
+    const updatedRequest = { ...request, status: "accepted" };
     mockPrisma.$transaction.mockResolvedValue([updatedRequest, { count: 2 }]);
     const result = await Friend.acceptRequest(1, 1);
     expect(mockPrisma.friendRequest.findFirst).toHaveBeenCalledWith({
-      where: { id: 1, receiverId: 1, status: 'pending' },
+      where: { id: 1, receiverId: 1, status: "pending" },
     });
     expect(result).toEqual(updatedRequest);
   });
 
-  test('throws 404 when request not found', async () => {
+  test("throws 404 when request not found", async () => {
     mockPrisma.friendRequest.findFirst.mockResolvedValue(null);
-    await expect(Friend.acceptRequest(999, 1)).rejects.toThrow('Request not found or already handled');
+    await expect(Friend.acceptRequest(999, 1)).rejects.toThrow(
+      "Request not found or already handled",
+    );
     try {
       await Friend.acceptRequest(999, 1);
     } catch (e) {
@@ -156,20 +177,20 @@ describe('acceptRequest', () => {
 });
 
 // ── declineRequest ───────────────────────────────────────────────────────────
-describe('declineRequest', () => {
-  test('declines request and returns updated record', async () => {
+describe("declineRequest", () => {
+  test("declines request and returns updated record", async () => {
     mockPrisma.friendRequest.updateMany.mockResolvedValue({ count: 1 });
-    const declined = { id: 1, status: 'declined' };
+    const declined = { id: 1, status: "declined" };
     mockPrisma.friendRequest.findUnique.mockResolvedValue(declined);
     const result = await Friend.declineRequest(1, 1);
     expect(mockPrisma.friendRequest.updateMany).toHaveBeenCalledWith({
-      where: { id: 1, receiverId: 1, status: 'pending' },
-      data: { status: 'declined' },
+      where: { id: 1, receiverId: 1, status: "pending" },
+      data: { status: "declined" },
     });
     expect(result).toEqual(declined);
   });
 
-  test('returns null when request not found', async () => {
+  test("returns null when request not found", async () => {
     mockPrisma.friendRequest.updateMany.mockResolvedValue({ count: 0 });
     const result = await Friend.declineRequest(999, 1);
     expect(result).toBeNull();
@@ -177,8 +198,8 @@ describe('declineRequest', () => {
 });
 
 // ── removeFriend ─────────────────────────────────────────────────────────────
-describe('removeFriend', () => {
-  test('deletes both friend records', async () => {
+describe("removeFriend", () => {
+  test("deletes both friend records", async () => {
     mockPrisma.friend.deleteMany.mockResolvedValue({ count: 2 });
     await Friend.removeFriend(1, 2);
     expect(mockPrisma.friend.deleteMany).toHaveBeenCalledWith({
@@ -193,18 +214,35 @@ describe('removeFriend', () => {
 });
 
 // ── getFriends ───────────────────────────────────────────────────────────────
-describe('getFriends', () => {
-  test('returns shaped friend list', async () => {
+describe("getFriends", () => {
+  test("returns shaped friend list", async () => {
     mockPrisma.friend.findMany.mockResolvedValue([
-      { friend: { id: 2, username: 'bob', avatar: '/b.png', isOnline: true, status: 'online', level: 5 } },
+      {
+        friend: {
+          id: 2,
+          username: "bob",
+          avatar: "/b.png",
+          isOnline: true,
+          status: "online",
+          level: 5,
+        },
+      },
     ]);
     const result = await Friend.getFriends(1);
-    expect(result).toEqual([
-      { id: 2, username: 'bob', avatar: '/b.png', is_online: true, status: 'online', level: 5 },
+    const friendsRes = result.friends;
+    expect(friendsRes).toEqual([
+      {
+        id: 2,
+        username: "bob",
+        avatar: "/b.png",
+        is_online: true,
+        status: "online",
+        level: 5,
+      },
     ]);
   });
 
-  test('applies pagination', async () => {
+  test("applies pagination", async () => {
     mockPrisma.friend.findMany.mockResolvedValue([]);
     await Friend.getFriends(1, { limit: 10, offset: 5 });
     expect(mockPrisma.friend.findMany).toHaveBeenCalledWith(
@@ -212,7 +250,7 @@ describe('getFriends', () => {
     );
   });
 
-  test('uses default pagination', async () => {
+  test("uses default pagination", async () => {
     mockPrisma.friend.findMany.mockResolvedValue([]);
     await Friend.getFriends(1);
     expect(mockPrisma.friend.findMany).toHaveBeenCalledWith(
@@ -222,10 +260,19 @@ describe('getFriends', () => {
 });
 
 // ── getOnlineFriends ─────────────────────────────────────────────────────────
-describe('getOnlineFriends', () => {
-  test('returns only online friends', async () => {
+describe("getOnlineFriends", () => {
+  test("returns only online friends", async () => {
     mockPrisma.friend.findMany.mockResolvedValue([
-      { friend: { id: 2, username: 'bob', avatar: '/b.png', isOnline: true, status: 'online', level: 5 } },
+      {
+        friend: {
+          id: 2,
+          username: "bob",
+          avatar: "/b.png",
+          isOnline: true,
+          status: "online",
+          level: 5,
+        },
+      },
     ]);
     const result = await Friend.getOnlineFriends(1);
     expect(mockPrisma.friend.findMany).toHaveBeenCalledWith(
@@ -238,40 +285,54 @@ describe('getOnlineFriends', () => {
 });
 
 // ── getPendingReceived ───────────────────────────────────────────────────────
-describe('getPendingReceived', () => {
-  test('returns pending received requests with sender info', async () => {
+describe("getPendingReceived", () => {
+  test("returns pending received requests with sender info", async () => {
     mockPrisma.friendRequest.findMany.mockResolvedValue([
-      { id: 1, senderId: 2, receiverId: 1, status: 'pending', sender: { username: 'bob', avatar: '/b.png' }, createdAt: '2024-01-01' },
+      {
+        id: 1,
+        senderId: 2,
+        receiverId: 1,
+        status: "pending",
+        sender: { username: "bob", avatar: "/b.png" },
+        createdAt: "2024-01-01",
+      },
     ]);
     const result = await Friend.getPendingReceived(1);
-    expect(result[0].senderUsername).toBe('bob');
-    expect(result[0].senderAvatar).toBe('/b.png');
+    expect(result[0].senderUsername).toBe("bob");
+    expect(result[0].senderAvatar).toBe("/b.png");
     expect(result[0].sender).toBeUndefined();
   });
 });
 
 // ── getPendingSent ───────────────────────────────────────────────────────────
-describe('getPendingSent', () => {
-  test('returns pending sent requests with receiver info', async () => {
+describe("getPendingSent", () => {
+  test("returns pending sent requests with receiver info", async () => {
     mockPrisma.friendRequest.findMany.mockResolvedValue([
-      { id: 1, senderId: 1, receiverId: 2, status: 'pending', receiver: { username: 'bob', avatar: '/b.png' }, createdAt: '2024-01-01' },
+      {
+        id: 1,
+        senderId: 1,
+        receiverId: 2,
+        status: "pending",
+        receiver: { username: "bob", avatar: "/b.png" },
+        createdAt: "2024-01-01",
+      },
     ]);
     const result = await Friend.getPendingSent(1);
-    expect(result[0].receiverUsername).toBe('bob');
-    expect(result[0].receiverAvatar).toBe('/b.png');
+    expect(result[0].receiverUsername).toBe("bob");
+    expect(result[0].receiverAvatar).toBe("/b.png");
     expect(result[0].receiver).toBeUndefined();
   });
 });
 
 // ── areFriends ───────────────────────────────────────────────────────────────
-describe('areFriends', () => {
-  test('returns true when friends', async () => {
+describe("areFriends", () => {
+  test("returns true when friends", async () => {
     mockPrisma.friend.findFirst.mockResolvedValue({ userId: 1, friendId: 2 });
     const result = await Friend.areFriends(1, 2);
     expect(result).toBe(true);
   });
 
-  test('returns false when not friends', async () => {
+  test("returns false when not friends", async () => {
     mockPrisma.friend.findFirst.mockResolvedValue(null);
     const result = await Friend.areFriends(1, 2);
     expect(result).toBe(false);
@@ -279,18 +340,20 @@ describe('areFriends', () => {
 });
 
 // ── count ────────────────────────────────────────────────────────────────────
-describe('count', () => {
-  test('returns friend count', async () => {
+describe("count", () => {
+  test("returns friend count", async () => {
     mockPrisma.friend.count.mockResolvedValue(5);
     const result = await Friend.count(1);
-    expect(mockPrisma.friend.count).toHaveBeenCalledWith({ where: { userId: 1 } });
+    expect(mockPrisma.friend.count).toHaveBeenCalledWith({
+      where: { userId: 1 },
+    });
     expect(result).toBe(5);
   });
 });
 
 // ── blockUser ────────────────────────────────────────────────────────────────
-describe('blockUser', () => {
-  test('removes friend and creates block record', async () => {
+describe("blockUser", () => {
+  test("removes friend and creates block record", async () => {
     mockPrisma.friend.deleteMany.mockResolvedValue({ count: 2 });
     mockPrisma.blockedUser.upsert.mockResolvedValue({});
     await Friend.blockUser(1, 2);
@@ -312,8 +375,8 @@ describe('blockUser', () => {
 });
 
 // ── unblockUser ──────────────────────────────────────────────────────────────
-describe('unblockUser', () => {
-  test('deletes block record', async () => {
+describe("unblockUser", () => {
+  test("deletes block record", async () => {
     mockPrisma.blockedUser.deleteMany.mockResolvedValue({ count: 1 });
     await Friend.unblockUser(1, 2);
     expect(mockPrisma.blockedUser.deleteMany).toHaveBeenCalledWith({
@@ -323,16 +386,16 @@ describe('unblockUser', () => {
 });
 
 // ── getBlocked ───────────────────────────────────────────────────────────────
-describe('getBlocked', () => {
-  test('returns blocked users', async () => {
+describe("getBlocked", () => {
+  test("returns blocked users", async () => {
     mockPrisma.blockedUser.findMany.mockResolvedValue([
-      { blockedUser: { id: 3, username: 'troll', avatar: '/t.png' } },
+      { blockedUser: { id: 3, username: "troll", avatar: "/t.png" } },
     ]);
     const result = await Friend.getBlocked(1);
-    expect(result).toEqual([{ id: 3, username: 'troll', avatar: '/t.png' }]);
+    expect(result).toEqual([{ id: 3, username: "troll", avatar: "/t.png" }]);
   });
 
-  test('returns empty when no blocked users', async () => {
+  test("returns empty when no blocked users", async () => {
     mockPrisma.blockedUser.findMany.mockResolvedValue([]);
     const result = await Friend.getBlocked(1);
     expect(result).toEqual([]);

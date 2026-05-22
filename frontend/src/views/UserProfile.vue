@@ -70,25 +70,7 @@
 
       <!-- Actions -->
       <div class="profile-actions" v-if="authStore.isAuthenticated && profile.id !== authStore.user?.id">
-        <div class="friend-actions">
-          <template v-if="friendStatus?.status === 'friends'">
-            <button class="btn-secondary" disabled>Friends</button>
-            <button class="btn-danger" @click="removeFriend">Unfriend</button>
-          </template>
-          <template v-else-if="friendStatus?.status === 'pending_sent'">
-            <button class="btn-primary" disabled>Request Sent</button>
-          </template>
-          <template v-else-if="friendStatus?.status === 'pending_received'">
-            <button class="btn-primary" @click="acceptFriendRequest">Accept Request</button>
-            <button class="btn-secondary" @click="declineFriendRequest">Decline</button>
-          </template>
-          <template v-else>
-            <button class="btn-primary" @click="sendFriendRequest">Add Friend</button>
-          </template>
-        </div>
-        <router-link :to="{ name: 'Messages', query: { dm: profile.id } }" class="btn-secondary">
-          Send Message
-        </router-link>
+        <button class="btn-primary" @click="sendFriendRequest">Add Friend</button>
       </div>
 
       <div v-if="actionError" class="action-error">{{ actionError }}</div>
