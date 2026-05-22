@@ -30,8 +30,7 @@
 
   <div v-if="gMinigame.mode && gMinigame.isGameOver" class="modal-overlay">
     <div class="shop-title">
-      <div v-if="!gUser.hp">Game Over! Final Score:</div>
-      <div v-if="gUser.hp">You Won! Final Score:</div>
+      <div>Final Score:</div>
       <button v-if="gMinigame.mode === 1 || gMinigame.mode === 2" class="shop-btn">Score: {{ gUser.point }} <AppIcon name="alpaca" :size="36" /></button>
       <template v-if="gMinigame.mode === 3 || gMinigame.mode === 4">
         <button v-for="player in gMinigame.players" :key="'end-' + player.id" class="shop-btn">
@@ -292,6 +291,7 @@ import { storeToRefs } from 'pinia'
 import * as THREE from 'three'
 import { StereoEffect } from 'three/addons/effects/StereoEffect.js'
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
+import { devError } from '../services/logger.js'
 import { useAuthStore } from '../stores/auth.js'
 import { alpacaHandling } from './components/alpacaHandling.js'
 import { alpacaConfig, alpacaShop } from './components/alpacaShop.js'
@@ -316,7 +316,6 @@ import { useInput } from './core/useInput.js'
 import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
-import { devError } from '../services/logger.js'
 import './game.css'
 import { changeGame, friendName, visitFarm } from './mini_games/init.js'
 import { updateMinigame } from './mini_games/minigames.js'
