@@ -23,7 +23,7 @@ export class MatchManager {
       const currentType = Number(typeStr);
 
       if ((match.status === 'LOBBY' && match.players.size > 0 && match.players.size < 4 && currentType === 4) ||
-        (match.status === 'LOBBY' && match.players.size > 0 && match.players.size < 10 && currentType === 2)) {
+        (match.status === 'PLAYING' && match.players.size > 0 && match.players.size < 10 && currentType === 2)) {
         publicRooms.push({
           id: match.matchId,
           name: match.roomName,
@@ -80,7 +80,7 @@ export class MatchManager {
         const currentType = Number(typeStr);
 
         if ((match.status === 'LOBBY' && match.players.size < 4 && currentType === 4) ||
-          (match.status === 'LOBBY' && match.players.size < 10 && currentType === 2)) {
+          (match.status === 'PLAYING' && match.players.size < 10 && currentType === 2)) {
           leaveCurrentRoom();
           this.playerToMatch.set(socket.id, roomId);
           socket.emit('join_success', { roomId: roomId, roomName: match.roomName, gameType: currentType });

@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed } from 'vue';
 
 const props = defineProps({
   name: { type: String, required: true },
@@ -45,16 +45,15 @@ const FILE_ICONS = {
   'bell-full':      '/icons/ui/bell.svg',
   'sun-full':       '/icons/ui/sun.svg',
   'joystick-full':  '/icons/ui/joystick.svg',
-  'moneybag-full':  '/icons/ui/playercoins.svg',
-  'pencil-ruler':   '/icons/ui/pencil-ruler-farm-icon.svg',
+  'coin':           '/icons/ui/coin.svg',
+  'pencil-ruler':   '/icons/ui/pencil-ruler-farm.svg',
   'shopping-bags':  '/icons/ui/shopping-bags.svg',
-  'camera-farm':    '/icons/ui/camera-farm-icon.svg',
-  'tree':           '/icons/ui/tree.svg',
-  'tractor':        '/icons/ui/tractor-svgrepo-com.svg',
-  'debug-coin':     '/icons/ui/debugcoin.svg',
-  'coin':           '/icons/ui/moneybag.svg',
+  'camera-farm':    '/icons/ui/camera-farm.svg',
+  'barn':           '/icons/ui/barn.svg',
+  'tractor':        '/icons/ui/tractor.svg',
+  'debug-coin':     '/icons/ui/coin.svg',
   'score':          '/icons/ui/score.svg',
-  'sunrise':        '/icons/ui/sunrise-svgrepo-com.svg',
+  'sunrise':        '/icons/ui/sunrise.svg',
   'sunset':         '/icons/ui/sunset.svg',
   'night':          '/icons/ui/night.svg',
   'tools':          '/icons/ui/tools.svg',

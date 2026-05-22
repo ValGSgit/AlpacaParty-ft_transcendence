@@ -1,5 +1,4 @@
 import { io } from 'socket.io-client';
-import { debug, devError } from '../../services/logger.js';
 import { gMinigame, gUI } from '../core/globals';
 import { makeAnnouncement, playCountDown } from './annoucement';
 import { changeGame } from './init';
@@ -110,9 +109,8 @@ export class GameClient {
       gMinigame.value.isActive = true;
 
       if (data && data.instant) {
-        // If the server sends a spawn point, teleport our local player immediately!
-        if (data.spawn && typeof window.setLocalPlayerSpawn === 'function') {
-          window.setLocalPlayerSpawn(data.spawn);
+        if (data.spawn) {
+          gMinigame.value.spawnData = data.spawn;
         }
       } else {
         playCountDown(3);
@@ -139,7 +137,7 @@ export class GameClient {
       if (data) {
         if (data.reason === 'eliminated') makeAnnouncement('Eliminated!', 3000);
         if (data.reason === 'lastone_standing') {
-          if (data.winnerId === this.socket.id) makeAnnouncement('Congratulations!', 3000);
+          if (data.winnerId === this.socket.id) makeAnnouncement('You won!', 3000);
         }
       }
     });
