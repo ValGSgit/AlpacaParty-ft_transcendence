@@ -5,6 +5,7 @@
  */
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { randomBytes } from "crypto";
 import config from "../config/index.js";
 
 const SALT_ROUNDS = 12;
@@ -40,7 +41,7 @@ const AuthService = {
    */
   generateRefreshToken(user) {
     return jwt.sign(
-      { id: user.id, type: "refresh" },
+      { id: user.id, type: "refresh"},
       config.jwt.refreshSecret,
       {
         expiresIn: config.jwt.refreshExpiresIn,
@@ -53,7 +54,7 @@ const AuthService = {
    */
   generatePublicApiToken(user) {
     return jwt.sign({ id: user.id }, config.jwt.publicApiSecret, {
-      expiresIn: config.jwt.publicApiExpiresIn,
+      expiresIn: config.jwt.publicApiExpiresIn
     });
   },
 
@@ -63,7 +64,7 @@ const AuthService = {
    */
   verifyToken(token) {
     try {
-      return jwt.verify(token, config.jwt.secret);
+      return jwt.verify(token, config.jwt.secret, { algorithms: ['HS256'] });
     } catch {
       return null;
     }
@@ -75,7 +76,7 @@ const AuthService = {
    */
   verifyRefreshToken(token) {
     try {
-      return jwt.verify(token, config.jwt.refreshSecret);
+      return jwt.verify(token, config.jwt.refreshSecret, { algorithms: ['HS256'] });
     } catch {
       return null;
     }
@@ -87,7 +88,7 @@ const AuthService = {
    */
   verifyPublicApiToken(token) {
     try {
-      return jwt.verify(token, config.jwt.publicApiSecret);
+      return jwt.verify(token, config.jwt.publicApiSecret, { algorithms: ['HS256'] });
     } catch {
       return null;
     }

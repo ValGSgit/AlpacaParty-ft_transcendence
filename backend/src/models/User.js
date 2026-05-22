@@ -12,6 +12,7 @@ const SAFE_SELECT = {
   avatar: true,
   bio: true,
   status: true,
+  isBanned: true,
   isOnline: true,
   lastSeen: true,
   createdAt: true,
@@ -35,6 +36,7 @@ export function shapeUserForClient(u) {
     avatar: u.avatar,
     bio: u.bio,
     status: u.status,
+    role: u.role ?? 'user',
     is_public: u.userSettings?.isPublic ?? true,
     is_online: u.isOnline,
     isOnline: u.isOnline,
@@ -59,7 +61,6 @@ const User = {
         userAuth: { create: { passwordHash } },
         userStats: { create: {} },
         userSettings: { create: {} },
-        alpacaFarm: { create: {} },
       },
       select: SAFE_SELECT,
     });
@@ -91,7 +92,6 @@ const User = {
           userAuth: { create: { oauthProvider: provider, oauthId } },
           userStats: { create: {} },
           userSettings: { create: {} },
-          alpacaFarm: { create: {} },
         },
         select: SAFE_SELECT,
       });
@@ -109,7 +109,6 @@ const User = {
         userAuth: { create: { oauthProvider: provider, oauthId } },
         userStats: { create: {} },
         userSettings: { create: {} },
-        alpacaFarm: { create: {} },
       },
       select: SAFE_SELECT,
     });

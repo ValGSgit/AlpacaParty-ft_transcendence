@@ -14,8 +14,8 @@ export class GameClient {
     if (this.socket) return;
 
     this.socket = io('/minigames', { transports: ['websocket'], withCredentials: true });
-    this.socket.on('connect', () => { console.log("✅ FRONTEND: Connected! ID:", this.socket.id); });
-    this.socket.on('connect_error', (err) => { console.error("❌ FRONTEND: Connection FAILED!", err.message); });
+    this.socket.on('connect', () => { debug("GameClient connected:", this.socket.id); });
+    this.socket.on('connect_error', (err) => { devError("GameClient connection failed:", err.message); });
     this.setupListeners();
   }
 

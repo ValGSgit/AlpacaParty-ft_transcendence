@@ -48,7 +48,7 @@ describe('Feed.vue', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.find('textarea').exists()).toBe(true)
-    expect(wrapper.find('.upload-btn').exists()).toBe(true)
+    expect(wrapper.find('label.tool').exists()).toBe(true)
   })
 
   it('post button disabled when content is empty', async () => {
@@ -58,7 +58,7 @@ describe('Feed.vue', () => {
     const wrapper = mount(Feed, { global: { plugins: [pinia, router] } })
     await wrapper.vm.$nextTick()
 
-    const btn = wrapper.find('button[type="submit"]')
+    const btn = wrapper.find('.composer button.btn-primary')
     expect(btn.attributes('disabled')).toBeDefined()
   })
 
@@ -72,7 +72,7 @@ describe('Feed.vue', () => {
     await wrapper.find('textarea').setValue('Hello world!')
     await wrapper.vm.$nextTick()
 
-    const btn = wrapper.find('button[type="submit"]')
+    const btn = wrapper.find('.composer button.btn-primary')
     expect(btn.attributes('disabled')).toBeUndefined()
   })
 
@@ -133,7 +133,7 @@ describe('Feed.vue', () => {
     await wrapper.find('textarea').setValue('Test post content')
     await wrapper.vm.$nextTick()
 
-    await wrapper.find('form').trigger('submit')
+    await wrapper.find('.composer button.btn-primary').trigger('click')
     await wrapper.vm.$nextTick()
 
     expect(api.post).toHaveBeenCalledWith('/posts', expect.objectContaining({ content: 'Test post content' }))
@@ -171,7 +171,7 @@ describe('Feed.vue', () => {
     await new Promise(r => setTimeout(r, 10))
     await wrapper.vm.$nextTick()
 
-    const postCards = wrapper.findAll('.post-card')
+    const postCards = wrapper.findAll('.post')
     expect(postCards.length).toBe(2)
     expect(wrapper.text()).toContain('First post')
     expect(wrapper.text()).toContain('Second post')
@@ -197,7 +197,7 @@ describe('Feed.vue', () => {
     await new Promise(r => setTimeout(r, 10))
     await wrapper.vm.$nextTick()
 
-    const likeBtn = wrapper.find('.action-btn')
+    const likeBtn = wrapper.find('.pill-like')
     await likeBtn.trigger('click')
     await wrapper.vm.$nextTick()
 

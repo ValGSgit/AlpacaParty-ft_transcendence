@@ -1,5 +1,6 @@
-import { debug } from "#lib/logger.js";
+import { debug, error } from "#lib/logger.js";
 import Game from "../models/Game.js";
+import GamificationService from "./GamificationService.js";
 import { BaseMatch } from "./BaseMatch.js";
 
 const ELO_K = 24;
@@ -188,7 +189,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     if (allDead && this.status !== 'GAME_OVER') {
       this.status = 'GAME_OVER';
       this.persistOutcome().catch((err) => {
-        console.error('[alpaca-road] failed to persist outcome:', err.message);
+        error('[alpaca-road] failed to persist outcome:', err.message);
       });
 
       setTimeout(() => {
@@ -278,6 +279,12 @@ export class AlpacaRoadMatch extends BaseMatch {
         const newElo = calcElo(myElo, avgOpp, result);
         await Game.updateStats(p.userId, GAME_TYPE, result);
         await Game.updateElo(p.userId, GAME_TYPE, newElo);
+
+        if (isWinner) {
+          await GamificationService.onWin(p.userId, GAME_TYPE);
+        } else {
+          await GamificationService.onLoss(p.userId);
+        }
       }),
     );
   }

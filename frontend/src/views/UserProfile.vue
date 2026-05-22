@@ -20,14 +20,18 @@
       <div class="locked-banner">
         <span class="lock-icon">🔒</span>
         <p>This profile is private.<br />Add <strong>{{ profile.username }}</strong> as a friend to see their stats and posts.</p>
-        <button
-          v-if="authStore.isAuthenticated && profile.id !== authStore.user?.id"
-          class="btn-primary"
-          :disabled="requestSent"
-          @click="sendFriendRequest"
-        >
-          {{ requestSent ? 'Request sent' : 'Add Friend' }}
-        </button>
+        <div v-if="authStore.isAuthenticated && profile.id !== authStore.user?.id" class="friend-actions">
+          <template v-if="friendStatus?.status === 'pending_sent'">
+            <button class="btn-primary" disabled>Request Sent</button>
+          </template>
+          <template v-else-if="friendStatus?.status === 'pending_received'">
+            <button class="btn-primary" @click="acceptFriendRequest">Accept Request</button>
+            <button class="btn-secondary" @click="declineFriendRequest">Decline</button>
+          </template>
+          <template v-else>
+            <button class="btn-primary" @click="sendFriendRequest">Add Friend</button>
+          </template>
+        </div>
       </div>
 
       <div class="locked-preview" aria-hidden="true">
@@ -66,13 +70,22 @@
 
       <!-- Actions -->
       <div class="profile-actions" v-if="authStore.isAuthenticated && profile.id !== authStore.user?.id">
-        <button
-          class="btn-primary"
-          :disabled="requestSent"
-          @click="sendFriendRequest"
-        >
-          {{ requestSent ? 'Request sent' : 'Add Friend' }}
-        </button>
+        <div class="friend-actions">
+          <template v-if="friendStatus?.status === 'friends'">
+            <button class="btn-secondary" disabled>Friends</button>
+            <button class="btn-danger" @click="removeFriend">Unfriend</button>
+          </template>
+          <template v-else-if="friendStatus?.status === 'pending_sent'">
+            <button class="btn-primary" disabled>Request Sent</button>
+          </template>
+          <template v-else-if="friendStatus?.status === 'pending_received'">
+            <button class="btn-primary" @click="acceptFriendRequest">Accept Request</button>
+            <button class="btn-secondary" @click="declineFriendRequest">Decline</button>
+          </template>
+          <template v-else>
+            <button class="btn-primary" @click="sendFriendRequest">Add Friend</button>
+          </template>
+        </div>
         <router-link :to="{ name: 'Messages', query: { dm: profile.id } }" class="btn-secondary">
           Send Message
         </router-link>
@@ -85,6 +98,14 @@
         <h3>Game Stats</h3>
         <div class="stats-grid">
           <div class="stat-card">
+            <span class="stat-value">{{ stats.kills || 0 }}</span>
+            <span class="stat-label">Kills</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">{{ stats.obstacles || 0 }}</span>
+            <span class="stat-label">Obstacles</span>
+          </div>
+          <div class="stat-card">
             <span class="stat-value">{{ stats.wins || 0 }}</span>
             <span class="stat-label">Wins</span>
           </div>
@@ -95,6 +116,10 @@
           <div class="stat-card">
             <span class="stat-value">{{ stats.elo || 1000 }}</span>
             <span class="stat-label">ELO</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">{{ winRate }}</span>
+            <span class="stat-label">Win Rate</span>
           </div>
         </div>
       </div>
@@ -107,6 +132,8 @@
           <img v-if="post.image_url" :src="post.image_url" class="user-post-image" alt="" />
           <div class="user-post-footer">
             <span>{{ post.likes_count || 0 }} likes</span>
+            <span>{{ post.comments_count || 0 }} comments</span>
+            <span>{{ post.reposts_count || 0 }} reposts</span>
             <span>{{ formatDate(post.created_at) }}</span>
           </div>
         </div>
@@ -116,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
@@ -131,8 +158,16 @@ const userPosts = ref([])
 const loading = ref(true)
 const error = ref(null)
 const isPrivate = ref(false)
-const requestSent = ref(false)
+const friendStatus = ref(null) // { status: 'none'|'pending_sent'|'pending_received'|'friends', requestId? }
 const actionError = ref(null)
+
+const winRate = computed(() => {
+  if (!stats.value) return '—'
+  const total = (stats.value.wins || 0) + (stats.value.losses || 0)
+  if (total === 0) return '0%'
+  const rate = Math.round(((stats.value.wins || 0) / total) * 100)
+  return `${rate}%`
+})
 
 function formatDate(ts) {
   if (!ts) return ''
@@ -145,10 +180,12 @@ onMounted(async () => {
   try {
     const { data } = await api.get(`/users/${userId}`)
     profile.value = data.user
+    friendStatus.value = data.friend_status
   } catch (e) {
     if (e.response?.status === 403) {
       isPrivate.value = true
       profile.value = e.data?.user ?? null
+      friendStatus.value = e.data?.friend_status ?? null
     } else {
       error.value = e.data?.error?.message || 'User not found'
     }
@@ -173,10 +210,42 @@ onMounted(async () => {
 async function sendFriendRequest() {
   actionError.value = null
   try {
-    await api.post('/friends/requests', { userId: profile.value.id })
-    requestSent.value = true
+    const { data } = await api.post('/friends/requests', { userId: profile.value.id })
+    friendStatus.value = data.autoAccepted
+      ? { status: 'friends' }
+      : { status: 'pending_sent' }
   } catch (e) {
     actionError.value = e.data?.error?.message || 'Failed to send request'
+  }
+}
+
+async function acceptFriendRequest() {
+  actionError.value = null
+  try {
+    await api.put(`/friends/requests/${friendStatus.value.requestId}/accept`)
+    friendStatus.value = { status: 'friends' }
+  } catch (e) {
+    actionError.value = e.data?.error?.message || 'Failed to accept request'
+  }
+}
+
+async function declineFriendRequest() {
+  actionError.value = null
+  try {
+    await api.put(`/friends/requests/${friendStatus.value.requestId}/decline`)
+    friendStatus.value = { status: 'none' }
+  } catch (e) {
+    actionError.value = e.data?.error?.message || 'Failed to decline request'
+  }
+}
+
+async function removeFriend() {
+  actionError.value = null
+  try {
+    await api.delete(`/friends/${profile.value.id}`)
+    friendStatus.value = { status: 'none' }
+  } catch (e) {
+    actionError.value = e.data?.error?.message || 'Failed to remove friend'
   }
 }
 </script>
@@ -322,6 +391,13 @@ async function sendFriendRequest() {
   display: flex;
   gap: 0.75rem;
   margin: 1rem 0;
+  align-items: center;
+}
+
+.friend-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
 }
 
 .action-error {
@@ -348,9 +424,22 @@ async function sendFriendRequest() {
   border: none;
 }
 
-.btn-primary:disabled {
+.btn-primary:disabled,
+.btn-secondary:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.btn-danger {
+  flex: 1;
+  padding: 0.6rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  background: transparent;
+  border: 1px solid #ff5050;
+  color: #ff5050;
 }
 
 .btn-secondary {

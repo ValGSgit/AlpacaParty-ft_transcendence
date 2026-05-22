@@ -11,7 +11,7 @@ import { Strategy as GitHubStrategy } from 'passport-github2';
 import config from '../config/index.js';
 import User from '../models/User.js';
 import AuthService from './authService.js';
-import Achievement from '../models/Achievement.js';
+import GamificationService from './GamificationService.js';
 
 export function initializePassport() {
   // ── Serialize / deserialize (for session-less JWT flows we only need id) ──
@@ -60,7 +60,7 @@ export function initializePassport() {
             });
 
             if (created) {
-              await Achievement.unlock(user.id, 'first_login').catch(() => {});
+              GamificationService.onLogin(user.id).catch(() => {});
             }
 
             done(null, user);
@@ -107,7 +107,7 @@ export function initializePassport() {
             });
 
             if (created) {
-              await Achievement.unlock(user.id, 'first_login').catch(() => {});
+              GamificationService.onLogin(user.id).catch(() => {});
             }
 
             done(null, user);

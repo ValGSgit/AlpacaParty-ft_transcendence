@@ -273,7 +273,7 @@ const { users } = await res.json();</pre>
             </div>
           </div>
           <div class="am-meta">
-            <div><b>alpacaparty_net</b> · 6 services · 3 namespaces</div>
+            <div><b>alpacaparty_net</b> · 6 services · 2 namespaces</div>
             <div class="am-legend">
               <span class="am-lg am-lg--http">HTTPS</span>
               <span class="am-lg am-lg--ws">WebSocket</span>
@@ -432,7 +432,6 @@ const { users } = await res.json();</pre>
                   <div class="am-rg-head"><span class="am-prefix">/users</span><span class="am-rg-label">Users</span></div>
                   <ul class="am-rl">
                     <li><span class="am-verb am-v-mix">CRUD</span><span>/me</span></li>
-                    <li><span class="am-verb am-v-mix">G·P</span><span>/me/farmdata</span></li>
                     <li><span class="am-verb am-v-put">PUT</span><span>/me/password</span></li>
                     <li><span class="am-verb am-v-get">GET</span><span>/me/export <em class="am-note">GDPR</em></span></li>
                     <li><span class="am-verb am-v-mix">P·G</span><span>/me/delete-request · /me/data-requests</span></li>
@@ -638,7 +637,7 @@ const { users } = await res.json();</pre>
               <div class="am-card-head">
                 <span class="am-num">06</span>
                 <h2>Realtime · Socket.IO</h2>
-                <span class="am-card-sub">3 namespaces</span>
+                <span class="am-card-sub">2 namespaces</span>
               </div>
               <div class="am-rt">
                 <div class="am-rt-row">
@@ -651,33 +650,20 @@ const { users } = await res.json();</pre>
                   <div class="am-rt-side am-rt-side--server">
                     <div class="am-rt-ns">socketService.js</div>
                     <div class="am-rt-name">/ namespace</div>
-                    <div class="am-rt-desc">online tracking · dm:{min}-{max} · game:{id} · notif push</div>
+                    <div class="am-rt-desc">online tracking · dm:{min}-{max} · group rooms · notif push</div>
                   </div>
                 </div>
                 <div class="am-rt-row">
                   <div class="am-rt-side am-rt-side--client">
-                    <div class="am-rt-ns">/spit-royale</div>
-                    <div class="am-rt-name">match client</div>
-                    <div class="am-rt-desc">lobby + match state</div>
+                    <div class="am-rt-ns">/minigames</div>
+                    <div class="am-rt-name">GameClient.js</div>
+                    <div class="am-rt-desc">lobby + per-match tick sync (Spit Royale + Alpaca Road)</div>
                   </div>
                   <div class="am-rt-link"><span class="am-pulse" style="animation-delay:.6s"></span></div>
                   <div class="am-rt-side am-rt-side--server">
-                    <div class="am-rt-ns">spitRoyaleNamespace.js</div>
-                    <div class="am-rt-name">/spit-royale</div>
-                    <div class="am-rt-desc">lobby management · match state machine</div>
-                  </div>
-                </div>
-                <div class="am-rt-row">
-                  <div class="am-rt-side am-rt-side--client">
-                    <div class="am-rt-ns">/alpaca-road</div>
-                    <div class="am-rt-name">road race client</div>
-                    <div class="am-rt-desc">tick sync</div>
-                  </div>
-                  <div class="am-rt-link"><span class="am-pulse" style="animation-delay:1.2s"></span></div>
-                  <div class="am-rt-side am-rt-side--server">
-                    <div class="am-rt-ns">alpacaRoadNamespace.js</div>
-                    <div class="am-rt-name">/alpaca-road</div>
-                    <div class="am-rt-desc">MatchManager · AlpacaRoadMatch · room sync + ticks</div>
+                    <div class="am-rt-ns">MatchManager.js</div>
+                    <div class="am-rt-name">/minigames</div>
+                    <div class="am-rt-desc">dispatches SpitRoyalMatch / AlpacaRoadMatch · room sync + ticks</div>
                   </div>
                 </div>
                 <div class="am-rt-row am-rt-row--full">
@@ -737,8 +723,7 @@ const { users } = await res.json();</pre>
                 <span class="am-card-sub">match order</span>
               </div>
               <ul class="am-rl am-rl--nginx">
-                <li><span class="am-verb am-v-mix">SPC</span><span>/api/users/me</span><em class="am-note">cache headers</em></li>
-                <li><span class="am-verb am-v-mix">SPC</span><span>/api/users/me/farmdata</span><em class="am-note">cache headers</em></li>
+                <li><span class="am-verb am-v-mix">SPC</span><span>/api/users/me</span><em class="am-note">WAF bypass</em></li>
                 <li><span class="am-verb am-v-get">→</span><span>/api/*</span><em class="am-note">backend:3000</em></li>
                 <li><span class="am-verb am-v-post">⇅</span><span>/socket.io/*</span><em class="am-note">WS upgrade</em></li>
                 <li><span class="am-verb am-v-get">→</span><span>/uploads/*</span><em class="am-note">backend:3000</em></li>

@@ -22,7 +22,7 @@ REST API for the **AlpacaParty** multiplayer social platform.
 ## Authentication
 Most endpoints require a JWT access token:
 \`\`\`
-Authorization: Bearer <accessToken>
+Authorization: Cookie jwt_token=your_access_token_here
 \`\`\`
 Access tokens expire after **24 h**. Use **POST /auth/refresh** with your \`refreshToken\` to get a new pair.
 
@@ -98,13 +98,6 @@ X-API-Key: ap_your_key_here
     ],
     components: {
       securitySchemes: {
-        BearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-          description:
-            "Access token from **POST /auth/login**. Expires in 24 h.",
-        },
         ApiKeyAuth: {
           type: "apiKey",
           in: "header",
@@ -329,7 +322,6 @@ X-API-Key: ap_your_key_here
         },
       },
     },
-    security: [{ BearerAuth: [] }],
   },
   apis: ["./src/routes/*.js"],
 };

@@ -5,6 +5,7 @@
  */
 import Game from '../models/Game.js';
 import Achievement from '../models/Achievement.js';
+import GamificationService from '../services/GamificationService.js';
 
 /** GET /api/game/stats?gameType=spit_royale */
 export const getStats = async (req, res, next) => {
@@ -44,21 +45,48 @@ export const getCoinsLeaderboard = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-/** GET /api/game/farm */
+/** POST /api/game/result — Save offline/AI game result */
+export const saveGameResult = async (req, res, next) => {
+  try {
+    const { gameType, result } = req.body;
+    if (!gameType || !result) {
+      return res.status(400).json({ error: { message: 'gameType and result required' } });
+    }
+    if (!['win', 'loss', 'draw'].includes(result)) {
+      return res.status(400).json({ error: { message: 'result must be win, loss, or draw' } });
+    }
+
+    await Game.updateStats(req.user.id, gameType, result);
+    const stats = await Game.getStats(req.user.id, gameType);
+    res.json({ stats });
+
+    if (result === 'win') {
+      GamificationService.onWin(req.user.id, gameType).catch(() => {});
+    } else if (result === 'loss') {
+      GamificationService.onLoss(req.user.id).catch(() => {});
+    }
+  } catch (err) { next(err); }
+};
+
+/** GET /api/game/farm?userId=X — own farm or another user's farm */
 export const getFarm = async (req, res, next) => {
   try {
-    const farm = await Game.getFarm(req.user.id);
+    const userId = req.query.userId ? Number(req.query.userId) : req.user.id;
+    const farm = await Game.getFarm(userId);
     res.json({ farm });
   } catch (err) { next(err); }
 };
 
-/** PUT /api/game/farm */
+/** PUT /api/game/farm — accepts { farmData }, { farm }, or flat { items, alpacas, coins, … } */
 export const saveFarm = async (req, res, next) => {
   try {
-    const farmData = req.body.farmData ?? req.body.farm;
+    const flatKeys = ['items', 'alpacas', 'coins', 'upgrades', 'herdsize'];
+    const isFlat = flatKeys.some((k) => k in req.body);
+    const farmData = req.body.farmData ?? req.body.farm ?? (isFlat ? req.body : null);
     if (!farmData) return res.status(400).json({ error: { message: 'farmData is required' } });
     const farm = await Game.updateFarm(req.user.id, farmData);
     res.json({ farm });
+    GamificationService.onFarmSave(req.user.id, farmData).catch(() => {});
   } catch (err) { next(err); }
 };
 

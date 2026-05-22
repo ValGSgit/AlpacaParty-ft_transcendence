@@ -1,4 +1,5 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { devError } from '../../services/logger.js';
 
 const cache = new Map();
 const loader = new GLTFLoader();
@@ -17,7 +18,7 @@ export function getModel(path) {
     },
       undefined, // We can plug a LoadingManager in here later! To see a progress bar for example
       (error) => {
-        console.error(`Failed to load model at ${path}`, error);
+        devError(`Failed to load model at ${path}`, error);
         cache.delete(path);
         reject(error);
       }

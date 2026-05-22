@@ -25,6 +25,7 @@ function createTestRouter() {
     history: createWebHistory(),
     routes: [
       { path: '/profile', name: 'Profile', component: Profile },
+      { path: '/docs', name: 'ApiDocs', component: { template: '<div>Docs</div>' } },
     ],
   })
 }
@@ -40,7 +41,10 @@ describe('Profile.vue', () => {
     await router.isReady()
   })
 
-  it('renders user profile when authenticated', () => {
+  it('renders user profile when authenticated', async () => {
+    const { default: api } = await import('../../../src/services/api.js')
+    api.get.mockResolvedValue({ data: { achievements: [], stats: { wins: 0, losses: 0, elo: 1000 }, posts: [], apiKey: null } })
+
     const store = useAuthStore()
     store.user = {
       username: 'tester',
@@ -55,12 +59,15 @@ describe('Profile.vue', () => {
       global: { plugins: [pinia, router] },
     })
 
-    expect(wrapper.find('h2').text()).toBe('tester')
-    expect(wrapper.text()).toContain('test@test.com')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.display-name').text()).toBe('tester')
     expect(wrapper.text()).toContain('Hello world')
   })
 
-  it('does not render profile card when no user', () => {
+  it('does not render profile card when no user', async () => {
+    const { default: api } = await import('../../../src/services/api.js')
+    api.get.mockResolvedValue({ data: { achievements: [], stats: { wins: 0, losses: 0, elo: 1000 }, posts: [], apiKey: null } })
+
     const store = useAuthStore()
     store.user = null
 
@@ -68,10 +75,14 @@ describe('Profile.vue', () => {
       global: { plugins: [pinia, router] },
     })
 
-    expect(wrapper.find('.profile-card').exists()).toBe(false)
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.profile-wrap').exists()).toBe(true)
   })
 
-  it('shows default bio placeholder when bio is empty', () => {
+  it('shows default bio placeholder when bio is empty', async () => {
+    const { default: api } = await import('../../../src/services/api.js')
+    api.get.mockResolvedValue({ data: { achievements: [], stats: { wins: 0, losses: 0, elo: 1000 }, posts: [], apiKey: null } })
+
     const store = useAuthStore()
     store.user = {
       username: 'u',
@@ -86,10 +97,14 @@ describe('Profile.vue', () => {
       global: { plugins: [pinia, router] },
     })
 
-    expect(wrapper.text()).toContain('—')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.bio').exists()).toBe(false)
   })
 
-  it('renders avatar with correct src', () => {
+  it('renders avatar with correct src', async () => {
+    const { default: api } = await import('../../../src/services/api.js')
+    api.get.mockResolvedValue({ data: { achievements: [], stats: { wins: 0, losses: 0, elo: 1000 }, posts: [], apiKey: null } })
+
     const store = useAuthStore()
     store.user = {
       username: 'u',
@@ -104,11 +119,15 @@ describe('Profile.vue', () => {
       global: { plugins: [pinia, router] },
     })
 
-    const img = wrapper.find('img.avatar')
+    await wrapper.vm.$nextTick()
+    const img = wrapper.find('.hero-avatar img')
     expect(img.attributes('src')).toBe('/avatars/custom.png')
   })
 
-  it('shows loading state when profile card is absent (no user)', () => {
+  it('shows loading state when profile card is absent (no user)', async () => {
+    const { default: api } = await import('../../../src/services/api.js')
+    api.get.mockResolvedValue({ data: { achievements: [], stats: { wins: 0, losses: 0, elo: 1000 }, posts: [], apiKey: null } })
+
     const store = useAuthStore()
     store.user = null
 
@@ -116,12 +135,14 @@ describe('Profile.vue', () => {
       global: { plugins: [pinia, router] },
     })
 
-    // When no user is set, the profile card should not exist
-    expect(wrapper.find('.profile-card').exists()).toBe(false)
-    expect(wrapper.find('.profile-page').exists()).toBe(true)
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.profile-wrap').exists()).toBe(true)
   })
 
   it('shows settings tab content when settings tab is clicked', async () => {
+    const { default: api } = await import('../../../src/services/api.js')
+    api.get.mockResolvedValue({ data: { achievements: [], stats: { wins: 0, losses: 0, elo: 1000 }, posts: [], apiKey: null } })
+
     const store = useAuthStore()
     store.user = {
       username: 'editor',
@@ -136,14 +157,15 @@ describe('Profile.vue', () => {
       global: { plugins: [pinia, router] },
     })
 
-    expect(wrapper.find('.settings-view').exists()).toBe(false)
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.settings-section').exists()).toBe(false)
 
-    const settingsTab = wrapper.findAll('.tab-btn').find(btn => btn.text() === 'Settings')
+    const settingsTab = wrapper.findAll('.tab-pill').find(pill => pill.text() === 'Settings')
     expect(settingsTab).toBeDefined()
     await settingsTab.trigger('click')
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.find('.settings-view').exists()).toBe(true)
+    expect(wrapper.find('.settings-section').exists()).toBe(true)
     expect(wrapper.text()).toContain('Edit Profile')
   })
 

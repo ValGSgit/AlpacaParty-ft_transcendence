@@ -4,6 +4,7 @@
 export default {
   testEnvironment: "node",
   transform: {},
+  forceExit: true,
   testMatch: ["**/tests/**/*.test.js"],
   coverageDirectory: "coverage",
   collectCoverageFrom: [

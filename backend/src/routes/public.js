@@ -53,20 +53,9 @@ router.get("/", (_req, res) => {
       },
       {
         method: "GET",
-        path: "/api/public/leaderboard",
-        description: "Game leaderboard",
-        params: "gameType, limit, offset, anonymized",
-      },
-      {
-        method: "GET",
         path: "/api/public/posts",
         description: "Public feed posts",
         params: "limit, offset, anonymized",
-      },
-      {
-        method: "GET",
-        path: "/api/public/mock",
-        description: "Anonymized mock dataset",
       },
       {
         method: "POST",

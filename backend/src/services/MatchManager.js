@@ -23,7 +23,7 @@ export class MatchManager {
       const currentType = Number(typeStr);
 
       if ((match.status === 'LOBBY' && match.players.size > 0 && match.players.size < 4 && currentType === 4) ||
-        (match.status === 'PLAYING' && match.players.size > 0 && match.players.size < 10 && currentType === 2)) {
+        (match.status === 'LOBBY' && match.players.size > 0 && match.players.size < 10 && currentType === 2)) {
         publicRooms.push({
           id: match.matchId,
           name: match.roomName,
@@ -55,11 +55,11 @@ export class MatchManager {
       };
 
       socket.on('create_room', ({ name, color, gameType }) => {
-        console.log(`BACKEND: Received create_room request from ${name}`);
+        debug(`BACKEND: Received create_room request from ${name}`);
 
         leaveCurrentRoom();
 
-        const roomId = Math.random().toString(36);
+        const roomId = crypto.randomUUID();
         const roomName = `${name}'s Room`;
         const MatchClass = GAME_REGISTRY[gameType];
         const match = new MatchClass(roomId, this.io, roomName, () => {
@@ -75,11 +75,12 @@ export class MatchManager {
 
       socket.on('join_room', ({ name, roomId, color }) => {
         const match = this.matches.get(roomId);
+        if (!match) return;
         const typeStr = Object.keys(GAME_REGISTRY).find(key => GAME_REGISTRY[key] === match.constructor);
         const currentType = Number(typeStr);
 
-        if (match && ((match.status === 'LOBBY' && match.players.size < 4 && currentType === 4) ||
-          (match.status === 'PLAYING' && match.players.size < 10 && currentType === 2))) {
+        if ((match.status === 'LOBBY' && match.players.size < 4 && currentType === 4) ||
+          (match.status === 'LOBBY' && match.players.size < 10 && currentType === 2)) {
           leaveCurrentRoom();
           this.playerToMatch.set(socket.id, roomId);
           socket.emit('join_success', { roomId: roomId, roomName: match.roomName, gameType: currentType });

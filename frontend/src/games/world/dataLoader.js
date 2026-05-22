@@ -6,10 +6,10 @@ export async function loadGameData(visitPlayerId) {
   try {
     let res
     if (!visitPlayerId)
-      res = await api.get('/users/me/farmdata')
+      res = await api.get('/game/farm')
     else
-      res = await api.get(`/users/me/farmdata?id=${visitPlayerId}`)
-    const farmData = res.data.farmData;
+      res = await api.get('/game/farm', { params: { userId: visitPlayerId } })
+    const farmData = res.data.farm;
     if (!visitPlayerId)
       gUser.value.coins = farmData.coins;
     gUser.value.upgrades = farmData.upgrades;

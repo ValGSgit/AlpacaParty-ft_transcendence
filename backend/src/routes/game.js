@@ -3,7 +3,7 @@
  */
 import express from 'express';
 import {
-  getStats, getHistory, getLeaderboard, getCoinsLeaderboard,
+  getStats, getHistory, getLeaderboard, getCoinsLeaderboard, saveGameResult,
   getFarm, saveFarm, getAchievements, getChallenges,
 } from '../controllers/gameController.js';
 import { authenticate } from '../middleware/auth.js';
@@ -100,6 +100,28 @@ router.get('/history', getHistory);
  */
 router.get('/leaderboard/coins', getCoinsLeaderboard);
 router.get('/leaderboard', getLeaderboard);
+
+/**
+ * @openapi
+ * /game/result:
+ *   post:
+ *     tags: [Game]
+ *     summary: Save offline/AI game result
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [gameType, result]
+ *             properties:
+ *               gameType: { type: string, example: spit_royale }
+ *               result: { type: string, enum: [win, loss, draw], example: win }
+ *     responses:
+ *       200:
+ *         description: Updated game stats
+ */
+router.post('/result', saveGameResult);
 
 /**
  * @openapi

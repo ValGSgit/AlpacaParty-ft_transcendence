@@ -8,6 +8,7 @@ import AuthService from "#services/authService.js";
 import DataExportService from "#services/dataExportService.js";
 import DataRequest from "#models/DataRequest.js";
 import NotificationService from "#services/notificationService.js";
+import GamificationService from "#services/GamificationService.js";
 import { randomUUID } from "crypto";
 import config from "#config/index.js";
 import CustomError from "#utils/CustomError.js";
@@ -24,7 +25,14 @@ export const getMe = async (req, res) =>
 export const updateMe = async (req, res, next) => {
   const id = Number(req.user.id);
   const { username, email, bio, status, avatar, is_public } = req.body;
-
+  const hasProfileChange =
+    username !== undefined ||
+    email !== undefined ||
+    bio !== undefined ||
+    status !== undefined ||
+    avatar !== undefined ||
+    is_public !== undefined;
+  
   try {
     if (username) {
       const current = req.user?.username;
@@ -59,7 +67,13 @@ export const updateMe = async (req, res, next) => {
       ...(is_public !== undefined && { isPublic: !!is_public }),
     });
 
-    res.status(200).json({ user: shapeUserForClient(updatedUser) });
+    res.status(200).json({ 
+      user: shapeUserForClient(updatedUser)
+    });
+    
+    if (hasProfileChange) {
+      GamificationService.unlock(id, 'profile_polisher').catch(() => {});
+    }
   } catch (err) {
     next(err);
   }
@@ -126,10 +140,14 @@ export const getUser = async (req, res, next) => {
       }
     }
 
+    const friendStatus =
+      req.user && user.id !== req.user.id
+        ? await Friend.getFriendStatus(req.user.id, user.id)
+        : null;
+
     const isPublic = user.userSettings?.isPublic;
     if (!isPublic && user.id !== req.user?.id) {
-      const areFriends = await Friend.areFriends(req.user?.id, user.id);
-      if (!areFriends) {
+      if (friendStatus?.status !== 'friends') {
         // Include minimal public data so the frontend can render a locked card.
         return res.status(403).json({
           error: { message: "This profile is private" },
@@ -140,10 +158,11 @@ export const getUser = async (req, res, next) => {
             isOnline: user.isOnline,
             isPrivate: true,
           },
+          friend_status: friendStatus,
         });
       }
     }
-    res.json({ user: shapeUserForClient(user) });
+    res.json({ user: shapeUserForClient(user), friend_status: friendStatus });
   } catch (err) {
     next(err);
   }
@@ -199,6 +218,7 @@ export const exportMyData = async (req, res, next) => {
       `attachment; filename="alpacaparty-data.${extension}"`,
     );
     res.send(data);
+    GamificationService.unlock(req.user.id, 'data_explorer').catch(() => {});
   } catch (err) {
     next(err);
   }
@@ -263,8 +283,7 @@ export const deleteMe = async (req, res, next) => {
 export const getApiKey = async (req, res, next) => {
   try {
     const apiKey = await User.getApiKey(req.user.id);
-    if (!apiKey) throw new CustomError("api key not found", 404);
-    res.json({ apiKey });
+    res.json({ apiKey: apiKey || null });
   } catch (err) {
     next(err);
   }

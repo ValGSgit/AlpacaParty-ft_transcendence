@@ -3,8 +3,13 @@ import { debug, devError } from '../../services/logger.js'
 import { useAuthStore } from '../../stores/auth.js'
 import { gAlpacas, gDecorations, gItems, gMinigame, gPlayer, gUser } from './globals.js'
 
+let _saveTimer = null
+export function saveGame() {
+  clearTimeout(_saveTimer)
+  _saveTimer = setTimeout(_doSave, 300)
+}
 
-export async function saveGame() {
+async function _doSave() {
   const authStore = useAuthStore()
   if (!authStore.isAuthenticated || !authStore.user) {
     debug("user not logged in, not saving")
@@ -70,7 +75,7 @@ export async function saveGame() {
   try {
     const itemsData = getItemsData();
     debug("gUser:", gUser);
-    const res = await api.put('/users/me/farmdata', {
+    const res = await api.put('/game/farm', {
       items: itemsData,
       alpacas: saveAlpacas,
       coins: gUser.value.coins,
@@ -86,7 +91,7 @@ export async function saveGame() {
 
 async function saveMinigame() {
   try {
-    await api.put('/users/me/farmdata', {
+    await api.put('/game/farm', {
       coins: gUser.value.coins,
     })
     debug('✅ Farm stats synced to server after minigame')

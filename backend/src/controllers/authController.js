@@ -4,7 +4,7 @@
  * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import User, { shapeUserForClient } from "../models/User.js";
-import Achievement from "../models/Achievement.js";
+import GamificationService from "../services/GamificationService.js";
 import AuthService from "../services/authService.js";
 import { oauthTokensForUser } from "../services/oauthService.js";
 import config from "../config/index.js";
@@ -35,17 +35,13 @@ export const register = async (req, res, next) => {
     const passwordHash = await AuthService.hashPassword(password);
     const user = await User.create({ username, email, passwordHash });
 
-    try {
-      await Achievement.unlock(user.id, "first_login");
-    } catch {
-      // Avoid failing registration if achievement bookkeeping is unavailable.
-    }
+    GamificationService.onLogin(user.id).catch(() => {});
     const accessToken = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
 
     res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
     res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
-    res.status(201).json({ user, accessToken });
+    res.status(201).json({ user });
   } catch (err) {
     next(err);
   }
@@ -72,6 +68,8 @@ export const login = async (req, res, next) => {
     const valid = await AuthService.comparePassword(password, passwordHash);
     if (!valid) throw new CustomError("Invalid credentials", 401);
 
+    if (user.isBanned) throw new CustomError("Account is banned", 403);
+
     await User.setOnline(user.id);
 
     const accessToken = AuthService.generateAccessToken(user);
@@ -81,7 +79,8 @@ export const login = async (req, res, next) => {
 
     res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
     res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
-    res.json({ user: safeUser, accessToken });
+    res.json({ user: safeUser });
+    GamificationService.onLogin(user.id).catch(() => {});
   } catch (err) {
     next(err);
   }
@@ -117,8 +116,10 @@ export const refresh = async (req, res, next) => {
     if (!decoded)
       throw new CustomError("Invalid or expired refresh token", 401);
 
-    const user = await User.findById(decoded.id);
+    const user = await User.findByIdWithPassword(decoded.id);
     if (!user) throw new CustomError("User not found", 401);
+
+    if (user.isBanned) throw new CustomError("Account is banned", 403);
 
     const accessToken = AuthService.generateAccessToken(user);
     const newRefreshToken = AuthService.generateRefreshToken(user);

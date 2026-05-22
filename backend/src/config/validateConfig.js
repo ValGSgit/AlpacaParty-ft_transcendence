@@ -25,7 +25,10 @@ export const validateConfig = () => {
   requireConfig(config.jwt.expiresIn, "JWT_EXPIRES_IN");
   requireConfig(config.jwt.refreshExpiresIn, "JWT_REFRESH_EXPIRES_IN");
   requireConfig(config.jwt.publicApiExpiresIn, "JWT_PUBLIC_API_EXPIRES_IN");
-
+  // Admin JWT (optional in test/dev, required only in production with admin features)
+  if (process.env.NODE_ENV === "production") {
+    requireConfig(config.admin.jwtSecret, "ADMIN_JWT_SECRET");
+  }
   // SSL
   requireConfig(config.ssl.certPath, "SSL_CERT_PATH");
   requireConfig(config.ssl.keyPath, "SSL_KEY_PATH");

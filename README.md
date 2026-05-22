@@ -19,6 +19,7 @@
 - **Friends & Presence** — Add friends, see online status, block users
 - **AI Help Desk** — Floating chat widget that streams answers from Groq; system-prompted to know AlpacaParty's features
 - **Gamification** — XP/level, achievements, daily challenges, coin economy, ELO leaderboard
+- **Admin Panel** — Role-based access control (admin/superadmin), system statistics, content moderation, user management (admin/superadmin only)
 - **Public API** — 6 RESTful endpoints with `X-API-Key` auth, per-user rate limiting (30 req/min), and an interactive Swagger UI at `/api/docs`
 - **OAuth 2.0** — Google and GitHub login via Passport.js
 - **HTTPS Everywhere** — nginx + self-signed TLS in dev, ModSecurity WAF (OWASP CRS) in prod
@@ -65,7 +66,7 @@
 | **Styling** | Custom design system (CSS variables + scoped CSS) | Consistent dark theme, no framework bloat, full control |
 | **3D engine** | Three.js | Industry-standard WebGL library |
 | **Backend framework** | Node.js + Express.js | Lightweight, easy Socket.IO integration |
-| **Real-time** | Socket.IO (3 namespaces: `/`, `/spit-royale`, `/alpaca-road`) | Reliable WebSocket transport with automatic reconnection and rooms |
+| **Real-time** | Socket.IO (2 namespaces: `/` for presence/DMs/chat, `/minigames` for match lobbies via `MatchManager`) | Reliable WebSocket transport with automatic reconnection and rooms |
 | **Database** | PostgreSQL 16 | Relational integrity + JSONB for flexible farm/game data |
 | **ORM** | Prisma | Type-safe DB access across 27 models |
 | **Auth** | JWT (access + refresh, HTTP-only cookies) + bcrypt + Passport.js | Standard secure pattern; OAuth strategies for Google/GitHub |
@@ -144,6 +145,7 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
 | Spit Royale (Game 1) | Real-time arena: 1v1 matchmaking, survival vs AI bots, spectator, rematch | ValGSgit, LukasStefanek |
 | Alpaca Road (Game 2) | Real-time race: matchmaking, history & ELO tracked separately from Spit Royale | ValGSgit, LukasStefanek |
 | Gamification | XP / level / coins, 6+ achievements, daily challenges, ELO leaderboard | ValGSgit |
+| Admin Panel | Role-based access control, system statistics, content moderation (admin/superadmin only) | ValGSgit |
 | AI Help Desk | Floating widget; backend proxies user messages + system prompt to Groq LLM API; rate-limited | ValGSgit |
 | Notifications | Real-time notifications for friend requests, messages, likes, comments, achievements, game invites | ValGSgit |
 | Public API | 6 endpoints under `/api/public/*` with X-API-Key auth, 30 req/min rate limit, Swagger UI | ValGSgit |
@@ -194,7 +196,7 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
 ### Module Implementation Details
 
 1. **Frontend + Backend Frameworks** — Vue 3 + Vite + Pinia + Vue Router on the client; Express.js with modular controller/service/route architecture on the server.
-2. **Real-time features** — Socket.IO with three namespaces. The `/` namespace handles presence, DMs, notifications, and chat-room broadcasts. `/spit-royale` runs the arena lobby and match state machine. `/alpaca-road` ticks the race rooms via `MatchManager` + `AlpacaRoadMatch`. JWT cookies are validated by `socketAuthMiddleware` on every namespace.
+2. **Real-time features** — Socket.IO with two namespaces. The `/` namespace handles presence, DMs, notifications, and chat-room broadcasts. The `/minigames` namespace hosts `MatchManager`, which dispatches to `SpitRoyalMatch` and `AlpacaRoadMatch` instances per match room (each running its own tick loop). JWT cookies are validated by `socketAuthMiddleware` on every namespace.
 3. **User interaction** — Direct messaging + group rooms, profile pages with stats, friends with online presence, block/unblock.
 4. **Public API** — `/api/public/*` with 6 endpoints (`GET /users`, `GET /users/:id`, `GET /posts`, `POST /posts`, `PUT /posts/:id`, `DELETE /posts/:id`). Authenticated by `X-API-Key`, rate-limited per key (30 req/min). Plus `GET /api/public/` returning a self-describing endpoint listing. Interactive Swagger UI at `/api/docs`.
 5. **ORM** — Prisma + `@prisma/adapter-pg` covers all 27 models with full type safety and migrations.
@@ -205,8 +207,8 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
 10. **Game statistics & match history** — `GET /api/game/stats`, `GET /api/game/history`, `GET /api/game/leaderboard`, `GET /api/game/achievements` — backed by `GameStat` (per game type) and `Game` (match records).
 11. **LLM system interface** — `POST /api/helpdesk/chat` proxies user messages to Groq's LLM API. The backend keeps the API keys (rotates across multiple keys), injects a system prompt that explains AlpacaParty's features, applies a per-user rate limiter, and streams completions back to the floating `HelpDeskChat.vue` widget.
 12. **WAF + Vault** — `nginx_prod` runs ModSecurity with OWASP CRS 3.3.9 rules. Production secrets (DB password, JWT secret, OAuth client secrets, Groq keys) live in HashiCorp Vault. `vault-init` is a one-shot service that initializes Vault on first boot, writes the unseal key + service token to a Docker volume, seeds secrets, then exits. The backend reads `VAULT_TOKEN` at startup and pulls secrets into memory — no plaintext on disk in app containers.
-13. **Web-based game (Spit Royale)** — Real-time arena game over Socket.IO `/spit-royale`. Clear win condition (last alpaca standing). 1v1 matchmaking with ELO; AI-bot survival mode with 6 distinct tactics (charge / flank / strafe / retreat / dodge / kite); spectator slots; rematch voting.
-14. **Add another game (Alpaca Road)** — Second distinct game over Socket.IO `/alpaca-road`. `MatchManager` pairs players and instantiates an `AlpacaRoadMatch`, running its own tick loop. Stats tracked under `gameType = "alpaca_road"` so leaderboards and history are independent of Spit Royale.
+13. **Web-based game (Spit Royale)** — Real-time arena game over Socket.IO (`/minigames` namespace, dispatched by `MatchManager` to a `SpitRoyalMatch` instance per room). Clear win condition (last alpaca standing). 1v1 matchmaking with ELO; AI-bot survival mode with 6 distinct tactics (charge / flank / strafe / retreat / dodge / kite); spectator slots; rematch voting.
+14. **Add another game (Alpaca Road)** — Second distinct game over Socket.IO (`/minigames` namespace). `MatchManager` pairs players and instantiates an `AlpacaRoadMatch`, running its own tick loop. Stats tracked under `gameType = "alpaca_road"` so leaderboards and history are independent of Spit Royale.
 15. **Advanced 3D graphics** — Three.js scene graph with custom lighting, multiple cameras, alpaca model rigging + animation, and an interactive farm world with shop, customization, and editing.
 16. **Game customization** — Both games expose customizable settings (power-ups, maps/themes, match rules) with sensible defaults; the AI bot in Spit Royale plays under the same rule set.
 17. **Gamification** — XP awarded for wins (with performance bonuses: accuracy, eliminations, powerups, survival time, flawless), losses, posts, and challenges. Auto level-up. Achievements: `first_win`, `win_streak_5`, `level_10`, `social_butter` (10 friends), `first_post`, `org_founder`. Daily challenges rotate and persist completions. ELO leaderboard (K = 32). Notifications and progress bars provide visual feedback.
@@ -217,14 +219,15 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
 
 ### ValGSgit — Product Owner / Project Manager / Developer
 - **Infrastructure**: Docker Compose (dev + prod), Makefile targets, `.env.example`, SSL cert generation script
-- **Backend core**: Express server bootstrap, configuration system, middleware stack (helmet, cookie-parser, CORS, rate limiters, `authenticate`, `optionalAuth`, `requireApiKey`, error handler)
-- **Auth**: JWT access + refresh in HTTP-only cookies, bcrypt hashing with constant-time compare, OAuth strategies (Google + GitHub) with account linking
+- **Backend core**: Express server bootstrap, configuration system, middleware stack (helmet, cookie-parser, CORS, rate limiters, `authenticate`, `optionalAuth`, `requireApiKey`, `admin`, error handler)
+- **Auth**: JWT access + refresh in HTTP-only cookies, bcrypt hashing with constant-time compare, OAuth strategies (Google + GitHub) with account linking, admin JWT token generation
 - **Database**: Prisma schema (27 models), migrations, seed data
-- **API surface**: All controllers (auth, users, friends, chat, posts, comments, game, notifications, uploads, public API, helpdesk — 70+ endpoints)
-- **Services**: Gamification engine, NotificationService, dataExportService (JSON/CSV/XML), uploadService, `socketService` for `/`, Spit Royale namespace + AI bot tactics, Alpaca Road namespace with `MatchManager` / `AlpacaRoadMatch`
+- **API surface**: All controllers (auth, users, friends, chat, posts, comments, game, notifications, uploads, public API, helpdesk, admin — 75+ endpoints)
+- **Services**: Gamification engine, NotificationService, dataExportService (JSON/CSV/XML), uploadService, adminAuthService, `socketService` for the `/` namespace, `MatchManager` on the `/minigames` namespace dispatching `SpitRoyalMatch` (with AI bot tactics) and `AlpacaRoadMatch`
+- **Admin Panel**: Role-based access control (admin/superadmin), `adminController`, `adminAuthService`, `admin.js` middleware, admin route definitions, system statistics endpoints
 - **AI**: Groq LLM proxy (`/helpdesk`) with key rotation and rate limiting; floating `HelpDeskChat.vue` widget
-- **Cybersecurity**: HashiCorp Vault auto-init + auto-unseal + secret seeding; ModSecurity WAF tuned for the API
-- **Frontend**: `Feed.vue`, `Profile.vue`, settings page, public API key management UI, `ApiDocs.vue`, notifications
+- **Cybersecurity**: HashiCorp Vault auto-init + auto-unseal + secret seeding; ModSecurity WAF tuned for the API; API key session validation
+- **Frontend**: `Feed.vue`, `Profile.vue`, settings page, public API key management UI, `ApiDocs.vue`, `AdminPanel.vue`, `AdminLogin.vue`, notifications
 - **Compliance**: `PrivacyPolicy.vue`, `TermsOfService.vue`, GDPR export + delete-request flows
 
 ### DavidPoetsch — Technical Lead / Developer
