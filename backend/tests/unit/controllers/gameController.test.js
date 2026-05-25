@@ -38,7 +38,7 @@ beforeEach(() => jest.clearAllMocks());
 // ── getStats ─────────────────────────────────────────────────────────────────
 describe('getStats', () => {
   test('returns stats with default gameType', async () => {
-    const stats = { userId: 1, gameType: 'spit_royale', wins: 10, losses: 5, draws: 2, elo: 1200 };
+    const stats = { userId: 1, gameType: 'spit_royale', wins: 10, losses: 5, draws: 2};
     mockGame.getStats.mockResolvedValue(stats);
     const { req, res, next } = createReqRes();
     await getStats(req, res, next);
@@ -92,7 +92,7 @@ describe('getHistory', () => {
 // ── getLeaderboard ───────────────────────────────────────────────────────────
 describe('getLeaderboard', () => {
   test('returns leaderboard with defaults', async () => {
-    const lb = [{ userId: 1, elo: 1200 }];
+    const lb = [{ userId: 1}];
     mockGame.getLeaderboard.mockResolvedValue(lb);
     const { req, res, next } = createReqRes();
     await getLeaderboard(req, res, next);

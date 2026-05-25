@@ -87,7 +87,6 @@ describe("GET /api/game/stats", () => {
       wins: 5,
       losses: 2,
       draws: 0,
-      elo: 1050,
     });
     const res = await request
       .get("/api/game/stats")
@@ -104,7 +103,6 @@ describe("GET /api/game/stats", () => {
       wins: 5,
       losses: 2,
       draws: 0,
-      elo: 1050,
     });
     const res = await request
       .get("/api/game/stats?gameType=spit_royale")
@@ -144,7 +142,6 @@ describe("GET /api/game/leaderboard", () => {
       {
         userId: 2,
         gameType: "spit_royale",
-        elo: 1200,
         wins: 10,
         losses: 2,
         draws: 0,
