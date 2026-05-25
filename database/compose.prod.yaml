@@ -17,7 +17,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-alpacaparty}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-alpacaparty} -d ${DB_NAME:-alpacaparty}"]
       interval: 10s
       timeout: 5s
       retries: 5
