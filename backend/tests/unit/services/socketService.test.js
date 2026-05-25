@@ -37,7 +37,6 @@ jest.unstable_mockModule('../../../src/models/Game.js', () => ({
     cancelGame: jest.fn(),
     getStats: jest.fn(),
     updateStats: jest.fn(),
-    updateElo: jest.fn(),
     updateFarm: jest.fn(),
     getFarm: jest.fn(),
   },

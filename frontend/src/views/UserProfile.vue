@@ -116,13 +116,6 @@
           <span class="stat-label">Losses</span>
         </article>
         <article class="stat-card">
-          <span class="stat-icon stat-icon-elo" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M5 16l4-6 4 4 6-9"/></svg>
-          </span>
-          <span class="stat-val">{{ (stats.elo || 1000).toLocaleString() }}</span>
-          <span class="stat-label">ELO</span>
-        </article>
-        <article class="stat-card">
           <span class="stat-icon stat-icon-coins" aria-hidden="true">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v2m0 8v2M8 12h8"/></svg>
           </span>
@@ -471,7 +464,7 @@ async function removeFriend() {
 .stat-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .stat-icon-wins   { color: var(--gold); }
 .stat-icon-losses { color: var(--magenta); }
-.stat-icon-elo    { color: var(--primary); }
+.stat-icon-level  { color: var(--primary); }
 .stat-icon-coins  { color: var(--green); }
 .stat-val { font-size: 22px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .stat-label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; }

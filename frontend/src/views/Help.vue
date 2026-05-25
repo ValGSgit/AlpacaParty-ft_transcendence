@@ -63,8 +63,7 @@
       <p>
         A real-time multiplayer arena. Open the joystick icon on the farm
         HUD, pick <em>Spit Royale</em>, then either play solo against AI
-        bots or jump into the online lobby for ranked 1v1 matches with ELO
-        tracking.
+        bots or jump into the online lobby for level-based matchmaking.
       </p>
       <h3>Alpaca Road</h3>
       <p>

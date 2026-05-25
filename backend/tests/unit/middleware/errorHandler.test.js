@@ -268,9 +268,13 @@ describe('errorHandler middleware', () => {
       expect(res._json.error.message).toMatch(/not found/i);
     });
 
-    test('should handle unknown Prisma error code', () => {
+    test('should handle unknown Prisma error code as 500 (no schema leak)', () => {
+      // Review hardening: unknown Prisma errors must NOT echo the raw err.message
+      // back to the client (it can include column/table names). They map to a
+      // generic 500. The dev-mode body still contains the message via the
+      // stack/prismaCode payload; clients in prod see only the generic string.
       const err = new Prisma.PrismaClientKnownRequestError(
-        'Unknown error',
+        'Unknown error column "secret_field"',
         { code: 'P9999', meta: {} },
         '',
       );
@@ -278,8 +282,11 @@ describe('errorHandler middleware', () => {
 
       errorHandler(err, {}, res, () => {});
 
-      expect(res._status).toBe(404);
-      expect(res._json.error.message).toMatch(/unknown prisma error/i);
+      expect(res._status).toBe(500);
+      // In test/prod mode we want the message scrubbed.
+      if (process.env.NODE_ENV !== 'development') {
+        expect(res._json.error.message).not.toMatch(/secret_field/);
+      }
     });
   });
 });

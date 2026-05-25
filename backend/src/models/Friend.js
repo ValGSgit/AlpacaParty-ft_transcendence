@@ -271,6 +271,60 @@ const Friend = {
     return friend ? true : false;
   },
 
+  /**
+   * For one viewer and a list of other user ids, return relationship flags
+   * in a constant number of queries (avoids N+1 in user list endpoints).
+   *
+   * @param {number} viewerId
+   * @param {number[]} otherIds
+   * @returns {Promise<Map<number, { isFriend: boolean, isBlocked: boolean, requestSent: boolean, requestReceived: boolean }>>}
+   */
+  async relationFlagsForMany(viewerId, otherIds) {
+    const v = Number(viewerId);
+    const ids = [...new Set(otherIds.map(Number).filter(Number.isFinite))];
+    const flags = new Map(
+      ids.map((id) => [
+        id,
+        { isFriend: false, isBlocked: false, requestSent: false, requestReceived: false },
+      ]),
+    );
+    if (!ids.length) return flags;
+
+    const [friends, blocked, requests] = await Promise.all([
+      prisma.friend.findMany({
+        where: { userId: v, friendId: { in: ids } },
+        select: { friendId: true },
+      }),
+      prisma.blockedUser.findMany({
+        where: { userId: v, blockedUserId: { in: ids } },
+        select: { blockedUserId: true },
+      }),
+      prisma.friendRequest.findMany({
+        where: {
+          status: "pending",
+          OR: [
+            { senderId: v, receiverId: { in: ids } },
+            { receiverId: v, senderId: { in: ids } },
+          ],
+        },
+        select: { senderId: true, receiverId: true },
+      }),
+    ]);
+
+    for (const f of friends)
+      flags.get(f.friendId).isFriend = true;
+    for (const b of blocked)
+      flags.get(b.blockedUserId).isBlocked = true;
+    for (const r of requests) {
+      if (r.senderId === v) {
+        flags.get(r.receiverId).requestSent = true;
+      } else {
+        flags.get(r.senderId).requestReceived = true;
+      }
+    }
+    return flags;
+  },
+
   async getOnlineFriends(userId) {
     const rows = await prisma.friend.findMany({
       where: { userId: Number(userId), friend: { isOnline: true } },

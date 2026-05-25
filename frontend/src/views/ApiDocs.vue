@@ -140,7 +140,7 @@ const { users } = await res.json();</pre>
               <span class="method get">GET</span>
               <code class="path">/api/public/posts</code>
             </div>
-            <p>Public feed posts. Viewer-specific flags (<code>user_liked</code>, <code>user_reposted</code>) are never included in API key responses.</p>
+            <p>Public feed posts. Viewer-specific flags (<code>user_liked</code>) are never included in API key responses.</p>
             <div class="param-table-wrap">
               <table class="param-table">
                 <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
@@ -445,7 +445,6 @@ const { users } = await res.json();</pre>
                   <ul class="am-rl">
                     <li><span class="am-verb am-v-mix">G·P</span><span>/</span></li>
                     <li><span class="am-verb am-v-mix">CRUD</span><span>/:id</span></li>
-                    <li><span class="am-verb am-v-mix">P·D</span><span>/:id/like · /:id/repost</span></li>
                     <li><span class="am-verb am-v-mix">G·P</span><span>/:id/comments</span></li>
                     <li><span class="am-verb am-v-get">GET</span><span>/user/:userId</span></li>
                   </ul>
@@ -598,7 +597,6 @@ const { users } = await res.json();</pre>
                     <span class="am-chip">User <span class="am-cn">1:N</span> Post</span>
                     <span class="am-chip">Post <span class="am-cn">1:N</span> Comment</span>
                     <span class="am-chip">Post <span class="am-cn">1:N</span> Like</span>
-                    <span class="am-chip">Post <span class="am-cn">1:N</span> Repost</span>
                   </span>
                 </div>
                 <div class="am-er-row">

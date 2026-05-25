@@ -86,18 +86,11 @@
           <span class="stat-label">Losses</span>
         </article>
         <article class="stat-card">
-          <span class="stat-icon stat-icon-elo" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M5 16l4-6 4 4 6-9"/></svg>
+          <span class="stat-icon stat-icon-level" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.9 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3z"/></svg>
           </span>
-          <span class="stat-val">{{ userStats.elo.toLocaleString() }}</span>
-          <span class="stat-label">ELO</span>
-        </article>
-        <article class="stat-card">
-          <span class="stat-icon stat-icon-coins" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v2m0 8v2M8 12h8"/></svg>
-          </span>
-          <span class="stat-val">{{ (authStore.user?.coins ?? userStats.coins ?? 0).toLocaleString() }}</span>
-          <span class="stat-label">Coins</span>
+          <span class="stat-val">{{ userStats.level.toLocaleString() }}</span>
+          <span class="stat-label">Level</span>
         </article>
       </section>
 
@@ -370,20 +363,15 @@ const unlockedMap = ref({})
 const userPosts = ref([])
 const postsLoading = ref(true)
 
-// Game stats
-const userStats = ref({ xp: 0, level: 0, wins: 0, losses: 0, elo: 1000, coins: 0 })
+const userStats = ref({ xp: 0, level: 0, wins: 0, losses: 0, coins: 0 })
 
-// XP computed props
-const xpToNextLevel = computed(() => {
-  const lvl = userStats.value.level
-  return (lvl + 1) * 100 - userStats.value.xp
+const intoLevel = computed(() => {
+  const x = userStats.value.xp ?? 0
+  const l = userStats.value.level ?? 0
+  return Math.max(0, Math.min(100, x - l * 100))
 })
-const xpProgress = computed(() => {
-  const lvl = userStats.value.level
-  const into = userStats.value.xp - lvl * 100
-  return Math.max(0, Math.min(100, into))
-})
-const intoLevel = computed(() => userStats.value.xp - userStats.value.level * 100)
+const xpToNextLevel = computed(() => Math.max(0, 100 - intoLevel.value))
+const xpProgress = computed(() => intoLevel.value)
 
 // Settings Data State
 const globalMsg = ref(null)
@@ -464,7 +452,15 @@ onMounted(async () => {
     }
   }
 
-  // 2. Fetch Achievements
+  // 2. Seed xp/level from the authoritative UserStats on the auth payload.
+  //    Fall back to 0/0 — never sum from achievements (game wins also
+  //    award XP, so summing achievements alone produces drift).
+  if (u) {
+    userStats.value.xp = u.xp ?? 0
+    userStats.value.level = u.level ?? 0
+  }
+
+  // 3. Fetch Achievements (display only — XP is server-side)
   try {
     const { data } = await api.get('/game/achievements')
     const all = data.achievements || []
@@ -473,20 +469,16 @@ onMounted(async () => {
     const map = {}
     for (const a of achievements.value) { map[a.id] = true }
     unlockedMap.value = map
-    // Derive XP from unlocked achievement rewards
-    const totalXp = achievements.value.reduce((sum, a) => sum + (a.xpReward || a.points || 0), 0)
-    userStats.value.xp = totalXp
-    userStats.value.level = Math.floor(totalXp / 100)
   } catch (e) { devError(e) }
 
-  // 3. Fetch game stats (wins/losses/elo)
+  // 4. Fetch per-game stats (wins/losses). GameStat has no level field —
+  //    don't try to read s.level here; the canonical level lives on UserStats.
   try {
     const { data } = await api.get('/game/stats')
     const s = Array.isArray(data.stats) ? data.stats[0] : data.stats
     if (s) {
       userStats.value.wins = s.wins ?? 0
       userStats.value.losses = s.losses ?? 0
-      userStats.value.elo = s.elo ?? 1000
     }
   } catch { /* stats endpoint optional */ }
 
@@ -855,7 +847,7 @@ async function confirmDelete() {
 .stat-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .stat-icon-wins   { color: var(--gold); }
 .stat-icon-losses { color: var(--magenta); }
-.stat-icon-elo    { color: var(--primary); }
+.stat-icon-level  { color: var(--primary); }
 .stat-icon-coins  { color: var(--green); }
 .stat-val { font-size: 22px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .stat-label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; }
@@ -882,7 +874,7 @@ async function confirmDelete() {
 }
 .ach-icon-img { width: 32px; height: 32px; object-fit: contain; }
 .ach-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
-.ach-desc { font-size: 11.5px; color: var(--text-secondary); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ach-desc { font-size: 11.5px; color: var(--text-secondary); line-height: 1.4; display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .ach-foot { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 4px; }
 .xp-pip {
   font-size: 10px; letter-spacing: .08em; font-weight: 700; color: var(--primary);

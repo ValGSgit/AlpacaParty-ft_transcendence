@@ -73,17 +73,25 @@ const Game = {
   async getStats(userId, gameType = "spit_royale") {
     const stat = await prisma.gameStat.findUnique({
       where: { userId_gameType: { userId: Number(userId), gameType } },
+      include: {
+        user: { select: { userStats: { select: { level: true } } } },
+      },
     });
-    return (
+    const fallback =
       stat || {
         userId: Number(userId),
         gameType,
         wins: 0,
         losses: 0,
         draws: 0,
-        elo: 1000,
-      }
-    );
+        level: 1,
+        kills: 0,
+        obstacles: 0,
+      };
+    return {
+      ...fallback,
+      level: fallback.user?.userStats?.level ?? fallback.level ?? 1,
+    };
   },
 
   async updateStats(userId, gameType, result) {
@@ -103,23 +111,18 @@ const Game = {
     });
   },
 
-  async updateElo(userId, gameType, newElo) {
-    await prisma.gameStat.upsert({
-      where: { userId_gameType: { userId: Number(userId), gameType } },
-      update: { elo: newElo },
-      create: { userId: Number(userId), gameType, elo: newElo },
-    });
-  },
-
-  async getLeaderboard(
-    gameType = "spit_royale",
-    { limit = 20, offset = 0, publicOnly = false } = {},
-  ) {
+  /**
+   * Three focused leaderboards displayed side-by-side on /leaderboard:
+   *   • kills      — most spit_royale kills (offline + online aggregated)
+   *   • obstacles  — most alpaca_road obstacles cleared
+   *   • coins      — top farm coin balance
+   *
+   * Each returns an array of { userId, username, avatar, level, value }.
+   * `value` is the metric being ranked, so the frontend can render one shape.
+   */
+  async getKillsLeaderboard({ limit = 20, offset = 0 } = {}) {
     const rows = await prisma.gameStat.findMany({
-      where: {
-        gameType,
-        ...(publicOnly ? { user: { userSettings: { isPublic: true } } } : {}),
-      },
+      where: { gameType: "spit_royale", kills: { gt: 0 } },
       include: {
         user: {
           select: {
@@ -129,22 +132,41 @@ const Game = {
           },
         },
       },
-      orderBy: { elo: "desc" },
+      orderBy: { kills: "desc" },
       take: Number(limit),
       skip: Number(offset),
     });
     return rows.map((s) => ({
       userId: s.userId,
-      gameType: s.gameType,
-      wins: s.wins,
-      losses: s.losses,
-      draws: s.draws,
-      kills: s.kills ?? 0,
-      obstacles: s.obstacles ?? 0,
-      elo: s.elo,
       username: s.user.username,
       avatar: s.user.avatar,
-      level: s.user.userStats?.level ?? s.user.level ?? 1,
+      level: s.user.userStats?.level ?? 1,
+      value: s.kills ?? 0,
+    }));
+  },
+
+  async getObstaclesLeaderboard({ limit = 20, offset = 0 } = {}) {
+    const rows = await prisma.gameStat.findMany({
+      where: { gameType: "alpaca_road", obstacles: { gt: 0 } },
+      include: {
+        user: {
+          select: {
+            username: true,
+            avatar: true,
+            userStats: { select: { level: true } },
+          },
+        },
+      },
+      orderBy: { obstacles: "desc" },
+      take: Number(limit),
+      skip: Number(offset),
+    });
+    return rows.map((s) => ({
+      userId: s.userId,
+      username: s.user.username,
+      avatar: s.user.avatar,
+      level: s.user.userStats?.level ?? 1,
+      value: s.obstacles ?? 0,
     }));
   },
 
@@ -152,7 +174,7 @@ const Game = {
     return prisma.game.count({ where: { status: "playing" } });
   },
 
-  async getCoinsLeaderboard({ limit = 10, offset = 0 } = {}) {
+  async getCoinsLeaderboard({ limit = 20, offset = 0 } = {}) {
     const rows = await prisma.alpacaFarm.findMany({
       where: { coins: { gt: 0 } },
       include: {
@@ -170,11 +192,33 @@ const Game = {
     });
     return rows.map((f) => ({
       userId: f.userId,
-      coins: f.coins ?? 0,
       username: f.user.username,
       avatar: f.user.avatar,
       level: f.user.userStats?.level ?? 1,
+      value: f.coins ?? 0,
     }));
+  },
+
+  /**
+   * Increment a counter (kills | obstacles) on a user's per-gametype stats.
+   * Used by both the offline (REST) and online (socket) paths.
+   */
+  async incrementCounter(userId, gameType, field, by = 1) {
+    if (!["kills", "obstacles"].includes(field)) return;
+    const n = Math.max(0, Math.min(1000, Number(by) || 0));
+    if (n === 0) return;
+    await prisma.gameStat.upsert({
+      where: { userId_gameType: { userId: Number(userId), gameType } },
+      update: { [field]: { increment: n } },
+      create: {
+        userId: Number(userId),
+        gameType,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        [field]: n,
+      },
+    });
   },
 
   // ── Alpaca Farm ──────────────────────────────────────────────────────────
@@ -187,6 +231,12 @@ const Game = {
     });
   },
 
+  /**
+   * Persist a farm payload. The body the client sends is large and the
+   * WAF/body-parser limits were getting close — only the columns Prisma
+   * actually has on AlpacaFarm are forwarded (items, alpacas, coins,
+   * upgrades, herdsize). Everything else is ignored.
+   */
   async updateFarm(userId, farmData) {
     if (process.env.NODE_ENV === "test") {
       return prisma.alpacaFarm.upsert({
@@ -196,10 +246,16 @@ const Game = {
       });
     }
 
+    const FARM_COLS = ["items", "alpacas", "coins", "upgrades", "herdsize"];
+    const data = {};
+    for (const k of FARM_COLS) {
+      if (farmData && farmData[k] !== undefined) data[k] = farmData[k];
+    }
+
     return prisma.alpacaFarm.upsert({
       where: { userId: Number(userId) },
-      update: { ...farmData },
-      create: { userId: Number(userId), ...farmData },
+      update: data,
+      create: { userId: Number(userId), ...data },
     });
   },
 };

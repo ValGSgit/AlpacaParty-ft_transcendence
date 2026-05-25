@@ -9,6 +9,7 @@ const mockPrisma = {
     count: jest.fn(),
   },
   post: {
+    findUnique: jest.fn(),
     update: jest.fn(),
     count: jest.fn(),
   },
@@ -111,24 +112,6 @@ describe('Comment Model', () => {
 
       expect(result.author_username).toBeUndefined();
       expect(result.author_avatar).toBeUndefined();
-    });
-
-    test('should create a comment on a repost and update repost comment count', async () => {
-      const mockComment = {
-        id: 2, postId: null, repostId: 200, authorId: 50,
-        content: 'Nice repost!', createdAt: new Date(), updatedAt: new Date(),
-        author: { username: 'user', avatar: 'a.jpg' },
-      };
-      const repostUpdate = jest.fn().mockResolvedValue({ id: 200, commentsCount: 1 });
-      prisma.$transaction = jest.fn(async (cb) => cb({
-        comment: { create: jest.fn().mockResolvedValue(mockComment), count: jest.fn().mockResolvedValue(1) },
-        repost: { update: repostUpdate },
-      }));
-
-      const result = await Comment.create({ repostId: 200, authorId: 50, content: 'Nice repost!' });
-
-      expect(result.repost_id).toBe(200);
-      expect(repostUpdate).toHaveBeenCalledWith({ where: { id: 200 }, data: { commentsCount: 1 } });
     });
 
     test('should convert postId and authorId to numbers', async () => {
@@ -315,7 +298,9 @@ describe('Comment Model', () => {
       expect(result).toBe(false);
     });
 
-    test('should return false if user is not the comment author', async () => {
+    test('should return false if user is not author, post owner, or admin', async () => {
+      // Comment.delete now also lets the parent post owner delete.
+      // Stub the post lookup to a different owner so the requester has no claim.
       const mockComment = {
         id: 1,
         postId: 100,
@@ -324,10 +309,58 @@ describe('Comment Model', () => {
       };
 
       prisma.comment.findUnique.mockResolvedValue(mockComment);
+      prisma.post.findUnique.mockResolvedValue({ authorId: 12345 });
 
       const result = await Comment.delete(1, 99);
 
       expect(result).toBe(false);
+    });
+
+    test('post owner can delete a stranger\'s comment on their post', async () => {
+      const mockComment = { id: 7, postId: 100, authorId: 50, content: 'spam' };
+      prisma.comment.findUnique.mockResolvedValue(mockComment);
+      prisma.post.findUnique.mockResolvedValue({ authorId: 7 });
+
+      const mockTransaction = jest.fn(async (callback) => {
+        const txMock = {
+          comment: {
+            delete: jest.fn().mockResolvedValue(mockComment),
+            count: jest.fn().mockResolvedValue(0),
+          },
+          post: {
+            update: jest.fn().mockResolvedValue({ id: 100, commentsCount: 0 }),
+          },
+        };
+        return callback(txMock);
+      });
+      prisma.$transaction = mockTransaction;
+
+      const result = await Comment.delete(7, 7); // requester=7 owns the post
+      expect(result).toBe(true);
+    });
+
+    test('admin can delete any comment', async () => {
+      const mockComment = { id: 8, postId: 200, authorId: 50, content: 'x' };
+      prisma.comment.findUnique.mockResolvedValue(mockComment);
+
+      const mockTransaction = jest.fn(async (callback) => {
+        const txMock = {
+          comment: {
+            delete: jest.fn().mockResolvedValue(mockComment),
+            count: jest.fn().mockResolvedValue(0),
+          },
+          post: {
+            update: jest.fn().mockResolvedValue({ id: 200, commentsCount: 0 }),
+          },
+        };
+        return callback(txMock);
+      });
+      prisma.$transaction = mockTransaction;
+
+      const result = await Comment.delete(8, 1, { isAdmin: true });
+      expect(result).toBe(true);
+      // Admin path doesn't need a post lookup.
+      expect(prisma.post.findUnique).not.toHaveBeenCalled();
     });
 
     test('should convert id and authorId to numbers', async () => {
@@ -360,21 +393,6 @@ describe('Comment Model', () => {
       expect(prisma.comment.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
       });
-    });
-
-    test('should delete a comment on a repost and update repost comment count', async () => {
-      const mockComment = { id: 3, postId: null, repostId: 200, authorId: 50, content: 'bye' };
-      prisma.comment.findUnique.mockResolvedValue(mockComment);
-      const repostUpdate = jest.fn().mockResolvedValue({ id: 200, commentsCount: 0 });
-      prisma.$transaction = jest.fn(async (cb) => cb({
-        comment: { delete: jest.fn().mockResolvedValue(mockComment), count: jest.fn().mockResolvedValue(0) },
-        repost: { update: repostUpdate },
-      }));
-
-      const result = await Comment.delete(3, 50);
-
-      expect(result).toBe(true);
-      expect(repostUpdate).toHaveBeenCalledWith({ where: { id: 200 }, data: { commentsCount: 0 } });
     });
 
     test('should update post comment count after deletion', async () => {

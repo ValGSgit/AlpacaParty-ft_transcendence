@@ -37,13 +37,13 @@
     </div>
 
     <!-- Segmented tabs -->
-    <div class="lb-tabs" :data-tab="gameType">
+    <div class="lb-tabs" :data-tab="board">
       <button
         v-for="tab in tabs"
         :key="tab.value"
         class="lb-tab"
         :data-id="tab.value"
-        :class="{ 'lb-tab--active': gameType === tab.value }"
+        :class="{ 'lb-tab--active': board === tab.value }"
         @click="switchTab(tab.value)"
       >
         <svg class="tab-icon" width="14" height="14" aria-hidden="true">
@@ -105,28 +105,25 @@
             {{ entry.username }}
             <span v-if="isYou(entry)" class="you-tag">you</span>
           </span>
-          <span class="lb-record">
-            <template v-if="gameType === 'coins'">Lv {{ entry.level ?? 1 }}</template>
-            <template v-else-if="gameType === 'spit_royale'">{{ entry.kills ?? 0 }} ⚔ · {{ entry.obstacles ?? 0 }} ◄</template>
-            <template v-else>{{ entry.wins ?? 0 }} stages · {{ entry.obstacles ?? 0 }} ◄</template>
-          </span>
+          <span class="lb-record">Lv {{ entry.level ?? 1 }}</span>
         </div>
 
         <!-- Score -->
         <span
           class="lb-score"
           :class="{
-            'lb-score--kills':  gameType === 'spit_royale',
-            'lb-score--stages': gameType === 'survival',
-            'lb-score--coins':  gameType === 'coins',
+            'lb-score--kills':  board === 'kills',
+            'lb-score--stages': board === 'obstacles',
+            'lb-score--coins':  board === 'coins',
             'lb-score--fresh':  freshIds.has(entry.userId),
           }"
         >
-          <template v-if="gameType === 'coins'">
+          <template v-if="board === 'coins'">
             <svg class="coin-glyph" width="11" height="11" aria-hidden="true"><use href="#i-coin" /></svg>
-            {{ entry.coins ?? 0 }}
+            {{ entry.value ?? 0 }}
           </template>
-          <template v-else>{{ entry.elo ?? 0 }}</template>
+          <template v-else-if="board === 'kills'">{{ entry.value ?? 0 }} ⚔</template>
+          <template v-else>{{ entry.value ?? 0 }} ◄</template>
         </span>
       </div>
     </div>
@@ -155,10 +152,13 @@ import { useAuthStore } from '../stores/auth.js'
 
 const authStore = useAuthStore()
 
+// Three independent leaderboards. Each entry is uniformly shaped
+// { userId, username, avatar, level, value } — the `value` is whatever
+// the active board ranks by (kills, obstacles, coins).
 const tabs = [
-  { label: 'Spit Royale', value: 'spit_royale', icon: 'skull' },
-  { label: 'Alpaca Road', value: 'survival',     icon: 'flag'  },
-  { label: 'Farm Coins',  value: 'coins',         icon: 'coin'  },
+  { label: 'Kills',     value: 'kills',     icon: 'skull' },
+  { label: 'Obstacles', value: 'obstacles', icon: 'flag'  },
+  { label: 'Coins',     value: 'coins',     icon: 'coin'  },
 ]
 
 const AVATAR_PALETTE = [
@@ -170,7 +170,7 @@ function avatarColor(userId) {
   return AVATAR_PALETTE[Number(userId) % AVATAR_PALETTE.length]
 }
 
-const gameType      = ref('spit_royale')
+const board         = ref('kills')
 const entries       = ref([])
 const loading       = ref(false)
 const updatedAt     = ref(null)
@@ -195,26 +195,22 @@ const lastUpdated = computed(() => {
 async function fetchLeaderboard() {
   loading.value = true
   try {
-    const url = gameType.value === 'coins'
-      ? '/game/leaderboard/coins?limit=10'
-      : `/game/leaderboard?gameType=${gameType.value}&limit=10`
-    const { data } = await api.get(url)
+    const { data } = await api.get(`/game/leaderboard?board=${board.value}&limit=10`)
     const next = data.leaderboard || []
 
-    // Mark rows whose score changed since last fetch
+    // Mark rows whose score (value) changed since last fetch for the flash.
     const prevMap = new Map(entries.value.map(e => [e.userId, e]))
     const changed = new Set()
     next.forEach(e => {
       const prev = prevMap.get(e.userId)
-      if (!prev) return
-      const prevScore = gameType.value === 'coins' ? prev.coins : prev.elo
-      const nextScore = gameType.value === 'coins' ? e.coins    : e.elo
-      if (prevScore !== nextScore) changed.add(e.userId)
+      if (prev && prev.value !== e.value)
+        changed.add(e.userId)
     })
     freshIds.value = changed
-    if (freshTimer) clearTimeout(freshTimer)
-    if (changed.size) freshTimer = setTimeout(() => { freshIds.value = new Set() }, 1400)
-
+    if (freshTimer)
+      clearTimeout(freshTimer)
+    if (changed.size)
+      freshTimer = setTimeout(() => { freshIds.value = new Set() }, 1400)
     entries.value = next
     updatedAt.value = Date.now()
   } catch {
@@ -225,7 +221,7 @@ async function fetchLeaderboard() {
 }
 
 function switchTab(type) {
-  gameType.value = type
+  board.value = type
   fetchLeaderboard()
 }
 
@@ -365,9 +361,9 @@ onUnmounted(() => {
 }
 
 /* Per-tab icon accent colors when active */
-.lb-tabs[data-tab="spit_royale"] .lb-tab[data-id="spit_royale"] svg { color: var(--magenta); }
-.lb-tabs[data-tab="survival"]    .lb-tab[data-id="survival"]    svg { color: var(--cyan); }
-.lb-tabs[data-tab="coins"]       .lb-tab[data-id="coins"]       svg { color: var(--gold); }
+.lb-tabs[data-tab="kills"]     .lb-tab[data-id="kills"]     svg { color: var(--magenta); }
+.lb-tabs[data-tab="obstacles"] .lb-tab[data-id="obstacles"] svg { color: var(--cyan); }
+.lb-tabs[data-tab="coins"]     .lb-tab[data-id="coins"]     svg { color: var(--gold); }
 
 @media (max-width: 480px) {
   .tab-label { display: none; }

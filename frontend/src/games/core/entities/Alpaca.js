@@ -6,6 +6,7 @@ import { gAlpacas, gCollidables, gPlayer, gUI, gUser, gEngine, gMinigame } from 
 import { removeFromArray } from '../removeObjects.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
+import { saveGameResult } from '../../mini_games/utils.js';
 
 const { updateAI } = alpacaAI();
 const { updatePlayer } = usePlayerControls();
@@ -158,6 +159,13 @@ export class Alpaca {
       {
         gMinigame.value.isGameOver = true;
         gMinigame.value.isActive = false
+        // Offline spit-royale only (mode 1): contribute the local player's
+        // kill count to the kills leaderboard. Online (mode 2) is persisted
+        // by the server in _persistOutcome and would double-count here.
+        if (gMinigame.value.mode === 1) {
+          const kills = gUser.value?.point | 0;
+          if (kills > 0) saveGameResult('spit_royale', 'loss', { kills });
+        }
       }
     }
     else

@@ -14,12 +14,25 @@ export function changeFloorColor(top, bottom){
 
 /**
  * Save offline/AI game result to backend leaderboard.
- * @param {string} gameType - e.g. "spit_royale", "alpaca_road"
- * @param {'win'|'loss'|'draw'} result - Game outcome
+ * Per-run counters (kills / obstacles) are accepted alongside the result
+ * so the offline games can contribute to the kills + obstacles boards.
+ * The backend caps and clamps them; only loss/draw is accepted for `result`
+ * (offline wins are not authoritative).
+ *
+ * @param {string} gameType                — "spit_royale" | "alpaca_road"
+ * @param {'loss'|'draw'} result           — outcome
+ * @param {{kills?:number,obstacles?:number}} [counters]
  */
-export async function saveGameResult(gameType, result) {
+export async function saveGameResult(gameType, result, counters = {}) {
   try {
-    await api.post('/game/result', { gameType, result });
+    const payload = { gameType, result };
+    if (typeof counters.kills === 'number' && counters.kills > 0) {
+      payload.kills = Math.floor(counters.kills);
+    }
+    if (typeof counters.obstacles === 'number' && counters.obstacles > 0) {
+      payload.obstacles = Math.floor(counters.obstacles);
+    }
+    await api.post('/game/result', payload);
   } catch (err) {
     devError('Failed to save game result:', err);
   }

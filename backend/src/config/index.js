@@ -1,7 +1,6 @@
 /**
  * Application Configuration
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/5
  *
  * Centralised config from environment variables.
  * See .env.example at the project root for required variables.
@@ -18,37 +17,48 @@ const config = {
   envIsProd: process.env.NODE_ENV === "production",
   envIsDev: process.env.NODE_ENV === "development",
 
-  jwt: {
-    secret: process.env.JWT_SECRET,
-    refreshSecret: process.env.JWT_REFRESH_SECRET,
-    publicApiSecret: process.env.JWT_PUBLIC_API_SECRET,
-    adminSecret: process.env.JWT_ADMIN_SECRET,
-    expiresIn: process.env.JWT_EXPIRES_IN,
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
-    publicApiExpiresIn: process.env.JWT_PUBLIC_API_EXPIRES_IN,
-    adminExpiresIn: process.env.JWT_ADMIN_EXPIRES_IN,
-    cookieOptions: {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: ms(process.env.JWT_EXPIRES_IN),
-      path: "/",
-    },
-    cookieOptionsRefresh: {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: ms(process.env.JWT_REFRESH_EXPIRES_IN),
-      path: "/api/auth/refresh",
-    },
-    cookieOptionsAdmin: {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: ms(process.env.JWT_ADMIN_EXPIRES_IN),
-      path: "/",
-    },
-  },
+  jwt: (() => {
+    // Secure-cookie + sameSite=strict is correct in prod, but over plain
+    // http://localhost in dev the browser silently drops the cookie on the
+    // next request — instant "logged in then immediately logged out" bug.
+    const isProd = process.env.NODE_ENV === "production";
+    const secureCookies = isProd;
+    const sameSite = isProd ? "strict" : "lax";
+    return {
+      secret: process.env.JWT_SECRET,
+      refreshSecret: process.env.JWT_REFRESH_SECRET,
+      publicApiSecret: process.env.JWT_PUBLIC_API_SECRET,
+      adminSecret: process.env.JWT_ADMIN_SECRET,
+      expiresIn: process.env.JWT_EXPIRES_IN,
+      refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+      publicApiExpiresIn: process.env.JWT_PUBLIC_API_EXPIRES_IN,
+      adminExpiresIn: process.env.JWT_ADMIN_EXPIRES_IN,
+      cookieOptions: {
+        httpOnly: true,
+        secure: secureCookies,
+        sameSite,
+        maxAge: ms(process.env.JWT_EXPIRES_IN),
+        path: "/",
+      },
+      cookieOptionsRefresh: {
+        httpOnly: true,
+        secure: secureCookies,
+        sameSite,
+        maxAge: ms(process.env.JWT_REFRESH_EXPIRES_IN),
+        path: "/api/auth/refresh",
+      },
+      cookieOptionsAdmin: {
+        httpOnly: true,
+        secure: secureCookies,
+        sameSite,
+        maxAge: ms(process.env.JWT_ADMIN_EXPIRES_IN),
+        // Scoped to /api/admin so the admin token isn't sent on every normal
+        // request — and never ends up captured in WAF audit logs of, say,
+        // /socket.io upgrades made by a logged-in non-admin tab.
+        path: "/api/admin",
+      },
+    };
+  })(),
 
   // PostgreSQL connection (Issue #7)
   db: {
@@ -60,9 +70,12 @@ const config = {
   },
 
   cors: {
+    // Empty list ⇒ no origin is allowed. Returning null here would tell the
+    // cors package "reflect any origin" — failing open on a missing env is
+    // worse than rejecting requests until ops fix the config.
     origins: process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(",")
-      : null,
+      ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
+      : [],
   },
 
   // Explicit frontend URL used for OAuth post-login redirects.
@@ -137,10 +150,12 @@ const config = {
       "application/xml",
       "text/xml",
     ],
-    // NOTE: image/svg+xml intentionally excluded. SVG is script-capable,
-    // so even when upload is allowed (see allowedMimeTypes), we never serve
-    // it inline — uploadSecurity.js forces Content-Disposition: attachment
-    // for any mime type not listed here.
+    // SVG is allowed as an upload (above) but is script-capable, so it is
+    // intentionally excluded from imageMimeTypes — uploadSecurity.js forces
+    // Content-Disposition: attachment for any mime type NOT in this list
+    // (and explicitly for SVG via INLINE_BLOCKED_MIME). Defense in depth:
+    // X-Content-Type-Options: nosniff + magic-byte validation on upload are
+    // the actual safeguards; the inline/attachment toggle is belt-and-braces.
     imageMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
   },
 };

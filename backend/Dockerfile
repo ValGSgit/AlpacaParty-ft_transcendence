@@ -1,6 +1,5 @@
 # Backend Dockerfile (Development)
 # @owner ValGSgit
-# @issue https://github.com/ValGSgit/AlpacaParty/issues/3
 
 FROM node:24-alpine3.22
 

@@ -39,7 +39,7 @@ X-API-Key: ap_your_key_here
 |---|---|---|
 | GET | /public/users | List public user profiles |
 | GET | /public/users/:id | Single public profile |
-| GET | /public/leaderboard | Game leaderboard (ELO-ranked) |
+| GET | /public/leaderboard | Game leaderboard (level-ranked) |
 | GET | /public/posts | Public feed posts |
 | POST | /public/posts | Create a post (service-level) |
 | PUT | /public/posts/:id | Update a post (service-level) |
@@ -72,7 +72,7 @@ X-API-Key: ap_your_key_here
       },
       {
         name: "Posts",
-        description: "Social feed — create, like, comment, repost",
+        description: "Social feed — create, like, comment",
       },
       { name: "Chat", description: "Direct messages and group chat rooms" },
       {
@@ -178,12 +178,10 @@ X-API-Key: ap_your_key_here
             is_public: { type: "boolean", example: true },
             likes_count: { type: "integer", example: 5 },
             comments_count: { type: "integer", example: 2 },
-            reposts_count: { type: "integer", example: 1 },
             author_id: { type: "integer", example: 42 },
             author_username: { type: "string", example: "alpaca42" },
             author_avatar: { type: "string", nullable: true },
             user_liked: { type: "boolean", example: false },
-            user_reposted: { type: "boolean", example: false },
             created_at: { type: "string", format: "date-time" },
           },
         },
@@ -223,7 +221,7 @@ X-API-Key: ap_your_key_here
             wins: { type: "integer", example: 10 },
             losses: { type: "integer", example: 5 },
             draws: { type: "integer", example: 2 },
-            elo: { type: "integer", example: 1150 },
+            level: { type: "integer", example: 12 },
           },
         },
         Achievement: {

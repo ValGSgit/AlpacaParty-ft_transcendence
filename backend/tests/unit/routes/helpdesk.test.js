@@ -267,7 +267,7 @@ describe('Helpdesk Routes', () => {
       const callArgs = global.fetch.mock.calls[0];
       const requestBody = JSON.parse(callArgs[1].body);
       expect(requestBody.model).toBe('mixtral-8x7b-32768');
-      expect(requestBody.max_tokens).toBe(600);
+      expect(requestBody.max_tokens).toBe(400);
       expect(requestBody.temperature).toBe(0.7);
       expect(requestBody.stream).toBe(true);
     });

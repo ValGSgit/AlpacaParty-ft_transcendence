@@ -3,11 +3,18 @@
  * @owner ValGSgit
  */
 import Post from "../models/Post.js";
+import Friend from "../models/Friend.js";
 import NotificationService from "../services/notificationService.js";
-import { stripDangerousHtml } from "../utils/htmlSanitizer.js";
 import { debug } from "#lib/logger.js";
 import GamificationService from "../services/GamificationService.js";
 import prisma from "#config/prisma.js";
+
+// Treat a block as if the post does not exist (404 not 403) so the blocked
+// user can't learn whether the author exists or has interacted with them.
+async function notFoundIfBlocked(req, authorId) {
+  if (!req.user || req.user.id === authorId) return false;
+  return Friend.isBlockedBetween(req.user.id, authorId);
+}
 
 /** GET /api/posts */
 export const getFeed = async (req, res, next) => {
@@ -60,7 +67,7 @@ export const createPost = async (req, res, next) => {
     }
     const post = await Post.create({
       authorId: req.user.id,
-      content: stripDangerousHtml(content.trim()),
+      content: content.trim(),
       imageUrl: normalizedImageUrl,
       isPublic: !!isPublic,
     });
@@ -108,8 +115,7 @@ export const updatePost = async (req, res, next) => {
       return res.status(400).json({ error: { message: "invalid imageUrl" } });
     }
     const post = await Post.update(Number(req.params.id), req.user.id, {
-      content:
-        content !== undefined ? stripDangerousHtml(content.trim()) : undefined,
+      content: content !== undefined ? content.trim() : undefined,
       imageUrl: normalizedImageUrl,
       isPublic,
     });
@@ -147,6 +153,8 @@ export const likePost = async (req, res, next) => {
   try {
     const post = await Post.findById(Number(req.params.id));
     if (!post)
+      return res.status(404).json({ error: { message: "Post not found" } });
+    if (await notFoundIfBlocked(req, post.author_id))
       return res.status(404).json({ error: { message: "Post not found" } });
     await Post.like(post.id, req.user.id);
     const newLikesCount = (post.likes_count ?? 0) + 1;

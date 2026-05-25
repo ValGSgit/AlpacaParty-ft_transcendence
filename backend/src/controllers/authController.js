@@ -1,7 +1,6 @@
 /**
  * Auth Controller — handles registration, login, logout, token refresh, OAuth
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import User, { shapeUserForClient } from "../models/User.js";
 import GamificationService from "../services/GamificationService.js";
@@ -140,7 +139,7 @@ export const refresh = async (req, res, next) => {
  * GET /api/auth/me
  */
 export const me = async (req, res) =>
-  res.json({ user: shapeUserForClient(req.user) });
+  res.json({ user: req.user ? shapeUserForClient(req.user) : null });
 
 export const googleAuth = (req, res, next) => {
   passport.authenticate("google", { session: false }, (err, user, info) => {
@@ -164,17 +163,13 @@ export const googleAuth = (req, res, next) => {
 /**
  * OAuth callback (Google / GitHub)
  *
- * Redirects to the frontend callback route with tokens in the URL fragment.
- * Fragments are processed client-side and are not sent back to the server.
+ * Tokens are issued as httpOnly cookies; the redirect just brings the user
+ * back to the SPA. config.frontendUrl is a server-side constant (never derived
+ * from a request header) so this is a safe, fixed-origin redirect.
  */
 export const oauthCallback = (req, res) => {
   const { accessToken, refreshToken } = oauthTokensForUser(req.user);
-  const frontendOrigin = config.frontendUrl;
-
-  const payload = encodeURIComponent(JSON.stringify({}));
-  const callbackUrl = `${frontendOrigin}/oauth-callback#${payload}`;
-
   res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
   res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
-  res.redirect(302, callbackUrl);
+  res.redirect(302, `${config.frontendUrl}/oauth-callback`);
 };

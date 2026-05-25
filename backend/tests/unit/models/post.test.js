@@ -21,6 +21,7 @@ const mockPrisma = {
     findUnique: jest.fn(),
     findMany: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
     deleteMany: jest.fn(),
     count: jest.fn(),
   },
@@ -29,11 +30,6 @@ const mockPrisma = {
     deleteMany: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
-  },
-  repost: {
-    create: jest.fn(),
-    deleteMany: jest.fn(),
-    findMany: jest.fn(),
   },
   $transaction: jest.fn((fn) => fn(mockPrisma)),
 };
@@ -91,7 +87,6 @@ describe("Post.getFeed", () => {
   test("returns posts with snake_case fields and user_liked flag", async () => {
     mockPrisma.post.findMany.mockResolvedValue([mockPost]);
     mockPrisma.postLike.findMany.mockResolvedValue([{ postId: 1 }]);
-    mockPrisma.repost.findMany.mockResolvedValue([]);
 
     const results = await Post.getFeed({ viewerId: 99 });
     expect(results).toHaveLength(1);
@@ -101,50 +96,29 @@ describe("Post.getFeed", () => {
 
   test("returns posts without viewer info when viewerId is null", async () => {
     mockPrisma.post.findMany.mockResolvedValue([mockPost]);
-    mockPrisma.repost.findMany.mockResolvedValue([]);
 
     const results = await Post.getFeed({ viewerId: null });
     expect(results).toHaveLength(1);
     expect(results[0].user_liked).toBe(false);
     expect(mockPrisma.postLike.findMany).not.toHaveBeenCalled();
   });
-
-  test("includes reposts with metadata", async () => {
-    const repostedPost = { ...mockPost, id: 2 };
-    const repostData = {
-      id: 100,
-      postId: 2,
-      authorId: 99,
-      comment: "Great post!",
-      createdAt: new Date(),
-      post: repostedPost,
-      author: { username: "bob", avatar: "/avatars/bob.jpg" },
-    };
-    mockPrisma.post.findMany.mockResolvedValue([mockPost]);
-    mockPrisma.postLike.findMany.mockResolvedValue([]);
-    mockPrisma.repost.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([repostData]);
-
-    const results = await Post.getFeed({ viewerId: 99, limit: 10 });
-    expect(results[0]._repostBy).toBe("bob");
-    expect(results[0]._repostComment).toBe("Great post!");
-  });
 });
 
 describe("Post.update", () => {
+  // Post.update now does updateMany({id, authorId}) then findById on count>0.
   test("updates content field", async () => {
     const updated = { ...mockPost, content: "Updated content" };
-    mockPrisma.post.update.mockResolvedValue(updated);
+    mockPrisma.post.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.post.findUnique.mockResolvedValue(updated);
     const result = await Post.update(1, 42, { content: "Updated content" });
     expect(result.content).toBe("Updated content");
   });
 
   test("updates isPublic with both snake_case and camelCase", async () => {
-    const updated = { ...mockPost, isPublic: false };
-    mockPrisma.post.update.mockResolvedValue(updated);
+    mockPrisma.post.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.post.findUnique.mockResolvedValue({ ...mockPost, isPublic: false });
     await Post.update(1, 42, { isPublic: false });
-    expect(mockPrisma.post.update).toHaveBeenCalled();
+    expect(mockPrisma.post.updateMany).toHaveBeenCalled();
   });
 
   test("returns existing post when no updates provided", async () => {
@@ -159,10 +133,16 @@ describe("Post.update", () => {
   });
 
   test("handles imageUrl field", async () => {
-    const updated = { ...mockPost, imageUrl: "/new-image.jpg" };
-    mockPrisma.post.update.mockResolvedValue(updated);
+    mockPrisma.post.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.post.findUnique.mockResolvedValue({ ...mockPost, imageUrl: "/new-image.jpg" });
     await Post.update(1, 42, { imageUrl: "/new-image.jpg" });
-    expect(mockPrisma.post.update).toHaveBeenCalled();
+    expect(mockPrisma.post.updateMany).toHaveBeenCalled();
+  });
+
+  test("returns null when nothing matched (wrong author / not found)", async () => {
+    mockPrisma.post.updateMany.mockResolvedValue({ count: 0 });
+    const result = await Post.update(1, 99, { content: "x" });
+    expect(result).toBeNull();
   });
 });
 
@@ -213,54 +193,6 @@ describe("Post.unlike", () => {
     mockPrisma.postLike.deleteMany.mockResolvedValue({ count: 0 });
     await Post.unlike(1, 42);
     expect(mockPrisma.post.update).not.toHaveBeenCalled();
-  });
-});
-
-describe("Post.repost", () => {
-  test("creates repost successfully", async () => {
-    const repostData = {
-      id: 1,
-      postId: 1,
-      authorId: 42,
-      comment: "Great!",
-      createdAt: new Date(),
-      author: { username: "alice", avatar: "/a.jpg" },
-    };
-    mockPrisma.repost.create.mockResolvedValue(repostData);
-    mockPrisma.post.update.mockResolvedValue({});
-
-    const result = await Post.repost(1, 42, "Great!");
-    expect(result.author_username).toBe("alice");
-    expect(result.comment).toBe("Great!");
-  });
-
-  test("returns null when already reposted (P2002 error)", async () => {
-    const error = new Error("Unique constraint");
-    error.code = "P2002";
-    mockPrisma.repost.create.mockRejectedValue(error);
-
-    const result = await Post.repost(1, 42);
-    expect(result).toBeNull();
-  });
-
-  test("throws other errors", async () => {
-    mockPrisma.repost.create.mockRejectedValue(new Error("Database error"));
-
-    await expect(Post.repost(1, 42)).rejects.toThrow("Database error");
-  });
-});
-
-describe("Post.unrepost", () => {
-  test("deletes repost and decrements count", async () => {
-    mockPrisma.repost.deleteMany.mockResolvedValue({ count: 1 });
-    mockPrisma.post.update.mockResolvedValue({});
-
-    await Post.unrepost(1, 42);
-    expect(mockPrisma.post.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { repostsCount: { decrement: 1 } },
-      }),
-    );
   });
 });
 

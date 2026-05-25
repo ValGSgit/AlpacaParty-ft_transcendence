@@ -203,7 +203,9 @@ describe("adminController", () => {
       adminController.adminLogout(req, res);
 
       expect(res.clearCookie).toHaveBeenCalledWith("admin_jwt_token", {
-        path: "/",
+        // Scoped to /api/admin so the admin token never tags along on
+        // non-admin requests (Cookie header / WAF audit logs).
+        path: "/api/admin",
       });
       expect(res.json).toHaveBeenCalledWith({ message: "Logged out" });
     });

@@ -16,6 +16,13 @@ export class GameClient {
     this.socket = io('/minigames', { transports: ['websocket'], withCredentials: true });
     this.socket.on('connect', () => { debug("GameClient connected:", this.socket.id); });
     this.socket.on('connect_error', (err) => { devError("GameClient connection failed:", err.message); });
+    // Drop the singleton reference on disconnect so a new connect() works
+    // cleanly after a tab close / network drop / hot reload.
+    this.socket.on('disconnect', () => {
+      this.socket = null;
+      this.serverData = {};
+      this.spitQueue = [];
+    });
     this.setupListeners();
   }
 

@@ -10,7 +10,7 @@
       </button>
       <div v-for="room in spitRooms" :key="room.id">
         <button class="shop-btn" @click="handleJoinRoom(room.id)" title="Join Room">
-          Join {{ room.name }} ({{ room.playerCount }}/10)
+          Join {{ room.name }} (Lv {{ room.averageLevel ?? 1 }}, {{ room.playerCount }}/10)
         </button>
       </div>
       <button class="close-btn" @click="closeLobbyMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
@@ -23,7 +23,7 @@
         </button>
         <div v-for="room in roadRooms" :key="room.id">
           <button class="shop-btn" @click="handleJoinRoom(room.id)">
-            Join {{ room.name }} ({{ room.playerCount }}/4)
+            Join {{ room.name }} (Lv {{ room.averageLevel ?? 1 }}, {{ room.playerCount }}/4)
           </button>
         </div>
         <button class="close-btn" @click="closeLobbyMenu()" title="Close">✖️</button>
@@ -48,9 +48,11 @@ import { gMinigame, gPlayer, gUser } from '../core/globals.js';
 import { useUIManager } from '../core/useUIManager.js';
 import { activeClient } from '../mini_games/GameClient.js';
 import { changeGame } from '../mini_games/init.js';
+import { useAuthStore } from '../../stores/auth.js'
 import AppIcon from '../../components/AppIcon.vue'
 
 const { closeLobbyMenu } = useUIManager()
+const authStore = useAuthStore()
 
 const spitRooms = computed(() => {
   if (!gMinigame.value.publicRooms) return [];
@@ -92,8 +94,13 @@ const handleJoinRandom = (gameType) => {
 
   const rooms = spitRooms.value;
   if (rooms.length > 0) {
-    const randomRoom = rooms[Math.floor(Math.random() * rooms.length)];
-    handleJoinRoom(randomRoom.id);
+    const myLevel = Number(authStore.user?.level ?? 1)
+    const closestRoom = [...rooms].sort((a, b) => {
+      const aDelta = Math.abs((a.averageLevel ?? 1) - myLevel)
+      const bDelta = Math.abs((b.averageLevel ?? 1) - myLevel)
+      return aDelta - bDelta
+    })[0]
+    handleJoinRoom(closestRoom.id);
   }
 };
 

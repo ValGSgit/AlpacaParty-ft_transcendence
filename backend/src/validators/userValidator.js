@@ -23,8 +23,10 @@ export const userNameChain = (chain) =>
       "Username may only contain letters, numbers, hyphens and underscores",
     )
     .isLength({ min: 3, max: 32 })
-    .withMessage("Username must be 3-32 characters")
-    .escape();
+    .withMessage("Username must be 3-32 characters");
+// NOTE: no .escape() — characters are whitelisted above. Store raw and let
+// the renderer escape (Vue does this for {{ }}); double-encoding breaks
+// display of ampersands etc.
 
 export const userEmailChain = (chain) =>
   chain
@@ -40,16 +42,14 @@ export const userBioChain = (chain) =>
     .optional()
     .trim()
     .isLength({ max: 500 })
-    .withMessage("Bio must be 500 characters or fewer")
-    .escape();
+    .withMessage("Bio must be 500 characters or fewer");
 
 export const userStatusChain = (chain) =>
   chain
     .optional()
     .trim()
     .isLength({ max: 200 })
-    .withMessage("Status must be 200 characters or fewer")
-    .escape();
+    .withMessage("Status must be 200 characters or fewer");
 
 export const userAvatarChain = (chain) =>
   chain

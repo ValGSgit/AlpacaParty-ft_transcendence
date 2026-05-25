@@ -177,7 +177,6 @@ async function seedUsers(passwordHash) {
         wins: r(0, 30),
         losses: r(0, 25),
         draws: r(0, 8),
-        elo: r(850, 1450),
       })),
       ...users.map((u) => ({
         userId: u.id,
@@ -185,7 +184,6 @@ async function seedUsers(passwordHash) {
         wins: r(0, 20),
         losses: r(0, 30),
         draws: 0,
-        elo: r(800, 1400),
       })),
     ],
     skipDuplicates: true,

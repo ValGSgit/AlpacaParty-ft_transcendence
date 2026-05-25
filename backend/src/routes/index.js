@@ -1,7 +1,6 @@
 /**
  * API Route Index
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/9
  */
 import express from 'express';
 import authRoutes from './auth.js';

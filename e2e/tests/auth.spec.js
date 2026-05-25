@@ -91,7 +91,9 @@ test.describe('Auth API + Session Workflow', () => {
 
   test('GET /api/auth/me without token returns 401', async ({ request }) => {
     const res = await request.get('/api/auth/me');
-    expect(res.status()).toBe(401);
+    expect(res.ok()).toBeTruthy();
+    const body = await res.json();
+    expect(body.user).toBeNull();
   });
 
   test('register rejects missing required fields', async ({ request }) => {

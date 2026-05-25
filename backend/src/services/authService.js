@@ -1,7 +1,6 @@
 /**
  * Auth Service — JWT generation, password hashing
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";

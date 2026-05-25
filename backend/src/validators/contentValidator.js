@@ -59,12 +59,6 @@ export const commentCreateValidation = () => [
   contentChain(body("content"), { max: 1000, field: "content" }),
 ];
 
-// ── Reposts ───────────────────────────────────────────────────────────────
-
-export const repostValidation = () => [
-  optionalContentChain(body("comment"), { max: 500, field: "comment" }),
-];
-
 // ── Chat messages & rooms ─────────────────────────────────────────────────
 
 export const chatMessageValidation = () => [

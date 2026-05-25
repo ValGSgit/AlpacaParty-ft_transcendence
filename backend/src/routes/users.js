@@ -1,7 +1,6 @@
 /**
  * User Routes
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/9
  */
 import express from "express";
 import { authenticate } from "#middleware/auth.js";

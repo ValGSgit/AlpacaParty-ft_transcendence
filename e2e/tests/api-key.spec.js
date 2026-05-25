@@ -18,7 +18,9 @@ test.describe('API Key Management', () => {
     const res = await request.get('/api/users/me/api-key', {
       headers: authHeaders(user.accessToken),
     });
-    expect(res.status()).toBe(404);
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.apiKey).toBeNull();
   });
 
   test('POST /users/me/api-key generates and returns a key', async ({ request }) => {
@@ -56,7 +58,9 @@ test.describe('API Key Management', () => {
     const get = await request.get('/api/users/me/api-key', {
       headers: authHeaders(user.accessToken),
     });
-    expect(get.status()).toBe(404);
+    expect(get.status()).toBe(200);
+    const getBody = await get.json();
+    expect(getBody.apiKey).toBeNull();
   });
 
   test('unauthenticated request to /users/me/api-key is rejected', async ({ request }) => {
@@ -185,7 +189,7 @@ test.describe('Public API endpoints', () => {
       headers: apiKeyHeaders(otherKey),
       data: { content: 'Hijacked!' },
     });
-    expect(putRes.status()).toBe(400);
+    expect(putRes.status()).toBe(403);
   });
 
   test('DELETE /public/posts/:id on another user post returns 400', async ({ request, playwright }) => {
@@ -212,7 +216,7 @@ test.describe('Public API endpoints', () => {
     const delRes = await request.delete(`/api/public/posts/${post.id}`, {
       headers: apiKeyHeaders(otherKey),
     });
-    expect(delRes.status()).toBe(400);
+    expect(delRes.status()).toBe(403);
   });
 
   test('revoked API key is rejected by public endpoints', async ({ request }) => {

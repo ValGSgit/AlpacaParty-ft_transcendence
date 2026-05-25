@@ -16,6 +16,14 @@ jest.unstable_mockModule("../../../src/models/Post.js", () => ({
   default: mockPost,
 }));
 
+// likePost now consults Friend.isBlockedBetween for the block-respect check.
+const mockFriend = {
+  isBlockedBetween: jest.fn().mockResolvedValue(false),
+};
+jest.unstable_mockModule("../../../src/models/Friend.js", () => ({
+  default: mockFriend,
+}));
+
 const mockNotificationService = {
   postLiked: jest.fn().mockResolvedValue(true),
 };

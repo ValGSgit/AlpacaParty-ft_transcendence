@@ -9,10 +9,12 @@ import CustomError from "#utils/CustomError.js";
 export const requireAdmin = async (req, res, next) => {
   try {
     const token = req.cookies.admin_jwt_token;
-    if (!token) throw new CustomError("Admin authentication required", 401);
+    if (!token)
+      throw new CustomError("Admin authentication required", 401);
 
     const decoded = AuthService.verifyAdminToken(token);
-    if (!decoded) throw new CustomError("Invalid or expired admin token", 401);
+    if (!decoded)
+      throw new CustomError("Invalid or expired admin token", 401);
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
@@ -25,8 +27,10 @@ export const requireAdmin = async (req, res, next) => {
       },
     });
 
-    if (!user) throw new CustomError("Admin user not found", 401);
-    if (user.isBanned) throw new CustomError("Account is banned", 403);
+    if (!user)
+      throw new CustomError("Admin user not found", 401);
+    if (user.isBanned)
+      throw new CustomError("Account is banned", 403);
     if (user.role !== "admin" && user.role !== "superadmin") {
       throw new CustomError("Insufficient privileges", 403);
     }

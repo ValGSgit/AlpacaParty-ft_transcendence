@@ -83,6 +83,14 @@ const Notification = {
     });
     return count > 0;
   },
+
+  /** Wipe every notification for one user. Returns the count removed. */
+  async deleteAll(userId) {
+    const { count } = await prisma.notification.deleteMany({
+      where: { userId: Number(userId) },
+    });
+    return count;
+  },
 };
 
 export default Notification;

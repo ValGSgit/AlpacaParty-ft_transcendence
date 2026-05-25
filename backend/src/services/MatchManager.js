@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { debug } from "#lib/logger.js";
 import { AlpacaRoadMatch } from "./AlpacaRoadMatch.js";
 import { SpitRoyalMatch } from "./SpitRoyaleMatch.js";
@@ -5,6 +6,12 @@ import { SpitRoyalMatch } from "./SpitRoyaleMatch.js";
 const GAME_REGISTRY = {
   2: SpitRoyalMatch,
   4: AlpacaRoadMatch,
+};
+
+// Max concurrent players per game type — used by join/create gating.
+const PLAYER_CAP = {
+  2: 10, // SpitRoyale: up to 10 players in the arena.
+  4: 4,  // AlpacaRoad: 4 lanes, 4 players max.
 };
 
 export class MatchManager {
@@ -19,16 +26,26 @@ export class MatchManager {
   broadcastPublicRooms() {
     const publicRooms = [];
     for (const match of this.matches.values()) {
-      const typeStr = Object.keys(GAME_REGISTRY).find(key => GAME_REGISTRY[key] === match.constructor);
-      const currentType = Number(typeStr);
-
-      if ((match.status === 'LOBBY' && match.players.size > 0 && match.players.size < 4 && currentType === 4) ||
-        (match.status === 'PLAYING' && match.players.size > 0 && match.players.size < 10 && currentType === 2)) {
+      const typeKey = Number(
+        Object.keys(GAME_REGISTRY).find((k) => GAME_REGISTRY[k] === match.constructor),
+      );
+      const cap = PLAYER_CAP[typeKey];
+      const acceptingNew =
+        (typeKey === 4 && match.status === 'LOBBY') ||
+        (typeKey === 2 && match.status === 'PLAYING');
+      if (acceptingNew && match.players.size > 0 && match.players.size < cap) {
+        const levels = Array.from(match.players.values())
+          .map((player) => Number(player.level) || 1)
+          .filter((level) => Number.isFinite(level));
+        const averageLevel = levels.length
+          ? Math.round(levels.reduce((sum, level) => sum + level, 0) / levels.length)
+          : 1;
         publicRooms.push({
           id: match.matchId,
           name: match.roomName,
           playerCount: match.players.size,
-          gameType: currentType
+          gameType: typeKey,
+          averageLevel,
         });
       }
     }
@@ -57,36 +74,47 @@ export class MatchManager {
       socket.on('create_room', ({ name, color, gameType }) => {
         debug(`BACKEND: Received create_room request from ${name}`);
 
+        const typeKey = Number(gameType);
+        const MatchClass = GAME_REGISTRY[typeKey];
+        if (!MatchClass) {
+          return socket.emit('join_error', { reason: 'invalid_game_type' });
+        }
+
         leaveCurrentRoom();
 
-        const roomId = crypto.randomUUID();
+        const roomId = randomUUID();
         const roomName = `${name}'s Room`;
-        const MatchClass = GAME_REGISTRY[gameType];
         const match = new MatchClass(roomId, this.io, roomName, () => {
           this.broadcastPublicRooms();
         });
 
         this.matches.set(roomId, match);
         this.playerToMatch.set(socket.id, roomId);
-        socket.emit('join_success', { roomId: roomId, roomName: roomName, gameType: gameType });
+        socket.emit('join_success', { roomId, roomName, gameType: typeKey });
         match.addPlayer(socket, name, color);
         this.broadcastPublicRooms();
       });
 
       socket.on('join_room', ({ name, roomId, color }) => {
         const match = this.matches.get(roomId);
-        if (!match) return;
-        const typeStr = Object.keys(GAME_REGISTRY).find(key => GAME_REGISTRY[key] === match.constructor);
-        const currentType = Number(typeStr);
+        if (!match) return socket.emit('join_error', { reason: 'room_not_found' });
 
-        if ((match.status === 'LOBBY' && match.players.size < 4 && currentType === 4) ||
-          (match.status === 'PLAYING' && match.players.size < 10 && currentType === 2)) {
-          leaveCurrentRoom();
-          this.playerToMatch.set(socket.id, roomId);
-          socket.emit('join_success', { roomId: roomId, roomName: match.roomName, gameType: currentType });
-          match.addPlayer(socket, name, color);
-          this.broadcastPublicRooms();
+        const typeKey = Number(
+          Object.keys(GAME_REGISTRY).find((k) => GAME_REGISTRY[k] === match.constructor),
+        );
+        const cap = PLAYER_CAP[typeKey];
+        const acceptingNew =
+          (typeKey === 4 && match.status === 'LOBBY') ||
+          (typeKey === 2 && match.status === 'PLAYING');
+        if (!acceptingNew || match.players.size >= cap) {
+          return socket.emit('join_error', { reason: 'lobby_full' });
         }
+
+        leaveCurrentRoom();
+        this.playerToMatch.set(socket.id, roomId);
+        socket.emit('join_success', { roomId, roomName: match.roomName, gameType: typeKey });
+        match.addPlayer(socket, name, color);
+        this.broadcastPublicRooms();
       });
 
       socket.on('leave_room', () => {

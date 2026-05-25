@@ -18,6 +18,7 @@ const mockPrisma = {
     upsert: jest.fn(),
   },
   alpacaFarm: {
+    findMany: jest.fn(),
     upsert: jest.fn(),
   },
 };
@@ -228,11 +229,17 @@ describe("getStats", () => {
       wins: 5,
       losses: 3,
       draws: 1,
-      elo: 1100,
     };
-    mockPrisma.gameStat.findUnique.mockResolvedValue(stat);
+    mockPrisma.gameStat.findUnique.mockResolvedValue({
+      ...stat,
+      user: { userStats: { level: 1 } },
+    });
     const result = await Game.getStats(1, "spit_royale");
-    expect(result).toEqual(stat);
+    expect(result).toEqual({
+      ...stat,
+      level: 1,
+      user: { userStats: { level: 1 } },
+    });
   });
 
   test("returns default stats when none exist", async () => {
@@ -244,16 +251,23 @@ describe("getStats", () => {
       wins: 0,
       losses: 0,
       draws: 0,
-      elo: 1000,
+      kills: 0,
+      obstacles: 0,
+      level: 1,
     });
   });
 
   test("defaults gameType to spit_royale", async () => {
     mockPrisma.gameStat.findUnique.mockResolvedValue(null);
     await Game.getStats(1);
-    expect(mockPrisma.gameStat.findUnique).toHaveBeenCalledWith({
-      where: { userId_gameType: { userId: 1, gameType: "spit_royale" } },
-    });
+    expect(mockPrisma.gameStat.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId_gameType: { userId: 1, gameType: "spit_royale" } },
+        include: {
+          user: { select: { userStats: { select: { level: true } } } },
+        },
+      }),
+    );
   });
 });
 
@@ -293,90 +307,105 @@ describe("updateStats", () => {
   });
 });
 
-// ── updateElo ────────────────────────────────────────────────────────────────
-describe("updateElo", () => {
-  test("upserts elo value", async () => {
-    mockPrisma.gameStat.upsert.mockResolvedValue({});
-    await Game.updateElo(1, "spit_royale", 1300);
-    expect(mockPrisma.gameStat.upsert).toHaveBeenCalledWith({
-      where: { userId_gameType: { userId: 1, gameType: "spit_royale" } },
-      update: { elo: 1300 },
-      create: { userId: 1, gameType: "spit_royale", elo: 1300 },
-    });
-  });
-});
-
-// ── getLeaderboard ───────────────────────────────────────────────────────────
-describe("getLeaderboard", () => {
-  test("returns shaped leaderboard data", async () => {
+// ── getKillsLeaderboard ─────────────────────────────────────────────────────
+// Single-axis leaderboards now: each returns a uniform shape
+//   { userId, username, avatar, level, value }
+// so the frontend renders one component for kills / obstacles / coins.
+describe("getKillsLeaderboard", () => {
+  test("returns shaped kills leaderboard data", async () => {
     mockPrisma.gameStat.findMany.mockResolvedValue([
       {
         userId: 1,
-        gameType: "spit_royale",
         kills: 10,
-        wins: 10,
-        losses: 5,
-        obstacles: 3,
-        draws: 2,
-        elo: 1200,
-        user: { username: "alice", avatar: "/a.png", level: 5 },
+        user: { username: "alice", avatar: "/a.png", userStats: { level: 5 } },
       },
     ]);
-    const result = await Game.getLeaderboard("spit_royale");
+    const result = await Game.getKillsLeaderboard();
     expect(result).toEqual([
-      {
-        userId: 1,
-        gameType: "spit_royale",
-        kills: 10,
-        wins: 10,
-        losses: 5,
-        obstacles: 3,
-        draws: 2,
-        elo: 1200,
-        username: "alice",
-        avatar: "/a.png",
-        level: 5,
-      },
+      { userId: 1, username: "alice", avatar: "/a.png", level: 5, value: 10 },
     ]);
   });
 
-  test("applies publicOnly filter", async () => {
+  test("filters by gameType spit_royale and kills > 0", async () => {
     mockPrisma.gameStat.findMany.mockResolvedValue([]);
-    await Game.getLeaderboard("spit_royale", { publicOnly: true });
+    await Game.getKillsLeaderboard();
     expect(mockPrisma.gameStat.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          user: { userSettings: { isPublic: true } },
-        }),
+        where: { gameType: "spit_royale", kills: { gt: 0 } },
+        orderBy: { kills: "desc" },
       }),
     );
   });
 
-  test("does not apply publicOnly when false", async () => {
-    mockPrisma.gameStat.findMany.mockResolvedValue([]);
-    await Game.getLeaderboard("spit_royale", { publicOnly: false });
-    const call = mockPrisma.gameStat.findMany.mock.calls[0][0];
-    expect(call.where.user).toBeUndefined();
-  });
-
   test("applies pagination", async () => {
     mockPrisma.gameStat.findMany.mockResolvedValue([]);
-    await Game.getLeaderboard("spit_royale", { limit: 5, offset: 10 });
+    await Game.getKillsLeaderboard({ limit: 5, offset: 10 });
     expect(mockPrisma.gameStat.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 5, skip: 10 }),
     );
   });
 
-  test("defaults pagination", async () => {
+  test("defaults pagination to take=20 skip=0", async () => {
     mockPrisma.gameStat.findMany.mockResolvedValue([]);
-    await Game.getLeaderboard();
+    await Game.getKillsLeaderboard();
+    expect(mockPrisma.gameStat.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 20, skip: 0 }),
+    );
+  });
+});
+
+// ── getObstaclesLeaderboard ─────────────────────────────────────────────────
+describe("getObstaclesLeaderboard", () => {
+  test("filters by gameType alpaca_road and obstacles > 0", async () => {
+    mockPrisma.gameStat.findMany.mockResolvedValue([]);
+    await Game.getObstaclesLeaderboard();
     expect(mockPrisma.gameStat.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        take: 20,
-        skip: 0,
-        where: { gameType: "spit_royale" },
+        where: { gameType: "alpaca_road", obstacles: { gt: 0 } },
+        orderBy: { obstacles: "desc" },
       }),
     );
+  });
+});
+
+// ── getCoinsLeaderboard ─────────────────────────────────────────────────────
+describe("getCoinsLeaderboard", () => {
+  test("returns shaped coin leaderboard data with `value` field", async () => {
+    mockPrisma.alpacaFarm.findMany.mockResolvedValue([
+      {
+        userId: 7,
+        coins: 123,
+        user: { username: "bob", avatar: "/b.png", userStats: { level: 9 } },
+      },
+    ]);
+    const result = await Game.getCoinsLeaderboard();
+    expect(result).toEqual([
+      { userId: 7, username: "bob", avatar: "/b.png", level: 9, value: 123 },
+    ]);
+  });
+});
+
+// ── incrementCounter ────────────────────────────────────────────────────────
+describe("incrementCounter", () => {
+  test("upserts a kills increment", async () => {
+    mockPrisma.gameStat.upsert.mockResolvedValue({});
+    await Game.incrementCounter(1, "spit_royale", "kills", 3);
+    expect(mockPrisma.gameStat.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: { kills: { increment: 3 } },
+        create: expect.objectContaining({ kills: 3 }),
+      }),
+    );
+  });
+
+  test("ignores fields outside the whitelist", async () => {
+    await Game.incrementCounter(1, "spit_royale", "level", 5);
+    expect(mockPrisma.gameStat.upsert).not.toHaveBeenCalled();
+  });
+
+  test("clamps `by` to [0, 1000] and no-ops on 0", async () => {
+    await Game.incrementCounter(1, "spit_royale", "kills", 0);
+    expect(mockPrisma.gameStat.upsert).not.toHaveBeenCalled();
   });
 });
 
@@ -419,5 +448,27 @@ describe("updateFarm", () => {
       create: { userId: 1, farmData },
     });
     expect(result.farmData).toEqual(farmData);
+  });
+
+  test("only forwards whitelisted columns outside test env", async () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      // `barn` is not a column on AlpacaFarm — it must be dropped so the
+      // upsert doesn't fail with an unknown-field error from Prisma.
+      const farmData = { alpacas: 2, barn: "barn-2" };
+      const expected = { alpacas: 2 };
+      mockPrisma.alpacaFarm.upsert.mockResolvedValue({ userId: 1, ...expected });
+
+      await Game.updateFarm(1, farmData);
+
+      expect(mockPrisma.alpacaFarm.upsert).toHaveBeenCalledWith({
+        where: { userId: 1 },
+        update: expected,
+        create: { userId: 1, ...expected },
+      });
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+    }
   });
 });

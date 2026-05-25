@@ -181,7 +181,7 @@ the full PR-by-PR history, use `git log`.
 | #2 | Friends system (add/accept/decline/block) | ✅ |
 | #3 | Direct messaging | ✅ |
 | #4 | Group chat rooms with roles | ✅ |
-| #5 | Social feed (posts, likes, comments, reposts) | ✅ |
+| #5 | Social feed (posts, likes, comments) | ✅ |
 | #8 | Auth: email/password + JWT + bcrypt | ✅ |
 | #9 | File upload (MIME whitelist, 10 MB cap, hashed names) | ✅ |
 | #12 | Real-time WebSockets | ✅ |

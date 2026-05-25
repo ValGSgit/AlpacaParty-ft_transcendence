@@ -244,8 +244,8 @@ function scrollToBottom() {
 
 /* ── FAB button ──────────────────────────────────────────── */
 .helpdesk-fab {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: none;
   background: var(--primary, #00f0ff);

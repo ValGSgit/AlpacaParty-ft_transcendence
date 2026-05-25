@@ -1,7 +1,6 @@
 /**
  * API Service — fetch-based backend client
  * @owner fankahou, LukasStefanek
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/1
  *
  * Uses a small wrapper around the native Fetch API.
  * It preserves the call shape used across the app: api.get/post/put/patch/delete.

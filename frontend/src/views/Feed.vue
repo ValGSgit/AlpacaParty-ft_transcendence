@@ -1,5 +1,5 @@
 <!--
-  Feed View — Social posts feed with create, like, comment and repost
+  Feed View — Social posts feed with create, like, and comment
   @owner ValGSgit
 -->
 <template>
@@ -115,18 +115,8 @@
         :class="{
           'post--mine':     post.author_id === authStore.user?.id,
           'post--liked':    post.user_liked && post.author_id !== authStore.user?.id,
-          'post--reposted': post.user_reposted,
         }"
       >
-        <!-- Repost banner -->
-        <div v-if="post._repostBy" class="repost-banner">
-          <svg viewBox="0 0 24 24" class="repost-ic" aria-hidden="true"><path d="M7 7h11l-2-2M17 17H6l2 2"/><path d="M18 7v4M6 17v-4"/></svg>
-          <router-link v-if="post._repostById" :to="`/user/${post._repostById}`">{{ post._repostBy }}</router-link>
-          <span v-else>{{ post._repostBy }}</span>
-          reposted
-          <span v-if="post._repostComment" class="repost-quote">{{ post._repostComment }}</span>
-        </div>
-
         <!-- Tombstone: original post was deleted -->
         <template v-if="post._deleted">
           <div class="post-tombstone">
@@ -188,16 +178,6 @@
             <button class="pill pill-comment" :class="{ on: commentsOpen.has(post._displayId) }" @click="toggleComments(post)">
               <svg viewBox="0 0 24 24" class="ic"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.5A8 8 0 1 1 21 12Z"/></svg>
               <span class="count">{{ post.comments_count || 0 }}</span>
-            </button>
-
-            <button
-              v-if="authStore.isAuthenticated"
-              class="pill pill-repost"
-              :class="{ on: post.user_reposted }"
-              @click="openRepostModal(post)"
-            >
-              <svg viewBox="0 0 24 24" class="ic"><path d="M7 7h11l-2-2M17 17H6l2 2"/><path d="M18 7v4M6 17v-4"/></svg>
-              <span class="count">{{ post.reposts_count || 0 }}</span>
             </button>
           </footer>
         </template>
@@ -263,45 +243,6 @@
     <button class="fab" aria-label="Compose" @click="composerFocused = true">
       <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
     </button>
-
-    <!-- Repost Modal -->
-    <Transition name="modal">
-      <div v-if="repostModalPost" class="modal-scrim" @click.self="closeRepostModal">
-        <div class="modal">
-          <header class="modal-head">
-            <h3>Repost</h3>
-            <button class="icon-btn" @click="closeRepostModal" aria-label="Close">
-              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
-          </header>
-
-          <textarea v-model="repostComment" placeholder="Add a comment (optional)…" rows="3"></textarea>
-
-          <blockquote class="quoted">
-            <header>
-              <div class="avatar avatar-sm" :class="avatarColor(repostModalPost.author_username)">
-                <img v-if="repostModalPost.author_avatar" :src="resolveMediaUrl(repostModalPost.author_avatar)" :alt="repostModalPost.author_username" />
-                <span v-else>{{ repostModalPost.author_username?.slice(0, 2).toUpperCase() }}</span>
-              </div>
-              <span class="username">{{ repostModalPost.author_username }}</span>
-              <span class="dot-sep">·</span>
-              <time class="ts">{{ formatTime(repostModalPost.created_at) }}</time>
-            </header>
-            <p>{{ repostModalPost.content }}</p>
-          </blockquote>
-
-          <footer class="modal-foot">
-            <button class="btn btn-ghost" @click="closeRepostModal">Cancel</button>
-            <button class="btn btn-ghost" @click="submitRepost(false)">Repost</button>
-            <button
-              class="btn btn-primary"
-              :disabled="!repostComment.trim()"
-              @click="submitRepost(true)"
-            >Repost with comment</button>
-          </footer>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 
@@ -328,10 +269,6 @@ const commentLoading = reactive(new Set())
 const postComments = reactive({})
 const commentDraft = reactive({})
 
-// Repost modal state
-const repostModalPost = ref(null)
-const repostComment = ref('')
-
 function avatarColor(username) {
   const colors = ['av-cyan', 'av-gold', 'av-pink', 'av-aqua', 'av-mint', 'av-violet']
   let hash = 0
@@ -340,14 +277,7 @@ function avatarColor(username) {
 }
 
 function getPostDisplayId(post) {
-  // For reposts, create a unique display ID to prevent state sharing
-  // Use a stable key that includes repost metadata
-  if (post._repostBy) {
-    const repostId = post._repostById || post._repostBy
-    // Create a unique ID that combines post id, repost author, and creation time
-    return `repost|${post.id}|${repostId}|${post.created_at || ''}`
-  }
-  return `original|${post.id}`
+  return `post|${post.id}`
 }
 
 function getThreadKey(post) {
@@ -529,7 +459,8 @@ async function submitComment(post) {
   }
   try {
     const { data } = await api.post(`/posts/${post.thread_id || post.id}/comments?thread=${post.thread_type || 'post'}`, { content })
-    if (!postComments[threadKey]) postComments[threadKey] = []
+    if (!postComments[threadKey])
+      postComments[threadKey] = []
     postComments[threadKey].push(data.comment)
     commentDraft[threadKey] = ''
     post.comments_count = (post.comments_count || 0) + 1
@@ -549,41 +480,7 @@ async function deleteComment(post, comment) {
   }
 }
 
-// ── Repost ────────────────────────────────────────────────────────────────
-
-async function openRepostModal(post) {
-  if (post.user_reposted) {
-    try {
-      await api.delete(`/posts/${post.source_post_id || post.id}/repost`)
-      post.reposts_count = Math.max(0, (post.reposts_count || 1) - 1)
-      post.user_reposted = false
-    } catch (e) {
-      error.value = e.response?.data?.error?.message || 'Failed to remove repost'
-    }
-    return
-  }
-  repostModalPost.value = post
-  repostComment.value = ''
-}
-
-function closeRepostModal() {
-  repostModalPost.value = null
-  repostComment.value = ''
-}
-
-async function submitRepost(withComment) {
-  const post = repostModalPost.value
-  if (!post) return
-  const comment = withComment ? repostComment.value.trim() : null
-  try {
-    await api.post(`/posts/${post.source_post_id || post.id}/repost`, { comment })
-    post.reposts_count = (post.reposts_count || 0) + 1
-    post.user_reposted = true
-    closeRepostModal()
-  } catch (e) {
-    error.value = e.response?.data?.error?.message || 'Failed to repost'
-  }
-}
+// ── Lifecycle ─────────────────────────────────────────────────────────────
 
 onMounted(fetchPosts)
 </script>
@@ -738,16 +635,6 @@ onMounted(fetchPosts)
 }
 .post--mine::before { background: var(--primary); box-shadow: 0 0 12px rgba(0,240,255,.55); }
 .post--liked::before { background: var(--magenta); box-shadow: 0 0 12px rgba(255,142,196,.5); }
-.post--reposted::before { background: var(--green); box-shadow: 0 0 12px rgba(54,224,122,.45); }
-
-.repost-banner {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px;
-  padding-bottom: 8px; border-bottom: 1px solid var(--border-color);
-}
-.repost-banner a { color: var(--primary); text-decoration: none; }
-.repost-ic { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; flex-shrink: 0; }
-.repost-quote { border-left: 2px solid var(--primary); padding-left: 6px; color: var(--text-secondary); font-style: italic; }
 
 .post-tombstone {
   display: flex; align-items: center; gap: 8px;
@@ -822,7 +709,6 @@ onMounted(fetchPosts)
 .pill-like:hover, .pill-like.on { color: var(--magenta); }
 .pill-like.on .ic { fill: var(--magenta); transform: scale(1.05); }
 .pill-comment:hover, .pill-comment.on { color: var(--primary); }
-.pill-repost:hover, .pill-repost.on { color: var(--green); }
 
 /* comments */
 .comments { max-height: 0; overflow: hidden; transition: max-height .35s ease, opacity .25s ease; opacity: 0; }

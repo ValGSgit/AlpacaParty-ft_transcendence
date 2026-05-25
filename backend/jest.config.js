@@ -26,7 +26,9 @@ export default {
     "src/lib/httpsServer.js",
     "src/utils/pagination.js",
     "src/utils/uploadSecurity.js",
-    "src/services/spitRoyaleNamespace_legacy.js",
+    "src/docs/swagger.js",
+    "src/docs/swaggerUiConfig.js",
+    "src/services/SpitRoyaleMatch.js",
   ],
   coverageThreshold: {
     global: {

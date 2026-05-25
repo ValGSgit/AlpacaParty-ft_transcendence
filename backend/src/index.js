@@ -1,7 +1,6 @@
 /**
  * Express Application Entry Point
  * @owner DavidPoetsch, ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/2
  */
 import express from "express";
 import cors from "cors";
@@ -29,11 +28,18 @@ const httpsServer = createHttpsServer(app);
 // Trust proxy (behind nginx reverse proxy)
 app.set("trust proxy", 1);
 
-// Enforce HTTPS (check X-Forwarded-Proto header from nginx)
+// Enforce HTTPS (check X-Forwarded-Proto header from nginx).
+// Use the canonical host from config rather than req.get("host") — the latter
+// is attacker-controlled (Host header / X-Forwarded-Host) and would let a
+// crafted plain-HTTP request 301 to https://evil.com/<path>.
+const CANONICAL_HOST = config.frontendUrl
+  ? new URL(config.frontendUrl).host
+  : null;
 app.use((req, res, next) => {
   if (!req.secure) {
     if (config.envIsProd) {
-      return res.redirect(301, `https://${req.get("host")}${req.url}`);
+      const host = CANONICAL_HOST || req.get("host");
+      return res.redirect(301, `https://${host}${req.url}`);
     }
     console.warn(`[ssl] Non-HTTPS request received: ${req.method} ${req.path}`);
   }
@@ -67,9 +73,11 @@ app.use(
   }),
 );
 
-// Body parsing
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// Body parsing — uploads use multer (multipart), not express.json. The JSON
+// surface only ever carries small payloads (profile edits, posts, etc.), so
+// 256 KB is plenty and avoids accepting 10 MB JSON blobs by accident.
+app.use(express.json({ limit: "256kb" }));
+app.use(express.urlencoded({ extended: true, limit: "256kb" }));
 app.use(cookieParser());
 
 // Passport (OAuth)

@@ -43,7 +43,7 @@ AlpacaParty is a web-based platform where users can:
 
 ## Key Features
 - **Profile**: Customize your avatar, view your stats and achievements, see your post history
-- **Feed**: Share posts, like and repost content from other players, see trending alpaca content
+- **Feed**: Share posts, like and comment on content from other players, see trending alpaca content
 - **Friends**: Send/accept friend requests, see who's online, view friend profiles
 - **Messages**: Real-time direct messaging with friends (click the chat bubble icon in the bottom-left)
 - **Notifications**: Bell icon in the navbar — friend requests, game invites, post likes, achievements
@@ -111,10 +111,14 @@ async function pipeGroqStream(upstream, res) {
   res.end();
 }
 
+// Per-route body cap: messages are ≤ 20 × 2000 chars (~40 KB worth of text);
+// 64 KB leaves room for envelope overhead but rejects abuse long before the
+// 256 KB global limit (and the 10 MB previous global).
 router.post(
   '/chat',
   authenticate,
   helpdeskLimiter,
+  express.json({ limit: '16kb' }),
   [
     body('messages')
       .isArray({ min: 1, max: 20 })
@@ -147,7 +151,7 @@ router.post(
         body: JSON.stringify({
           model: config.groq.model,
           messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
-          max_tokens: 600,
+          max_tokens: 400,
           temperature: 0.7,
           stream: true,
         }),

@@ -86,7 +86,12 @@ export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
+    if (
+      typeof currentPassword !== "string" ||
+      typeof newPassword !== "string" ||
+      !currentPassword ||
+      !newPassword
+    ) {
       return res.status(400).json({
         error: { message: "currentPassword and newPassword are required" },
       });
@@ -188,17 +193,18 @@ export const listUsers = async (req, res, next) => {
     const users = searchRes.usersFound;
     const total = searchRes.userCount;
 
-    // add additional flags
+    // add additional flags — batched in 3 queries total (avoid N+1)
     const userId = Number(req.user.id);
+    const flagMap = await Friend.relationFlagsForMany(
+      userId,
+      users.map((u) => u.id),
+    );
     for (const u of users) {
-      u.is_friend = await Friend.isFriend(userId, u.id);
-      u.is_blocked = await Friend.isBlocked(userId, u.id);
-      const { requestSent, requestReceived } = await Friend.requestInfo(
-        userId,
-        u.id,
-      );
-      u.request_sent = requestSent ?? false;
-      u.request_received = requestReceived ?? false;
+      const f = flagMap.get(u.id) || {};
+      u.is_friend = !!f.isFriend;
+      u.is_blocked = !!f.isBlocked;
+      u.request_sent = !!f.requestSent;
+      u.request_received = !!f.requestReceived;
     }
 
     res.json({
@@ -296,9 +302,7 @@ export const deleteMe = async (req, res, next) => {
 export const getApiKey = async (req, res, next) => {
   try {
     const apiKey = await User.getApiKey(req.user.id);
-    if (!apiKey)
-      return res.status(404).json({ error: { message: "No API key found" } });
-    res.json({ apiKey });
+    res.json({ apiKey: apiKey || null });
   } catch (err) {
     next(err);
   }

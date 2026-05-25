@@ -1,7 +1,6 @@
 /**
  * Vue Application Entry Point
  * @owner fankahou, LukasStefanek
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/1
  */
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

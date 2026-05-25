@@ -1,7 +1,6 @@
 <!--
   Register View
   @owner fankahou, LukasStefanek
-  @issue https://github.com/ValGSgit/AlpacaParty/issues/8
 -->
 <template>
   <div class="auth-page">
