@@ -15,7 +15,7 @@
 - **3D Alpaca Farm** — Three.js immersive farm with alpaca customization, shop, building, and cloud saves
 - **Two Real-time Mini-games** — Spit Royale (battle-royale arena, 1v1 + survival vs bots) and Alpaca Road (real-time race) with matchmaking, ELO, and per-game stats
 - **Real-time Chat** — Direct messages and group rooms via Socket.IO; typing indicators, read receipts, in-chat game invites, and block/unblock
-- **Social Feed** — Posts with image uploads, likes, comments, and reposts; public/private visibility
+- **Social Feed** — Posts with image uploads, likes, comments; public/private visibility
 - **Friends & Presence** — Add friends, see online status, block users
 - **AI Help Desk** — Floating chat widget that streams answers from Groq; system-prompted to know AlpacaParty's features
 - **Gamification** — XP/level, achievements, daily challenges, coin economy, ELO leaderboard
@@ -100,7 +100,7 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
         │ 1:N
         ├─► Friend, FriendRequest, BlockedUser   (social graph)
         ├─► Message                              (DMs sender↔receiver)
-        ├─► Post — PostLike, Comment, Repost
+        ├─► Post — PostLike, Comment
         ├─► File                                 (uploads metadata)
         ├─► Notification
         ├─► Game (player1Id · player2Id · winnerId, gameType, gameData JSON)
@@ -124,7 +124,7 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
 | `AlpacaFarm` | userId unique, items/alpacas/upgrades (JSONB), coins | Full 3D farm save |
 | `Achievement` / `UserAchievement` | key (`first_win`, `level_10`, `social_butter`, …), xpReward / unlockedAt | Persistent progress |
 | `DailyChallenge` / `UserDailyChallenge` | activeDate / completed, completedAt | Rotating challenges |
-| `Post`, `PostLike`, `Comment`, `Repost` | authorId, content, imageUrl, isPublic | Social content graph |
+| `Post`, `PostLike`, `Comment` | authorId, content, imageUrl, isPublic | Social content graph |
 | `DataRequest` | type (`export`/`delete`), status, format (`json`/`csv`/`xml`) | GDPR workflow |
 | `File` | uploaderId, originalName, storedName, mimeType, sizeBytes | Secure upload metadata |
 
@@ -140,7 +140,7 @@ PostgreSQL with 27 models managed by Prisma ORM, organized around users, social 
 | Friends System | Send/accept/decline/cancel requests; online status; block / unblock | ValGSgit, fankahou |
 | Direct Messaging | Real-time 1-to-1 messaging via Socket.IO; typing indicators; read receipts; persistent history; in-chat game invite | ValGSgit, LukasStefanek |
 | Group Chat Rooms | Create/join/leave; per-room roles (owner/admin/member) | ValGSgit, LukasStefanek |
-| Social Feed | Posts with image uploads; likes, comments, reposts; public/private | ValGSgit, fankahou |
+| Social Feed | Posts with image uploads; likes, comments; public/private | ValGSgit, fankahou |
 | 3D Alpaca Farm | Three.js farm world: alpaca customization, shop, building, cloud save (JSONB) | fankahou, LukasStefanek |
 | Spit Royale (Game 1) | Real-time arena: 1v1 matchmaking, survival vs AI bots, spectator, rematch | ValGSgit, LukasStefanek |
 | Alpaca Road (Game 2) | Real-time race: matchmaking, history & ELO tracked separately from Spit Royale | ValGSgit, LukasStefanek |

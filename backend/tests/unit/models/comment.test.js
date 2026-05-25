@@ -299,7 +299,7 @@ describe('Comment Model', () => {
     });
 
     test('should return false if user is not author, post owner, or admin', async () => {
-      // Comment.delete now also lets the parent post/repost owner delete.
+      // Comment.delete now also lets the parent post owner delete.
       // Stub the post lookup to a different owner so the requester has no claim.
       const mockComment = {
         id: 1,

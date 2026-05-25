@@ -72,7 +72,7 @@ X-API-Key: ap_your_key_here
       },
       {
         name: "Posts",
-        description: "Social feed — create, like, comment, repost",
+        description: "Social feed — create, like, comment",
       },
       { name: "Chat", description: "Direct messages and group chat rooms" },
       {

@@ -257,8 +257,6 @@ REST is for history only; sending messages is done over Socket.io (`dm:send`).
 | GET | `/:id/comments` | optional | Post comments |
 | POST | `/:id/comments` | required | Add comment |
 | DELETE | `/:id/comments/:commentId` | required | Delete comment (owner / post-owner / admin) |
-| POST | `/:id/repost` | required | Repost with optional comment |
-| DELETE | `/:id/repost` | required | Remove repost |
 
 Rate limited per action type (`postWriteLimiter`, `commentWriteLimiter`, `likeLimiter`).
 
@@ -331,7 +329,7 @@ Validates 1–20 messages, max 2 000 chars each. Groq API keys rotated round-rob
 | `chatController` | Conversation list, DM history, unread count |
 | `gameController` | Stats, history, leaderboard, offline results, farm CRUD (single canonical endpoint), achievements, challenges |
 | `postController` | Feed, post CRUD, like/unlike; HTML stripped via `stripDangerousHtml` |
-| `commentController` | Comment CRUD + repost/unrepost (imported by `routes/posts.js`) |
+| `commentController` | Comment CRUD (imported by `routes/posts.js`) |
 | `notificationController` | List, mark read, delete |
 | `uploadController` | Upload (multer → magic-byte validation → DB record), list, delete |
 | `adminController` | Admin auth, dashboard, user management, role/ban/delete, Vault permissions |
@@ -453,7 +451,7 @@ Arena battle royale. Players spawn in a circle (radius 25). HP=3; eliminated at 
 | `Game` | `create`, `joinGame`, `finishGame`, `cancelGame`, `getStats`, `getMatchHistory`, `getLeaderboard`, `getCoinsLeaderboard`, `updateStats`, `updateElo`, `getFarm`, `updateFarm` |
 | `Friend` | `sendRequest`, `acceptRequest`, `declineRequest`, `getFriends`, `getOnlineFriends`, `areFriends`, `getFriendStatus`, `removeFriend`, `blockUser`, `unblockUser`, `isBlockedBetween` |
 | `Message` | `create`, `getConversation`, `getConversationsList`, `countUnread`, `markAsRead` |
-| `Post` | `create`, `update`, `delete`, `getFeed`, `getByUser`, `likePost`, `unlikePost`, `repost`, `unrepost`, `getComments`, `shapePost` |
+| `Post` | `create`, `update`, `delete`, `getFeed`, `getByUser`, `likePost`, `unlikePost`, `getComments`, `shapePost` |
 | `Comment` | `create`, `delete`, `getByPost` — transactional (updates post count atomically) |
 | `Notification` | `create`, `getForUser`, `markRead`, `markAllRead`, `countUnread`, `delete`, `shapeNotification` |
 | `Achievement` | `getAll`, `getUserAchievements`, `unlock` (idempotent), `getUserChallengeProgress` |
@@ -472,7 +470,7 @@ All use `express-validator`. `validatorUtils.checkValidation` converts errors in
 |---|---|
 | `authValidator.js` | Register (username 3–32, email format, password policy), login |
 | `userValidator.js` | Profile update, password change |
-| `contentValidator.js` | Post (1–5 000 chars), comment (1–1 000), repost comment (1–500), image URL (≤2 048), ID params |
+| `contentValidator.js` | Post (1–5 000 chars), comment (1–1 000), image URL (≤2 048), ID params |
 | `limitValidator.js` | Pagination limit/offset |
 | `publicApiValidator.js` | Public API query params |
 
@@ -506,8 +504,8 @@ User ──────── UserAuth         (1:1) password hash, oauthProvide
          ├─── GameStat         (1:N) — unique(userId, gameType); elo starts 1000
          ├─── Post             (1:N) — content, imageUrl, isPublic, denormalized counts
          │      ├── PostLike   (M:N with User) @@unique([postId, userId])
-         │      ├── Comment    (1:N → User) — transactional count sync
-         │      └── Repost     (M:N with User, optional comment) @@unique([postId, authorId])
+         │      └── Comment    (1:N → User) — transactional count sync
+         │
          ├─── Notification     (1:N) — type, title, message, referenceType/Id, isRead
          ├─── UserAchievement  (M:N with Achievement) — unlockedAt
          ├─── UserDailyChallenge (M:N with DailyChallenge) — completed, completedAt
@@ -587,7 +585,7 @@ Socket.io client for the default `/` namespace. `connectSocket()` / `disconnectS
 | `OAuthCallback.vue` | Reads tokens from URL fragment; calls `fetchUser()`; navigates to `/profile` |
 | `UserProfile.vue` | Read-only public profile; friend button with four states (none / pending\_sent / pending\_received / friends); Accept, Decline, Unfriend actions |
 | `Profile.vue` | Editable profile form; settings tabs (account, privacy, password, data, danger zone); achievements grid |
-| `Feed.vue` | Create post (with image upload), infinite-scroll feed, like/comment/repost per post |
+| `Feed.vue` | Create post (with image upload), infinite-scroll feed, like/comment per post |
 | `Friends.vue` | Friend list, requests, blocked users; search + sort |
 | `Messages.vue` | Conversation list + DM chat panel; sends via `socket.emit('dm:send')` |
 | `AdminLogin.vue` | Admin-specific login using `adminAuth` store |
@@ -743,7 +741,6 @@ Browser          Nginx           Backend
 | `users.js` / `alpacaFarmController.js` | Duplicate farm endpoints at `/users/me/farmdata` and `/game/farm` | Removed `/me/farmdata`; `/game/farm` is canonical |
 | `schema.prisma` | Dead `twoFactorEnabled` / `twoFactorSecret` columns with no corresponding routes | Dropped from schema; migration `20260514200000_remove_2fa_fields` applied |
 | `postController.js` / `commentController.js` | `stripDangerousHtml` duplicated in both files; missing `<form>` and `<style>` tags | Extracted to `utils/htmlSanitizer.js`; gaps patched |
-| `Post.js` | Repost query in `getFeed()` missing `skip` — feed pagination broken for reposts | Added `skip: off` to repost `findMany` |
 | `MatchManager.js` | Room IDs generated with `Math.random()` — weak, collision-prone | Replaced with `crypto.randomUUID()` |
 | `SpitRoyaleMatch.js` / `MatchManager.js` | `console.log` in hot paths; no logger import | Replaced with `debug()` from `#lib/logger.js` |
 | `AlpacaRoadMatch.js` | `console.error` instead of logger | Replaced with `error()` from `#lib/logger.js` |

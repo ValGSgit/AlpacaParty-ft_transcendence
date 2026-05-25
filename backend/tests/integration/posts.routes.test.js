@@ -44,7 +44,6 @@ const mockPrisma = {
     findMany: jest.fn(),
     upsert: jest.fn(),
   },
-  repost: { findMany: jest.fn() },
   userAchievement: {
     findMany: jest.fn(),
     create: jest.fn(),
@@ -120,8 +119,6 @@ describe("GET /api/posts", () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce(authUser); // optionalAuth
     mockPrisma.post.findMany.mockResolvedValueOnce([samplePostPrisma]);
     mockPrisma.postLike.findMany.mockResolvedValueOnce([]); // liked posts for viewer
-    mockPrisma.repost.findMany.mockResolvedValueOnce([]); // viewer reposts
-    mockPrisma.repost.findMany.mockResolvedValueOnce([]); // recent reposts
     const res = await request
       .get("/api/posts")
       .set("Cookie", [`jwt_token=${token}`]);

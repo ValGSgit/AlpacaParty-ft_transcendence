@@ -43,7 +43,7 @@ AlpacaParty is a web-based platform where users can:
 
 ## Key Features
 - **Profile**: Customize your avatar, view your stats and achievements, see your post history
-- **Feed**: Share posts, like and repost content from other players, see trending alpaca content
+- **Feed**: Share posts, like and comment on content from other players, see trending alpaca content
 - **Friends**: Send/accept friend requests, see who's online, view friend profiles
 - **Messages**: Real-time direct messaging with friends (click the chat bubble icon in the bottom-left)
 - **Notifications**: Bell icon in the navbar — friend requests, game invites, post likes, achievements
