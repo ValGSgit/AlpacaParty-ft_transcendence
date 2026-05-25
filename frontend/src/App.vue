@@ -92,7 +92,7 @@
     <!-- Floating message button (positioned fixed via global CSS in style.css) -->
     <div v-if="authStore.isAuthenticated && !isAuthRoute" :class="['bottom-left-nav', { 'with-footer': hasFooter }]">
       <button class="message-btn" @click="showMessagesModal = true" title="Messages">
-        <AppIcon name="message" :size="22" />
+        <AppIcon name="message" :size="44" />
         <span v-if="unreadMessages" class="msg-badge">{{ unreadMessages }}</span>
       </button>
     </div>
