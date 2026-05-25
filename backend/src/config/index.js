@@ -1,7 +1,6 @@
 /**
  * Application Configuration
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/5
  *
  * Centralised config from environment variables.
  * See .env.example at the project root for required variables.

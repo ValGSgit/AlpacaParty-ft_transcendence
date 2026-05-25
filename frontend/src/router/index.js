@@ -1,7 +1,6 @@
 /**
  * Vue Router Configuration
  * @owner fankahou, LukasStefanek
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/1
  */
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'

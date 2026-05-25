@@ -1,7 +1,6 @@
 <!--
   OAuthCallback View
   @owner ValGSgit
-  @issue https://github.com/ValGSgit/AlpacaParty/issues/8
 
   Landing page after a Google / GitHub OAuth round-trip. The backend has
   already set the JWT cookies on the redirect, so the only work here is to

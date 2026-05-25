@@ -1,7 +1,6 @@
 /**
  * Error-handling Middleware
  * @owner DavidPoetsch, ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/2
  */
 
 import { Prisma } from "@prisma/client";

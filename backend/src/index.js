@@ -1,7 +1,6 @@
 /**
  * Express Application Entry Point
  * @owner DavidPoetsch, ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/2
  */
 import express from "express";
 import cors from "cors";

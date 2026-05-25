@@ -1,7 +1,6 @@
 <!--
   Root Application Component
   @owner fankahou, LukasStefanek
-  @issue https://github.com/ValGSgit/AlpacaParty/issues/1
 -->
 <template>
   <div id="app">
