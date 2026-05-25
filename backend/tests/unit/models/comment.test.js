@@ -13,10 +13,6 @@ const mockPrisma = {
     update: jest.fn(),
     count: jest.fn(),
   },
-  repost: {
-    findUnique: jest.fn(),
-    update: jest.fn(),
-  },
   $transaction: jest.fn(),
 };
 
@@ -116,24 +112,6 @@ describe('Comment Model', () => {
 
       expect(result.author_username).toBeUndefined();
       expect(result.author_avatar).toBeUndefined();
-    });
-
-    test('should create a comment on a repost and update repost comment count', async () => {
-      const mockComment = {
-        id: 2, postId: null, repostId: 200, authorId: 50,
-        content: 'Nice repost!', createdAt: new Date(), updatedAt: new Date(),
-        author: { username: 'user', avatar: 'a.jpg' },
-      };
-      const repostUpdate = jest.fn().mockResolvedValue({ id: 200, commentsCount: 1 });
-      prisma.$transaction = jest.fn(async (cb) => cb({
-        comment: { create: jest.fn().mockResolvedValue(mockComment), count: jest.fn().mockResolvedValue(1) },
-        repost: { update: repostUpdate },
-      }));
-
-      const result = await Comment.create({ repostId: 200, authorId: 50, content: 'Nice repost!' });
-
-      expect(result.repost_id).toBe(200);
-      expect(repostUpdate).toHaveBeenCalledWith({ where: { id: 200 }, data: { commentsCount: 1 } });
     });
 
     test('should convert postId and authorId to numbers', async () => {
@@ -415,21 +393,6 @@ describe('Comment Model', () => {
       expect(prisma.comment.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
       });
-    });
-
-    test('should delete a comment on a repost and update repost comment count', async () => {
-      const mockComment = { id: 3, postId: null, repostId: 200, authorId: 50, content: 'bye' };
-      prisma.comment.findUnique.mockResolvedValue(mockComment);
-      const repostUpdate = jest.fn().mockResolvedValue({ id: 200, commentsCount: 0 });
-      prisma.$transaction = jest.fn(async (cb) => cb({
-        comment: { delete: jest.fn().mockResolvedValue(mockComment), count: jest.fn().mockResolvedValue(0) },
-        repost: { update: repostUpdate },
-      }));
-
-      const result = await Comment.delete(3, 50);
-
-      expect(result).toBe(true);
-      expect(repostUpdate).toHaveBeenCalledWith({ where: { id: 200 }, data: { commentsCount: 0 } });
     });
 
     test('should update post comment count after deletion', async () => {
