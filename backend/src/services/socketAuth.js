@@ -10,14 +10,16 @@ export function socketAuthMiddleware() {
   return async (socket, next) => {
     try {
       const token = socket.request.cookies.jwt_token;
-      if (!token) return next(new Error("Authentication required"));
+      if (!token)
+        return next(new Error("Authentication required"));
 
       const decoded = AuthService.verifyToken(token);
       if (!decoded || decoded.type === "refresh")
         return next(new Error("Invalid token"));
 
       const user = await User.findById(decoded.id);
-      if (!user) return next(new Error("User not found"));
+      if (!user)
+        return next(new Error("User not found"));
 
       socket.user = user;
       next();

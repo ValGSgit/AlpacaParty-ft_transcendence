@@ -369,8 +369,8 @@ const User = {
 
   async search(
     { limit = 20, offset = 0, filter = {}, sort = {} } = {},
-    excludeUserId = -1,
-  ) {
+    excludeUserId = -1,)
+  {
     const whereClause = this.filterToPrismaWhere(filter);
     whereClause.NOT = [];
     whereClause.NOT.push({ id: excludeUserId });

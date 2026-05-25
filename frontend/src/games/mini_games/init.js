@@ -4,7 +4,7 @@ import { debug } from '../../services/logger.js';
 import { clearCoins } from '../components/coins.js';
 import { CONST } from '../config/constants.js';
 import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
-import { saveGame } from '../core/saveLoadGame.js';
+import { pauseSaves, resumeSaves, saveGame } from '../core/saveLoadGame.js';
 import { useGameEngine } from '../core/useGameEngine.js';
 import { initWorld } from '../world/initWorld.js';
 import { initAlpacaRoad, initAlpacaRoadOnline } from './alpacaRoad.js';
@@ -56,10 +56,20 @@ async function returnFarm() {
   gUI.cameraMode = 0
   visitPlayerId = null
 
-  gPlayer.value = null
-  clearScene(gScene.value)
-  resetGArrays()
-  await initWorld(gScene.value, authStore.isAuthenticated)
+  // Block farm-mode autosaves until the world is fully loaded. Without this,
+  // `gPlayer.value = null` (and coin/upgrade refreshes inside loadGameData)
+  // trigger the watcher → saveGame() at T+300ms. If initWorld takes longer
+  // (network + GLB loads commonly do), the debounced save writes empty
+  // gAlpacas/gItems back to the server and wipes the user's farm.
+  pauseSaves()
+  try {
+    gPlayer.value = null
+    clearScene(gScene.value)
+    resetGArrays()
+    await initWorld(gScene.value, authStore.isAuthenticated)
+  } finally {
+    resumeSaves()
+  }
   saveGame()
 }
 
@@ -96,10 +106,19 @@ async function initGameMode(mode, playerCount, tempAlpacas) {
     case 4:
       initAlpacaRoadOnline(playerCount, tempAlpacas);
       break;
-    case 5: // visit farm
+    case 5: { // visit farm
       const authStore = useAuthStore();
-      await initWorld(gScene.value, authStore.isAuthenticated, visitPlayerId);
+      // Visiting someone else's farm — the load also nulls gPlayer and
+      // mutates gUser, which would scheduled an autosave on top of someone
+      // else's data. Suppress until the load completes.
+      pauseSaves();
+      try {
+        await initWorld(gScene.value, authStore.isAuthenticated, visitPlayerId);
+      } finally {
+        resumeSaves();
+      }
       break;
+    }
     default:
       await returnFarm();
   }

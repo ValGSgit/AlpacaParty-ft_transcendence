@@ -15,8 +15,10 @@ const { spawnFloatingText } = useFloatingText();
 export function alpacaHandling() {
 
   const setMoveLocation = (raycaster) => {
-    if (!raycaster.ray.intersectPlane(floorPlane, worldPoint)) return;
-    if (!gPlayer.value) return;
+    if (!raycaster.ray.intersectPlane(floorPlane, worldPoint))
+      return;
+    if (!gPlayer.value)
+      return;
     gPlayer.value.target = worldPoint.clone();
     gPlayer.value.isAutoMoving = true;
   }
@@ -34,7 +36,8 @@ export function alpacaHandling() {
   }
 
   const makeSpit = (alpaca, targetPoint) => {
-    if (alpaca.isDead === 1) return;
+    if (alpaca.isDead === 1)
+      return;
 
     const origin = new THREE.Vector3().copy(alpaca.model.position);
     let dx = Math.sin(alpaca.model.rotation.y);
@@ -92,9 +95,11 @@ export function alpacaHandling() {
             }
             else if (gMinigame.value.mode === 1) {
               // --- SINGLE PLAYER LOGIC ---
-              if (hitAlpaca.hp > 0) spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
+              if (hitAlpaca.hp > 0)
+                spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
               hitAlpaca.beingHit(s.owner);
-              if (gPlayer.value === hitAlpaca) gMinigame.value.players[0].hp--;
+              if (gPlayer.value === hitAlpaca)
+                gMinigame.value.players[0].hp--;
               gMinigame.value.players[0].point = gUser.value.point;
 
             } else if (gMinigame.value.mode === 2) {
@@ -103,7 +108,8 @@ export function alpacaHandling() {
                 debug("hit alpaca:", hitAlpaca.health);
                 gPlayer.value.point++;
                 activeClient.sendSpitHit(hitAlpaca.socketId);
-                if (hitAlpaca.hp > 0) spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
+                if (hitAlpaca.hp > 0)
+                  spawnFloatingText(hitAlpaca.model, '-💔', 'hearts');
               }
             }
           }

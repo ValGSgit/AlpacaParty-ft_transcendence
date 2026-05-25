@@ -119,8 +119,19 @@ const GamificationService = {
     if (gameType === 'spit_royale' && gs.wins >= 10) await this.unlock(userId, 'sharpshooter');
     if (gameType === 'alpaca_road' && gs.wins >= 5)  await this.unlock(userId, 'road_warrior');
 
-    const lb = await Game.getLeaderboard(gameType, { limit: 1 });
-    if (lb[0]?.userId === userId) await this.unlock(userId, 'top_player');
+    // top_player: #1 in any visible leaderboard (kills, obstacles, or coins).
+    const [topKills, topObstacles, topCoins] = await Promise.all([
+      Game.getKillsLeaderboard({ limit: 1 }),
+      Game.getObstaclesLeaderboard({ limit: 1 }),
+      Game.getCoinsLeaderboard({ limit: 1 }),
+    ]);
+    if (
+      topKills[0]?.userId === userId ||
+      topObstacles[0]?.userId === userId ||
+      topCoins[0]?.userId === userId
+    ) {
+      await this.unlock(userId, 'top_player');
+    }
 
     NotificationService.broadcastAll('game:finish');
   },

@@ -54,7 +54,7 @@ export const adminLogin = async (req, res, next) => {
  * POST /api/admin/logout
  */
 export const adminLogout = (_req, res) => {
-  res.clearCookie("admin_jwt_token", { path: "/" });
+  res.clearCookie("admin_jwt_token", { path: "/api/admin" });
   res.json({ message: "Logged out" });
 };
 

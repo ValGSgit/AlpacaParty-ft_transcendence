@@ -112,8 +112,13 @@ export class SpitRoyalMatch extends BaseMatch {
     const now = Date.now();
     if (now - (player.lastSpitAt || 0) < SPIT_COOLDOWN_MS) return;
     player.lastSpitAt = now;
-    player.lastSpitDir = direction;
-    this.broadcast('player_spit', { ownerId: socketId, direction });
+    // Sanitise the direction so we forward {x, y, z} numbers only — never
+    // store client objects on the player (they may include non-serialisable
+    // bits that would crash hasBinary if re-broadcast).
+    const safeDir = direction && typeof direction === 'object'
+      ? { x: Number(direction.x) || 0, y: Number(direction.y) || 0, z: Number(direction.z) || 0 }
+      : null;
+    this.broadcast('player_spit', { ownerId: socketId, direction: safeDir });
   }
 
   handleSpitHit(ownerId, targetId) {
@@ -194,6 +199,12 @@ export class SpitRoyalMatch extends BaseMatch {
         const result = isWinner ? 'win' : 'loss';
 
         await Game.updateStats(p.userId, GAME_TYPE, result);
+        // Server-validated kills for the kills leaderboard. p.point is the
+        // kill counter incremented in handleSpitHit (only after a successful
+        // server-side range/cooldown check), so this is cheat-resistant.
+        if (p.point > 0) {
+          await Game.incrementCounter(p.userId, GAME_TYPE, 'kills', p.point);
+        }
 
         if (isWinner) {
           await GamificationService.onWin(p.userId, GAME_TYPE);

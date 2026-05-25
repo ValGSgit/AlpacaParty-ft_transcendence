@@ -21,6 +21,11 @@ export class AlpacaRoadMatch extends BaseMatch {
     this.timerMultiplier = 1.0;
     this.spawnTimer = 2.0;
     this.finalized = false;
+    // Per-socket auto-clear timers for isHit. Kept off the player object
+    // because Node's Timeout has circular internal pointers — including it
+    // in syncLobby() (which broadcasts raw player objects) crashed
+    // socket.io-parser's hasBinary() walk with a stack overflow.
+    this.hitTimers = new Map();
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
 
@@ -66,6 +71,39 @@ export class AlpacaRoadMatch extends BaseMatch {
     this.isPlaying = false;
     this.obstacles = [];
     this.roadSpeed = 0;
+    // Drain any pending hit-clear timers so they don't fire after teardown.
+    for (const t of this.hitTimers.values()) clearTimeout(t);
+    this.hitTimers.clear();
+  }
+
+  removePlayer(socketId) {
+    this._clearHitTimer(socketId);
+    super.removePlayer(socketId);
+  }
+
+  // Schedule a server-side hit-clear so a dropped player_hit_complete
+  // doesn't leave the player permanently invulnerable. Timer is stored
+  // in a side map (NOT on the player) so it's never serialised.
+  _scheduleHitClear(socketId) {
+    const existing = this.hitTimers.get(socketId);
+    if (existing) clearTimeout(existing);
+    const t = setTimeout(() => {
+      this.hitTimers.delete(socketId);
+      const p = this.players.get(socketId);
+      if (p && p.isHit) {
+        p.isHit = false;
+        this.syncLobby();
+      }
+    }, HIT_TIMEOUT_MS);
+    this.hitTimers.set(socketId, t);
+  }
+
+  _clearHitTimer(socketId) {
+    const t = this.hitTimers.get(socketId);
+    if (t) {
+      clearTimeout(t);
+      this.hitTimers.delete(socketId);
+    }
   }
 
   handlePlayerHit(socketId) {
@@ -74,17 +112,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     player.isHit = true;
     player.hp--;
     if (player.hp <= 0) player.isDead = true;
-    // Safety net: clear isHit even if the client never sends hit_complete
-    // (closed tab mid-spin, network drop). Otherwise the player would be
-    // permanently invulnerable to subsequent hits.
-    clearTimeout(player._hitTimeout);
-    player._hitTimeout = setTimeout(() => {
-      const p = this.players.get(socketId);
-      if (p && p.isHit) {
-        p.isHit = false;
-        this.syncLobby();
-      }
-    }, HIT_TIMEOUT_MS);
+    this._scheduleHitClear(socketId);
     this.syncLobby();
   }
 
@@ -92,7 +120,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     const player = this.players.get(socketId);
     if (player && player.isHit) {
       player.isHit = false;
-      clearTimeout(player._hitTimeout);
+      this._clearHitTimer(socketId);
       this.syncLobby();
     }
   }
@@ -290,6 +318,11 @@ export class AlpacaRoadMatch extends BaseMatch {
         const isWinner = p.userId === winner.userId;
         const result = isWinner ? "win" : "loss";
         await Game.updateStats(p.userId, GAME_TYPE, result);
+        // p.points is the server-tracked count of obstacles successfully
+        // cleared in their lane — feed it into the obstacles leaderboard.
+        if (p.points > 0) {
+          await Game.incrementCounter(p.userId, GAME_TYPE, 'obstacles', p.points);
+        }
 
         if (isWinner) {
           await GamificationService.onWin(p.userId, GAME_TYPE);

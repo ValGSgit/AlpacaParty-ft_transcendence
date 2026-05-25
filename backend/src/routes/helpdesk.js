@@ -118,7 +118,7 @@ router.post(
   '/chat',
   authenticate,
   helpdeskLimiter,
-  express.json({ limit: '64kb' }),
+  express.json({ limit: '16kb' }),
   [
     body('messages')
       .isArray({ min: 1, max: 20 })
@@ -151,7 +151,7 @@ router.post(
         body: JSON.stringify({
           model: config.groq.model,
           messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
-          max_tokens: 600,
+          max_tokens: 400,
           temperature: 0.7,
           stream: true,
         }),

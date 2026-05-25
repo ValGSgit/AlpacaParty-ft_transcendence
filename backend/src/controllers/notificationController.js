@@ -65,3 +65,13 @@ export const deleteNotification = async (req, res, next) => {
     next(err);
   }
 };
+
+/** DELETE /api/notifications — clear every notification for the caller. */
+export const deleteAllNotifications = async (req, res, next) => {
+  try {
+    const count = await Notification.deleteAll(req.user.id);
+    res.json({ message: "All notifications cleared", count });
+  } catch (err) {
+    next(err);
+  }
+};

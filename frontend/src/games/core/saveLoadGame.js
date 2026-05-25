@@ -4,7 +4,21 @@ import { useAuthStore } from '../../stores/auth.js'
 import { gAlpacas, gDecorations, gItems, gMinigame, gPlayer, gUser } from './globals.js'
 
 let _saveTimer = null
+// Save-suppression guard. Used during farm-reload (returnFarm → initWorld)
+// so the watcher-triggered saveGame() from `gPlayer.value = null` / coin
+// refresh doesn't fire with empty gAlpacas/gItems and wipe the DB before
+// the load finishes populating the world.
+let _suppressed = false
+export function pauseSaves() {
+  _suppressed = true
+  clearTimeout(_saveTimer)
+  _saveTimer = null
+}
+export function resumeSaves() {
+  _suppressed = false
+}
 export function saveGame() {
+  if (_suppressed) return
   clearTimeout(_saveTimer)
   _saveTimer = setTimeout(_doSave, 300)
 }

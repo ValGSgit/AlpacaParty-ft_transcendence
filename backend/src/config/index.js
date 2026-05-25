@@ -52,7 +52,10 @@ const config = {
         secure: secureCookies,
         sameSite,
         maxAge: ms(process.env.JWT_ADMIN_EXPIRES_IN),
-        path: "/",
+        // Scoped to /api/admin so the admin token isn't sent on every normal
+        // request — and never ends up captured in WAF audit logs of, say,
+        // /socket.io upgrades made by a logged-in non-admin tab.
+        path: "/api/admin",
       },
     };
   })(),

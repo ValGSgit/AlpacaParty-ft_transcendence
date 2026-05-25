@@ -363,20 +363,15 @@ const unlockedMap = ref({})
 const userPosts = ref([])
 const postsLoading = ref(true)
 
-// Game stats
 const userStats = ref({ xp: 0, level: 0, wins: 0, losses: 0, coins: 0 })
 
-// XP computed props
-const xpToNextLevel = computed(() => {
-  const lvl = userStats.value.level
-  return (lvl + 1) * 100 - userStats.value.xp
+const intoLevel = computed(() => {
+  const x = userStats.value.xp ?? 0
+  const l = userStats.value.level ?? 0
+  return Math.max(0, Math.min(100, x - l * 100))
 })
-const xpProgress = computed(() => {
-  const lvl = userStats.value.level
-  const into = userStats.value.xp - lvl * 100
-  return Math.max(0, Math.min(100, into))
-})
-const intoLevel = computed(() => userStats.value.xp - userStats.value.level * 100)
+const xpToNextLevel = computed(() => Math.max(0, 100 - intoLevel.value))
+const xpProgress = computed(() => intoLevel.value)
 
 // Settings Data State
 const globalMsg = ref(null)
@@ -457,7 +452,15 @@ onMounted(async () => {
     }
   }
 
-  // 2. Fetch Achievements
+  // 2. Seed xp/level from the authoritative UserStats on the auth payload.
+  //    Fall back to 0/0 — never sum from achievements (game wins also
+  //    award XP, so summing achievements alone produces drift).
+  if (u) {
+    userStats.value.xp = u.xp ?? 0
+    userStats.value.level = u.level ?? 0
+  }
+
+  // 3. Fetch Achievements (display only — XP is server-side)
   try {
     const { data } = await api.get('/game/achievements')
     const all = data.achievements || []
@@ -466,20 +469,16 @@ onMounted(async () => {
     const map = {}
     for (const a of achievements.value) { map[a.id] = true }
     unlockedMap.value = map
-    // Derive XP from unlocked achievement rewards
-    const totalXp = achievements.value.reduce((sum, a) => sum + (a.xpReward || a.points || 0), 0)
-    userStats.value.xp = totalXp
-    userStats.value.level = Math.floor(totalXp / 100)
   } catch (e) { devError(e) }
 
-  // 3. Fetch game stats (wins/losses)
+  // 4. Fetch per-game stats (wins/losses). GameStat has no level field —
+  //    don't try to read s.level here; the canonical level lives on UserStats.
   try {
     const { data } = await api.get('/game/stats')
     const s = Array.isArray(data.stats) ? data.stats[0] : data.stats
     if (s) {
       userStats.value.wins = s.wins ?? 0
       userStats.value.losses = s.losses ?? 0
-      userStats.value.level = s.level ?? userStats.value.level
     }
   } catch { /* stats endpoint optional */ }
 

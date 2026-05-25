@@ -15,6 +15,7 @@ import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
 import { adjustSunBox, setSunLight, setupLighting } from '../world/sceneBuilder.js';
 import { makeAnnouncement } from './annoucement.js';
 import { activeClient } from './GameClient.js';
+import { saveGameResult } from './utils.js';
 
 const roadLength = 700;
 const roadBack = -25;
@@ -627,6 +628,13 @@ function endMinigame() {
 
   if (earnedCoins > 0) {
     setTimeout(() => { collectRewards(earnedCoins); }, 50);
+  }
+
+  // Offline only — server-side persists online matches via _persistOutcome.
+  // Backend rejects 'win' here; we only contribute the obstacle count to
+  // the leaderboard so a fast run still ranks even if the player died.
+  if (!gMinigame.value.isOnline && playerPoints > 0) {
+    saveGameResult('alpaca_road', 'loss', { obstacles: playerPoints });
   }
 }
 

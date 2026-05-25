@@ -70,33 +70,33 @@ router.get('/history', getHistory);
  * /game/leaderboard:
  *   get:
  *     tags: [Game]
- *     summary: Get the game leaderboard
+ *     summary: Get a leaderboard table
  *     parameters:
  *       - in: query
- *         name: gameType
- *         schema: { type: string, default: spit_royale }
+ *         name: board
+ *         schema: { type: string, enum: [kills, obstacles, coins], default: kills }
+ *         description: Which metric to rank by
  *       - $ref: '#/components/parameters/limitParam'
  *       - $ref: '#/components/parameters/offsetParam'
  *     responses:
  *       200:
- *         description: Leaderboard entries ranked by level
+ *         description: Leaderboard rows ranked by the requested metric
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 board: { type: string, enum: [kills, obstacles, coins] }
  *                 leaderboard:
  *                   type: array
  *                   items:
  *                     type: object
  *                     properties:
- *                       rank: { type: integer, example: 1 }
  *                       userId: { type: integer }
  *                       username: { type: string }
  *                       avatar: { type: string, nullable: true }
  *                       level: { type: integer, example: 12 }
- *                       wins: { type: integer }
- *                       losses: { type: integer }
+ *                       value: { type: integer, description: "The metric value (kills / obstacles / coins)" }
  */
 router.get('/leaderboard/coins', getCoinsLeaderboard);
 router.get('/leaderboard', getLeaderboard);
