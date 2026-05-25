@@ -45,24 +45,32 @@ export const getCoinsLeaderboard = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-/** POST /api/game/result — Save offline/AI game result */
+/**
+ * POST /api/game/result — Save offline/AI game result.
+ *
+ * The body is client-supplied, so we intentionally do NOT trust a 'win'
+ * here — that would let any authenticated user farm achievements + coins
+ * by spamming POSTs without ever playing. Online matches persist server-side
+ * via the socket flow (see MatchManager). Only "loss"/"draw" are accepted
+ * from this endpoint (you can't cheat XP downward).
+ */
 export const saveGameResult = async (req, res, next) => {
   try {
     const { gameType, result } = req.body;
     if (!gameType || !result) {
       return res.status(400).json({ error: { message: 'gameType and result required' } });
     }
-    if (!['win', 'loss', 'draw'].includes(result)) {
-      return res.status(400).json({ error: { message: 'result must be win, loss, or draw' } });
+    if (!['loss', 'draw'].includes(result)) {
+      return res.status(400).json({
+        error: { message: "Only 'loss' or 'draw' may be reported here; wins are persisted server-side." },
+      });
     }
 
     await Game.updateStats(req.user.id, gameType, result);
     const stats = await Game.getStats(req.user.id, gameType);
     res.json({ stats });
 
-    if (result === 'win') {
-      GamificationService.onWin(req.user.id, gameType).catch(() => {});
-    } else if (result === 'loss') {
+    if (result === 'loss') {
       GamificationService.onLoss(req.user.id).catch(() => {});
     }
   } catch (err) { next(err); }

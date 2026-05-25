@@ -73,17 +73,25 @@ const Game = {
   async getStats(userId, gameType = "spit_royale") {
     const stat = await prisma.gameStat.findUnique({
       where: { userId_gameType: { userId: Number(userId), gameType } },
+      include: {
+        user: { select: { userStats: { select: { level: true } } } },
+      },
     });
-    return (
+    const fallback =
       stat || {
         userId: Number(userId),
         gameType,
         wins: 0,
         losses: 0,
         draws: 0,
-        elo: 1000,
-      }
-    );
+        level: 1,
+        kills: 0,
+        obstacles: 0,
+      };
+    return {
+      ...fallback,
+      level: fallback.user?.userStats?.level ?? fallback.level ?? 1,
+    };
   },
 
   async updateStats(userId, gameType, result) {
@@ -100,14 +108,6 @@ const Game = {
         draws: 0,
         [field]: 1,
       },
-    });
-  },
-
-  async updateElo(userId, gameType, newElo) {
-    await prisma.gameStat.upsert({
-      where: { userId_gameType: { userId: Number(userId), gameType } },
-      update: { elo: newElo },
-      create: { userId: Number(userId), gameType, elo: newElo },
     });
   },
 
@@ -129,7 +129,7 @@ const Game = {
           },
         },
       },
-      orderBy: { elo: "desc" },
+      orderBy: { user: { userStats: { level: "desc" } } },
       take: Number(limit),
       skip: Number(offset),
     });
@@ -141,7 +141,6 @@ const Game = {
       draws: s.draws,
       kills: s.kills ?? 0,
       obstacles: s.obstacles ?? 0,
-      elo: s.elo,
       username: s.user.username,
       avatar: s.user.avatar,
       level: s.user.userStats?.level ?? s.user.level ?? 1,

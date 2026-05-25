@@ -60,7 +60,7 @@ router.get('/stats', getStats);
  *                       gameType: { type: string, example: spit_royale }
  *                       result: { type: string, enum: [win, loss, draw] }
  *                       opponentUsername: { type: string }
- *                       eloDelta: { type: integer, example: 15 }
+ *                       levelDelta: { type: integer, example: 1 }
  *                       playedAt: { type: string, format: date-time }
  */
 router.get('/history', getHistory);
@@ -79,7 +79,7 @@ router.get('/history', getHistory);
  *       - $ref: '#/components/parameters/offsetParam'
  *     responses:
  *       200:
- *         description: Leaderboard entries ranked by ELO
+ *         description: Leaderboard entries ranked by level
  *         content:
  *           application/json:
  *             schema:
@@ -94,7 +94,7 @@ router.get('/history', getHistory);
  *                       userId: { type: integer }
  *                       username: { type: string }
  *                       avatar: { type: string, nullable: true }
- *                       elo: { type: integer, example: 1350 }
+ *                       level: { type: integer, example: 12 }
  *                       wins: { type: integer }
  *                       losses: { type: integer }
  */

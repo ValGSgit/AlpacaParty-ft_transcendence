@@ -21,6 +21,7 @@ const mockPrisma = {
     findUnique: jest.fn(),
     findMany: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
     deleteMany: jest.fn(),
     count: jest.fn(),
   },
@@ -133,18 +134,20 @@ describe("Post.getFeed", () => {
 });
 
 describe("Post.update", () => {
+  // Post.update now does updateMany({id, authorId}) then findById on count>0.
   test("updates content field", async () => {
     const updated = { ...mockPost, content: "Updated content" };
-    mockPrisma.post.update.mockResolvedValue(updated);
+    mockPrisma.post.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.post.findUnique.mockResolvedValue(updated);
     const result = await Post.update(1, 42, { content: "Updated content" });
     expect(result.content).toBe("Updated content");
   });
 
   test("updates isPublic with both snake_case and camelCase", async () => {
-    const updated = { ...mockPost, isPublic: false };
-    mockPrisma.post.update.mockResolvedValue(updated);
+    mockPrisma.post.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.post.findUnique.mockResolvedValue({ ...mockPost, isPublic: false });
     await Post.update(1, 42, { isPublic: false });
-    expect(mockPrisma.post.update).toHaveBeenCalled();
+    expect(mockPrisma.post.updateMany).toHaveBeenCalled();
   });
 
   test("returns existing post when no updates provided", async () => {
@@ -159,10 +162,16 @@ describe("Post.update", () => {
   });
 
   test("handles imageUrl field", async () => {
-    const updated = { ...mockPost, imageUrl: "/new-image.jpg" };
-    mockPrisma.post.update.mockResolvedValue(updated);
+    mockPrisma.post.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.post.findUnique.mockResolvedValue({ ...mockPost, imageUrl: "/new-image.jpg" });
     await Post.update(1, 42, { imageUrl: "/new-image.jpg" });
-    expect(mockPrisma.post.update).toHaveBeenCalled();
+    expect(mockPrisma.post.updateMany).toHaveBeenCalled();
+  });
+
+  test("returns null when nothing matched (wrong author / not found)", async () => {
+    mockPrisma.post.updateMany.mockResolvedValue({ count: 0 });
+    const result = await Post.update(1, 99, { content: "x" });
+    expect(result).toBeNull();
   });
 });
 

@@ -33,17 +33,14 @@ export const listUsers = async (req, res, next) => {
   try {
     const limit = req.query.limit ?? 20;
     const offset = req.query.offset ?? 0;
-    const filter = req.query.filter;
+    // Force a public-only predicate so pagination + total reflect filtered set.
+    const filter = { ...(req.query.filter || {}), public: true };
     const sort = req.query.sort;
 
     const searchRes = await User.search({ limit, offset, filter, sort });
-    const users = searchRes.usersFound;
-    const total = searchRes.userCount;
-
-    // Strip private profiles and remove sensitive fields.
     res.json({
-      users: users.filter((u) => isUserPublic(u)).map((u) => toPublicUser(u)),
-      total,
+      users: searchRes.usersFound.map((u) => toPublicUser(u)),
+      total: searchRes.userCount,
     });
   } catch (err) {
     next(err);
@@ -122,7 +119,7 @@ export const updatePost = async (req, res, next) => {
     if (!existingPost) throw new CustomError("Post not found", 404);
 
     if (existingPost.author_id !== req.userId)
-      throw new CustomError("Can not modify post of other user", 400);
+      throw new CustomError("Can not modify post of other user", 403);
 
     const post = await Post.update(postId, req.userId, {
       content,
@@ -147,7 +144,7 @@ export const deletePost = async (req, res, next) => {
     if (!existingPost) throw new CustomError("Post not found", 404);
 
     if (existingPost.author_id !== req.userId)
-      throw new CustomError("Can not delete post of other user", 400);
+      throw new CustomError("Can not delete post of other user", 403);
 
     await Post.delete(id, req.userId);
     res.json({ message: "Post deleted" });

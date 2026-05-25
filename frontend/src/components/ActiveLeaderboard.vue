@@ -126,7 +126,7 @@
             <svg class="coin-glyph" width="11" height="11" aria-hidden="true"><use href="#i-coin" /></svg>
             {{ entry.coins ?? 0 }}
           </template>
-          <template v-else>{{ entry.elo ?? 0 }}</template>
+          <template v-else>Lv {{ entry.level ?? 1 }}</template>
         </span>
       </div>
     </div>
@@ -207,8 +207,8 @@ async function fetchLeaderboard() {
     next.forEach(e => {
       const prev = prevMap.get(e.userId)
       if (!prev) return
-      const prevScore = gameType.value === 'coins' ? prev.coins : prev.elo
-      const nextScore = gameType.value === 'coins' ? e.coins    : e.elo
+      const prevScore = gameType.value === 'coins' ? prev.coins : prev.level
+      const nextScore = gameType.value === 'coins' ? e.coins    : e.level
       if (prevScore !== nextScore) changed.add(e.userId)
     })
     freshIds.value = changed

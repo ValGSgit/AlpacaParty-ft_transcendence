@@ -5,15 +5,14 @@ import GamificationService from "./GamificationService.js";
 
 const ARENA_RADIUS = 25;
 const PLAYER_RADIUS = 2;
-const ELO_K = 32;
 const GAME_TYPE = 'spit_royale';
 const MIN_RANKED_PLAYERS = 2;
-
-function calcElo(playerElo, avgOpponentElo, result) {
-  const expected = 1 / (1 + Math.pow(10, (avgOpponentElo - playerElo) / 400));
-  const score = result === 'win' ? 1 : 0;
-  return Math.round(playerElo + ELO_K * (score - expected));
-}
+// Server-authoritative anti-cheat constants. Without these a malicious client
+// could emit spit_hit with any targetId and instantly kill the whole lobby.
+const SPIT_COOLDOWN_MS = 500;
+const SPIT_MAX_RANGE = 12;            // metres
+const SPIT_VALID_FOR_MS = 1500;       // hit must follow a recent spit
+const MAX_SPEED_MPS = 25;             // server-side speed clamp
 
 export class SpitRoyalMatch extends BaseMatch {
   constructor(id, namespace, roomName, onStateChange) {
@@ -82,35 +81,64 @@ export class SpitRoyalMatch extends BaseMatch {
 
   handlePlayerInput(socketId, { x, y, z, angle }) {
     const player = this.players.get(socketId);
-    if (player && !player.isDead) {
-      if (x !== undefined) player.x = x;
-      if (y !== undefined) player.y = y;
-      if (z !== undefined) player.z = z;
-      if (angle !== undefined) player.angle = angle;
+    if (!player || player.isDead) return;
+
+    // Reject malformed payloads outright — clients are not trusted.
+    const validNum = (n) => typeof n === "number" && Number.isFinite(n);
+
+    if (validNum(x) && validNum(z)) {
+      // Clamp to arena bounds.
+      const r2 = x * x + z * z;
+      const maxR = ARENA_RADIUS - PLAYER_RADIUS;
+      if (r2 > maxR * maxR) return;
+
+      // Speed-limit movement between consecutive inputs so a client can't
+      // teleport across the arena.
+      const now = Date.now();
+      const dt = Math.max(0.001, (now - (player.lastInputAt || now)) / 1000);
+      const step = Math.hypot(x - (player.x ?? 0), z - (player.z ?? 0));
+      if (step > MAX_SPEED_MPS * dt * 1.5) return;
+      player.lastInputAt = now;
+      player.x = x;
+      player.z = z;
     }
+    if (validNum(y)) player.y = y;
+    if (validNum(angle)) player.angle = angle;
   }
 
   handlePlayerSpit(socketId, direction) {
     const player = this.players.get(socketId);
-    if (player && !player.isDead) {
-      this.broadcast('player_spit', { ownerId: socketId, direction: direction });
-    }
+    if (!player || player.isDead) return;
+    const now = Date.now();
+    if (now - (player.lastSpitAt || 0) < SPIT_COOLDOWN_MS) return;
+    player.lastSpitAt = now;
+    player.lastSpitDir = direction;
+    this.broadcast('player_spit', { ownerId: socketId, direction });
   }
 
   handleSpitHit(ownerId, targetId) {
-    const target = this.players.get(targetId);
     const owner = this.players.get(ownerId);
+    const target = this.players.get(targetId);
+    if (!owner || owner.isDead || !target || target.isDead) return;
+    // Hit must follow a recent spit by the owner — defeats clients that just
+    // call spit_hit on every tick.
+    const now = Date.now();
+    if (!owner.lastSpitAt || now - owner.lastSpitAt > SPIT_VALID_FOR_MS) return;
+    // Range check — the server holds the authoritative positions.
+    const dx = (target.x ?? 0) - (owner.x ?? 0);
+    const dz = (target.z ?? 0) - (owner.z ?? 0);
+    if (Math.hypot(dx, dz) > SPIT_MAX_RANGE) return;
 
-    if (target && !target.isDead) {
-      target.hp -= 1;
-      if (owner) owner.point++;
+    // Each spit can only hit once; clear the timestamp to enforce.
+    owner.lastSpitAt = 0;
 
-      if (target.hp <= 0) {
-        target.isDead = true;
-
-        this.namespace.to(targetId).emit('game_over', { reason: 'eliminated' });
-        this.checkWinCondition();
-      }
+    target.hp -= 1;
+    owner.point++;
+    if (target.hp <= 0) {
+      target.isDead = true;
+      this.eliminations = (this.eliminations || 0) + 1;
+      this.namespace.to(targetId).emit('game_over', { reason: 'eliminated' });
+      this.checkWinCondition();
     }
   }
 
@@ -118,11 +146,23 @@ export class SpitRoyalMatch extends BaseMatch {
     if (!this.isPlaying) return;
 
     const alivePlayers = Array.from(this.players.values()).filter(p => !p.isDead);
-    // Require at least 2 players to have joined before triggering a "last alpaca standing" win
-    if (this.playersJoined > 1 && alivePlayers.length <= 1) {
+    // Last-alpaca-standing only counts if a real elimination happened — stops
+    // a leaver from handing the survivor a free win.
+    if (
+      this.playersJoined > 1 &&
+      alivePlayers.length <= 1 &&
+      (this.eliminations || 0) > 0
+    ) {
       this.status = 'GAME_OVER';
       const winnerSocketId = alivePlayers.length === 1 ? alivePlayers[0].id : null;
       this.endMatch(winnerSocketId, 'lastone_standing');
+      return;
+    }
+    // Solo match: when the lone player dies, end the match so the heartbeat
+    // doesn't leak. No winner, no persistence.
+    if (this.playersJoined === 1 && alivePlayers.length === 0) {
+      this.status = 'GAME_OVER';
+      this.endMatch(null, 'no_survivors');
     }
   }
 
@@ -148,23 +188,12 @@ export class SpitRoyalMatch extends BaseMatch {
       ? ranked.find((p) => p.id === winnerSocketId)
       : null;
 
-    const currentStats = await Promise.all(
-      ranked.map((p) => Game.getStats(p.userId, GAME_TYPE)),
-    );
-    const eloByUser = new Map();
-    ranked.forEach((p, i) => eloByUser.set(p.userId, currentStats[i].elo ?? 1000));
-    const totalElo = Array.from(eloByUser.values()).reduce((a, b) => a + b, 0);
-
     await Promise.all(
       ranked.map(async (p) => {
-        const myElo = eloByUser.get(p.userId);
-        const avgOpp = ranked.length > 1 ? (totalElo - myElo) / (ranked.length - 1) : myElo;
         const isWinner = winnerPlayer != null && p.userId === winnerPlayer.userId;
         const result = isWinner ? 'win' : 'loss';
-        const newElo = calcElo(myElo, avgOpp, result);
 
         await Game.updateStats(p.userId, GAME_TYPE, result);
-        await Game.updateElo(p.userId, GAME_TYPE, newElo);
 
         if (isWinner) {
           await GamificationService.onWin(p.userId, GAME_TYPE);
@@ -173,6 +202,26 @@ export class SpitRoyalMatch extends BaseMatch {
         }
       }),
     );
+
+    // Persist a Game row for 2-player matches so /api/game/history shows
+    // online matches. The Game schema is player1/player2 only — >2 player
+    // matches are reflected in GameStat (wins/losses/level) but not in the
+    // per-match history. Schema extension (match_participant table) is
+    // tracked separately.
+    if (ranked.length === 2) {
+      try {
+        const [a, b] = ranked;
+        const game = await Game.create({ player1Id: a.userId, gameType: GAME_TYPE });
+        await Game.joinGame(game.id, b.userId);
+        await Game.finishGame(game.id, {
+          winnerId: winnerPlayer?.userId ?? null,
+          player1Score: a.point ?? 0,
+          player2Score: b.point ?? 0,
+        });
+      } catch (err) {
+        error('[spit-royale] game-row persist failed:', err.message);
+      }
+    }
   }
 
   update() {

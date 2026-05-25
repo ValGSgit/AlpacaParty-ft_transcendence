@@ -169,6 +169,17 @@ describe("User.update", () => {
     const result = await User.update(999, { bio: "ghost" });
     expect(result).toBeNull();
   });
+  test("should return current user when only settings updates are applied", async () => {
+    mockPrisma.user.update.mockResolvedValue(null);
+    mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
+
+    const result = await User.update(1, { isPublic: true });
+
+    expect(result).toEqual(fakeUser);
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 1 } }),
+    );
+  });
 });
 
 describe("User.updatePassword", () => {
@@ -286,16 +297,36 @@ describe("User.findOrCreateOAuth", () => {
 
   test("should link to existing email when creating OAuth user", async () => {
     mockPrisma.user.findFirst.mockResolvedValue(null);
-    mockPrisma.user.upsert.mockResolvedValue(fakeUser);
+    mockPrisma.user.findUnique.mockResolvedValue({ id: 99, userAuth: {} });
+    mockPrisma.user.update.mockResolvedValue(fakeUser);
     const result = await User.findOrCreateOAuth({
       provider: "google",
       oauthId: "456",
       username: "newuser",
       email: "existing@example.com",
       avatar: "/avatar.jpg",
+      emailVerified: true,
     });
     expect(result.created).toBe(true);
-    expect(mockPrisma.user.upsert).toHaveBeenCalled();
+    expect(mockPrisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 99 },
+        data: expect.objectContaining({
+          userAuth: {
+            upsert: {
+              create: {
+                oauthProvider: "google",
+                oauthId: "456",
+              },
+              update: {
+                oauthProvider: "google",
+                oauthId: "456",
+              },
+            },
+          },
+        }),
+      }),
+    );
   });
 
   test("should create user with internal email when no email provided", async () => {
@@ -413,10 +444,25 @@ describe("User.deleteById", () => {
     expect(result).toBe(true);
   });
 
-  test("should return false when user not found", async () => {
-    mockPrisma.user.delete.mockRejectedValue(new Error("Not found"));
+  test("should return false when user not found (P2025)", async () => {
+    const err = new Error("Record to delete does not exist");
+    err.code = "P2025";
+    mockPrisma.user.delete.mockRejectedValue(err);
     const result = await User.deleteById(999);
     expect(result).toBe(false);
+  });
+
+  test("should rethrow non-P2025 database errors", async () => {
+    const err = new Error("DB down");
+    err.code = "P1001";
+    mockPrisma.user.delete.mockRejectedValue(err);
+    await expect(User.deleteById(1)).rejects.toThrow("DB down");
+  });
+
+  test("should return false for non-positive ids without touching prisma", async () => {
+    const result = await User.deleteById("not-a-number");
+    expect(result).toBe(false);
+    expect(mockPrisma.user.delete).not.toHaveBeenCalled();
   });
 });
 

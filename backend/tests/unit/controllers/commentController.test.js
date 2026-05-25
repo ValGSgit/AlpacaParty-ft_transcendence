@@ -16,12 +16,20 @@ const mockNotificationService = {
   postCommented: jest.fn().mockResolvedValue(true),
 }
 
+const mockFriend = {
+  isBlockedBetween: jest.fn().mockResolvedValue(false),
+}
+
 jest.unstable_mockModule('../../../src/models/Comment.js', () => ({
   default: mockComment,
 }))
 
 jest.unstable_mockModule('../../../src/models/Post.js', () => ({
   default: mockPost,
+}))
+
+jest.unstable_mockModule('../../../src/models/Friend.js', () => ({
+  default: mockFriend,
 }))
 
 jest.unstable_mockModule('../../../src/services/notificationService.js', () => ({
@@ -56,6 +64,7 @@ function makeReqRes(overrides = {}) {
 beforeEach(() => {
   jest.clearAllMocks()
   mockNotificationService.postCommented.mockResolvedValue(true)
+  mockFriend.isBlockedBetween.mockResolvedValue(false)
 })
 
 // ── getComments ──────────────────────────────────────────────────────────────
@@ -162,7 +171,7 @@ describe('deleteComment', () => {
     mockComment.delete.mockResolvedValue(true)
     const { req, res, next } = makeReqRes()
     await deleteComment(req, res, next)
-    expect(mockComment.delete).toHaveBeenCalledWith(10, 1)
+    expect(mockComment.delete).toHaveBeenCalledWith(10, 1, { isAdmin: false })
     expect(res._json).toEqual({ message: 'Comment deleted' })
   })
 

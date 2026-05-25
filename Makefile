@@ -258,13 +258,13 @@ dev-frontend:
 # ── TESTING ─────────────────────────────────────────────────
 # Pass extra options: make backend-test options='-- users.routes.test.js'
 options ?=
-backend-test: create-dirs
+backend-test: ssl-certs create-dirs
 	@EXIT_CODE=0; \
 	$(DC_TEST) run --rm backend_test npm test $(options) || EXIT_CODE=$$?; \
 	$(DC_TEST) down -v --remove-orphans; \
 	exit $$EXIT_CODE
 
-backend-test-watch: create-dirs
+backend-test-watch: ssl-certs create-dirs
 	@EXIT_CODE=0; \
 	$(DC_TEST) run --rm backend_test npm run test:watch $(options) || EXIT_CODE=$$?; \
 	$(DC_TEST) down -v --remove-orphans; \
@@ -272,7 +272,7 @@ backend-test-watch: create-dirs
 
 test: backend-test
 
-e2e: create-dirs seed-live
+e2e: ssl-certs create-dirs seed-live
 	$(DC) up -d
 	@E2E_API_KEY="$${E2E_API_KEY:-$$(grep '^API_KEYS=' .env | cut -d= -f2- | cut -d, -f1)}"; \
 	$(DC_E2E) run --build --rm -e E2E_API_KEY="$$E2E_API_KEY" e2e npm test

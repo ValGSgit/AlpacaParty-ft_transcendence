@@ -360,7 +360,10 @@ describe('update', () => {
     expect(player.points).toBe(1)
   })
 
-  test('hits inactive player when obstacle is in their lane', () => {
+  test('damages inactive player when obstacle is in their lane (does not park isHit)', () => {
+    // Inactive players take HP loss but isHit stays false — otherwise on
+    // resume the !player.isHit guard in handlePlayerHit would silently no-op
+    // and the player would be permanently undamageable.
     match.isPlaying = true
     match.roadSpeed = 0
     match.addPlayer(makeSocket('s1'), 'Alice', 'red')
@@ -371,7 +374,7 @@ describe('update', () => {
     player.isHit = false
     match.obstacles.push({ id: 'o1', z: -0.3, pointGiven: false, isFull: false, lane: 0 })
     match.update()
-    expect(player.isHit).toBe(true)
+    expect(player.isHit).toBe(false)
     expect(player.hp).toBe(2)
   })
 

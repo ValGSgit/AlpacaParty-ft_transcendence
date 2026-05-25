@@ -12,9 +12,11 @@ export const uploadSecurityCheck = async (req, res, next) => {
   const storedName = req.path.replace(/^\//, "");
   if (!storedName) return next();
 
-  // Path-traversal guard. Stored filenames are generated UUIDs/hashes — they
-  // never contain slashes, backslashes, or parent-dir references. Anything
-  // else is an attempt to escape config.uploads.dir.
+  // Path-traversal guard — belt-and-braces. Express already normalises
+  // req.path so traversal sequences are stripped before we see them, but
+  // stored filenames are generated UUIDs/hashes that never contain slashes,
+  // backslashes, or parent-dir references. Anything else is an attempt to
+  // escape config.uploads.dir and we 404 immediately.
   if (
     storedName.includes("/") ||
     storedName.includes("\\") ||

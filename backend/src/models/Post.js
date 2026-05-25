@@ -3,8 +3,12 @@
  * @owner ValGSgit
  */
 import prisma from "#config/prisma.js";
+import { stripDangerousHtml } from "#utils/htmlSanitizer.js";
 
 const AUTHOR_SELECT = { select: { username: true, avatar: true } };
+
+const sanitizeContent = (c) =>
+  typeof c === "string" ? stripDangerousHtml(c) : c;
 
 function shapePost(p, likedIds = null, repostedIds = null, repostMeta = null) {
   const shaped = {
@@ -41,7 +45,7 @@ function shapePost(p, likedIds = null, repostedIds = null, repostMeta = null) {
 const Post = {
   async create({ authorId, content, imageUrl = null, isPublic = true }) {
     const post = await prisma.post.create({
-      data: { authorId, content, imageUrl, isPublic },
+      data: { authorId, content: sanitizeContent(content), imageUrl, isPublic },
       include: { author: AUTHOR_SELECT },
     });
     return shapePost(post);
@@ -57,7 +61,7 @@ const Post = {
 
   async update(id, authorId, fields) {
     const data = {};
-    if (fields.content !== undefined) data.content = fields.content;
+    if (fields.content !== undefined) data.content = sanitizeContent(fields.content);
     if (fields.imageUrl !== undefined) data.imageUrl = fields.imageUrl;
     if (fields.isPublic !== undefined) data.isPublic = fields.isPublic;
     if (Object.keys(data).length === 0) {
@@ -65,12 +69,16 @@ const Post = {
       return post?.author_id === Number(authorId) ? post : null;
     }
 
-    const post = await prisma.post.update({
+    // updateMany matches on (id, authorId) atomically — portable across all
+    // Prisma versions. `update({ where: { id, authorId } })` requires
+    // extendedWhereUnique preview on older Prisma and may otherwise silently
+    // update posts the caller doesn't own.
+    const { count } = await prisma.post.updateMany({
       where: { id: Number(id), authorId: Number(authorId) },
       data,
-      include: { author: AUTHOR_SELECT },
     });
-    return post ? shapePost(post) : null;
+    if (count === 0) return null;
+    return this.findById(id);
   },
 
   async delete(postId, authorId) {
@@ -271,7 +279,7 @@ const Post = {
           data: {
             postId: Number(postId),
             authorId: Number(authorId),
-            comment: comment ?? null,
+            comment: comment != null ? sanitizeContent(comment) : null,
           },
           include: { author: AUTHOR_SELECT },
         });

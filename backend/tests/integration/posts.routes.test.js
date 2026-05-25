@@ -20,8 +20,18 @@ const mockPrisma = {
     findMany: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
     deleteMany: jest.fn(),
     count: jest.fn(),
+  },
+  blockedUser: {
+    findFirst: jest.fn(),
+  },
+  friend: {
+    findFirst: jest.fn(),
+  },
+  friendRequest: {
+    findFirst: jest.fn(),
   },
   postLike: {
     findMany: jest.fn(),
@@ -185,7 +195,8 @@ describe("POST /api/posts", () => {
 describe("PUT /api/posts/:id", () => {
   test("404 — post not found or not yours", async () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
-    // Post.update uses .catch(() => null), so rejecting returns null → 404
+    // Post.update -> updateMany returns count 0 (no matching id/authorId).
+    mockPrisma.post.updateMany.mockResolvedValueOnce({ count: 0 });
 
     const res = await request
       .put("/api/posts/99")
@@ -197,7 +208,9 @@ describe("PUT /api/posts/:id", () => {
 
   test("200 — updates post", async () => {
     mockPrisma.user.findUnique.mockResolvedValueOnce(authUser);
-    mockPrisma.post.update.mockResolvedValueOnce({
+    // Post.update now uses updateMany({id, authorId}) -> findById; mock both.
+    mockPrisma.post.updateMany.mockResolvedValueOnce({ count: 1 });
+    mockPrisma.post.findUnique.mockResolvedValueOnce({
       ...samplePostPrisma,
       content: "Updated",
     });

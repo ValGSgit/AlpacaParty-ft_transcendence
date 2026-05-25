@@ -537,9 +537,12 @@ async function searchUsers(searchChanged = false) {
   try {
     usersFetcher.value.updateParams({
       sort,
+      additionalParams: { excludeUserId: authStore.user?.id },
     });
     const { data } = await usersFetcher.value.fetch("/users");
-    searchResults.value = data.users || [];
+    searchResults.value = (data.users || []).filter(
+      (user) => Number(user.id) !== Number(authStore.user?.id),
+    );
   } catch (e) {
     error.value = e.response?.data?.error?.message || "Search failed";
   } finally {

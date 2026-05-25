@@ -205,11 +205,10 @@ describe("POST /api/auth/refresh", () => {
 });
 
 describe("GET /api/auth/me", () => {
-  test("401 without token", async () => {
+  test("200 without token returns null user", async () => {
     const res = await request.get("/api/auth/me");
-    expect(res.status).toBe(401);
-    expect(res.body.error.message).toMatch(/no/i);
-    expect(res.body.error.message).toMatch(/token/i);
+    expect(res.status).toBe(200);
+    expect(res.body.user).toBeNull();
   });
 
   test("200 with valid token", async () => {

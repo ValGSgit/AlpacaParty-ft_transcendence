@@ -74,6 +74,7 @@ const mockFriend = {
   isBlockedBetween: jest.fn().mockResolvedValue(false),
   isFriend: jest.fn().mockResolvedValue(false),
   isBlocked: jest.fn().mockResolvedValue(false),
+  relationFlagsForMany: jest.fn().mockResolvedValue(new Map()),
   requestInfo: jest.fn().mockResolvedValue({
     requestSent: false,
     requestReceived: false,

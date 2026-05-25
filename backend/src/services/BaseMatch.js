@@ -16,6 +16,7 @@ export class BaseMatch {
       // socket.user is attached by socketAuthMiddleware; matches require auth,
       // but keep the guard so a missing user doesn't crash player setup.
       userId: socket.user?.id ?? null,
+      level: socket.user?.level ?? socket.user?.userStats?.level ?? 1,
       name: name || socket.user?.username || 'Vue_Alpaca',
       isReady: false,
       hp: 3,

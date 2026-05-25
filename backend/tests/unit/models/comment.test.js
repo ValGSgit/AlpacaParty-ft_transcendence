@@ -9,8 +9,13 @@ const mockPrisma = {
     count: jest.fn(),
   },
   post: {
+    findUnique: jest.fn(),
     update: jest.fn(),
     count: jest.fn(),
+  },
+  repost: {
+    findUnique: jest.fn(),
+    update: jest.fn(),
   },
   $transaction: jest.fn(),
 };
@@ -315,7 +320,9 @@ describe('Comment Model', () => {
       expect(result).toBe(false);
     });
 
-    test('should return false if user is not the comment author', async () => {
+    test('should return false if user is not author, post owner, or admin', async () => {
+      // Comment.delete now also lets the parent post/repost owner delete.
+      // Stub the post lookup to a different owner so the requester has no claim.
       const mockComment = {
         id: 1,
         postId: 100,
@@ -324,10 +331,58 @@ describe('Comment Model', () => {
       };
 
       prisma.comment.findUnique.mockResolvedValue(mockComment);
+      prisma.post.findUnique.mockResolvedValue({ authorId: 12345 });
 
       const result = await Comment.delete(1, 99);
 
       expect(result).toBe(false);
+    });
+
+    test('post owner can delete a stranger\'s comment on their post', async () => {
+      const mockComment = { id: 7, postId: 100, authorId: 50, content: 'spam' };
+      prisma.comment.findUnique.mockResolvedValue(mockComment);
+      prisma.post.findUnique.mockResolvedValue({ authorId: 7 });
+
+      const mockTransaction = jest.fn(async (callback) => {
+        const txMock = {
+          comment: {
+            delete: jest.fn().mockResolvedValue(mockComment),
+            count: jest.fn().mockResolvedValue(0),
+          },
+          post: {
+            update: jest.fn().mockResolvedValue({ id: 100, commentsCount: 0 }),
+          },
+        };
+        return callback(txMock);
+      });
+      prisma.$transaction = mockTransaction;
+
+      const result = await Comment.delete(7, 7); // requester=7 owns the post
+      expect(result).toBe(true);
+    });
+
+    test('admin can delete any comment', async () => {
+      const mockComment = { id: 8, postId: 200, authorId: 50, content: 'x' };
+      prisma.comment.findUnique.mockResolvedValue(mockComment);
+
+      const mockTransaction = jest.fn(async (callback) => {
+        const txMock = {
+          comment: {
+            delete: jest.fn().mockResolvedValue(mockComment),
+            count: jest.fn().mockResolvedValue(0),
+          },
+          post: {
+            update: jest.fn().mockResolvedValue({ id: 200, commentsCount: 0 }),
+          },
+        };
+        return callback(txMock);
+      });
+      prisma.$transaction = mockTransaction;
+
+      const result = await Comment.delete(8, 1, { isAdmin: true });
+      expect(result).toBe(true);
+      // Admin path doesn't need a post lookup.
+      expect(prisma.post.findUnique).not.toHaveBeenCalled();
     });
 
     test('should convert id and authorId to numbers', async () => {

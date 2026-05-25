@@ -111,10 +111,14 @@ async function pipeGroqStream(upstream, res) {
   res.end();
 }
 
+// Per-route body cap: messages are ≤ 20 × 2000 chars (~40 KB worth of text);
+// 64 KB leaves room for envelope overhead but rejects abuse long before the
+// 256 KB global limit (and the 10 MB previous global).
 router.post(
   '/chat',
   authenticate,
   helpdeskLimiter,
+  express.json({ limit: '64kb' }),
   [
     body('messages')
       .isArray({ min: 1, max: 20 })

@@ -39,7 +39,7 @@ X-API-Key: ap_your_key_here
 |---|---|---|
 | GET | /public/users | List public user profiles |
 | GET | /public/users/:id | Single public profile |
-| GET | /public/leaderboard | Game leaderboard (ELO-ranked) |
+| GET | /public/leaderboard | Game leaderboard (level-ranked) |
 | GET | /public/posts | Public feed posts |
 | POST | /public/posts | Create a post (service-level) |
 | PUT | /public/posts/:id | Update a post (service-level) |
@@ -223,7 +223,7 @@ X-API-Key: ap_your_key_here
             wins: { type: "integer", example: 10 },
             losses: { type: "integer", example: 5 },
             draws: { type: "integer", example: 2 },
-            elo: { type: "integer", example: 1150 },
+            level: { type: "integer", example: 12 },
           },
         },
         Achievement: {

@@ -3,10 +3,15 @@
  */
 import Comment from '../models/Comment.js';
 import Post from '../models/Post.js';
+import Friend from '../models/Friend.js';
 import prisma from '#config/prisma.js';
 import NotificationService from '../services/notificationService.js';
-import { stripDangerousHtml } from '../utils/htmlSanitizer.js';
 import { debug } from '#lib/logger.js';
+
+async function blocked(req, authorId) {
+  if (!req.user || req.user.id === authorId) return false;
+  return Friend.isBlockedBetween(req.user.id, authorId);
+}
 
 /** GET /api/posts/:id/comments */
 export const getComments = async (req, res, next) => {
@@ -34,8 +39,10 @@ export const createComment = async (req, res, next) => {
         include: { author: true },
       });
       if (!repost) return res.status(404).json({ error: { message: 'Repost not found' } });
+      if (await blocked(req, repost.authorId))
+        return res.status(404).json({ error: { message: 'Repost not found' } });
 
-      const comment = await Comment.create({ repostId: repost.id, authorId: req.user.id, content: stripDangerousHtml(content.trim()) });
+      const comment = await Comment.create({ repostId: repost.id, authorId: req.user.id, content: content.trim() });
       if (repost.authorId !== req.user.id) {
         NotificationService.postCommented(repost.authorId, req.user.username, repost.postId || repost.id).catch((err) => { debug("notification error (postCommented):", err.message); });
       }
@@ -44,8 +51,10 @@ export const createComment = async (req, res, next) => {
 
     const post = await Post.findById(Number(req.params.id));
     if (!post) return res.status(404).json({ error: { message: 'Post not found' } });
+    if (await blocked(req, post.author_id))
+      return res.status(404).json({ error: { message: 'Post not found' } });
 
-    const comment = await Comment.create({ postId: post.id, authorId: req.user.id, content: stripDangerousHtml(content.trim()) });
+    const comment = await Comment.create({ postId: post.id, authorId: req.user.id, content: content.trim() });
 
     if (post.author_id !== req.user.id) {
       NotificationService.postCommented(post.author_id, req.user.username, post.id).catch((err) => { debug("notification error (postCommented):", err.message); });
@@ -58,7 +67,8 @@ export const createComment = async (req, res, next) => {
 /** DELETE /api/posts/:id/comments/:commentId */
 export const deleteComment = async (req, res, next) => {
   try {
-    const deleted = await Comment.delete(Number(req.params.commentId), req.user.id);
+    const isAdmin = req.user?.role === 'admin' || req.user?.role === 'superadmin';
+    const deleted = await Comment.delete(Number(req.params.commentId), req.user.id, { isAdmin });
     if (!deleted) return res.status(404).json({ error: { message: 'Comment not found or not yours' } });
     res.json({ message: 'Comment deleted' });
   } catch (err) { next(err); }
@@ -73,8 +83,10 @@ export const repostPost = async (req, res, next) => {
     }
     const post = await Post.findById(Number(req.params.id));
     if (!post) return res.status(404).json({ error: { message: 'Post not found' } });
+    if (await blocked(req, post.author_id))
+      return res.status(404).json({ error: { message: 'Post not found' } });
 
-    const repost = await Post.repost(post.id, req.user.id, comment ? stripDangerousHtml(comment.trim()) : null);
+    const repost = await Post.repost(post.id, req.user.id, comment ? comment.trim() : null);
     if (!repost) return res.status(409).json({ error: { message: 'Already reposted' } });
 
     res.status(201).json({ repost });

@@ -131,29 +131,27 @@ export const getAnalytics = async (req, res, next) => {
       // Total matches played
       prisma.gameStat.aggregate({ _sum: { wins: true, losses: true } }),
 
-      // Top 5 Spit Royale ELO
+      // Top 5 Spit Royale levels
       prisma.gameStat.findMany({
         where: { gameType: "spit_royale" },
-        orderBy: { elo: "desc" },
+        orderBy: { user: { userStats: { level: "desc" } } },
         take: 5,
         select: {
-          elo: true,
           wins: true,
           userId: true,
-          user: { select: { username: true } },
+          user: { select: { username: true, userStats: { select: { level: true } } } },
         },
       }),
 
-      // Top 5 Alpaca Road ELO
+      // Top 5 Alpaca Road levels
       prisma.gameStat.findMany({
         where: { gameType: "alpaca_road" },
-        orderBy: { elo: "desc" },
+        orderBy: { user: { userStats: { level: "desc" } } },
         take: 5,
         select: {
-          elo: true,
           wins: true,
           userId: true,
-          user: { select: { username: true } },
+          user: { select: { username: true, userStats: { select: { level: true } } } },
         },
       }),
 
@@ -226,17 +224,17 @@ export const getAnalytics = async (req, res, next) => {
           wins: g._sum.wins ?? 0,
           losses: g._sum.losses ?? 0,
         })),
-        topElo: {
+        topLevel: {
           spit_royale: spitLeaderboard.map((r) => ({
             userId: r.userId,
             username: r.user.username,
-            elo: r.elo,
+            level: r.level ?? r.user.userStats?.level ?? 1,
             wins: r.wins,
           })),
           alpaca_road: roadLeaderboard.map((r) => ({
             userId: r.userId,
             username: r.user.username,
-            elo: r.elo,
+            level: r.level ?? r.user.userStats?.level ?? 1,
             wins: r.wins,
           })),
         },
@@ -342,6 +340,27 @@ export const updateUserRole = async (req, res, next) => {
   }
 };
 
+// Rank ordering for moderation actions. Higher number = more privilege.
+const ROLE_RANK = { user: 0, admin: 1, superadmin: 2 };
+
+/**
+ * Reject moderation actions targeting a peer/superior. Without this, a plain
+ * `admin` could ban a `superadmin` and remove the only safeguard above them.
+ */
+async function assertCanModerate(req, targetId) {
+  const target = await prisma.user.findUnique({
+    where: { id: Number(targetId) },
+    select: { id: true, role: true },
+  });
+  if (!target) throw new CustomError("User not found", 404);
+  const callerRank = ROLE_RANK[req.admin.role] ?? 0;
+  const targetRank = ROLE_RANK[target.role] ?? 0;
+  if (targetRank >= callerRank) {
+    throw new CustomError("Cannot moderate an equal-or-higher-ranked user", 403);
+  }
+  return target;
+}
+
 /**
  * PATCH /api/admin/users/:id/ban
  */
@@ -349,6 +368,7 @@ export const banUser = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (id === req.admin.id) throw new CustomError("Cannot ban yourself", 400);
+    await assertCanModerate(req, id);
 
     const user = await prisma.user.update({
       where: { id },
@@ -367,6 +387,8 @@ export const banUser = async (req, res, next) => {
 export const unbanUser = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
+    await assertCanModerate(req, id);
+
     const user = await prisma.user.update({
       where: { id },
       data: { isBanned: false },

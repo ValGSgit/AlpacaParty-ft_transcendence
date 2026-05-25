@@ -18,6 +18,7 @@ const mockPrisma = {
     upsert: jest.fn(),
   },
   alpacaFarm: {
+    findMany: jest.fn(),
     upsert: jest.fn(),
   },
 };
@@ -228,11 +229,17 @@ describe("getStats", () => {
       wins: 5,
       losses: 3,
       draws: 1,
-      elo: 1100,
     };
-    mockPrisma.gameStat.findUnique.mockResolvedValue(stat);
+    mockPrisma.gameStat.findUnique.mockResolvedValue({
+      ...stat,
+      user: { userStats: { level: 1 } },
+    });
     const result = await Game.getStats(1, "spit_royale");
-    expect(result).toEqual(stat);
+    expect(result).toEqual({
+      ...stat,
+      level: 1,
+      user: { userStats: { level: 1 } },
+    });
   });
 
   test("returns default stats when none exist", async () => {
@@ -244,16 +251,23 @@ describe("getStats", () => {
       wins: 0,
       losses: 0,
       draws: 0,
-      elo: 1000,
+      kills: 0,
+      obstacles: 0,
+      level: 1,
     });
   });
 
   test("defaults gameType to spit_royale", async () => {
     mockPrisma.gameStat.findUnique.mockResolvedValue(null);
     await Game.getStats(1);
-    expect(mockPrisma.gameStat.findUnique).toHaveBeenCalledWith({
-      where: { userId_gameType: { userId: 1, gameType: "spit_royale" } },
-    });
+    expect(mockPrisma.gameStat.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId_gameType: { userId: 1, gameType: "spit_royale" } },
+        include: {
+          user: { select: { userStats: { select: { level: true } } } },
+        },
+      }),
+    );
   });
 });
 
@@ -293,19 +307,6 @@ describe("updateStats", () => {
   });
 });
 
-// ── updateElo ────────────────────────────────────────────────────────────────
-describe("updateElo", () => {
-  test("upserts elo value", async () => {
-    mockPrisma.gameStat.upsert.mockResolvedValue({});
-    await Game.updateElo(1, "spit_royale", 1300);
-    expect(mockPrisma.gameStat.upsert).toHaveBeenCalledWith({
-      where: { userId_gameType: { userId: 1, gameType: "spit_royale" } },
-      update: { elo: 1300 },
-      create: { userId: 1, gameType: "spit_royale", elo: 1300 },
-    });
-  });
-});
-
 // ── getLeaderboard ───────────────────────────────────────────────────────────
 describe("getLeaderboard", () => {
   test("returns shaped leaderboard data", async () => {
@@ -318,7 +319,6 @@ describe("getLeaderboard", () => {
         losses: 5,
         obstacles: 3,
         draws: 2,
-        elo: 1200,
         user: { username: "alice", avatar: "/a.png", level: 5 },
       },
     ]);
@@ -332,7 +332,6 @@ describe("getLeaderboard", () => {
         losses: 5,
         obstacles: 3,
         draws: 2,
-        elo: 1200,
         username: "alice",
         avatar: "/a.png",
         level: 5,
@@ -380,6 +379,29 @@ describe("getLeaderboard", () => {
   });
 });
 
+// ── getCoinsLeaderboard ─────────────────────────────────────────────────────
+describe("getCoinsLeaderboard", () => {
+  test("returns shaped coin leaderboard data", async () => {
+    mockPrisma.alpacaFarm.findMany.mockResolvedValue([
+      {
+        userId: 7,
+        coins: 123,
+        user: { username: "bob", avatar: "/b.png", userStats: { level: 9 } },
+      },
+    ]);
+    const result = await Game.getCoinsLeaderboard();
+    expect(result).toEqual([
+      {
+        userId: 7,
+        coins: 123,
+        username: "bob",
+        avatar: "/b.png",
+        level: 9,
+      },
+    ]);
+  });
+});
+
 // ── countActive ──────────────────────────────────────────────────────────────
 describe("countActive", () => {
   test("counts games with playing status", async () => {
@@ -419,5 +441,24 @@ describe("updateFarm", () => {
       create: { userId: 1, farmData },
     });
     expect(result.farmData).toEqual(farmData);
+  });
+
+  test("uses spread update shape outside test env", async () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      const farmData = { alpacas: 2, barn: "barn-2" };
+      mockPrisma.alpacaFarm.upsert.mockResolvedValue({ userId: 1, farmData });
+
+      await Game.updateFarm(1, farmData);
+
+      expect(mockPrisma.alpacaFarm.upsert).toHaveBeenCalledWith({
+        where: { userId: 1 },
+        update: farmData,
+        create: { userId: 1, ...farmData },
+      });
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+    }
   });
 });

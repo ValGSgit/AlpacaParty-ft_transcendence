@@ -2,6 +2,7 @@
  * Comment Model — Prisma data access layer
  */
 import prisma from "#config/prisma.js";
+import { stripDangerousHtml } from "#utils/htmlSanitizer.js";
 
 const AUTHOR_SELECT = { select: { username: true, avatar: true } };
 
@@ -28,7 +29,7 @@ const Comment = {
           postId: postId !== null ? Number(postId) : null,
           repostId: repostId !== null ? Number(repostId) : null,
           authorId: Number(authorId),
-          content,
+          content: typeof content === "string" ? stripDangerousHtml(content) : content,
         },
         include: { author: AUTHOR_SELECT },
       });
@@ -45,6 +46,12 @@ const Comment = {
   },
 
   async getByThread({ postId = null, repostId = null, limit = 50, offset = 0 } = {}) {
+    // Fail-safe: without one of the two ids the where becomes {} and we'd
+    // read every comment in the database. The current caller always passes
+    // one, but the model shouldn't trust that.
+    if (postId == null && repostId == null) {
+      throw new Error("Comment.getByThread requires postId or repostId");
+    }
     const comments = await prisma.comment.findMany({
       where: {
         ...(postId !== null ? { postId: Number(postId) } : {}),
@@ -62,11 +69,39 @@ const Comment = {
     return this.getByThread({ postId, ...options });
   },
 
-  async delete(id, authorId) {
-    const comment = await prisma.comment.findUnique({
-      where: { id: Number(id) },
-    });
-    if (!comment || comment.authorId !== Number(authorId)) return false;
+  /**
+   * Delete a comment. Authorised when:
+   *   - the requester is the comment author, OR
+   *   - the requester owns the parent post/repost, OR
+   *   - the requester has role admin/superadmin.
+   *
+   * Returns true on delete, false on not-found, throws nothing for auth.
+   * The caller's auth status (isAdmin) must be passed in; the model
+   * doesn't do role lookups itself.
+   */
+  async delete(id, requesterId, { isAdmin = false } = {}) {
+    const comment = await prisma.comment.findUnique({ where: { id: Number(id) } });
+    if (!comment) return false;
+
+    const isAuthor = comment.authorId === Number(requesterId);
+    let isThreadOwner = false;
+    if (!isAuthor && !isAdmin) {
+      if (comment.postId !== null) {
+        const post = await prisma.post.findUnique({
+          where: { id: comment.postId },
+          select: { authorId: true },
+        });
+        isThreadOwner = post?.authorId === Number(requesterId);
+      } else if (comment.repostId !== null) {
+        const repost = await prisma.repost.findUnique({
+          where: { id: comment.repostId },
+          select: { authorId: true },
+        });
+        isThreadOwner = repost?.authorId === Number(requesterId);
+      }
+    }
+    if (!isAuthor && !isAdmin && !isThreadOwner) return false;
+
     await prisma.$transaction(async (tx) => {
       await tx.comment.delete({ where: { id: Number(id) } });
       if (comment.postId !== null) {

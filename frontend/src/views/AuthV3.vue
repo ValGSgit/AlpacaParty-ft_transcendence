@@ -1,6 +1,3 @@
-<!--
-  AuthV3 — redesigned auth page using real project assets and features
--->
 <template>
   <div class="auth-root">
 
@@ -48,7 +45,7 @@
               <span class="feat-icon spit-icon">🎯</span>
               <div>
                 <strong>Spit Royale</strong>
-                <span>Real-time 1v1 arena with ELO matchmaking &amp; bot survival</span>
+                <span>Real-time 1v1 arena with level-based matchmaking &amp; bot survival</span>
               </div>
             </div>
             <div class="feat">
