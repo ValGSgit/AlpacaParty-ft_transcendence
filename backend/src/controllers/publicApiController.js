@@ -78,7 +78,6 @@ export const getPosts = async (req, res, next) => {
       image_url: p.image_url,
       likes_count: p.likes_count,
       comments_count: p.comments_count,
-      reposts_count: p.reposts_count,
       created_at: p.created_at,
     }));
     res.json({ posts: shaped });

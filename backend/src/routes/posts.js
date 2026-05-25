@@ -8,12 +8,11 @@ import {
 } from '../controllers/postController.js';
 import {
   getComments, createComment, deleteComment,
-  repostPost, unrepostPost,
 } from '../controllers/commentController.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import {
   postCreateValidation, postUpdateValidation,
-  commentCreateValidation, repostValidation, idParamValidation,
+  commentCreateValidation, idParamValidation,
 } from '../validators/contentValidator.js';
 import { checkValidation } from '../validators/validatorUtils.js';
 import {
@@ -300,54 +299,5 @@ router.delete(
   idParamValidation(), idParamValidation('commentId'), checkValidation,
   deleteComment,
 );
-
-/**
- * @openapi
- * /posts/{id}/repost:
- *   post:
- *     tags: [Posts]
- *     summary: Repost a post (optionally with a comment)
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: integer }
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               comment: { type: string, maxLength: 500, nullable: true, example: "Must see this!" }
- *     responses:
- *       201:
- *         description: Reposted
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 reposts_count: { type: integer }
- *       409: { description: Already reposted }
- *   delete:
- *     tags: [Posts]
- *     summary: Remove a repost
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: integer }
- *     responses:
- *       200:
- *         description: Repost removed
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 reposts_count: { type: integer }
- */
-router.post('/:id/repost', authenticate, postWriteLimiter, idParamValidation(), repostValidation(), checkValidation, repostPost);
-router.delete('/:id/repost', authenticate, idParamValidation(), checkValidation, unrepostPost);
 
 export default router;

@@ -7,7 +7,7 @@ import { stripDangerousHtml } from "#utils/htmlSanitizer.js";
 const AUTHOR_SELECT = { select: { username: true, avatar: true } };
 
 function shapeComment(c) {
-  const shaped = {
+  return {
     id: c.id,
     post_id: c.postId,
     author_id: c.authorId,
@@ -17,17 +17,14 @@ function shapeComment(c) {
     author_username: c.author?.username,
     author_avatar: c.author?.avatar,
   };
-  if (c.repostId != null) shaped.repost_id = c.repostId;
-  return shaped;
 }
 
 const Comment = {
-  async create({ postId = null, repostId = null, authorId, content }) {
+  async create({ postId = null, authorId, content }) {
     const comment = await prisma.$transaction(async (tx) => {
       const c = await tx.comment.create({
         data: {
           postId: postId !== null ? Number(postId) : null,
-          repostId: repostId !== null ? Number(repostId) : null,
           authorId: Number(authorId),
           content: typeof content === "string" ? stripDangerousHtml(content) : content,
         },
@@ -36,27 +33,18 @@ const Comment = {
       if (postId !== null) {
         const count = await tx.comment.count({ where: { postId: Number(postId) } });
         await tx.post.update({ where: { id: Number(postId) }, data: { commentsCount: count } });
-      } else if (repostId !== null) {
-        const count = await tx.comment.count({ where: { repostId: Number(repostId) } });
-        await tx.repost.update({ where: { id: Number(repostId) }, data: { commentsCount: count } });
       }
       return c;
     });
     return shapeComment(comment);
   },
 
-  async getByThread({ postId = null, repostId = null, limit = 50, offset = 0 } = {}) {
-    // Fail-safe: without one of the two ids the where becomes {} and we'd
-    // read every comment in the database. The current caller always passes
-    // one, but the model shouldn't trust that.
-    if (postId == null && repostId == null) {
-      throw new Error("Comment.getByThread requires postId or repostId");
+  async getByThread({ postId = null, limit = 50, offset = 0 } = {}) {
+    if (postId == null) {
+      throw new Error("Comment.getByThread requires postId");
     }
     const comments = await prisma.comment.findMany({
-      where: {
-        ...(postId !== null ? { postId: Number(postId) } : {}),
-        ...(repostId !== null ? { repostId: Number(repostId) } : {}),
-      },
+      where: { postId: Number(postId) },
       include: { author: AUTHOR_SELECT },
       orderBy: { createdAt: "asc" },
       take: Number(limit),
@@ -72,7 +60,7 @@ const Comment = {
   /**
    * Delete a comment. Authorised when:
    *   - the requester is the comment author, OR
-   *   - the requester owns the parent post/repost, OR
+   *   - the requester owns the parent post, OR
    *   - the requester has role admin/superadmin.
    *
    * Returns true on delete, false on not-found, throws nothing for auth.
@@ -92,12 +80,6 @@ const Comment = {
           select: { authorId: true },
         });
         isThreadOwner = post?.authorId === Number(requesterId);
-      } else if (comment.repostId !== null) {
-        const repost = await prisma.repost.findUnique({
-          where: { id: comment.repostId },
-          select: { authorId: true },
-        });
-        isThreadOwner = repost?.authorId === Number(requesterId);
       }
     }
     if (!isAuthor && !isAdmin && !isThreadOwner) return false;
@@ -107,9 +89,6 @@ const Comment = {
       if (comment.postId !== null) {
         const count = await tx.comment.count({ where: { postId: comment.postId } });
         await tx.post.update({ where: { id: comment.postId }, data: { commentsCount: count } });
-      } else if (comment.repostId !== null) {
-        const count = await tx.comment.count({ where: { repostId: comment.repostId } });
-        await tx.repost.update({ where: { id: comment.repostId }, data: { commentsCount: count } });
       }
     });
     return true;

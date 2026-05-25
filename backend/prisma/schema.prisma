@@ -33,8 +33,6 @@ model User {
   blockedBy              BlockedUser[]        @relation("blockedByUser")
   sentMessages           Message[]            @relation("sentMessages")
   receivedMessages       Message[]            @relation("receivedMessages")
-  gamesAsPlayer1         Game[]               @relation("player1")
-  gamesAsPlayer2         Game[]               @relation("player2")
   wonGames               Game[]               @relation("winner")
   gameStats              GameStat[]
   achievements           UserAchievement[]
@@ -44,13 +42,11 @@ model User {
   postLikes              PostLike[]
   uploadedFiles          File[]
   alpacaFarm             AlpacaFarm?
-  passwordResetTokens    PasswordResetToken[]
   dataRequests           DataRequest[]
   userAuth               UserAuth?
   userStats              UserStats?
   userSettings           UserSettings?
   comments               Comment[]
-  reposts                Repost[]
   publicApi              PublicApi?
 
   @@map("user")
@@ -185,8 +181,6 @@ model Game {
   finishedAt   DateTime? @map("finished_at") @db.Timestamptz
   createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
 
-  player1 User? @relation("player1", fields: [player1Id], references: [id], onDelete: Cascade)
-  player2 User? @relation("player2", fields: [player2Id], references: [id], onDelete: SetNull)
   winner  User? @relation("winner", fields: [winnerId], references: [id], onDelete: SetNull)
 
   @@index([player1Id])
@@ -202,7 +196,6 @@ model GameStat {
   wins      Int?     @default(0)
   losses    Int?     @default(0)
   draws     Int?     @default(0)
-  elo       Int?     @default(1000)
   kills     Int?     @default(0)
   obstacles Int?     @default(0)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
@@ -297,14 +290,12 @@ model Post {
   isPublic      Boolean? @default(true) @map("is_public")
   likesCount    Int?     @default(0) @map("likes_count")
   commentsCount Int?     @default(0) @map("comments_count")
-  repostsCount  Int?     @default(0) @map("reposts_count")
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   author   User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   likes    PostLike[]
   comments Comment[]
-  reposts  Repost[]
 
   @@index([authorId])
   @@map("post")
@@ -314,40 +305,19 @@ model Post {
 model Comment {
   id        Int       @id @default(autoincrement())
   postId    Int?      @map("post_id")
-  repostId  Int?      @map("repost_id")
   authorId  Int       @map("author_id")
   content   String    @db.Text
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   post   Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  repost Repost? @relation(fields: [repostId], references: [id], onDelete: Cascade)
   author User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([postId])
-  @@index([repostId])
   @@map("comment")
 }
 
-// ── Reposts ───────────────────────────────────────────────────────────────
-model Repost {
-  id        Int      @id @default(autoincrement())
-  postId    Int?     @map("post_id")
-  authorId  Int      @map("author_id")
-  comment   String?  @db.Text
-  commentsCount Int?  @default(0) @map("comments_count")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  post   Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
-  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments Comment[]
-
-  @@unique([postId, authorId])
-  @@index([postId])
-  // Index for querying which posts a user has reposted (used in getFeed viewer checks)
-  @@index([authorId])
-  @@map("repost")
-}
 
 model PostLike {
   id        Int      @id @default(autoincrement())
@@ -396,19 +366,6 @@ model AlpacaFarm {
   userId Int  @unique @map("user_id")
 
   @@map("alpaca_farm")
-}
-
-// ── Password Reset Tokens ────────────────────────────────────────────────
-model PasswordResetToken {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  token     String   @unique @db.VarChar(255)
-  expiresAt DateTime @map("expires_at") @db.Timestamptz
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("password_reset_token")
 }
 
 // ── GDPR Data Requests ──────────────────────────────────────────────────
