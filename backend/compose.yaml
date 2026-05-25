@@ -25,6 +25,8 @@ services:
       JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-1h}"
       JWT_REFRESH_EXPIRES_IN: "${JWT_REFRESH_EXPIRES_IN:-7d}"
       JWT_PUBLIC_API_EXPIRES_IN: "${JWT_PUBLIC_API_EXPIRES_IN:-30d}"
+      JWT_ADMIN_EXPIRES_IN: "${JWT_ADMIN_EXPIRES_IN:-30d}"
+      PUBLIC_API_HOST: "${PUBLIC_API_HOST}"
     tmpfs:
       - /run/secrets:size=64m,mode=1777
     volumes:

@@ -1,4 +1,4 @@
-import AdminAuthService from "../services/adminAuthService.js";
+import AuthService from "../services/authService.js";
 import prisma from "#config/prisma.js";
 import CustomError from "#utils/CustomError.js";
 
@@ -11,12 +11,18 @@ export const requireAdmin = async (req, res, next) => {
     const token = req.cookies.admin_jwt_token;
     if (!token) throw new CustomError("Admin authentication required", 401);
 
-    const decoded = AdminAuthService.verifyToken(token);
+    const decoded = AuthService.verifyAdminToken(token);
     if (!decoded) throw new CustomError("Invalid or expired admin token", 401);
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, username: true, email: true, role: true, isBanned: true },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        isBanned: true,
+      },
     });
 
     if (!user) throw new CustomError("Admin user not found", 401);

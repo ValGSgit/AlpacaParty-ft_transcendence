@@ -65,10 +65,13 @@ export const createPost = async (req, res, next) => {
       isPublic: !!isPublic,
     });
     res.status(201).json({ post });
-    const postCount = await prisma.post.count(
-      { where: { authorId: req.user.id } });
+    const postCount = await prisma.post.count({
+      where: { authorId: req.user.id },
+    });
     if (postCount === 1)
-      GamificationService.unlock(req.user.id, 'spit_facts').catch(() => {});
+      await GamificationService.unlock(req.user.id, "spit_facts").catch(
+        () => {},
+      );
   } catch (err) {
     next(err);
   }
@@ -105,7 +108,8 @@ export const updatePost = async (req, res, next) => {
       return res.status(400).json({ error: { message: "invalid imageUrl" } });
     }
     const post = await Post.update(Number(req.params.id), req.user.id, {
-      content: content !== undefined ? stripDangerousHtml(content.trim()) : undefined,
+      content:
+        content !== undefined ? stripDangerousHtml(content.trim()) : undefined,
       imageUrl: normalizedImageUrl,
       isPublic,
     });
@@ -151,9 +155,13 @@ export const likePost = async (req, res, next) => {
         post.author_id,
         req.user.username,
         post.id,
-      ).catch((err) => { debug("notification error (postLiked):", err.message); });
+      ).catch((err) => {
+        debug("notification error (postLiked):", err.message);
+      });
     }
-    GamificationService.onPostLiked(post.author_id, newLikesCount).catch(() => {});
+    GamificationService.onPostLiked(post.author_id, newLikesCount).catch(
+      () => {},
+    );
     res.json({ message: "Liked" });
   } catch (err) {
     next(err);

@@ -33,18 +33,6 @@ jest.unstable_mockModule("../../../src/services/authService.js", () => ({
   default: mockAuthService,
 }));
 
-const mockGamificationService = {
-  unlock: jest.fn().mockResolvedValue(true),
-};
-jest.unstable_mockModule(
-  "../../../src/services/GamificationService.js",
-  () => ({
-    default: mockGamificationService,
-    // If GamificationService is exported as a named export instead of default, use this:
-    // GamificationService: mockGamificationService
-  }),
-);
-
 const mockDataExportService = {
   exportUserData: jest.fn(),
 };
@@ -67,6 +55,16 @@ jest.unstable_mockModule(
   "../../../src/services/notificationService.js",
   () => ({
     default: mockNotificationService,
+  }),
+);
+
+const mockGamificationService = {
+  unlock: jest.fn().mockResolvedValue(true),
+};
+jest.unstable_mockModule(
+  "../../../src/services/GamificationService.js",
+  () => ({
+    default: mockGamificationService,
   }),
 );
 

@@ -17,6 +17,14 @@ DC_TEST  := docker compose --profile test --env-file .env.test
 DC_E2E   := docker compose --profile dev --profile e2e
 DC_PROD  := docker compose -f compose.prod.yaml
 
+# Detect OS (mac or linux)
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    SED_I := sed -i ''
+else
+    SED_I := sed -i
+endif
+
 .DEFAULT_GOAL := help
 .PHONY: help up down build logs restart ps \
         prod-up prod-down prod-build prod-logs \
@@ -32,7 +40,8 @@ DC_PROD  := docker compose -f compose.prod.yaml
         seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
         vault-status vault-secrets vault-shell \
         prod-vault-status prod-vault-unseal prod-vault-rotate-token prod-vault-reseed \
-        waf-logs
+        waf-logs \
+				set-ip
 
 # ── HELP ────────────────────────────────────────────────────
 help:
@@ -144,31 +153,47 @@ create-dirs:
 # Run once before first prod deploy, or again to rotate (requires DB re-init).
 generate-secrets:
 	@if [ ! -f .env ]; then \
-	  cp .env.example .env; \
-	  echo "$(GREEN)✓ Created .env from .env.example$(RESET)"; \
+		cp .env.example .env; \
+		echo "$(GREEN)✓ Created .env from .env.example$(RESET)"; \
 	fi
+	@$(MAKE) --no-print-directory set-ip
 	@DB_NAME=$$(grep '^DB_NAME=' .env | cut -d= -f2-); \
-	  DB_NAME=$${DB_NAME:-alpacaparty}; \
-	  DB_USER=$$(grep '^DB_USER=' .env | cut -d= -f2-); \
-	  DB_USER=$${DB_USER:-alpacaparty}; \
-	  DB_PASS=$$(openssl rand -hex 24) && \
-	  sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$$DB_PASS|" .env && \
-	  sed -i "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://$$DB_USER:$$DB_PASS@postgres:5432/$$DB_NAME?schema=public|" .env && \
-	  echo "$(GREEN)✓ DB_PASSWORD randomised$(RESET)"
+		DB_NAME=$${DB_NAME:-alpacaparty}; \
+		DB_USER=$$(grep '^DB_USER=' .env | cut -d= -f2-); \
+		DB_USER=$${DB_USER:-alpacaparty}; \
+		DB_PASS=$$(openssl rand -hex 24) && \
+		$(SED_I) "s|^DB_PASSWORD=.*|DB_PASSWORD=$$DB_PASS|" .env && \
+		$(SED_I) "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://$$DB_USER:$$DB_PASS@postgres:5432/$$DB_NAME?schema=public|" .env && \
+		echo "$(GREEN)✓ DB_PASSWORD randomised$(RESET)"
 	@JWT=$$(openssl rand -hex 40) && \
-	  sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$$JWT|" .env && \
-	  echo "$(GREEN)✓ JWT_SECRET randomised$(RESET)"
+		$(SED_I) "s|^JWT_SECRET=.*|JWT_SECRET=$$JWT|" .env && \
+		echo "$(GREEN)✓ JWT_SECRET randomised$(RESET)"
 	@JWT=$$(openssl rand -hex 40) && \
-	  sed -i "s|^JWT_REFRESH_SECRET=.*|JWT_REFRESH_SECRET=$$JWT|" .env && \
-	  echo "$(GREEN)✓ JWT_REFRESH_SECRET randomised$(RESET)"
+		$(SED_I) "s|^JWT_REFRESH_SECRET=.*|JWT_REFRESH_SECRET=$$JWT|" .env && \
+		echo "$(GREEN)✓ JWT_REFRESH_SECRET randomised$(RESET)"
 	@JWT=$$(openssl rand -hex 40) && \
-	  sed -i "s|^JWT_PUBLIC_API_SECRET=.*|JWT_PUBLIC_API_SECRET=$$JWT|" .env && \
-	  echo "$(GREEN)✓ JWT_PUBLIC_API_SECRET randomised$(RESET)"
+		$(SED_I) "s|^JWT_PUBLIC_API_SECRET=.*|JWT_PUBLIC_API_SECRET=$$JWT|" .env && \
+		echo "$(GREEN)✓ JWT_PUBLIC_API_SECRET randomised$(RESET)"
 	@JWT=$$(openssl rand -hex 40) && \
-	  sed -i "s|^ADMIN_JWT_SECRET=.*|ADMIN_JWT_SECRET=$$JWT|" .env && \
-	  echo "$(GREEN)✓ ADMIN_JWT_SECRET randomised$(RESET)"
+		$(SED_I) "s|^JWT_ADMIN_SECRET=.*|JWT_ADMIN_SECRET=$$JWT|" .env && \
+		echo "$(GREEN)✓ JWT_ADMIN_SECRET randomised$(RESET)"
 	@echo "$(GREEN)✓ DATABASE_URL synced with DB credentials$(RESET)"
 	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
+
+set-ip:
+	@OS=$$(uname -s); \
+	if [ "$$OS" = "Darwin" ]; then \
+		MAC_IFACE=$$(route get default | awk '/interface:/ {print $$2}'); \
+		IP=$$(ipconfig getifaddr $$MAC_IFACE); \
+	else \
+		IP=$$(hostname -I | awk '{print $$1}'); \
+	fi; \
+	if [ -z "$$IP" ]; then \
+		echo "Error: Could not detect IP address."; \
+		exit 1; \
+	fi; \
+	$(SED_I) "s/{MY_IP}/$$IP/g" .env; \
+	echo "$(GREEN)✓ Successfully updated .env with IP: $$IP$(RESET)"
 
 # ── SSL CERTIFICATES ────────────────────────────────────────
 # Generates a self-signed certificate for local HTTPS development.
@@ -176,19 +201,31 @@ generate-secrets:
 ssl-certs:
 	@mkdir -p ssl
 	@if [ ! -f ssl/cert.pem ]; then \
-	  openssl req -x509 -newkey rsa:2048 -nodes \
-	    -keyout ssl/key.pem \
-	    -out ssl/cert.pem \
-	    -days 365 \
-	    -subj '/CN=localhost' \
-	    -addext 'subjectAltName=DNS:localhost,DNS:frontend,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1,IP:10.13.10.5,DNS:10.13.10.5.nip.io' \
-	    2>/dev/null && \
-	  echo "$(GREEN)✓ Self-signed certificate generated in ssl/$(RESET)"; \
+		echo "Detecting active local IP..."; \
+		OS=$$(uname -s); \
+		if [ "$$OS" = "Darwin" ]; then \
+			MAC_IFACE=$$(route get default | awk '/interface:/ {print $$2}'); \
+			IP=$$(ipconfig getifaddr $$MAC_IFACE); \
+		else \
+			IP=$$(hostname -I | awk '{print $$1}'); \
+		fi; \
+		if [ -z "$$IP" ]; then \
+			echo "Error: Could not detect IP address."; exit 1; \
+		fi; \
+		echo "Generating certificate for IP: $$IP"; \
+		openssl req -x509 -newkey rsa:2048 -nodes \
+			-keyout ssl/key.pem \
+			-out ssl/cert.pem \
+			-days 365 \
+			-subj '/CN=localhost' \
+			-addext "subjectAltName=DNS:localhost,DNS:frontend,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1,IP:$$IP,DNS:$$IP.nip.io" \
+			2>/dev/null && \
+		echo "$(GREEN)✓ Self-signed certificate generated in ssl/$(RESET)"; \
 	else \
-	  echo "$(YELLOW)  Certificate already exists — skipping$(RESET)"; \
+		echo "$(YELLOW)  Certificate already exists — skipping$(RESET)"; \
 	fi
-	chmod +rw ssl/key.pem
-	chmod +rw ssl/cert.pem
+	@chmod +rw ssl/key.pem
+	@chmod +rw ssl/cert.pem
 
 # Ensure .env exists with real secrets before any prod command.
 # Does NOT regenerate if .env already exists (keeps DB password stable).

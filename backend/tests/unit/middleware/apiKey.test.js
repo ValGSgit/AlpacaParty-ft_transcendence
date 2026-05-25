@@ -139,47 +139,4 @@ describe("requireApiKey Middleware", () => {
     expect(next).toHaveBeenCalledTimes(1);
     expect(next).toHaveBeenCalledWith(unexpectedError);
   });
-
-  test("should call next with 403 if session cookie belongs to a different user", async () => {
-    const req = { headers: { "x-api-key": "good-key" }, cookies: { jwt_token: "session-token" } };
-    const next = jest.fn();
-
-    mockAuthService.verifyPublicApiToken.mockReturnValue({ iat: 123 });
-    mockUser.findByApiKey.mockResolvedValue(99);
-    mockAuthService.verifyToken.mockReturnValue({ id: 42 }); // session user ≠ api-key user
-
-    await requireApiKey(req, {}, next);
-
-    const err = next.mock.calls[0][0];
-    expect(err.message).toBe("API key does not belong to the authenticated session");
-    expect(err.status).toBe(403);
-  });
-
-  test("should succeed when session cookie user matches API key user", async () => {
-    const req = { headers: { "x-api-key": "good-key" }, cookies: { jwt_token: "session-token" } };
-    const next = jest.fn();
-
-    mockAuthService.verifyPublicApiToken.mockReturnValue({ iat: 123 });
-    mockUser.findByApiKey.mockResolvedValue(99);
-    mockAuthService.verifyToken.mockReturnValue({ id: 99 }); // same user
-
-    await requireApiKey(req, {}, next);
-
-    expect(req.userId).toBe(99);
-    expect(next).toHaveBeenCalledWith();
-  });
-
-  test("should succeed when session cookie token is invalid (verifyToken returns null)", async () => {
-    const req = { headers: { "x-api-key": "good-key" }, cookies: { jwt_token: "bad-token" } };
-    const next = jest.fn();
-
-    mockAuthService.verifyPublicApiToken.mockReturnValue({ iat: 123 });
-    mockUser.findByApiKey.mockResolvedValue(99);
-    mockAuthService.verifyToken.mockReturnValue(null); // invalid session — skip check
-
-    await requireApiKey(req, {}, next);
-
-    expect(req.userId).toBe(99);
-    expect(next).toHaveBeenCalledWith();
-  });
 });

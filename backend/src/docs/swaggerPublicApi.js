@@ -1,5 +1,7 @@
 import swaggerAutogen from "swagger-autogen";
-import fs from "fs";
+import { loadEnv } from "#tools/loadEnv.js";
+
+loadEnv();
 
 const swaggerAutogenInstance = swaggerAutogen();
 
@@ -17,7 +19,7 @@ const doc = {
 _You can reveal, regenerate, or revoke the key at any time from the same page._
 `,
   },
-  host: "localhost:8443",
+  host: process.env.PUBLIC_API_HOST || "localhost:8443",
   schemes: ["https"],
   basePath: "/api/public",
 
