@@ -71,16 +71,31 @@ describe('getComments', () => {
     mockComment.getByPost.mockResolvedValue(comments)
     const { req, res, next } = makeReqRes()
     await getComments(req, res, next)
-    expect(mockComment.getByPost).toHaveBeenCalledWith('5', { limit: 50, offset: 0 })
+    // postId and pagination are parsed to integers at the boundary now.
+    expect(mockComment.getByPost).toHaveBeenCalledWith(5, { limit: 50, offset: 0 })
     expect(res._json).toEqual({ comments })
     expect(next).not.toHaveBeenCalled()
   })
 
-  test('uses query limit/offset when provided', async () => {
+  test('uses query limit/offset when provided (coerced to integers and clamped)', async () => {
     mockComment.getByPost.mockResolvedValue([])
     const { req, res, next } = makeReqRes({ query: { limit: '10', offset: '5' } })
     await getComments(req, res, next)
-    expect(mockComment.getByPost).toHaveBeenCalledWith('5', { limit: '10', offset: '5' })
+    expect(mockComment.getByPost).toHaveBeenCalledWith(5, { limit: 10, offset: 5 })
+  })
+
+  test('caps limit at 100 even when client requests more', async () => {
+    mockComment.getByPost.mockResolvedValue([])
+    const { req, res, next } = makeReqRes({ query: { limit: '5000' } })
+    await getComments(req, res, next)
+    expect(mockComment.getByPost).toHaveBeenCalledWith(5, { limit: 100, offset: 0 })
+  })
+
+  test('returns 400 when post id is not a positive integer', async () => {
+    const { req, res, next } = makeReqRes({ params: { id: 'abc' } })
+    await getComments(req, res, next)
+    expect(res._status).toBe(400)
+    expect(mockComment.getByPost).not.toHaveBeenCalled()
   })
 
   test('calls next on error', async () => {
