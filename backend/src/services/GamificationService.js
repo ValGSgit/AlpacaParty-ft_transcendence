@@ -8,17 +8,17 @@
  *   • Every unlock fires an achievement notification
  */
 import prisma from '#config/prisma.js';
-import Achievement from '../models/Achievement.js';
-import Game from '../models/Game.js';
-import NotificationService from './notificationService.js';
-import { devError } from '#lib/logger.js';
+import Achievement from '#models/Achievement.js';
+import Game from '#models/Game.js';
+import NotificationService from '#services/notificationService.js';
+import { error as logError } from '#lib/logger.js';
 
 // Notification delivery is fire-and-forget — the XP/achievement state is
 // already persisted by the time we get here. We don't want a flaky notify
 // to roll back an unlock, but the previous `.catch(() => {})` swallowed
 // the error completely. Log it so monitoring can see the failure.
 function logNotifyError(context, err) {
-  devError(`[gamification] notify failed (${context}):`, err?.message || err);
+  logError(`[gamification] notify failed (${context}):`, err?.message || err);
 }
 
 const XP_PER_LEVEL = 100;

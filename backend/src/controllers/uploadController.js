@@ -2,10 +2,10 @@
  * Upload Controller
  * @owner ValGSgit
  */
-import File from '../models/File.js';
-import { saveFileRecord, deleteFileFromDisk, validateFileMagicBytes } from '../services/uploadService.js';
-import { parseLimitOffset, parseIdParam } from '../utils/pagination.js';
-import { devError } from '#lib/logger.js';
+import File from '#models/File.js';
+import { saveFileRecord, deleteFileFromDisk, validateFileMagicBytes } from '#services/uploadService.js';
+import { parseLimitOffset, parseIdParam } from '#utils/pagination.js';
+import { error as logError } from '#lib/logger.js';
 
 /** POST /api/uploads — upload one or more files */
 export const uploadFiles = async (req, res, next) => {
@@ -25,7 +25,7 @@ export const uploadFiles = async (req, res, next) => {
         await Promise.all(
           multerFiles.map((f) =>
             deleteFileFromDisk(f.filename).catch((err) => {
-              devError(`[uploads] orphan cleanup failed for ${f.filename}:`, err?.message || err);
+              logError(`[uploads] orphan cleanup failed for ${f.filename}:`, err?.message || err);
             }),
           ),
         );
@@ -71,7 +71,7 @@ export const deleteFile = async (req, res, next) => {
     try {
       await deleteFileFromDisk(record.storedName);
     } catch (err) {
-      devError(`[uploads] disk cleanup failed for ${record.storedName}:`, err?.message || err);
+      logError(`[uploads] disk cleanup failed for ${record.storedName}:`, err?.message || err);
     }
 
     res.json({ message: 'File deleted' });

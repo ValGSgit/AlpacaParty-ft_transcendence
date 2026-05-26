@@ -1,12 +1,12 @@
 /**
  * Comment Controller
  */
-import Comment from '../models/Comment.js';
-import Post from '../models/Post.js';
-import Friend from '../models/Friend.js';
-import NotificationService from '../services/notificationService.js';
+import Comment from '#models/Comment.js';
+import Post from '#models/Post.js';
+import Friend from '#models/Friend.js';
+import NotificationService from '#services/notificationService.js';
 import { debug } from '#lib/logger.js';
-import { parseLimitOffset, parseIdParam } from '../utils/pagination.js';
+import { parseLimitOffset, parseIdParam } from '#utils/pagination.js';
 
 async function blocked(req, authorId) {
   if (!req.user || req.user.id === authorId) return false;

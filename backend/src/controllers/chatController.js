@@ -2,9 +2,9 @@
  * Chat Controller — DM + group rooms
  * @owner ValGSgit
  */
-import Message from "../models/Message.js";
-import Friend from "../models/Friend.js";
-import { parseLimitOffset, parseIdParam } from "../utils/pagination.js";
+import Message from "#models/Message.js";
+import Friend from "#models/Friend.js";
+import { parseLimitOffset, parseIdParam } from "#utils/pagination.js";
 
 // ── Direct Messages ──────────────────────────────────────────────────────────
 

@@ -3,10 +3,10 @@
  * Real-time game flow is handled by socketService.js
  * @owner ValGSgit
  */
-import Game from '../models/Game.js';
-import Achievement from '../models/Achievement.js';
-import GamificationService from '../services/GamificationService.js';
-import { parseLimitOffset, clampInt } from '../utils/pagination.js';
+import Game from '#models/Game.js';
+import Achievement from '#models/Achievement.js';
+import GamificationService from '#services/GamificationService.js';
+import { parseLimitOffset, clampInt } from '#utils/pagination.js';
 
 const ALLOWED_GAME_TYPES = ['spit_royale', 'alpaca_road'];
 

@@ -2,11 +2,11 @@
  * Auth Controller — handles registration, login, logout, token refresh, OAuth
  * @owner ValGSgit
  */
-import User, { shapeUserForClient } from "../models/User.js";
-import GamificationService from "../services/GamificationService.js";
-import AuthService from "../services/authService.js";
-import { oauthTokensForUser } from "../services/oauthService.js";
-import config from "../config/index.js";
+import User, { shapeUserForClient } from "#models/User.js";
+import GamificationService from "#services/GamificationService.js";
+import AuthService from "#services/authService.js";
+import { oauthTokensForUser } from "#services/oauthService.js";
+import config from "#config/index.js";
 import { customValidationResult } from "#validators/validatorUtils.js";
 import CustomError from "#utils/CustomError.js";
 import passport from "passport";

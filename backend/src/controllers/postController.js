@@ -2,13 +2,13 @@
  * Post Controller — social feed / posts
  * @owner ValGSgit
  */
-import Post from "../models/Post.js";
-import Friend from "../models/Friend.js";
-import NotificationService from "../services/notificationService.js";
+import Post from "#models/Post.js";
+import Friend from "#models/Friend.js";
+import NotificationService from "#services/notificationService.js";
 import { debug } from "#lib/logger.js";
-import GamificationService from "../services/GamificationService.js";
+import GamificationService from "#services/GamificationService.js";
 import prisma from "#config/prisma.js";
-import { parseLimitOffset, parseIdParam } from "../utils/pagination.js";
+import { parseLimitOffset, parseIdParam } from "#utils/pagination.js";
 
 // Treat a block as if the post does not exist (404 not 403) so the blocked
 // user can't learn whether the author exists or has interacted with them.
