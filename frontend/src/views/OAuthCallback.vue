@@ -1,12 +1,3 @@
-<!--
-  OAuthCallback View
-  @owner ValGSgit
-
-  Landing page after a Google / GitHub OAuth round-trip. The backend has
-  already set the JWT cookies on the redirect, so the only work here is to
-  scrub any query string from the URL (so it doesn't leak into history) and
-  bounce the user to the home route.
--->
 <template>
   <div class="oauth-callback">
     <p v-if="error" class="error-message">{{ error }}</p>

@@ -1,7 +1,3 @@
-<!--
-  Messages View — DM conversations
-  @owner ValGSgit
--->
 <template>
   <div class="messages-page">
     <!-- Sidebar -->
