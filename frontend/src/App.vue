@@ -1,7 +1,3 @@
-<!--
-  Root Application Component
-  @owner fankahou, LukasStefanek
--->
 <template>
   <div id="app">
     <!-- Top navbar — hidden on full-screen auth pages -->
@@ -106,7 +102,7 @@
     </div>
 
     <!-- AI help desk widget -->
-    <HelpDeskChat v-if="authStore.isAuthenticated && !isAuthRoute" />
+    <HelpDeskChat v-if="authStore.isAuthenticated && !isAuthRoute" :with-footer="hasFooter" />
 
   </div>
 </template>

@@ -1,11 +1,3 @@
-/**
- * API Service — fetch-based backend client
- * @owner fankahou, LukasStefanek
- *
- * Uses a small wrapper around the native Fetch API.
- * It preserves the call shape used across the app: api.get/post/put/patch/delete.
- */
-
 const env = import.meta?.env || {};
 
 const defaultBaseUrl = env.VITE_API_URL || "/api";

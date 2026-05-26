@@ -1,7 +1,3 @@
-<!--
-  API Documentation — Public API guide + Architecture Map
-  @owner ValGSgit
--->
 <template>
   <div :class="['docs-page', { 'docs-page--wide': activeTab === 'arch' }]">
 

@@ -1,7 +1,3 @@
-<!--
-  Feed View — Social posts feed with create, like, and comment
-  @owner ValGSgit
--->
 <template>
   <div class="feed-page">
 

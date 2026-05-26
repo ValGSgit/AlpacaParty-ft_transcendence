@@ -1,5 +1,5 @@
 <template>
-  <div class="helpdesk-root">
+  <div :class="['helpdesk-root', { 'with-footer': withFooter }]">
     <!-- Floating trigger button (hidden while chat is open; panel has its own close) -->
     <button
       v-if="!isOpen"
@@ -94,6 +94,10 @@
 <script setup>
 import { ref, nextTick } from 'vue'
 import AppIcon from './AppIcon.vue'
+
+defineProps({
+  withFooter: { type: Boolean, default: false },
+})
 
 const MAX_CHARS = 2000
 const MAX_HISTORY = 20
@@ -233,13 +237,16 @@ function scrollToBottom() {
 <style scoped>
 .helpdesk-root {
   position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
+  bottom: 20px;
+  right: 20px;
   z-index: 950;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 0.75rem;
+}
+.helpdesk-root.with-footer {
+  bottom: 60px;
 }
 
 /* ── FAB button ──────────────────────────────────────────── */
@@ -482,7 +489,8 @@ function scrollToBottom() {
 
 /* ── Mobile ──────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .helpdesk-root { bottom: 1rem; right: 1rem; }
+  .helpdesk-root { bottom: 20px; right: 20px; }
+  .helpdesk-root.with-footer { bottom: 60px; }
   .helpdesk-panel { width: calc(100vw - 2rem); }
 }
 </style>
