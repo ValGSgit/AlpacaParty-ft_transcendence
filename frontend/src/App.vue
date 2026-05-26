@@ -202,35 +202,64 @@ function handleOutsideClick(e) {
 
 function handleScroll() { scrolled.value = window.scrollY > 12 }
 
+// Socket listener lifecycle.
+//
+// The auth-state watcher previously called `sock.on(...)` five times every
+// time `isAuthenticated` flipped true. If the watcher re-fired without
+// going through `false` first (rapid auth refresh, dev-server HMR keeping
+// the singleton alive, etc.) the same handlers got registered N times and
+// every notification / presence event fired N times.
+//
+// Capture the handlers once, track the socket they're attached to, and
+// always unbind before binding.
+const socketHandlers = {
+  notification: () => { unreadCount.value++ },
+  connect:      () => { if (authStore.user) authStore.user.isOnline = true },
+  disconnect:   () => { if (authStore.user) authStore.user.isOnline = false },
+  presence:     ({ userId, isOnline }) => {
+    if (authStore.user && Number(userId) === Number(authStore.user.id)) {
+      authStore.user.isOnline = isOnline
+    }
+  },
+  'dm:message': () => {
+    if (!showMessagesModal.value) unreadMessages.value++
+  },
+}
+let boundSocket = null
+
+function bindSocketHandlers(sock) {
+  if (!sock) return
+  // If we're being asked to bind to the same socket twice (which would
+  // double-register every handler), unbind first.
+  if (boundSocket === sock) unbindSocketHandlers()
+  for (const [event, handler] of Object.entries(socketHandlers)) {
+    sock.on(event, handler)
+  }
+  boundSocket = sock
+}
+
+function unbindSocketHandlers() {
+  if (!boundSocket) return
+  for (const [event, handler] of Object.entries(socketHandlers)) {
+    boundSocket.off(event, handler)
+  }
+  boundSocket = null
+}
+
 watch(() => authStore.isAuthenticated, (isAuth) => {
   if (isAuth) {
     // Auth is cookie-based (httpOnly + sameSite=strict + secure). Socket.IO
     // is configured with `withCredentials: true` so the JWT cookie is sent on
     // the handshake and validated by socketAuthMiddleware. No client-side token.
     const sock = connectSocket()
-    sock.on('notification', () => { unreadCount.value++ })
-
-    // Keep own online badge in sync with socket state
-    sock.on('connect', () => {
-      if (authStore.user) authStore.user.isOnline = true
-    })
-    sock.on('disconnect', () => {
-      if (authStore.user) authStore.user.isOnline = false
-    })
-    sock.on('presence', ({ userId, isOnline }) => {
-      if (authStore.user && Number(userId) === Number(authStore.user.id)) {
-        authStore.user.isOnline = isOnline
-      }
-    })
+    bindSocketHandlers(sock)
     // If already connected when the watcher runs, mark online immediately
     if (sock.connected && authStore.user) authStore.user.isOnline = true
 
     fetchNotifications()
     fetchUnreadMessages()
-    sock.on('dm:message', () => {
-      if (!showMessagesModal.value) unreadMessages.value++
-    })
   } else {
+    unbindSocketHandlers()
     disconnectSocket()
     unreadCount.value = 0
     unreadMessages.value = 0
@@ -245,6 +274,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('scroll', handleScroll)
+  unbindSocketHandlers()
 })
 </script>
 

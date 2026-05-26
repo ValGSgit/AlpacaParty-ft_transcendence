@@ -19,6 +19,7 @@ import { initializePassport } from "#services/oauthService.js";
 import { createHttpsServer } from "#lib/httpsServer.js";
 import { getHelmetConfig } from "#config/helmet.js";
 import { uploadSecurityCheck } from "#utils/uploadSecurity.js";
+import { waitForVaultToken } from "#lib/vault.js";
 
 const app = express();
 
@@ -141,12 +142,32 @@ app.use(errorHandler);
 // Initialize WebSocket
 initializeSocket(httpsServer, config.cors.origins);
 
+// Warm the Vault token cache. The token is mounted from vault-init's
+// keys volume; in normal compose ordering it's already on disk by the
+// time we reach this line, but vault-init's depends_on is service_started
+// (not service_completed_successfully), so a slow init still races us.
+// Polling here means the first admin request — which calls Vault.read()
+// — never sees a "keys file not found" crash. Dev mode (no Vault volume)
+// is detected by the env var and the wait is skipped.
+async function bootstrapVault() {
+  if (!config.envIsProd) return;
+  try {
+    await waitForVaultToken({ timeoutMs: 60_000, intervalMs: 500 });
+    console.log("[vault] token cached at boot");
+  } catch (err) {
+    // Don't crash the server — non-Vault endpoints still work. Surface
+    // the error so monitoring catches it.
+    console.error("[vault] could not warm token cache:", err.message);
+  }
+}
+
 // Start server
 const PORT = config.port;
-const server = httpsServer.listen(PORT, () => {
+const server = httpsServer.listen(PORT, async () => {
   console.log(
     `[server] AlpacaParty API running on port ${PORT} (${config.nodeEnv})`,
   );
+  await bootstrapVault();
 });
 
 const shutdown = async (signal) => {

@@ -248,19 +248,150 @@ docker compose up -d --build
 
 ## Backup and Restore
 
-### Backup Database
+The app has two pieces of durable state, both of which must be backed up
+together for a restore to succeed: **Postgres** (all user data, posts,
+games, achievements) and **Vault** (DB password, JWT secrets, OAuth
+client secrets, API keys, Groq keys). A Postgres backup alone is
+useless if Vault is lost — the backend won't know the DB password.
+
+### What you're backing up
+
+| Source                | Volume                | Holds                                        |
+|-----------------------|-----------------------|----------------------------------------------|
+| Postgres data         | `alpacaparty_pg_data` | All tables, rows, sequences                  |
+| Vault file backend    | `alpacaparty_vault_data` | Encrypted KV store (secrets at rest)      |
+| Vault unseal keys     | `alpacaparty_vault_keys` | Unseal key + root token written by vault-init |
+| nginx / app TLS certs | `ssl/` on host        | Self-signed dev / prod certs                 |
+
+### 1 — Snapshot everything (run weekly, before deploys)
+
+The simplest reliable backup is a logical Postgres dump plus a tarball
+of the Vault volumes while Vault is sealed. Saves a single archive per
+day under `./backups/`:
+
 ```bash
-docker compose exec postgres pg_dump -U alpacaparty alpacaparty > backup.sql
+# 0. Get a stable timestamp and a place to put the files.
+TS=$(date -u +%Y%m%dT%H%M%SZ)
+mkdir -p backups
+
+# 1. Postgres — logical dump, gzipped. --clean drops + recreates
+#    objects on restore so a partial DB doesn't refuse the import.
+docker compose -f compose.prod.yaml exec -T postgres \
+  pg_dump -U "$DB_USER" --clean --if-exists "$DB_NAME" \
+  | gzip > "backups/pg-${TS}.sql.gz"
+
+# 2. Vault — seal first so the file backend is in a consistent state,
+#    snapshot the volumes, then unseal again. Vault accepts seal/unseal
+#    over HTTPS using the token written by vault-init.
+docker compose -f compose.prod.yaml exec -T vault \
+  vault operator seal || true
+
+docker run --rm \
+  -v alpacaparty_vault_data:/vault/data:ro \
+  -v alpacaparty_vault_keys:/vault/keys:ro \
+  -v "$(pwd)/backups:/backup" \
+  alpine tar czf "/backup/vault-${TS}.tar.gz" /vault/data /vault/keys
+
+# 3. Re-unseal Vault so the backend stays alive.
+make prod-vault-unseal
 ```
 
-### Restore Database
+Why seal first: Vault writes to its file backend asynchronously while
+running. Snapshotting a live volume can land in the middle of a write
+and produce a corrupt archive that fails silently on restore. Sealing
+forces a flush + read-only state for the duration of the tar.
+
+### 2 — Restore a Postgres backup
+
 ```bash
-cat backup.sql | docker compose exec -T postgres psql -U alpacaparty alpacaparty
+# Stop the backend so no writes race the restore.
+docker compose -f compose.prod.yaml stop backend
+
+# Pipe the gzipped dump into psql. Postgres must be running.
+gunzip -c backups/pg-20260526T020000Z.sql.gz \
+  | docker compose -f compose.prod.yaml exec -T postgres \
+      psql -U "$DB_USER" "$DB_NAME"
+
+docker compose -f compose.prod.yaml start backend
 ```
 
-### Backup Volume
+The dump is taken with `--clean --if-exists`, so it will drop existing
+tables before recreating them. If you need a non-destructive restore
+into an empty database, re-dump without those flags.
+
+### 3 — Restore Vault from a tarball
+
+This is the harder path because Vault must be **stopped** while you
+swap the file backend. The unseal key in the keys volume must match
+the backend in the data volume — never mix-and-match snapshots.
+
 ```bash
-docker run --rm -v alpacaparty_pg_data:/data -v $(pwd):/backup alpine tar czf /backup/db-backup.tar.gz /data
+# 1. Bring everything down. The vault_data + vault_keys volumes must
+#    not be in use while we restore.
+make prod-down
+
+# 2. Wipe the existing volumes — restore is destructive by design.
+docker volume rm alpacaparty_vault_data alpacaparty_vault_keys
+docker volume create alpacaparty_vault_data
+docker volume create alpacaparty_vault_keys
+
+# 3. Extract the snapshot into the fresh volumes.
+docker run --rm \
+  -v alpacaparty_vault_data:/vault/data \
+  -v alpacaparty_vault_keys:/vault/keys \
+  -v "$(pwd)/backups:/backup:ro" \
+  alpine sh -c "cd / && tar xzf /backup/vault-20260526T020000Z.tar.gz"
+
+# 4. Boot the stack. vault-init detects an already-initialised
+#    backend and skips the seed step; it will only unseal.
+make prod-up
+```
+
+### 4 — Disaster recovery (lost host)
+
+To rebuild from scratch on a new host:
+
+1. Clone the repo and check out the same commit the backup was taken from.
+2. Copy `backups/pg-*.sql.gz` and `backups/vault-*.tar.gz` to the new host.
+3. `make ssl-certs` to mint fresh certs (the old certs are tied to the old IP).
+4. `make prod-up` to create the volumes.
+5. Run the **Vault restore** above (step 3) — the same snapshot puts the
+   unseal key and root token back into `vault_keys` so the backend can
+   read its secrets again.
+6. Run the **Postgres restore** above (step 2).
+7. `make prod-up` again — backend should come up healthy now that both
+   secrets and data are in place.
+
+### 5 — Verify a backup
+
+A backup you've never restored is theoretical. Once a quarter:
+
+```bash
+# Spin a throwaway compose project pointing at a copy of the snapshot.
+COMPOSE_PROJECT_NAME=alpacaparty_drill make prod-up
+# Run the restore against the drill project.
+# Hit /api/health and /api/admin/login to confirm both DB and Vault
+# came back intact.
+COMPOSE_PROJECT_NAME=alpacaparty_drill make prod-down
+docker volume rm alpacaparty_drill_pg_data alpacaparty_drill_vault_data alpacaparty_drill_vault_keys
+```
+
+### Retention guidance
+
+- Daily snapshots, kept 14 days.
+- Weekly snapshots, kept 8 weeks.
+- Monthly snapshots, kept 12 months.
+- Encrypt the off-host copy — the Vault tarball contains the unseal key,
+  which is equivalent to all production secrets.
+
+### Backup Volume (raw tarball — last resort)
+
+Useful for forensics or moving between hosts when Vault isn't involved
+(dev only). Prefer the logical dump above for production:
+
+```bash
+docker run --rm -v alpacaparty_pg_data:/data -v $(pwd):/backup \
+  alpine tar czf /backup/db-volume-backup.tar.gz /data
 ```
 
 ## Environment Variables Reference

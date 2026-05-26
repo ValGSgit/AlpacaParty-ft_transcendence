@@ -26,6 +26,13 @@ export class AlpacaRoadMatch extends BaseMatch {
     // in syncLobby() (which broadcasts raw player objects) crashed
     // socket.io-parser's hasBinary() walk with a stack overflow.
     this.hitTimers = new Map();
+    // Heartbeat is started lazily in addPlayer() once the first player
+    // arrives — see SpitRoyaleMatch for the rationale. BaseMatch.stop()
+    // clears it on teardown.
+  }
+
+  _ensureHeartbeat() {
+    if (this.heartbeat) return;
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
 
@@ -52,6 +59,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     player.isJumping = false;
     player.isActive = true;
     player.lastActive = Date.now();
+    this._ensureHeartbeat();
     this.syncLobby();
   }
 
