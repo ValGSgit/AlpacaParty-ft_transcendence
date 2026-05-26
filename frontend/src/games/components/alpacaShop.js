@@ -6,7 +6,7 @@ import { setupPlacement } from './editMode';
 import { checkCoinsPrice, checkHerdSize } from './upgradeFarm';
 
 export function alpacaShop() {
-  const { closeMenuForPlacement } = useUIManager()
+  const { closeMenus } = useUIManager()
 
   async function buyAlpaca() {
     if (!checkCoinsPrice(CONST.ALPACA_COST) || !checkHerdSize()) {
@@ -23,7 +23,7 @@ export function alpacaShop() {
       0,
       scale);
     alpaca.model.userData.cost = CONST.ALPACA_COST;
-    closeMenuForPlacement();
+    closeMenus();
     resetAlpacaConfig();
     setupPlacement(alpaca.model);
   }

@@ -4,7 +4,7 @@ import { setupPlacement } from './editMode.js';
 import { checkCoinsPrice } from './upgradeFarm.js';
 
 export function itemShop() {
-  const { closeMenuForPlacement } = useUIManager()
+  const { closeMenus } = useUIManager()
 
   async function buyItem(selectedItem) {
     if (!checkCoinsPrice(selectedItem.cost)) return;
@@ -14,7 +14,7 @@ export function itemShop() {
     const model = item.model;
     model.userData.cost = selectedItem.cost;
 
-    closeMenuForPlacement()
+    closeMenus();
     setupPlacement(model);
   }
 
