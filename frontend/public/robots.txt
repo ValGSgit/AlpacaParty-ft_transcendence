@@ -1,9 +1,0 @@
-User-agent: *
-Allow: /
-
-# Authenticated app surfaces (mostly empty pages without a session anyway)
-Disallow: /profile/
-Disallow: /friends
-Disallow: /admin
-
-Sitemap: https://localhost:8443/sitemap.xml
