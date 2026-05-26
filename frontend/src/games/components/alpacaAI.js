@@ -38,7 +38,7 @@ export function alpacaAI() {
 
     ai.timer -= delta;
     if (ai.timer <= 0) {
-      if (!checkHunting(alpaca))
+      if (checkHunting(alpaca))
         return;
       target.copy(getRandomPos());
       ai.state = 'moving';
