@@ -1,8 +1,8 @@
+import api from '../../services/api.js';
 import { useEditMode } from "../components/editMode";
 import { changeGame } from '../mini_games/init.js';
 import { gEditState, gMinigame, gUI } from "./globals";
 import { changeEditModeCamera } from "./useCamera.js";
-import api from '../../services/api.js';
 
 export function useUIManager() {
 
@@ -10,14 +10,19 @@ export function useUIManager() {
 
   const closeMenus = () => {
     if (gUI.editMode) closeEditMode();
-    if (gUI.alpacaShop) closeAlpacaShop();
-    if (gUI.alpacaStats) closeAlpacaStats();
-    if (gUI.itemShop) closeItemShop();
     if (gUI.lightMenu) closeLightMenu();
+    if (gUI.alpacaStats) closeAlpacaStats();
+
     if (gUI.shopMenu) closeShopMenu();
-    if (gUI.gameMenu) closeGameMenu();
+    if (gUI.alpacaShop) closeAlpacaShop();
+    if (gUI.itemShop) closeItemShop();
     if (gUI.farmMenu) closeFarmMenu();
+
+    if (gUI.gameMenu) closeGameMenu();
     if (gUI.lobbyMenu) closeLobbyMenu();
+
+    if (gMinigame.value.mode === 5)
+      changeGame(0)
   }
 
   const openEditMode = () => {
@@ -70,6 +75,11 @@ export function useUIManager() {
     gUI.shopMenu = true
   }
 
+  const closeMenuForPlacement = () => {
+    gUI.itemShop = false
+    gUI.alpacaShop = false
+  }
+
   const openLightMenu = () => {
     closeEditMode()
     gUI.lightMenu = true
@@ -98,6 +108,7 @@ export function useUIManager() {
 
   const closeFarmMenu = () => {
     gUI.farmMenu = false
+    gUI.shopMenu = true
   }
 
   async function openLobbyMenu(game) {
@@ -111,14 +122,16 @@ export function useUIManager() {
 
   const closeLobbyMenu = () => {
     gUI.lobbyMenu = false
-    //gUI.gameMenu = true
+    if (gMinigame.value.mode !== 5) {
+      gUI.gameMenu = true
+    }
   }
-  
+
   async function fetchFriends() {
     try {
       const { data } = await api.get('/friends')
       gMinigame.value.lobby = data.friends || []
-    } catch {}
+    } catch { }
   }
 
   return {
@@ -140,6 +153,7 @@ export function useUIManager() {
     openGameMenu,
     closeGameMenu,
     openLobbyMenu,
-    closeLobbyMenu
+    closeLobbyMenu,
+    closeMenuForPlacement
   }
 }

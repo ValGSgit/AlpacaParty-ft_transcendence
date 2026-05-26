@@ -97,7 +97,7 @@
         <button class="shop-btn" @click="openFarmMenu()" title="Upgrade Farm"><AppIcon name="tractor" :size="32" /> Upgrade Farm</button>
         <button class="shop-btn" @click="openAlpacaShop()" title="Buy Alpaca"><AppIcon name="alpaca-buy" :size="32" /> Buy Alpaca</button>
         <button class="shop-btn" @click="openItemShop()" title="Buy Item"><AppIcon name="barn" :size="32" /> Buy Item</button>
-        <button class="close-btn" @click="closeShopMenu()" title="Close"><AppIcon name="close" :size="18" /></button>
+        <button class="close-btn" @click="closeShopMenu()" title="Close"><AppIcon name="close" :size="24" /></button>
       </div>
     </div>
 
@@ -115,7 +115,7 @@
         <option :value="3">3 Players</option>
         <option :value="4">4 Players</option>
       </select>
-        <button class="close-btn" @click="closeGameMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeGameMenu()" title="Close"><AppIcon name="close" :size="24" /></button>
       </div>
     </div>
     <MultiplayerLobby v-if="gUI.lobbyMenu && (gMinigame.mode === 2 || gMinigame.mode === 4)" />
@@ -126,7 +126,7 @@
             {{ friend.username }}
           </button>
         </div>
-        <button class="close-btn" @click="changeGame(0)" title="Close">✖️</button>
+        <button class="close-btn" @click="changeGame(0)" title="Close"><AppIcon name="close" :size="24" /></button>
       </div>
     </div>
     <div v-if="gMinigame.mode === 5 && gMinigame.isVisiting" class="edit-mode">
@@ -159,7 +159,7 @@
         </button>
       </div>
 
-        <button class="close-btn" @click="gUI.farmMenu = false" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeFarmMenu()" title="Close"><AppIcon name="close" :size="24" /></button>
       </div>
     </div>
 
@@ -177,7 +177,7 @@
           </button>
         </div>
         
-        <button class="close-btn" @click="closeItemShop()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeItemShop()" title="Close"><AppIcon name="close" :size="24" /></button>
       </div>
     </div>
     
@@ -201,7 +201,7 @@
           <input type="color" v-model="alpacaConfig.color" class="custom-picker" />
           <button class="shop-btn" @click="buyAlpaca()" title="Custom">Custom</button>
         </div>
-        <button class="close-btn" @click="closeAlpacaShop()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeAlpacaShop()" title="Close"><AppIcon name="close" :size="24" /></button>
       </div>
     </div>
     
@@ -234,17 +234,17 @@
             </div>
           </div>
         </div>
-        <button class="close-btn" @click="closeAlpacaStats()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeAlpacaStats()" title="Close"><AppIcon name="close" :size="24" /></button>
       </div>
     </div>
         
     <div v-if="gUI.editMode" class="edit-mode">
       <div class="shop-title"> Edit Mode
           <div v-if="gEditState.selected" class="edit-actions">
-            <button class="shop-btn" @click="sellItem()"><AppIcon name="coin" :size="18" /> Sell Item</button>
-            <button class="shop-btn" @click="cancelPlacement()">Cancel <AppIcon name="close" :size="14" /></button>
+            <button class="shop-btn" @click="sellItem()"><AppIcon name="coin" :size="24" /> Sell Item</button>
+            <button class="shop-btn" @click="cancelPlacement()">Cancel <AppIcon name="close" :size="24" /></button>
           </div>
-      <button class="close-btn" @click="closeEditMode()" title="Close"><AppIcon name="close" :size="16" /></button>
+      <button class="close-btn" @click="closeEditMode()" title="Close"><AppIcon name="close" :size="24" /></button>
       </div>
         <div class="controls-hint">
         <h4><AppIcon name="tools" :size="16" /> Edit Controls</h4>
@@ -276,7 +276,7 @@
         <button class="shop-btn" @click="setTimeOfDay('day')"><AppIcon name="sun-full" :size="30" /> Day</button>
         <button class="shop-btn" @click="setTimeOfDay('sunset')"><AppIcon name="sunset" :size="30" /> Sunset</button>
         <button class="shop-btn" @click="setTimeOfDay('night')"><AppIcon name="night" :size="30" /> Night</button>
-        <button class="close-btn" @click="closeLightMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeLightMenu()" title="Close"><AppIcon name="close" :size="24" /></button>
       </div>
     </div>
   </div>
@@ -330,7 +330,7 @@ const { changeColor, changeName, changeSpeed, updateVue } = alpacaStats()
 const { initInput, cleanupInput, updateInputState, resetInput} = useInput()
 const { setTimeOfDay, updateLighting, toggleLightCycle} = editLight()
 const { buyAlpaca } = alpacaShop()
-const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openFarmMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu, openLobbyMenu, closeLobbyMenu } = useUIManager()
+const { openEditMode, closeEditMode, openShopMenu, closeShopMenu, openFarmMenu, closeFarmMenu, openAlpacaShop, closeAlpacaShop, closeAlpacaStats, openItemShop, closeItemShop, openLightMenu, closeLightMenu, openGameMenu, closeGameMenu, openLobbyMenu, closeLobbyMenu, closeMenuForPlacement} = useUIManager()
 const { init, cleanup, onResize } = useGameEngine(gameContainer)
 const { increaseFarmSize, increaseHerdSize } = upgradeFarm()
 const { buyItem } = itemShop()
