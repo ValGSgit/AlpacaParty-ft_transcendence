@@ -177,6 +177,13 @@ generate-secrets:
 	@JWT=$$(openssl rand -hex 40) && \
 		$(SED_I) "s|^JWT_ADMIN_SECRET=.*|JWT_ADMIN_SECRET=$$JWT|" .env && \
 		echo "$(GREEN)✓ JWT_ADMIN_SECRET randomised$(RESET)"
+	@API_KEY=$$(openssl rand -hex 32) && \
+		if grep -q '^API_KEYS=' .env; then \
+			$(SED_I) "s|^API_KEYS=.*|API_KEYS=$$API_KEY|" .env; \
+		else \
+			printf '\nAPI_KEYS=%s\n' "$$API_KEY" >> .env; \
+		fi && \
+		echo "$(GREEN)✓ API_KEYS randomised$(RESET)"
 	@echo "$(GREEN)✓ DATABASE_URL synced with DB credentials$(RESET)"
 	@echo "$(YELLOW)  Secrets written to .env — keep this file out of version control$(RESET)"
 

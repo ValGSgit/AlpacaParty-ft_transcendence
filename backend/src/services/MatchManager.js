@@ -122,97 +122,79 @@ export class MatchManager {
         this.broadcastPublicRooms();
       })
 
-      socket.on('ready_toggle', ({ isReady }) => {
+      // ── Helpers for the per-event handlers below ─────────────────
+      //
+      // Every game event has the same dispatch pattern: look up the match
+      // by socket, verify the handler exists, then invoke it. Hand-inlining
+      // this six times bred subtle copy-paste bugs (forgotten typeof checks,
+      // mismatched delete order). One helper, one place to read.
+      const dispatch = (handlerName, ...args) => {
         const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) this.matches.get(matchId).toggleReady(socket.id, isReady);
+        if (!matchId) return;
+        const match = this.matches.get(matchId);
+        if (!match) return;
+        const fn = match[handlerName];
+        if (typeof fn !== 'function') return;
+        fn.call(match, socket.id, ...args);
+      };
+
+      // Inbound socket payloads are untrusted. Shape-guard before dispatch
+      // so the match classes can assume well-typed inputs. A bad payload is
+      // dropped silently — a cheating/buggy client doesn't get a 4xx.
+      const isObject = (v) => v !== null && typeof v === 'object';
+      const isFiniteN = (v) => typeof v === 'number' && Number.isFinite(v);
+      const isPlayerInput = (p) =>
+        isObject(p) && isFiniteN(p.x) && isFiniteN(p.y) && isFiniteN(p.z) && isFiniteN(p.angle);
+      const isSpitDirection = (p) =>
+        isObject(p) && isFiniteN(p.x) && isFiniteN(p.y) && isFiniteN(p.z);
+
+      socket.on('ready_toggle', (payload) => {
+        const isReady = !!(payload && payload.isReady);
+        dispatch('toggleReady', isReady);
       });
 
-      socket.on('player_hit', () => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handlePlayerHit === 'function') {
-            match.handlePlayerHit(socket.id);
-          }
-        }
-      });
-
-      socket.on('player_hit_complete', () => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handlePlayerHitComplete === 'function') {
-            match.handlePlayerHitComplete(socket.id);
-          }
-        }
-      })
+      socket.on('player_hit',          () => dispatch('handlePlayerHit'));
+      socket.on('player_hit_complete', () => dispatch('handlePlayerHitComplete'));
+      socket.on('player_jump',         () => dispatch('handlePlayerJump'));
+      socket.on('player_active',       () => dispatch('handleActive'));
 
       socket.on('player_spit', (data) => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handlePlayerSpit === 'function') {
-            match.handlePlayerSpit(socket.id, data.direction);
-          }
-        }
+        if (!isObject(data) || !isSpitDirection(data.direction)) return;
+        dispatch('handlePlayerSpit', data.direction);
       });
 
       socket.on('player_input', (data) => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handlePlayerInput === 'function') {
-            match.handlePlayerInput(socket.id, data);
-          }
-        }
+        if (!isPlayerInput(data)) return;
+        dispatch('handlePlayerInput', data);
       });
 
-      socket.on('spit_hit', ({ targetId }) => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handleSpitHit === 'function') {
-            match.handleSpitHit(socket.id, targetId);
-          }
-        }
+      socket.on('spit_hit', (payload) => {
+        if (!isObject(payload)) return;
+        const targetId = payload.targetId;
+        // Socket ids are strings; reject anything else outright.
+        if (typeof targetId !== 'string' || !targetId) return;
+        dispatch('handleSpitHit', targetId);
       });
 
-      socket.on('player_jump', () => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handlePlayerJump === 'function') {
-            match.handlePlayerJump(socket.id);
-          }
-        }
-      });
-
-      socket.on('player_active', () => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handleActive === 'function') {
-            match.handleActive(socket.id);
-          }
-        }
-      })
-
+      // Disconnect: tear down the socket's room membership, free the match if
+      // it just emptied. The previous version called playerToMatch.delete()
+      // twice on the success path (once inside, once outside the `if (match)`
+      // branch) — flatten to a single delete after the optional cleanup.
       socket.on('disconnect', () => {
         debug('BACKEND: Receive disconnect request');
         const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match) {
-            match.removePlayer(socket.id);
-            this.playerToMatch.delete(socket.id);
-            if (match.players.size <= 0) {
-              match.stop();
-              this.matches.delete(matchId);
-            }
+        if (!matchId) return;
+
+        const match = this.matches.get(matchId);
+        if (match) {
+          match.removePlayer(socket.id);
+          if (match.players.size <= 0) {
+            match.stop();
+            this.matches.delete(matchId);
           }
-          this.playerToMatch.delete(socket.id);
-          this.broadcastPublicRooms();
         }
+        this.playerToMatch.delete(socket.id);
+        this.broadcastPublicRooms();
       });
     });
   }

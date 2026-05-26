@@ -11,6 +11,15 @@ import prisma from '#config/prisma.js';
 import Achievement from '../models/Achievement.js';
 import Game from '../models/Game.js';
 import NotificationService from './notificationService.js';
+import { devError } from '#lib/logger.js';
+
+// Notification delivery is fire-and-forget — the XP/achievement state is
+// already persisted by the time we get here. We don't want a flaky notify
+// to roll back an unlock, but the previous `.catch(() => {})` swallowed
+// the error completely. Log it so monitoring can see the failure.
+function logNotifyError(context, err) {
+  devError(`[gamification] notify failed (${context}):`, err?.message || err);
+}
 
 const XP_PER_LEVEL = 100;
 const WIN_XP       = 30;
@@ -45,7 +54,7 @@ const GamificationService = {
         type:    'level_up',
         title:   'Level Up!',
         message: `You reached level ${newLevel}!`,
-      }).catch(() => {});
+      }).catch((err) => logNotifyError('level_up', err));
       if (newLevel >= 10) await this._unlockNoXp(userId, 'level_10');
     }
 
@@ -78,7 +87,9 @@ const GamificationService = {
       }
     }
 
-    NotificationService.achievementUnlocked(userId, achievement.name).catch(() => {});
+    NotificationService
+      .achievementUnlocked(userId, achievement.name)
+      .catch((err) => logNotifyError(`achievement:${achievementKey}`, err));
     return achievement;
   },
 
@@ -88,7 +99,9 @@ const GamificationService = {
     const result = await Achievement.unlock(userId, achievementKey);
     if (!result)
       return null;
-    NotificationService.achievementUnlocked(userId, result.achievement.name).catch(() => {});
+    NotificationService
+      .achievementUnlocked(userId, result.achievement.name)
+      .catch((err) => logNotifyError(`achievement-nox:${achievementKey}`, err));
     return result.achievement;
   },
 

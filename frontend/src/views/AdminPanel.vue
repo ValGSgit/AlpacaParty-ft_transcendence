@@ -59,34 +59,40 @@
         </div>
       </header>
 
+      <!-- Action error banner — shared across sections -->
+      <div v-if="actionError" class="action-error" role="alert">
+        {{ actionError }}
+        <button class="action-error-dismiss" @click="actionError = ''" aria-label="Dismiss">×</button>
+      </div>
+
       <!-- Dashboard -->
       <section v-if="activeSection === 'dashboard'" class="section-content">
         <div class="stats-grid" v-if="stats">
           <div class="stat-card">
             <div class="stat-icon users"><svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
             <div class="stat-info">
-              <div class="stat-value">{{ stats.totalUsers.toLocaleString() }}</div>
+              <div class="stat-value">{{ formatCount(stats.totalUsers) }}</div>
               <div class="stat-label">Total Users</div>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon online"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 2a10 10 0 1 0 10 10" stroke="currentColor" stroke-width="1.5"/></svg></div>
             <div class="stat-info">
-              <div class="stat-value">{{ stats.onlineUsers.toLocaleString() }}</div>
+              <div class="stat-value">{{ formatCount(stats.onlineUsers) }}</div>
               <div class="stat-label">Online Now</div>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon posts"><svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="1.5"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.5"/></svg></div>
             <div class="stat-info">
-              <div class="stat-value">{{ stats.totalPosts.toLocaleString() }}</div>
+              <div class="stat-value">{{ formatCount(stats.totalPosts) }}</div>
               <div class="stat-label">Total Posts</div>
             </div>
           </div>
           <div class="stat-card warning">
             <div class="stat-icon banned"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="1.5"/></svg></div>
             <div class="stat-info">
-              <div class="stat-value">{{ stats.bannedUsers.toLocaleString() }}</div>
+              <div class="stat-value">{{ formatCount(stats.bannedUsers) }}</div>
               <div class="stat-label">Banned Users</div>
             </div>
           </div>
@@ -190,7 +196,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAdminAuthStore } from '../stores/adminAuth.js';
 import api from '../services/api.js';
@@ -201,6 +207,10 @@ const adminAuth = useAdminAuthStore();
 const activeSection = ref('dashboard');
 const sidebarCollapsed = ref(false);
 
+// Stats default — keys are guaranteed to exist so the template's
+// `.toLocaleString()` calls never crash on a partial API response.
+const DEFAULT_STATS = { totalUsers: 0, bannedUsers: 0, totalPosts: 0, onlineUsers: 0 };
+
 const stats = ref(null);
 const users = ref([]);
 const usersLoading = ref(false);
@@ -208,6 +218,7 @@ const userSearch = ref('');
 const userPage = ref(1);
 const userPages = ref(1);
 const deleteTarget = ref(null);
+const actionError = ref('');
 
 let searchTimeout = null;
 
@@ -229,15 +240,47 @@ const adminInitial = computed(() => (adminAuth.admin?.username?.[0] ?? 'A').toUp
 const currentDate = computed(() => new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }));
 
 function formatDate(d) {
-  return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  if (!d) return '';
+  const parsed = new Date(d);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// Replaces `value.toLocaleString()` in the template — handles undefined/null
+// so a partial dashboard payload can't crash the render.
+function formatCount(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '0';
+  return n.toLocaleString();
+}
+
+// Extract a human-readable message from an api.js HttpError, with a fallback.
+function errorMessage(err, fallback) {
+  if (err && err.data && err.data.error && err.data.error.message) {
+    return err.data.error.message;
+  }
+  if (err && err.message) return err.message;
+  return fallback;
+}
+
+// Coerce a possibly-partial stats payload into the full shape so the template
+// can call `.toLocaleString()` on every field without optional-chaining.
+function normalizeStats(payload) {
+  const out = { ...DEFAULT_STATS };
+  if (!payload || typeof payload !== 'object') return out;
+  for (const key of Object.keys(DEFAULT_STATS)) {
+    const v = Number(payload[key]);
+    out[key] = Number.isFinite(v) ? v : 0;
+  }
+  return out;
 }
 
 async function loadDashboard() {
   try {
     const { data } = await api.get('/admin/dashboard');
-    stats.value = data;
+    stats.value = normalizeStats(data);
   } catch {
-    stats.value = { totalUsers: 0, bannedUsers: 0, totalPosts: 0, onlineUsers: 0 };
+    stats.value = normalizeStats(null);
   }
 }
 
@@ -247,8 +290,13 @@ async function loadUsers() {
     const { data } = await api.get('/admin/users', {
       params: { page: userPage.value, limit: 20, search: userSearch.value },
     });
-    users.value = data.users;
-    userPages.value = data.pages;
+    users.value = Array.isArray(data?.users) ? data.users : [];
+    const pages = Number(data?.pages);
+    userPages.value = Number.isFinite(pages) && pages > 0 ? pages : 1;
+  } catch (err) {
+    users.value = [];
+    userPages.value = 1;
+    actionError.value = errorMessage(err, 'Failed to load users');
   } finally {
     usersLoading.value = false;
   }
@@ -260,37 +308,61 @@ function debouncedSearch() {
 }
 
 function changePage(p) {
-  userPage.value = p;
+  // Clamp to the known range so a manual click can't desync from the API.
+  const next = Number(p);
+  if (!Number.isInteger(next)) return;
+  if (next < 1 || next > userPages.value) return;
+  userPage.value = next;
   loadUsers();
 }
 
 async function banUser(id) {
-  await api.patch(`/admin/users/${id}/ban`);
-  loadUsers();
+  try {
+    await api.patch(`/admin/users/${id}/ban`);
+    await loadUsers();
+  } catch (err) {
+    actionError.value = errorMessage(err, 'Ban failed');
+  }
 }
 
 async function unbanUser(id) {
-  await api.patch(`/admin/users/${id}/unban`);
-  loadUsers();
+  try {
+    await api.patch(`/admin/users/${id}/unban`);
+    await loadUsers();
+  } catch (err) {
+    actionError.value = errorMessage(err, 'Unban failed');
+  }
 }
 
 function confirmDelete(u) { deleteTarget.value = u; }
 
 async function deleteUser() {
   if (!deleteTarget.value) return;
-  await api.delete(`/admin/users/${deleteTarget.value.id}`);
-  deleteTarget.value = null;
-  loadUsers();
+  const target = deleteTarget.value;
+  try {
+    await api.delete(`/admin/users/${target.id}`);
+    deleteTarget.value = null;
+    await loadUsers();
+  } catch (err) {
+    actionError.value = errorMessage(err, 'Delete failed');
+  }
 }
 
 async function handleLogout() {
-  await adminAuth.logout();
-  router.push({ name: 'AdminLogin' });
+  try {
+    await adminAuth.logout();
+  } finally {
+    router.push({ name: 'AdminLogin' });
+  }
 }
 
-onMounted(async () => {
+onMounted(() => {
   loadDashboard();
   loadUsers();
+});
+
+onUnmounted(() => {
+  if (searchTimeout) clearTimeout(searchTimeout);
 });
 </script>
 
@@ -563,4 +635,28 @@ onMounted(async () => {
 .btn-danger { padding: 8px 16px; background: rgba(255,60,80,0.15); border: 1px solid rgba(255,60,80,0.3); border-radius: 8px; color: #ff6070; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
 .btn-cancel:hover { background: rgba(255,255,255,0.08); }
 .btn-danger:hover { background: rgba(255,60,80,0.25); }
+
+/* ── Action error banner ───────────────────────────────────── */
+.action-error {
+  margin: 12px 28px 0;
+  padding: 10px 14px;
+  background: rgba(255, 60, 80, 0.08);
+  border: 1px solid rgba(255, 60, 80, 0.25);
+  border-radius: 8px;
+  color: #ff8090;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.action-error-dismiss {
+  background: none;
+  border: none;
+  color: #ff8090;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0 4px;
+}
+.action-error-dismiss:hover { color: #ffb0bc; }
 </style>
