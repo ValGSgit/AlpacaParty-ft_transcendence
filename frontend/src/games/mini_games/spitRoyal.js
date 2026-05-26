@@ -1,8 +1,8 @@
 import * as THREE from 'three';
+import { devWarn } from '../../services/logger.js';
 import { editLight } from '../components/editLight.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
-import { devWarn } from '../../services/logger.js';
 import { createAlpaca } from '../core/createObjects.js';
 import { gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
@@ -193,6 +193,9 @@ function syncPlayers(delta) {
 
         const targetRot = serverData.angle;
         let diff = targetRot - localAlpaca.model.rotation.y;
+        if (!localAlpaca.isMoving)
+          localAlpaca.isMoving = Math.abs(diff) > 0.1
+
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
         localAlpaca.model.rotation.y += diff * delta * 10;
