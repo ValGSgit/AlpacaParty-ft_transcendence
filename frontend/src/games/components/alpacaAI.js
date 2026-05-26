@@ -14,7 +14,7 @@ export function alpacaAI() {
   const { checkCollision } = usePhysics();
 
   const checkHunting = (alpaca) => {
-    if (gMinigame.mode === 0)
+    if (gMinigame.value.mode === 0)
       return false;
 
     const ai = alpaca.ai
@@ -38,7 +38,7 @@ export function alpacaAI() {
 
     ai.timer -= delta;
     if (ai.timer <= 0) {
-      if (!checkHunting(alpaca))
+      if (checkHunting(alpaca))
         return;
       target.copy(getRandomPos());
       ai.state = 'moving';
