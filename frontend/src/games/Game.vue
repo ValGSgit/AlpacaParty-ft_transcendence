@@ -115,7 +115,7 @@
         <option :value="3">3 Players</option>
         <option :value="4">4 Players</option>
       </select>
-        <button class="close-btn" @click="closeGameMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeGameMenu()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
     <MultiplayerLobby v-if="gUI.lobbyMenu && (gMinigame.mode === 2 || gMinigame.mode === 4)" />
@@ -126,7 +126,7 @@
             {{ friend.username }}
           </button>
         </div>
-        <button class="close-btn" @click="changeGame(0)" title="Close">✖️</button>
+        <button class="close-btn" @click="changeGame(0)" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
     <div v-if="gMinigame.mode === 5 && gMinigame.isVisiting" class="edit-mode">
@@ -159,7 +159,7 @@
         </button>
       </div>
 
-        <button class="close-btn" @click="gUI.farmMenu = false" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="gUI.farmMenu = false" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
 
@@ -177,7 +177,7 @@
           </button>
         </div>
         
-        <button class="close-btn" @click="closeItemShop()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeItemShop()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
     
@@ -201,7 +201,7 @@
           <input type="color" v-model="alpacaConfig.color" class="custom-picker" />
           <button class="shop-btn" @click="buyAlpaca()" title="Custom">Custom</button>
         </div>
-        <button class="close-btn" @click="closeAlpacaShop()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeAlpacaShop()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
     
@@ -234,7 +234,7 @@
             </div>
           </div>
         </div>
-        <button class="close-btn" @click="closeAlpacaStats()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeAlpacaStats()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
         
@@ -244,7 +244,7 @@
             <button class="shop-btn" @click="sellItem()"><AppIcon name="coin" :size="18" /> Sell Item</button>
             <button class="shop-btn" @click="cancelPlacement()">Cancel <AppIcon name="close" :size="14" /></button>
           </div>
-      <button class="close-btn" @click="closeEditMode()" title="Close"><AppIcon name="close" :size="16" /></button>
+      <button class="close-btn" @click="closeEditMode()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
         <div class="controls-hint">
         <h4><AppIcon name="tools" :size="16" /> Edit Controls</h4>
@@ -276,7 +276,7 @@
         <button class="shop-btn" @click="setTimeOfDay('day')"><AppIcon name="sun-full" :size="30" /> Day</button>
         <button class="shop-btn" @click="setTimeOfDay('sunset')"><AppIcon name="sunset" :size="30" /> Sunset</button>
         <button class="shop-btn" @click="setTimeOfDay('night')"><AppIcon name="night" :size="30" /> Night</button>
-        <button class="close-btn" @click="closeLightMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeLightMenu()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
   </div>
