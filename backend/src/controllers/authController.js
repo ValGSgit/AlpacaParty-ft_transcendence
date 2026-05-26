@@ -47,6 +47,26 @@ export const register = async (req, res, next) => {
 };
 
 /**
+ * Username or email — POST body may put either in the `username` field.
+ * Returns the user record (with userAuth join) or null.
+ */
+async function findLoginUser(identifier) {
+  const byName = await User.findByUsername(identifier);
+  if (byName) return byName;
+  return User.findByEmail(identifier);
+}
+
+/**
+ * Password hash may live on the joined userAuth row (current schema) or
+ * on the user row itself (legacy). Return the first one found, or null.
+ */
+function extractPasswordHash(user) {
+  if (user.userAuth && user.userAuth.passwordHash) return user.userAuth.passwordHash;
+  if (user.passwordHash) return user.passwordHash;
+  return null;
+}
+
+/**
  * POST /api/auth/login
  */
 export const login = async (req, res, next) => {
@@ -55,14 +75,11 @@ export const login = async (req, res, next) => {
 
     const { username, password } = req.body;
 
-    // Allow login with username or email
-    let user = await User.findByUsername(username);
-    if (!user) {
-      user = await User.findByEmail(username);
-    }
-    const passwordHash = user?.userAuth?.passwordHash || user?.passwordHash;
-    if (!user || !passwordHash)
-      throw new CustomError("Invalid credentials", 401);
+    const user = await findLoginUser(username);
+    if (!user) throw new CustomError("Invalid credentials", 401);
+
+    const passwordHash = extractPasswordHash(user);
+    if (!passwordHash) throw new CustomError("Invalid credentials", 401);
 
     const valid = await AuthService.comparePassword(password, passwordHash);
     if (!valid) throw new CustomError("Invalid credentials", 401);

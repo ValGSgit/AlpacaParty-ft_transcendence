@@ -374,7 +374,7 @@ onMounted(async () => {
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
 
-    if (authStore.isAuthenticated)
+    if (authStore.isAuthenticated && authStore.user?.username)
       gUser.value.name = authStore.user.username;
     await initWorld(gScene.value, authStore.isAuthenticated)
     gameIsReady.value = true

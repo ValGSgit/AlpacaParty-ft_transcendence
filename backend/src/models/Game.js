@@ -71,27 +71,38 @@ const Game = {
   },
 
   async getStats(userId, gameType = "spit_royale") {
+    const id = Number(userId);
     const stat = await prisma.gameStat.findUnique({
-      where: { userId_gameType: { userId: Number(userId), gameType } },
+      where: { userId_gameType: { userId: id, gameType } },
       include: {
         user: { select: { userStats: { select: { level: true } } } },
       },
     });
-    const fallback =
-      stat || {
-        userId: Number(userId),
+
+    // No row for this user/gameType yet: return a zeroed shape.
+    if (!stat) {
+      return {
+        userId: id,
         gameType,
         wins: 0,
         losses: 0,
         draws: 0,
-        level: 1,
         kills: 0,
         obstacles: 0,
+        level: 1,
       };
-    return {
-      ...fallback,
-      level: fallback.user?.userStats?.level ?? fallback.level ?? 1,
-    };
+    }
+
+    // Canonical level lives on UserStats; fall back to the row-local level
+    // field (legacy) and finally to 1.
+    let level = 1;
+    if (stat.user && stat.user.userStats && Number.isFinite(stat.user.userStats.level)) {
+      level = stat.user.userStats.level;
+    } else if (Number.isFinite(stat.level)) {
+      level = stat.level;
+    }
+
+    return { ...stat, level };
   },
 
   async updateStats(userId, gameType, result) {

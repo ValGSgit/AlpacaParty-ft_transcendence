@@ -8,6 +8,7 @@ import NotificationService from "../services/notificationService.js";
 import { debug } from "#lib/logger.js";
 import GamificationService from "../services/GamificationService.js";
 import prisma from "#config/prisma.js";
+import { parseLimitOffset, parseIdParam } from "../utils/pagination.js";
 
 // Treat a block as if the post does not exist (404 not 403) so the blocked
 // user can't learn whether the author exists or has interacted with them.
@@ -19,10 +20,10 @@ async function notFoundIfBlocked(req, authorId) {
 /** GET /api/posts */
 export const getFeed = async (req, res, next) => {
   try {
-    const { limit = 20, offset = 0 } = req.query;
+    const { limit, offset } = parseLimitOffset(req.query, { defaultLimit: 20, maxLimit: 100 });
     const posts = await Post.getFeed({
-      limit: Number(limit),
-      offset: Number(offset),
+      limit,
+      offset,
       viewerId: req.user?.id,
     });
     res.json({ posts });
@@ -34,11 +35,13 @@ export const getFeed = async (req, res, next) => {
 /** GET /api/posts/user/:userId */
 export const getUserPosts = async (req, res, next) => {
   try {
-    const { limit = 20, offset = 0 } = req.query;
-    const posts = await Post.getByUser(Number(req.params.userId), {
-      limit: Number(limit),
-      offset: Number(offset),
-    });
+    const userId = parseIdParam(req.params.userId);
+    if (userId === null) {
+      return res.status(400).json({ error: { message: "invalid user id" } });
+    }
+
+    const { limit, offset } = parseLimitOffset(req.query, { defaultLimit: 20, maxLimit: 100 });
+    const posts = await Post.getByUser(userId, { limit, offset });
     res.json({ posts });
   } catch (err) {
     next(err);
@@ -87,7 +90,11 @@ export const createPost = async (req, res, next) => {
 /** GET /api/posts/:id */
 export const getPost = async (req, res, next) => {
   try {
-    const post = await Post.findById(Number(req.params.id));
+    const postId = parseIdParam(req.params.id);
+    if (postId === null) {
+      return res.status(400).json({ error: { message: "invalid post id" } });
+    }
+    const post = await Post.findById(postId);
     if (!post)
       return res.status(404).json({ error: { message: "Post not found" } });
     res.json({ post });
@@ -114,7 +121,11 @@ export const updatePost = async (req, res, next) => {
     ) {
       return res.status(400).json({ error: { message: "invalid imageUrl" } });
     }
-    const post = await Post.update(Number(req.params.id), req.user.id, {
+    const postId = parseIdParam(req.params.id);
+    if (postId === null) {
+      return res.status(400).json({ error: { message: "invalid post id" } });
+    }
+    const post = await Post.update(postId, req.user.id, {
       content: content !== undefined ? content.trim() : undefined,
       imageUrl: normalizedImageUrl,
       isPublic,
@@ -132,9 +143,10 @@ export const updatePost = async (req, res, next) => {
 /** DELETE /api/posts/:id */
 export const deletePost = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id))
+    const id = parseIdParam(req.params.id);
+    if (id === null) {
       return res.status(400).json({ error: { message: "Invalid post id" } });
+    }
 
     // Owner path: fast, no pre-fetch.
     const deleted = await Post.delete(id, req.user.id);
@@ -151,7 +163,11 @@ export const deletePost = async (req, res, next) => {
 /** POST /api/posts/:id/like */
 export const likePost = async (req, res, next) => {
   try {
-    const post = await Post.findById(Number(req.params.id));
+    const postId = parseIdParam(req.params.id);
+    if (postId === null) {
+      return res.status(400).json({ error: { message: "invalid post id" } });
+    }
+    const post = await Post.findById(postId);
     if (!post)
       return res.status(404).json({ error: { message: "Post not found" } });
     if (await notFoundIfBlocked(req, post.author_id))
@@ -179,7 +195,11 @@ export const likePost = async (req, res, next) => {
 /** DELETE /api/posts/:id/like */
 export const unlikePost = async (req, res, next) => {
   try {
-    await Post.unlike(Number(req.params.id), req.user.id);
+    const postId = parseIdParam(req.params.id);
+    if (postId === null) {
+      return res.status(400).json({ error: { message: "invalid post id" } });
+    }
+    await Post.unlike(postId, req.user.id);
     res.json({ message: "Unliked" });
   } catch (err) {
     next(err);

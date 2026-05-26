@@ -6,11 +6,25 @@
 import Game from '../models/Game.js';
 import Achievement from '../models/Achievement.js';
 import GamificationService from '../services/GamificationService.js';
+import { parseLimitOffset, clampInt } from '../utils/pagination.js';
+
+const ALLOWED_GAME_TYPES = ['spit_royale', 'alpaca_road'];
+
+function resolveGameType(raw, fallback = 'spit_royale') {
+  if (typeof raw !== 'string') return fallback;
+  if (ALLOWED_GAME_TYPES.includes(raw)) return raw;
+  return null; // signal "invalid" to the caller
+}
 
 /** GET /api/game/stats?gameType=spit_royale */
 export const getStats = async (req, res, next) => {
   try {
-    const gameType = req.query.gameType || 'spit_royale';
+    const gameType = resolveGameType(req.query.gameType);
+    if (gameType === null) {
+      return res.status(400).json({
+        error: { message: `gameType must be one of: ${ALLOWED_GAME_TYPES.join(', ')}` },
+      });
+    }
     const stats = await Game.getStats(req.user.id, gameType);
     res.json({ stats });
   } catch (err) { next(err); }
@@ -19,10 +33,20 @@ export const getStats = async (req, res, next) => {
 /** GET /api/game/history?gameType=spit_royale&limit=20&offset=0 */
 export const getHistory = async (req, res, next) => {
   try {
-    const { gameType, limit = 20, offset = 0 } = req.query;
-    const matches = await Game.getMatchHistory(req.user.id, {
-      limit: Number(limit), offset: Number(offset), gameType,
-    });
+    // gameType is optional here — Game.getMatchHistory accepts undefined to
+    // return matches across all game types. Only validate it when supplied.
+    let gameType;
+    if (req.query.gameType !== undefined) {
+      gameType = resolveGameType(req.query.gameType, null);
+      if (gameType === null) {
+        return res.status(400).json({
+          error: { message: `gameType must be one of: ${ALLOWED_GAME_TYPES.join(', ')}` },
+        });
+      }
+    }
+
+    const { limit, offset } = parseLimitOffset(req.query, { defaultLimit: 20, maxLimit: 100 });
+    const matches = await Game.getMatchHistory(req.user.id, { limit, offset, gameType });
     res.json({ history: matches });
   } catch (err) { next(err); }
 };
@@ -35,8 +59,7 @@ export const getHistory = async (req, res, next) => {
 export const getLeaderboard = async (req, res, next) => {
   try {
     const board = String(req.query.board || 'kills');
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
-    const offset = Math.max(0, Number(req.query.offset) || 0);
+    const { limit, offset } = parseLimitOffset(req.query, { defaultLimit: 20, maxLimit: 100 });
 
     let leaderboard;
     if (board === 'kills') {
@@ -57,8 +80,7 @@ export const getLeaderboard = async (req, res, next) => {
 /** GET /api/game/leaderboard/coins — kept for backward compatibility */
 export const getCoinsLeaderboard = async (req, res, next) => {
   try {
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
-    const offset = Math.max(0, Number(req.query.offset) || 0);
+    const { limit, offset } = parseLimitOffset(req.query, { defaultLimit: 10, maxLimit: 100 });
     const leaderboard = await Game.getCoinsLeaderboard({ limit, offset });
     res.json({ board: 'coins', leaderboard });
   } catch (err) { next(err); }
@@ -75,9 +97,16 @@ export const getCoinsLeaderboard = async (req, res, next) => {
  */
 export const saveGameResult = async (req, res, next) => {
   try {
-    const { gameType, result } = req.body;
-    if (!gameType || !result) {
-      return res.status(400).json({ error: { message: 'gameType and result required' } });
+    const { result } = req.body;
+    const gameType = resolveGameType(req.body.gameType, null);
+
+    if (gameType === null) {
+      return res.status(400).json({
+        error: { message: `gameType must be one of: ${ALLOWED_GAME_TYPES.join(', ')}` },
+      });
+    }
+    if (!result) {
+      return res.status(400).json({ error: { message: 'result required' } });
     }
     if (!['loss', 'draw'].includes(result)) {
       return res.status(400).json({
@@ -88,8 +117,8 @@ export const saveGameResult = async (req, res, next) => {
     // Offline games may also report counters (kills cleared per wave,
     // obstacles jumped per run). We cap them server-side so a client
     // can't farm the leaderboard with arbitrary numbers.
-    const killsThisRun = Math.max(0, Math.min(200, Number(req.body.kills) || 0));
-    const obstaclesThisRun = Math.max(0, Math.min(500, Number(req.body.obstacles) || 0));
+    const killsThisRun = clampInt(req.body.kills, 0, 200);
+    const obstaclesThisRun = clampInt(req.body.obstacles, 0, 500);
 
     await Game.updateStats(req.user.id, gameType, result);
     if (gameType === 'spit_royale' && killsThisRun > 0) {
@@ -138,12 +167,15 @@ export const saveFarm = async (req, res, next) => {
     }
 
     // Clamp arrays + numerics. Anything outside the schema is dropped.
+    // Upper bound on the integer fields is generous (1e9) — we just want to
+    // reject negatives, NaN, and non-numeric junk from the JSONB write.
+    const COIN_CAP = 1_000_000_000;
     const clean = {};
     if (Array.isArray(raw.items))   clean.items   = raw.items.slice(0, MAX_ITEMS);
     if (Array.isArray(raw.alpacas)) clean.alpacas = raw.alpacas.slice(0, MAX_ALPACAS);
-    if (typeof raw.coins === 'number'    && Number.isFinite(raw.coins))    clean.coins    = Math.max(0, Math.floor(raw.coins));
-    if (typeof raw.upgrades === 'number' && Number.isFinite(raw.upgrades)) clean.upgrades = Math.max(0, Math.floor(raw.upgrades));
-    if (typeof raw.herdsize === 'number' && Number.isFinite(raw.herdsize)) clean.herdsize = Math.max(0, Math.floor(raw.herdsize));
+    if (raw.coins    !== undefined) clean.coins    = clampInt(raw.coins,    0, COIN_CAP);
+    if (raw.upgrades !== undefined) clean.upgrades = clampInt(raw.upgrades, 0, COIN_CAP);
+    if (raw.herdsize !== undefined) clean.herdsize = clampInt(raw.herdsize, 0, COIN_CAP);
 
     const farm = await Game.updateFarm(req.user.id, clean);
     res.json({ farm });
