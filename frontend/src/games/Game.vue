@@ -39,10 +39,10 @@
       </template>
       <div class="action-container">
         <button v-if="gMinigame.mode === 1 || gMinigame.mode === 3" class="shop-btn" @click="changeGame(gMinigame.mode, playerCount)">
-          Play Again <AppIcon name="refresh-box" :size="18" />
+          Play Again <AppIcon name="refresh-box" :size="24" />
         </button>
         <button class="shop-btn" @click="changeGame()" title="Return to Farm">
-          Return to Farm <AppIcon name="tractor" :size="18" />
+          Return to Farm <AppIcon name="tractor" :size="24" />
         </button>
       </div>
     </div>

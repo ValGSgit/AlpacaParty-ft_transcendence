@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { gMinigame, gPlayer } from '../core/globals.js';
 import { devWarn } from '../../services/logger.js';
+import { gMinigame, gPlayer } from '../core/globals.js';
 import { checkWithinBounds, usePhysics } from '../core/usePhysics.js';
 import { getRandomPos, getRandomTimer } from '../utils/randomValues.js';
 
@@ -13,22 +13,32 @@ const dummy = new THREE.Object3D();
 export function alpacaAI() {
   const { checkCollision } = usePhysics();
 
+  const checkHunting = (alpaca) => {
+    if (gMinigame.mode === 0)
+      return false;
+
+    const player = gPlayer.value;
+
+    if (player && !player.isDead) {
+      const distToPlayer = alpaca.model.position.distanceTo(player.model.position);
+      // 50% chance to hunt the player if they're in range
+      if (distToPlayer < HUNT_RANGE && Math.random() < 0.5) {
+        ai.state = 'hunting';
+        ai.spitTimer = SPIT_COOLDOWN * Math.random(); // stagger initial spits
+        return true;
+      }
+    }
+    return false;
+  }
+
   const handleIdle = (alpaca, delta) => {
     const ai = alpaca.ai;
     const target = alpaca.target;
-    const player = gPlayer.value;
 
     ai.timer -= delta;
     if (ai.timer <= 0) {
-      // 50% chance to hunt the player if they're in range
-      if (player && !player.isDead) {
-        const distToPlayer = alpaca.model.position.distanceTo(player.model.position);
-        if (distToPlayer < HUNT_RANGE && Math.random() < 0.5) {
-          ai.state = 'hunting';
-          ai.spitTimer = SPIT_COOLDOWN * Math.random(); // stagger initial spits
-          return;
-        }
-      }
+      if (checkHunting(alpaca))
+        return;
       target.copy(getRandomPos());
       ai.state = 'moving';
       alpaca.spit();
