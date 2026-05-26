@@ -9,7 +9,13 @@
 
       <form @submit.prevent="handleRegister">
         <div class="form-group">
-          <label for="username">Username</label>
+          <label for="username">
+            Username
+            <span v-if="validation.username.checked" class="validation-icon">
+              <span v-if="validation.username.valid" class="checkmark">✓</span>
+              <span v-else class="error-icon">✗</span>
+            </span>
+          </label>
           <input
             id="username"
             v-model="form.username"
@@ -17,11 +23,22 @@
             placeholder="3-32 characters"
             required
             autocomplete="username"
+            @blur="validateUsername"
+            @input="onUsernameInput"
           />
+          <div v-if="validation.username.checked && !validation.username.valid" class="validation-message">
+            {{ validation.username.message }}
+          </div>
         </div>
 
         <div class="form-group">
-          <label for="email">Email</label>
+          <label for="email">
+            Email
+            <span v-if="validation.email.checked" class="validation-icon">
+              <span v-if="validation.email.valid" class="checkmark">✓</span>
+              <span v-else class="error-icon">✗</span>
+            </span>
+          </label>
           <input
             id="email"
             v-model="form.email"
@@ -29,7 +46,12 @@
             placeholder="you@example.com"
             required
             autocomplete="email"
+            @blur="validateEmail"
+            @input="onEmailInput"
           />
+          <div v-if="validation.email.checked && !validation.email.valid" class="validation-message">
+            {{ validation.email.message }}
+          </div>
         </div>
 
         <div class="form-group">
@@ -60,7 +82,7 @@
           {{ localError }}
         </div>
 
-        <button type="submit" class="btn-primary" :disabled="authStore.loading">
+        <button type="submit" class="btn-primary" :disabled="!canSubmit || authStore.loading">
           {{ authStore.loading ? 'Creating account...' : 'Register' }}
         </button>
       </form>
@@ -94,7 +116,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 
@@ -108,7 +130,93 @@ const form = reactive({
   confirm: '',
 })
 
+const validation = reactive({
+  username: { checked: false, valid: false, message: '' },
+  email: { checked: false, valid: false, message: '' },
+})
+
 const localError = ref('')
+let usernameDebounceTimer = null
+let emailDebounceTimer = null
+
+const canSubmit = computed(() => {
+  return (
+    validation.username.checked &&
+    validation.username.valid &&
+    validation.email.checked &&
+    validation.email.valid &&
+    form.password &&
+    form.confirm
+  )
+})
+
+function onUsernameInput() {
+  // Clear debounce timer
+  if (usernameDebounceTimer) clearTimeout(usernameDebounceTimer)
+  // Reset validation on input
+  validation.username.checked = false
+  // Only debounce if there's a value
+  if (form.username.trim().length > 0) {
+    usernameDebounceTimer = setTimeout(() => {
+      validateUsername()
+    }, 300)
+  }
+}
+
+function onEmailInput() {
+  // Clear debounce timer
+  if (emailDebounceTimer) clearTimeout(emailDebounceTimer)
+  // Reset validation on input
+  validation.email.checked = false
+  // Only debounce if there's a value
+  if (form.email.trim().length > 0) {
+    emailDebounceTimer = setTimeout(() => {
+      validateEmail()
+    }, 300)
+  }
+}
+
+async function validateUsername() {
+  if (!form.username.trim()) {
+    validation.username.checked = false
+    return
+  }
+  try {
+    const response = await fetch(
+      `/api/auth/validate?type=username&value=${encodeURIComponent(form.username)}`,
+      { credentials: 'include' }
+    )
+    const data = await response.json()
+    validation.username.valid = data.valid
+    validation.username.message = data.message
+    validation.username.checked = true
+  } catch {
+    validation.username.valid = false
+    validation.username.message = 'Could not validate username'
+    validation.username.checked = true
+  }
+}
+
+async function validateEmail() {
+  if (!form.email.trim()) {
+    validation.email.checked = false
+    return
+  }
+  try {
+    const response = await fetch(
+      `/api/auth/validate?type=email&value=${encodeURIComponent(form.email)}`,
+      { credentials: 'include' }
+    )
+    const data = await response.json()
+    validation.email.valid = data.valid
+    validation.email.message = data.message
+    validation.email.checked = true
+  } catch {
+    validation.email.valid = false
+    validation.email.message = 'Could not validate email'
+    validation.email.checked = true
+  }
+}
 
 async function handleRegister() {
   localError.value = ''
@@ -180,13 +288,6 @@ async function handleRegister() {
   margin-bottom: 1rem;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-size: 0.9rem;
-  color: #ccc;
-}
-
 .form-group input {
   width: 100%;
   padding: 0.6rem 0.8rem;
@@ -203,6 +304,35 @@ async function handleRegister() {
   border-color: var(--primary, #00f0ff);
 }
 
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.validation-icon {
+  margin-left: auto;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.checkmark {
+  color: #00ff00;
+}
+
+.error-icon {
+  color: #ff4444;
+}
+
+.validation-message {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #ff6b6b;
+}
+
 .btn-primary {
   width: 100%;
   padding: 0.7rem;
@@ -217,7 +347,7 @@ async function handleRegister() {
   transition: opacity 0.2s;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   opacity: 0.85;
 }
 
@@ -227,12 +357,12 @@ async function handleRegister() {
 }
 
 .error-message {
-  background: rgba(255, 60, 60, 0.15);
-  border: 1px solid rgba(255, 60, 60, 0.4);
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid #ff4444;
+  color: #ff9999;
+  padding: 0.75rem;
   border-radius: 6px;
-  padding: 0.6rem 0.8rem;
   margin-bottom: 1rem;
-  color: #ff6b6b;
   font-size: 0.9rem;
 }
 
@@ -248,13 +378,21 @@ async function handleRegister() {
   text-decoration: none;
 }
 
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+
 .oauth-divider {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin: 1.25rem 0 1rem;
-  color: #555;
-  font-size: 0.82rem;
+  margin: 1.5rem 0;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.oauth-divider span {
+  flex: 0 1 auto;
+  padding: 0 0.75rem;
 }
 
 .oauth-divider::before,
@@ -266,31 +404,37 @@ async function handleRegister() {
 }
 
 .oauth-buttons {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+  margin-bottom: 1.5rem;
 }
 
 .oauth-btn {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.6rem 1rem;
-  border-radius: 6px;
+  padding: 0.7rem;
   border: 1px solid var(--border-color, #2a2a3a);
+  border-radius: 6px;
   background: var(--bg-primary, #0a0a12);
-  color: #e0e0e0;
-  font-size: 0.9rem;
-  font-weight: 600;
+  color: #ccc;
   text-decoration: none;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .oauth-btn:hover {
-  border-color: #666;
-  background: var(--bg-tertiary, #1a1a2a);
+  border-color: var(--primary, #00f0ff);
+  color: var(--primary, #00f0ff);
+  background: rgba(0, 240, 255, 0.05);
+}
+
+.oauth-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .oauth-icon {
