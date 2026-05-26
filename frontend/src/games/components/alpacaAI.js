@@ -17,6 +17,7 @@ export function alpacaAI() {
     if (gMinigame.mode === 0)
       return false;
 
+    const ai = alpaca.ai
     const player = gPlayer.value;
 
     if (player && !player.isDead) {
