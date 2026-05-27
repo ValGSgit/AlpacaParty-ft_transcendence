@@ -1,4 +1,4 @@
-import { debug, error } from "#lib/logger.js";
+import { error } from "#lib/logger.js";
 import { BaseMatch } from "./BaseMatch.js";
 import Game from "../models/Game.js";
 import GamificationService from "./GamificationService.js";

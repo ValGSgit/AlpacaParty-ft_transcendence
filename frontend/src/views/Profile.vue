@@ -241,20 +241,29 @@
       <!-- 3. Change Password -->
       <section class="settings-section" style="--i:2">
         <h3>Change Password</h3>
-        <!-- Hidden username field for password manager accessibility -->
-        <input type="text" :value="profileForm.username" autocomplete="username" aria-hidden="true" tabindex="-1" class="visually-hidden" readonly />
+        <!-- Hidden username field for password manager accessibility (visible to password managers) -->
+        <input type="text" :value="profileForm.username" autocomplete="username" class="visually-hidden" readonly />
         <form @submit.prevent="changePassword">
           <div class="field">
             <label for="f-pw1">Current Password</label>
-            <input id="f-pw1" v-model="pwForm.current" type="password" autocomplete="current-password" maxlength="50" />
+            <div style="display:flex;align-items:center;gap:8px">
+              <input id="f-pw1" v-model="pwForm.current" :type="showPw ? 'text' : 'password'" autocomplete="current-password" maxlength="50" />
+              <button type="button" class="pwd-toggle" @click="showPw = !showPw" :aria-pressed="showPw" :aria-label="showPw ? 'Hide password' : 'Show password'">{{ showPw ? 'Hide' : 'Show' }}</button>
+            </div>
           </div>
           <div class="field">
             <label for="f-pw2">New Password</label>
-            <input id="f-pw2" v-model="pwForm.newPw" type="password" autocomplete="new-password" maxlength="50" />
+            <div style="display:flex;align-items:center;gap:8px">
+              <input id="f-pw2" v-model="pwForm.newPw" :type="showPw ? 'text' : 'password'" autocomplete="new-password" maxlength="50" />
+              <button type="button" class="pwd-toggle" @click="showPw = !showPw" :aria-pressed="showPw" :aria-label="showPw ? 'Hide password' : 'Show password'">{{ showPw ? 'Hide' : 'Show' }}</button>
+            </div>
           </div>
           <div class="field">
             <label for="f-pw3">Confirm New Password</label>
-            <input id="f-pw3" v-model="pwForm.confirm" type="password" autocomplete="new-password" maxlength="50" />
+            <div style="display:flex;align-items:center;gap:8px">
+              <input id="f-pw3" v-model="pwForm.confirm" :type="showPw ? 'text' : 'password'" autocomplete="new-password" maxlength="50" />
+              <button type="button" class="pwd-toggle" @click="showPw = !showPw" :aria-pressed="showPw" :aria-label="showPw ? 'Hide password' : 'Show password'">{{ showPw ? 'Hide' : 'Show' }}</button>
+            </div>
           </div>
           <p v-if="pwError" class="error-msg">{{ pwError }}</p>
           <div class="s-actions">
@@ -401,6 +410,7 @@ const profileForm = ref({
   username: '', email: '', bio: '', status: '', avatar: '', is_public: false
 })
 const pwForm = ref({ current: '', newPw: '', confirm: '' })
+const showPw = ref(false)
 
 // Helpers
 function formatDate(ts) {
@@ -1089,6 +1099,18 @@ textarea { resize: vertical; min-height: 84px; line-height: 1.5; }
   padding: 0; margin: -1px; overflow: hidden;
   clip: rect(0,0,0,0); white-space: nowrap; border: 0;
 }
+
+/* password toggle button */
+.pwd-toggle {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--link);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+.pwd-toggle:focus { outline: 2px solid var(--accent); }
 
 /* ── responsive ── */
 @media (max-width: 720px) {
