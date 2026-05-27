@@ -1,6 +1,7 @@
 import { error } from "#lib/logger.js";
 import { BaseMatch } from "./BaseMatch.js";
 import Game from "../models/Game.js";
+import { BaseMatch } from "./BaseMatch.js";
 import GamificationService from "./GamificationService.js";
 
 const ARENA_RADIUS = 25;
@@ -185,6 +186,7 @@ export class SpitRoyalMatch extends BaseMatch {
   }
 
   endMatch(winnerSocketId, reason) {
+    this.update()
     this.isPlaying = false;
     this.broadcast('game_over', { reason, winnerId: winnerSocketId });
     this._persistOutcome(winnerSocketId).catch((err) =>

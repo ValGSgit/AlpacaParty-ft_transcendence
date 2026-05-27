@@ -1,7 +1,7 @@
 import { debug, error } from "#lib/logger.js";
 import Game from "../models/Game.js";
-import GamificationService from "./GamificationService.js";
 import { BaseMatch } from "./BaseMatch.js";
+import GamificationService from "./GamificationService.js";
 
 const GAME_TYPE = "alpaca_road";
 const MIN_RANKED_PLAYERS = 2;
