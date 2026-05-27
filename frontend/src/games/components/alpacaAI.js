@@ -47,8 +47,6 @@ export function alpacaAI() {
   };
 
   const handleMoving = (alpaca, delta) => {
-    if (alpaca.isDead)
-      return
     const ai = alpaca.ai;
     const model = alpaca.model;
     const target = alpaca.target;
@@ -153,6 +151,8 @@ export function alpacaAI() {
   };
 
   const updateAI = (alpaca, delta) => {
+    if (alpaca.isDead) return
+
     if (gMinigame.value.mode > 1 && gMinigame.value.mode < 5) // no AI update in multiplayer and alpacaRoad
       return
 
