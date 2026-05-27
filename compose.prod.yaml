@@ -1,6 +1,5 @@
 # Docker Compose — Production
 # @owner ValGSgit
-# @issue https://github.com/ValGSgit/AlpacaParty/issues/3
 #
 # Usage:
 #   make prod-up

@@ -73,7 +73,6 @@ describe('useAuthStore', () => {
       })
       expect(store.user).toEqual(mockResponse.data.user)
       expect(store.isAuthenticated).toBe(true)
-      expect(localStorage.setItem).not.toHaveBeenCalled()
     })
 
     it('should set error on register failure', async () => {

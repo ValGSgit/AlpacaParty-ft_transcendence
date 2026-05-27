@@ -6,6 +6,7 @@ import { gAlpacas, gCollidables, gPlayer, gUI, gUser, gEngine, gMinigame } from 
 import { removeFromArray } from '../removeObjects.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
+import { saveGameResult } from '../../mini_games/utils.js';
 
 const { updateAI } = alpacaAI();
 const { updatePlayer } = usePlayerControls();
@@ -82,7 +83,6 @@ export class Alpaca {
     const isIncrease = amount > 0 ? true : false;
     const speedAdjustment = 4.0;
 
-    console.log("isIncrease:", isIncrease);
     if (isIncrease)
     {
       if (this.speedOffset <= 0)
@@ -142,14 +142,14 @@ export class Alpaca {
   beingHit(alpaca) {
     if (this.isDead)
       return
-    if (this.hp > 0 && gMinigame.value.mode) // only reduce hp in mini games
+    if (this.hp > 0 && gMinigame.value.mode && gMinigame.value.mode !== 5) // only reduce hp in mini games
     {
       this.hp--
       if (this === gPlayer.value)
         gUser.value.hp--
     }
 
-    if (this.hp === 0) {
+    if (this.hp <= 0) {
       this.isDead = 1 // dead
       removeFromArray(this.model, gCollidables) //remove itself from gCollidables
       alpaca.point++ // credit for the spit owner
@@ -159,6 +159,13 @@ export class Alpaca {
       {
         gMinigame.value.isGameOver = true;
         gMinigame.value.isActive = false
+        // Offline spit-royale only (mode 1): contribute the local player's
+        // kill count to the kills leaderboard. Online (mode 2) is persisted
+        // by the server in _persistOutcome and would double-count here.
+        if (gMinigame.value.mode === 1) {
+          const kills = gUser.value?.point | 0;
+          if (kills > 0) saveGameResult('spit_royale', 'loss', { kills });
+        }
       }
     }
     else

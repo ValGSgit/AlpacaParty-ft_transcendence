@@ -1,13 +1,10 @@
-/**
- * Vue Router Configuration
- * @owner fankahou, LukasStefanek
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/1
- */
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
+import { useAdminAuthStore } from '../stores/adminAuth.js'
 
-const Login    = () => import('../views/Login.vue')
-const Register = () => import('../views/Register.vue')
+// const Login    = () => import('../views/Login.vue')
+// const Register = () => import('../views/Register.vue')
+const AuthV3   = () => import('../views/AuthV3.vue')
 const Profile  = () => import('../views/Profile.vue')
 const UserProfile = () => import('../views/UserProfile.vue')
 const Friends  = () => import('../views/Friends.vue')
@@ -18,6 +15,9 @@ const OAuthCallback = () => import('../views/OAuthCallback.vue')
 const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
 const TermsOfService = () => import('../views/TermsOfService.vue')
 const ApiDocs  = () => import('../views/ApiDocs.vue')
+const Help     = () => import('../views/Help.vue')
+const AdminLogin = () => import('../views/AdminLogin.vue')
+const AdminPanel = () => import('../views/AdminPanel.vue')
 
 const routes = [
   {
@@ -26,16 +26,28 @@ const routes = [
     component: Game,
     meta: { requiresAuth: false },
   },
+  // {
+  //   path: '/login',
+  //   name: 'Login',
+  //   component: Login,
+  //   meta: { requiresAuth: false, guestOnly: true },
+  // },
+  // {
+  //   path: '/register',
+  //   name: 'Register',
+  //   component: Register,
+  //   meta: { requiresAuth: false, guestOnly: true },
+  // },
   {
     path: '/login',
     name: 'Login',
-    component: Login,
+    component: AuthV3,
     meta: { requiresAuth: false, guestOnly: true },
   },
   {
     path: '/register',
     name: 'Register',
-    component: Register,
+    component: AuthV3,
     meta: { requiresAuth: false, guestOnly: true },
   },
   {
@@ -80,6 +92,12 @@ const routes = [
     meta: { requiresAuth: false },
   },
   {
+    path: '/help',
+    name: 'Help',
+    component: Help,
+    meta: { requiresAuth: false },
+  },
+  {
     path: '/privacy',
     name: 'PrivacyPolicy',
     component: PrivacyPolicy,
@@ -98,6 +116,18 @@ const routes = [
     meta: { requiresAuth: false },
   },
   {
+    path: '/admin/login',
+    name: 'AdminLogin',
+    component: AdminLogin,
+    meta: { requiresAuth: false, guestOnly: false },
+  },
+  {
+    path: '/admin/panel',
+    name: 'AdminPanel',
+    component: AdminPanel,
+    meta: { requiresAuth: false, requiresAdminAuth: true },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: NotFound,
@@ -113,10 +143,19 @@ const router = createRouter({
 // Navigation guard — redirect to login if route requires auth
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
+  const adminAuth = useAdminAuthStore()
 
   // Fetch profile if authenticated and not already loaded
   if (authStore.isAuthenticated && !authStore.user) {
     await authStore.fetchUser()
+  }
+
+  // Check admin auth requirement — fetch once if needed
+  if (to.meta.requiresAdminAuth && !adminAuth.isAuthenticated) {
+    await adminAuth.fetchMe()
+  }
+  if (to.meta.requiresAdminAuth && !adminAuth.isAuthenticated) {
+    return { name: 'AdminLogin', query: { redirect: to.fullPath } }
   }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {

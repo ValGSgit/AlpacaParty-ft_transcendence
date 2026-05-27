@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { authHeaders, loginViaApi } from './helpers/api.js';
+import { authHeaders, createUser, loginViaApi } from './helpers/api.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -106,5 +106,35 @@ test.describe('Game Endpoints', () => {
   test('unauthenticated request to game endpoints fails', async ({ request }) => {
     const res = await request.get('/api/game/stats');
     expect(res.status()).toBe(401);
+  });
+
+  test('farm data roundtrip persists specific values', async ({ request }) => {
+    const user = await createUser(request, 'farm_roundtrip');
+
+    const payload = { coins: 999, alpacas: ['fluffy', 'spark'], items: ['hat'], upgrades: 3, herdsize: 2 };
+    const saveRes = await request.put('/api/users/me/farmdata', {
+      headers: authHeaders(user.accessToken),
+      data: payload,
+    });
+    expect(saveRes.ok()).toBeTruthy();
+
+    const getRes = await request.get('/api/users/me/farmdata', {
+      headers: authHeaders(user.accessToken),
+    });
+    expect(getRes.ok()).toBeTruthy();
+
+    const body = await getRes.json();
+    const farm = body.farmData ?? body.farm ?? body;
+    expect(farm.coins).toBe(999);
+    expect(farm.upgrades).toBe(3);
+    expect(farm.herdsize).toBe(2);
+  });
+
+  test('GET /api/game/stats accepts gameType query param', async ({ request }) => {
+    const res = await request.get('/api/game/stats?gameType=spit_royale', {
+      headers: authHeaders(demoToken),
+    });
+    expect(res.ok()).toBeTruthy();
+    expect(typeof (await res.json())).toBe('object');
   });
 });

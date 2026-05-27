@@ -1,10 +1,9 @@
 /**
  * Auth Controller — handles registration, login, logout, token refresh, OAuth
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import User, { shapeUserForClient } from "../models/User.js";
-import Achievement from "../models/Achievement.js";
+import GamificationService from "../services/GamificationService.js";
 import AuthService from "../services/authService.js";
 import { oauthTokensForUser } from "../services/oauthService.js";
 import config from "../config/index.js";
@@ -35,11 +34,7 @@ export const register = async (req, res, next) => {
     const passwordHash = await AuthService.hashPassword(password);
     const user = await User.create({ username, email, passwordHash });
 
-    try {
-      await Achievement.unlock(user.id, "first_login");
-    } catch {
-      // Avoid failing registration if achievement bookkeeping is unavailable.
-    }
+    GamificationService.onLogin(user.id).catch(() => {});
     const accessToken = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
 
@@ -72,6 +67,8 @@ export const login = async (req, res, next) => {
     const valid = await AuthService.comparePassword(password, passwordHash);
     if (!valid) throw new CustomError("Invalid credentials", 401);
 
+    if (user.isBanned) throw new CustomError("Account is banned", 403);
+
     await User.setOnline(user.id);
 
     const accessToken = AuthService.generateAccessToken(user);
@@ -82,6 +79,7 @@ export const login = async (req, res, next) => {
     res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
     res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
     res.json({ user: safeUser });
+    GamificationService.onLogin(user.id).catch(() => {});
   } catch (err) {
     next(err);
   }
@@ -117,8 +115,10 @@ export const refresh = async (req, res, next) => {
     if (!decoded)
       throw new CustomError("Invalid or expired refresh token", 401);
 
-    const user = await User.findById(decoded.id);
+    const user = await User.findByIdWithPassword(decoded.id);
     if (!user) throw new CustomError("User not found", 401);
+
+    if (user.isBanned) throw new CustomError("Account is banned", 403);
 
     const accessToken = AuthService.generateAccessToken(user);
     const newRefreshToken = AuthService.generateRefreshToken(user);
@@ -139,7 +139,7 @@ export const refresh = async (req, res, next) => {
  * GET /api/auth/me
  */
 export const me = async (req, res) =>
-  res.json({ user: shapeUserForClient(req.user) });
+  res.json({ user: req.user ? shapeUserForClient(req.user) : null });
 
 export const googleAuth = (req, res, next) => {
   passport.authenticate("google", { session: false }, (err, user, info) => {
@@ -163,17 +163,13 @@ export const googleAuth = (req, res, next) => {
 /**
  * OAuth callback (Google / GitHub)
  *
- * Redirects to the frontend callback route with tokens in the URL fragment.
- * Fragments are processed client-side and are not sent back to the server.
+ * Tokens are issued as httpOnly cookies; the redirect just brings the user
+ * back to the SPA. config.frontendUrl is a server-side constant (never derived
+ * from a request header) so this is a safe, fixed-origin redirect.
  */
 export const oauthCallback = (req, res) => {
   const { accessToken, refreshToken } = oauthTokensForUser(req.user);
-  const frontendOrigin = config.frontendUrl;
-
-  const payload = encodeURIComponent(JSON.stringify({}));
-  const callbackUrl = `${frontendOrigin}/oauth-callback#${payload}`;
-
   res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
   res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
-  res.redirect(302, callbackUrl);
+  res.redirect(302, `${config.frontendUrl}/oauth-callback`);
 };

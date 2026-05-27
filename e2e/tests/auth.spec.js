@@ -75,4 +75,41 @@ test.describe('Auth API + Session Workflow', () => {
     });
     expect([400, 401].includes(badRefresh.status())).toBeTruthy();
   });
+
+  test('logout clears the session cookies', async ({ request }) => {
+    const user = await createUser(request, 'logout');
+
+    const logoutRes = await request.post('/api/auth/logout', {
+      headers: authHeaders(user.accessToken),
+    });
+    expect(logoutRes.ok()).toBeTruthy();
+
+    const logoutCookies = logoutRes.headers()['set-cookie'] ?? '';
+    expect(logoutCookies).toContain('jwt_token=');
+    expect(logoutCookies).toContain('refresh_token=');
+  });
+
+  test('GET /api/auth/me without token returns 401', async ({ request }) => {
+    const res = await request.get('/api/auth/me');
+    expect(res.ok()).toBeTruthy();
+    const body = await res.json();
+    expect(body.user).toBeNull();
+  });
+
+  test('register rejects missing required fields', async ({ request }) => {
+    const noUsername = await request.post('/api/auth/register', {
+      data: { email: `nousername_${uniqueId()}@test.local`, password: 'E2ePass123!' },
+    });
+    expect(noUsername.status()).toBe(400);
+
+    const noEmail = await request.post('/api/auth/register', {
+      data: { username: uniqueId('noemail'), password: 'E2ePass123!' },
+    });
+    expect(noEmail.status()).toBe(400);
+
+    const noPassword = await request.post('/api/auth/register', {
+      data: { username: uniqueId('nopwd'), email: `nopwd_${uniqueId()}@test.local` },
+    });
+    expect(noPassword.status()).toBe(400);
+  });
 });

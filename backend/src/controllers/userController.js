@@ -8,6 +8,7 @@ import AuthService from "#services/authService.js";
 import DataExportService from "#services/dataExportService.js";
 import DataRequest from "#models/DataRequest.js";
 import NotificationService from "#services/notificationService.js";
+import GamificationService from "#services/GamificationService.js";
 import { randomUUID } from "crypto";
 import config from "#config/index.js";
 import CustomError from "#utils/CustomError.js";
@@ -24,6 +25,13 @@ export const getMe = async (req, res) =>
 export const updateMe = async (req, res, next) => {
   const id = Number(req.user.id);
   const { username, email, bio, status, avatar, is_public } = req.body;
+  const hasProfileChange =
+    username !== undefined ||
+    email !== undefined ||
+    bio !== undefined ||
+    status !== undefined ||
+    avatar !== undefined ||
+    is_public !== undefined;
 
   try {
     if (username) {
@@ -59,7 +67,13 @@ export const updateMe = async (req, res, next) => {
       ...(is_public !== undefined && { isPublic: !!is_public }),
     });
 
-    res.status(200).json({ user: shapeUserForClient(updatedUser) });
+    res.status(200).json({
+      user: shapeUserForClient(updatedUser),
+    });
+
+    if (hasProfileChange) {
+      await GamificationService.unlock(id, "profile_polisher").catch(() => {});
+    }
   } catch (err) {
     next(err);
   }
@@ -72,7 +86,12 @@ export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
+    if (
+      typeof currentPassword !== "string" ||
+      typeof newPassword !== "string" ||
+      !currentPassword ||
+      !newPassword
+    ) {
       return res.status(400).json({
         error: { message: "currentPassword and newPassword are required" },
       });
@@ -116,16 +135,39 @@ export const getUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ error: { message: "User not found" } });
     }
-    const isPublic = user.userSettings?.isPublic;
-    if (!isPublic && user.id !== req.user?.id) {
-      const areFriends = await Friend.areFriends(req.user?.id, user.id);
-      if (!areFriends) {
-        return res
-          .status(403)
-          .json({ error: { message: "This profile is private" } });
+
+    // Return 404 (not 403) when either side has blocked the other — don't
+    // disclose existence to a user who was blocked.
+    if (req.user && user.id !== req.user.id) {
+      const blocked = await Friend.isBlockedBetween(req.user.id, user.id);
+      if (blocked) {
+        return res.status(404).json({ error: { message: "User not found" } });
       }
     }
-    res.json({ user: shapeUserForClient(user) });
+
+    const friendStatus =
+      req.user && user.id !== req.user.id
+        ? await Friend.getFriendStatus(req.user.id, user.id)
+        : null;
+
+    const isPublic = user.userSettings?.isPublic;
+    if (!isPublic && user.id !== req.user?.id) {
+      if (friendStatus?.status !== "friends") {
+        // Include minimal public data so the frontend can render a locked card.
+        return res.status(403).json({
+          error: { message: "This profile is private" },
+          user: {
+            id: user.id,
+            username: user.username,
+            avatar: user.avatar,
+            isOnline: user.isOnline,
+            isPrivate: true,
+          },
+          friend_status: friendStatus,
+        });
+      }
+    }
+    res.json({ user: shapeUserForClient(user), friend_status: friendStatus });
   } catch (err) {
     next(err);
   }
@@ -136,29 +178,41 @@ export const getUser = async (req, res, next) => {
  */
 export const listUsers = async (req, res, next) => {
   try {
-    const pageSize =
-      Number(req.query.pageSize) || Number(req.query.limit) || 50;
-    const page = Number(req.query.page) || 1;
-    const limit = Math.min(pageSize, 100);
-    const offset = Number(req.query.offset) || Math.max((page - 1) * limit, 0);
-    const search = req.query.search ? String(req.query.search).trim() : "";
+    const limit = Math.min(req.query.limit || 50, 100);
+    const offset = Math.max(0, Number(req.query.offset) || 0);
+    const filter = req.query.search
+      ? { username: req.query.search, ...(req.query.filter || {}) }
+      : req.query.filter;
+    const sort = req.query.sort;
+    const excludeUserId = Number(req.query.excludeUserId) || undefined;
 
-    const users = search
-      ? await User.search(search, { limit })
-      : await User.findAll({ limit, offset });
-    const visibleUsers = users.filter((u) => {
-      const isPublic = u.userSettings?.isPublic ?? u.isPublic ?? true;
-      return isPublic || Number(u.id) === Number(req.user.id);
-    });
-    const total = await User.count();
+    const searchRes = await User.search(
+      { limit, offset, filter, sort },
+      excludeUserId,
+    );
+    const users = searchRes.usersFound;
+    const total = searchRes.userCount;
+
+    // add additional flags — batched in 3 queries total (avoid N+1)
+    const userId = Number(req.user.id);
+    const flagMap = await Friend.relationFlagsForMany(
+      userId,
+      users.map((u) => u.id),
+    );
+    for (const u of users) {
+      const f = flagMap.get(u.id) || {};
+      u.is_friend = !!f.isFriend;
+      u.is_blocked = !!f.isBlocked;
+      u.request_sent = !!f.requestSent;
+      u.request_received = !!f.requestReceived;
+    }
 
     res.json({
-      users: visibleUsers,
+      users,
       total,
       limit,
       offset,
       pageSize: limit,
-      currentPage: page,
     });
   } catch (err) {
     next(err);
@@ -181,6 +235,9 @@ export const exportMyData = async (req, res, next) => {
       `attachment; filename="alpacaparty-data.${extension}"`,
     );
     res.send(data);
+    await GamificationService.unlock(req.user.id, "data_explorer").catch(
+      () => {},
+    );
   } catch (err) {
     next(err);
   }
@@ -245,8 +302,7 @@ export const deleteMe = async (req, res, next) => {
 export const getApiKey = async (req, res, next) => {
   try {
     const apiKey = await User.getApiKey(req.user.id);
-    if (!apiKey) throw new CustomError("api key not found", 404);
-    res.json({ apiKey });
+    res.json({ apiKey: apiKey || null });
   } catch (err) {
     next(err);
   }

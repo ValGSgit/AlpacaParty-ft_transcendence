@@ -6,16 +6,36 @@ import User from '../models/User.js';
 
 /**
  * Convert array of objects to CSV string.
+ *
+ * Defends against CSV injection: a cell starting with =, +, -, @, |, \t, \r
+ * is prefixed with a single quote so Excel/Sheets treat it as text rather
+ * than a formula. A user with bio `=cmd|'/c calc'!A0` cannot weaponise their
+ * own export.
  */
+const FORMULA_PREFIX = /^[=+\-@|\t\r]/;
+function cellSafe(val) {
+  if (val == null) return '';
+  let s = String(val);
+  if (FORMULA_PREFIX.test(s)) s = "'" + s;
+  return s.replace(/"/g, '""');
+}
+
 function toCsv(rows) {
   if (!rows || rows.length === 0) return '';
-  const headers = Object.keys(rows[0]);
+  // Union of keys across all rows so heterogeneous shapes don't mis-align
+  // columns when later rows have fields not present in rows[0].
+  const headers = Array.from(
+    rows.reduce((acc, r) => {
+      Object.keys(r || {}).forEach((k) => acc.add(k));
+      return acc;
+    }, new Set()),
+  );
+  // Headers are hard-coded object keys, never user-controlled — no formula
+  // injection risk, no need to wrap them in quotes (keeps the diff against
+  // pre-existing CSV consumers minimal).
   const lines = [headers.join(',')];
   for (const row of rows) {
-    lines.push(headers.map((h) => {
-      const val = row[h] == null ? '' : String(row[h]).replace(/"/g, '""');
-      return `"${val}"`;
-    }).join(','));
+    lines.push(headers.map((h) => `"${cellSafe(row[h])}"`).join(','));
   }
   return lines.join('\n');
 }

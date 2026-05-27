@@ -2,6 +2,7 @@
  * Comment Model — Prisma data access layer
  */
 import prisma from "#config/prisma.js";
+import { stripDangerousHtml } from "#utils/htmlSanitizer.js";
 
 const AUTHOR_SELECT = { select: { username: true, avatar: true } };
 
@@ -19,25 +20,29 @@ function shapeComment(c) {
 }
 
 const Comment = {
-  async create({ postId, authorId, content }) {
+  async create({ postId = null, authorId, content }) {
     const comment = await prisma.$transaction(async (tx) => {
       const c = await tx.comment.create({
-        data: { postId: Number(postId), authorId: Number(authorId), content },
+        data: {
+          postId: postId !== null ? Number(postId) : null,
+          authorId: Number(authorId),
+          content: typeof content === "string" ? stripDangerousHtml(content) : content,
+        },
         include: { author: AUTHOR_SELECT },
       });
-      const count = await tx.comment.count({
-        where: { postId: Number(postId) },
-      });
-      await tx.post.update({
-        where: { id: Number(postId) },
-        data: { commentsCount: count },
-      });
+      if (postId !== null) {
+        const count = await tx.comment.count({ where: { postId: Number(postId) } });
+        await tx.post.update({ where: { id: Number(postId) }, data: { commentsCount: count } });
+      }
       return c;
     });
     return shapeComment(comment);
   },
 
-  async getByPost(postId, { limit = 50, offset = 0 } = {}) {
+  async getByThread({ postId = null, limit = 50, offset = 0 } = {}) {
+    if (postId == null) {
+      throw new Error("Comment.getByThread requires postId");
+    }
     const comments = await prisma.comment.findMany({
       where: { postId: Number(postId) },
       include: { author: AUTHOR_SELECT },
@@ -48,20 +53,43 @@ const Comment = {
     return comments.map(shapeComment);
   },
 
-  async delete(id, authorId) {
-    const comment = await prisma.comment.findUnique({
-      where: { id: Number(id) },
-    });
-    if (!comment || comment.authorId !== Number(authorId)) return false;
+  async getByPost(postId, options = {}) {
+    return this.getByThread({ postId, ...options });
+  },
+
+  /**
+   * Delete a comment. Authorised when:
+   *   - the requester is the comment author, OR
+   *   - the requester owns the parent post, OR
+   *   - the requester has role admin/superadmin.
+   *
+   * Returns true on delete, false on not-found, throws nothing for auth.
+   * The caller's auth status (isAdmin) must be passed in; the model
+   * doesn't do role lookups itself.
+   */
+  async delete(id, requesterId, { isAdmin = false } = {}) {
+    const comment = await prisma.comment.findUnique({ where: { id: Number(id) } });
+    if (!comment) return false;
+
+    const isAuthor = comment.authorId === Number(requesterId);
+    let isThreadOwner = false;
+    if (!isAuthor && !isAdmin) {
+      if (comment.postId !== null) {
+        const post = await prisma.post.findUnique({
+          where: { id: comment.postId },
+          select: { authorId: true },
+        });
+        isThreadOwner = post?.authorId === Number(requesterId);
+      }
+    }
+    if (!isAuthor && !isAdmin && !isThreadOwner) return false;
+
     await prisma.$transaction(async (tx) => {
       await tx.comment.delete({ where: { id: Number(id) } });
-      const count = await tx.comment.count({
-        where: { postId: comment.postId },
-      });
-      await tx.post.update({
-        where: { id: comment.postId },
-        data: { commentsCount: count },
-      });
+      if (comment.postId !== null) {
+        const count = await tx.comment.count({ where: { postId: comment.postId } });
+        await tx.post.update({ where: { id: comment.postId }, data: { commentsCount: count } });
+      }
     });
     return true;
   },

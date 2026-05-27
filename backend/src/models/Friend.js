@@ -48,12 +48,17 @@ const Friend = {
     });
     if (blocked) {
       // If receiver blocked sender, return 403. If sender blocked receiver, reject as well.
-      throw Object.assign(new Error('Cannot send friend request due to block'), { status: 403 });
+      throw Object.assign(
+        new Error("Cannot send friend request due to block"),
+        { status: 403 },
+      );
     }
 
     const alreadyFriends = await this.areFriends(sender, receiver);
     if (alreadyFriends)
-      throw Object.assign(new Error("You are already friends"), { status: 409 });
+      throw Object.assign(new Error("You are already friends"), {
+        status: 409,
+      });
 
     const existing = await prisma.friendRequest.findFirst({
       where: {
@@ -149,6 +154,23 @@ const Friend = {
       );
   },
 
+  async requestInfo(senderId, receiverId) {
+    const friendRequest = await prisma.friendRequest.findFirst({
+      where: {
+        status: "pending",
+        OR: [
+          { senderId, receiverId },
+          { senderId: receiverId, receiverId: senderId },
+        ],
+      },
+    });
+
+    return {
+      requestSent: friendRequest?.senderId === senderId,
+      requestReceived: friendRequest?.receiverId === senderId,
+    };
+  },
+
   async removeFriend(userId, friendId) {
     await prisma.friend.deleteMany({
       where: {
@@ -160,9 +182,68 @@ const Friend = {
     });
   },
 
-  async getFriends(userId, { limit = 50, offset = 0 } = {}) {
+  filterToPrismaWhere(filter = {}) {
+    let whereClause = {};
+    let friendFilters = {};
+
+    for (const [key, value] of Object.entries(filter)) {
+      if (value === undefined || value === null || value === "") continue;
+
+      if (key === "username") {
+        friendFilters.username = { contains: value, mode: "insensitive" };
+      }
+    }
+
+    if (Object.keys(friendFilters).length > 0) {
+      whereClause.friend = friendFilters;
+    }
+
+    return whereClause;
+  },
+
+  sortToPrismaOrderBy(sort = {}) {
+    let orderByArray = [];
+
+    for (const [key, value] of Object.entries(sort)) {
+      if (value === undefined || value === null || value === "") continue;
+
+      const direction = String(value).toLowerCase();
+      if (direction !== "asc" && direction !== "desc") {
+        continue;
+      }
+
+      if (key === "username") {
+        orderByArray.push({
+          friend: { username: direction },
+        });
+      } else if (key === "level") {
+        orderByArray.push({
+          friend: { userStats: { level: direction } },
+        });
+      } else if (key === "online") {
+        orderByArray.push({
+          friend: { isOnline: direction },
+        });
+      }
+    }
+    return orderByArray;
+  },
+
+  async getFriends(
+    userId,
+    { limit = 50, offset = 0, filter = {}, sort = {} } = {},
+  ) {
+    let whereClause = this.filterToPrismaWhere(filter);
+    whereClause.userId = Number(userId);
+
+    const orderByClause = this.sortToPrismaOrderBy(sort);
+
+    const count = await prisma.friend.count({
+      where: whereClause,
+    });
+
     const rows = await prisma.friend.findMany({
-      where: { userId: Number(userId) },
+      where: whereClause,
       include: {
         friend: {
           select: {
@@ -175,14 +256,73 @@ const Friend = {
           },
         },
       },
-      orderBy: [
-        { friend: { isOnline: "desc" } },
-        { friend: { username: "asc" } },
-      ],
+      orderBy: orderByClause,
       take: Number(limit),
       skip: Number(offset),
     });
-    return rows.map((r) => shapeFriend(r.friend));
+    const friends = rows.map((r) => shapeFriend(r.friend));
+    return { friends, count };
+  },
+
+  async isFriend(userId, friendId) {
+    const friend = await prisma.friend.findFirst({
+      where: { userId, friendId },
+    });
+    return friend ? true : false;
+  },
+
+  /**
+   * For one viewer and a list of other user ids, return relationship flags
+   * in a constant number of queries (avoids N+1 in user list endpoints).
+   *
+   * @param {number} viewerId
+   * @param {number[]} otherIds
+   * @returns {Promise<Map<number, { isFriend: boolean, isBlocked: boolean, requestSent: boolean, requestReceived: boolean }>>}
+   */
+  async relationFlagsForMany(viewerId, otherIds) {
+    const v = Number(viewerId);
+    const ids = [...new Set(otherIds.map(Number).filter(Number.isFinite))];
+    const flags = new Map(
+      ids.map((id) => [
+        id,
+        { isFriend: false, isBlocked: false, requestSent: false, requestReceived: false },
+      ]),
+    );
+    if (!ids.length) return flags;
+
+    const [friends, blocked, requests] = await Promise.all([
+      prisma.friend.findMany({
+        where: { userId: v, friendId: { in: ids } },
+        select: { friendId: true },
+      }),
+      prisma.blockedUser.findMany({
+        where: { userId: v, blockedUserId: { in: ids } },
+        select: { blockedUserId: true },
+      }),
+      prisma.friendRequest.findMany({
+        where: {
+          status: "pending",
+          OR: [
+            { senderId: v, receiverId: { in: ids } },
+            { receiverId: v, senderId: { in: ids } },
+          ],
+        },
+        select: { senderId: true, receiverId: true },
+      }),
+    ]);
+
+    for (const f of friends)
+      flags.get(f.friendId).isFriend = true;
+    for (const b of blocked)
+      flags.get(b.blockedUserId).isBlocked = true;
+    for (const r of requests) {
+      if (r.senderId === v) {
+        flags.get(r.receiverId).requestSent = true;
+      } else {
+        flags.get(r.senderId).requestReceived = true;
+      }
+    }
+    return flags;
   },
 
   async getOnlineFriends(userId) {
@@ -207,7 +347,16 @@ const Friend = {
 
   async getPendingReceived(userId) {
     const rows = await prisma.friendRequest.findMany({
-      where: { receiverId: Number(userId), status: "pending" },
+      where: {
+        receiverId: Number(userId),
+        status: "pending",
+        sender: {
+          // sender has not blocked receiver
+          blockedUsers: { none: { blockedUserId: Number(userId) } },
+          // receiver has not blocked sender
+          blockedBy: { none: { userId: Number(userId) } },
+        },
+      },
       include: { sender: { select: { username: true, avatar: true } } },
       orderBy: { createdAt: "desc" },
     });
@@ -244,6 +393,26 @@ const Friend = {
     return prisma.friend.count({ where: { userId: Number(userId) } });
   },
 
+  async getFriendStatus(viewerId, targetId) {
+    const v = Number(viewerId);
+    const t = Number(targetId);
+    const [friendship, sentRequest, receivedRequest] = await Promise.all([
+      prisma.friend.findFirst({ where: { userId: v, friendId: t } }),
+      prisma.friendRequest.findFirst({
+        where: { senderId: v, receiverId: t, status: "pending" },
+      }),
+      prisma.friendRequest.findFirst({
+        where: { senderId: t, receiverId: v, status: "pending" },
+      }),
+    ]);
+    if (friendship) return { status: "friends" };
+    if (sentRequest)
+      return { status: "pending_sent", requestId: sentRequest.id };
+    if (receivedRequest)
+      return { status: "pending_received", requestId: receivedRequest.id };
+    return { status: "none" };
+  },
+
   async blockUser(userId, blockedUserId) {
     await this.removeFriend(userId, blockedUserId);
     return prisma.blockedUser.upsert({
@@ -256,6 +425,13 @@ const Friend = {
       update: {},
       create: { userId: Number(userId), blockedUserId: Number(blockedUserId) },
     });
+  },
+
+  async isBlocked(userId, blockedUserId) {
+    const blocked = await prisma.blockedUser.findFirst({
+      where: { userId, blockedUserId },
+    });
+    return blocked ? true : false;
   },
 
   async unblockUser(userId, blockedUserId) {

@@ -26,3 +26,4 @@ export const uploadLimiter        = make(60_000,  20, "Too many uploads — try 
 export const chatSendLimiter      = make(10_000,  20, "Sending messages too fast.");
 export const friendRequestLimiter = make(60_000,  20, "Too many friend requests — slow down.");
 export const helpdeskLimiter      = make(60_000,  20, "Too many help desk messages — slow down.");
+export const apiKeyRegenerateLimiter = make(3_600_000, 3, "Too many API key regenerations — try again in an hour.");

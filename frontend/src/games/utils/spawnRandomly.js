@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CONST } from '../config/constants';
+import { devWarn } from '../../services/logger.js';
 import { createAlpaca, createCollectable, createDecoration, createItem } from "../core/createObjects";
 import { gCollidables } from '../core/globals';
 import { getModel } from '../core/modelCache';
@@ -33,7 +34,7 @@ export async function spawnObjectRandomly(object, amount, ring = false) {
         item = await createCollectable(data.path, data.position, data.rotation, data.scale);
         break;
       default:
-        console.warn(`Spawn Object Warning: Unknown entity type '${type}'`);
+        devWarn(`Spawn Object Warning: Unknown entity type '${type}'`);
     }
     if (item && item.model) {
       if (object.type === 'item' || object.type === 'decoration')

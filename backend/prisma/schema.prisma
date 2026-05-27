@@ -17,6 +17,8 @@ model User {
   avatar    String?   @default("/avatars/default.svg") @db.VarChar(512)
   bio       String?   @default("") @db.Text
   status    String?   @default("Hey there! I am using AlpacaParty") @db.VarChar(255)
+  role      String    @default("user") @db.VarChar(20)
+  isBanned  Boolean   @default(false) @map("is_banned")
   isOnline  Boolean?  @default(false) @map("is_online")
   lastSeen  DateTime? @default(now()) @map("last_seen") @db.Timestamptz
   createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
@@ -31,11 +33,6 @@ model User {
   blockedBy              BlockedUser[]        @relation("blockedByUser")
   sentMessages           Message[]            @relation("sentMessages")
   receivedMessages       Message[]            @relation("receivedMessages")
-  ownedRooms             ChatRoom[]           @relation("roomOwner")
-  roomMemberships        ChatRoomMember[]
-  roomMessages           ChatRoomMessage[]
-  gamesAsPlayer1         Game[]               @relation("player1")
-  gamesAsPlayer2         Game[]               @relation("player2")
   wonGames               Game[]               @relation("winner")
   gameStats              GameStat[]
   achievements           UserAchievement[]
@@ -45,25 +42,21 @@ model User {
   postLikes              PostLike[]
   uploadedFiles          File[]
   alpacaFarm             AlpacaFarm?
-  passwordResetTokens    PasswordResetToken[]
   dataRequests           DataRequest[]
   userAuth               UserAuth?
   userStats              UserStats?
   userSettings           UserSettings?
   comments               Comment[]
-  reposts                Repost[]
   publicApi              PublicApi?
 
   @@map("user")
 }
 
 model UserAuth {
-  id               Int     @id @default(autoincrement())
-  passwordHash     String? @db.VarChar(255)
-  twoFactorEnabled Boolean @default(false)
-  twoFactorSecret  String? @db.VarChar(255)
-  oauthProvider    String?
-  oauthId          String?
+  id            Int     @id @default(autoincrement())
+  passwordHash  String? @db.VarChar(255)
+  oauthProvider String?
+  oauthId       String?
 
   // Relations
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -85,9 +78,12 @@ model PublicApi {
 }
 
 model UserStats {
-  userId Int  @id @map("user_id")
-  xp     Int? @default(0)
-  level  Int? @default(1)
+  userId         Int       @id @map("user_id")
+  xp             Int?      @default(0)
+  level          Int?      @default(0)
+  winStreak      Int?      @default(0) @map("win_streak")
+  loginStreak    Int?      @default(0) @map("login_streak")
+  lastLoginDate  DateTime? @map("last_login_date")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -170,49 +166,6 @@ model Message {
   @@map("message")
 }
 
-// ── Chat Rooms (group chats) ────────────────────────────────────────────
-model ChatRoom {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(100)
-  ownerId   Int      @map("owner_id")
-  isPrivate Boolean? @default(false) @map("is_private")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  owner    User              @relation("roomOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members  ChatRoomMember[]
-  messages ChatRoomMessage[]
-
-  @@map("chat_room")
-}
-
-model ChatRoomMember {
-  id       Int      @id @default(autoincrement())
-  roomId   Int      @map("room_id")
-  userId   Int      @map("user_id")
-  role     String?  @default("member") @db.VarChar(10)
-  joinedAt DateTime @default(now()) @map("joined_at") @db.Timestamptz
-
-  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([roomId, userId])
-  @@map("chat_room_member")
-}
-
-model ChatRoomMessage {
-  id        Int      @id @default(autoincrement())
-  roomId    Int      @map("room_id")
-  senderId  Int      @map("sender_id")
-  content   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  sender User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@index([roomId])
-  @@map("chat_room_message")
-}
-
 // ── Games ────────────────────────────────────────────────────────────────
 model Game {
   id           Int       @id @default(autoincrement())
@@ -228,8 +181,6 @@ model Game {
   finishedAt   DateTime? @map("finished_at") @db.Timestamptz
   createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
 
-  player1 User? @relation("player1", fields: [player1Id], references: [id], onDelete: Cascade)
-  player2 User? @relation("player2", fields: [player2Id], references: [id], onDelete: SetNull)
   winner  User? @relation("winner", fields: [winnerId], references: [id], onDelete: SetNull)
 
   @@index([player1Id])
@@ -245,7 +196,8 @@ model GameStat {
   wins      Int?     @default(0)
   losses    Int?     @default(0)
   draws     Int?     @default(0)
-  elo       Int?     @default(1000)
+  kills     Int?     @default(0)
+  obstacles Int?     @default(0)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -338,14 +290,12 @@ model Post {
   isPublic      Boolean? @default(true) @map("is_public")
   likesCount    Int?     @default(0) @map("likes_count")
   commentsCount Int?     @default(0) @map("comments_count")
-  repostsCount  Int?     @default(0) @map("reposts_count")
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   author   User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   likes    PostLike[]
   comments Comment[]
-  reposts  Repost[]
 
   @@index([authorId])
   @@map("post")
@@ -353,37 +303,21 @@ model Post {
 
 // ── Comments ─────────────────────────────────────────────────────────────
 model Comment {
-  id        Int      @id @default(autoincrement())
-  postId    Int      @map("post_id")
-  authorId  Int      @map("author_id")
-  content   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id        Int       @id @default(autoincrement())
+  postId    Int?      @map("post_id")
+  authorId  Int       @map("author_id")
+  content   String    @db.Text
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@map("comment")
 }
 
-// ── Reposts ───────────────────────────────────────────────────────────────
-model Repost {
-  id        Int      @id @default(autoincrement())
-  postId    Int      @map("post_id")
-  authorId  Int      @map("author_id")
-  comment   String?  @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  @@unique([postId, authorId])
-  @@index([postId])
-  // Index for querying which posts a user has reposted (used in getFeed viewer checks)
-  @@index([authorId])
-  @@map("repost")
-}
 
 model PostLike {
   id        Int      @id @default(autoincrement())
@@ -432,19 +366,6 @@ model AlpacaFarm {
   userId Int  @unique @map("user_id")
 
   @@map("alpaca_farm")
-}
-
-// ── Password Reset Tokens ────────────────────────────────────────────────
-model PasswordResetToken {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  token     String   @unique @db.VarChar(255)
-  expiresAt DateTime @map("expires_at") @db.Timestamptz
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("password_reset_token")
 }
 
 // ── GDPR Data Requests ──────────────────────────────────────────────────

@@ -1,10 +1,10 @@
 /**
  * Auth Service — JWT generation, password hashing
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import { randomBytes } from "crypto";
 import config from "../config/index.js";
 
 const SALT_ROUNDS = 12;
@@ -25,18 +25,18 @@ const AuthService = {
   },
 
   /**
-   * Generate an access token (short-lived).
+   * Generate access token (short-lived).
    */
   generateAccessToken(user) {
     return jwt.sign(
-      { id: user.id, username: user.username},
+      { id: user.id, username: user.username },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn },
     );
   },
 
   /**
-   * Generate a refresh token (long-lived).
+   * Generate refresh token (long-lived).
    */
   generateRefreshToken(user) {
     return jwt.sign(
@@ -49,7 +49,7 @@ const AuthService = {
   },
 
   /**
-   * Generate an public api token
+   * Generate public api token
    */
   generatePublicApiToken(user) {
     return jwt.sign({ id: user.id }, config.jwt.publicApiSecret, {
@@ -58,36 +58,65 @@ const AuthService = {
   },
 
   /**
-   * Verify and decode a token.
+   * Generate admin token
+   */
+  generateAdminToken(admin) {
+    return jwt.sign(
+      { id: admin.id, username: admin.username, role: admin.role },
+      config.jwt.adminSecret,
+      { expiresIn: config.jwt.adminExpiresIn },
+    );
+  },
+
+  /**
+   * Verify and decode access token.
    * @returns {object|null} decoded payload or null if invalid.
    */
   verifyToken(token) {
     try {
-      return jwt.verify(token, config.jwt.secret);
+      return jwt.verify(token, config.jwt.secret, { algorithms: ["HS256"] });
     } catch {
       return null;
     }
   },
 
   /**
-   * Verify and decode a refresh token.
+   * Verify and decode refresh token.
    * @returns {object|null} decoded payload or null if invalid.
    */
   verifyRefreshToken(token) {
     try {
-      return jwt.verify(token, config.jwt.refreshSecret);
+      return jwt.verify(token, config.jwt.refreshSecret, {
+        algorithms: ["HS256"],
+      });
     } catch {
       return null;
     }
   },
 
   /**
-   * Verify and decode a public api token.
+   * Verify and decode public api token.
    * @returns {object|null} decoded payload or null if invalid.
    */
   verifyPublicApiToken(token) {
     try {
-      return jwt.verify(token, config.jwt.publicApiSecret);
+      return jwt.verify(token, config.jwt.publicApiSecret, {
+        algorithms: ["HS256"],
+      });
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Verify and decode admin token.
+   * @returns {object|null} decoded payload or null if invalid.
+   */
+  verifyAdminToken(token) {
+    try {
+      return jwt.verify(token, config.jwt.adminSecret, {
+        algorithms: ["HS256"],
+      });
     } catch {
       return null;
     }

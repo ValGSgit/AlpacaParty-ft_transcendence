@@ -3,6 +3,13 @@
  * @owner ValGSgit
  */
 import prisma from "#config/prisma.js";
+import CustomError from "#utils/CustomError.js";
+
+/** Return a positive integer id or null. Avoids passing NaN to Prisma. */
+function toId(v) {
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
 
 // Nested selects for all user sub-relations used across the app.
 const SAFE_SELECT = {
@@ -12,10 +19,12 @@ const SAFE_SELECT = {
   avatar: true,
   bio: true,
   status: true,
+  isBanned: true,
   isOnline: true,
   lastSeen: true,
   createdAt: true,
   updatedAt: true,
+  userStats: { select: { level: true, xp: true } },
   userAuth: { select: { oauthProvider: true } },
   userSettings: { select: { isPublic: true } },
   alpacaFarm: {
@@ -35,11 +44,14 @@ export function shapeUserForClient(u) {
     avatar: u.avatar,
     bio: u.bio,
     status: u.status,
+    role: u.role ?? "user",
     is_public: u.userSettings?.isPublic ?? true,
     is_online: u.isOnline,
     isOnline: u.isOnline,
     oauth_provider: u.userAuth?.oauthProvider ?? null,
     api_key: u.userSettings?.apiKey ?? null,
+    level: u.userStats?.level ?? 1,
+    xp: u.userStats?.xp ?? 0,
     coins: u.alpacaFarm?.coins ?? 0,
     alpacas: u.alpacaFarm?.alpacas ?? [],
     items: u.alpacaFarm?.items ?? [],
@@ -59,47 +71,82 @@ const User = {
         userAuth: { create: { passwordHash } },
         userStats: { create: {} },
         userSettings: { create: {} },
-        alpacaFarm: { create: {} },
       },
       select: SAFE_SELECT,
     });
   },
 
-  async findOrCreateOAuth({ provider, oauthId, username, email, avatar }) {
+  async findOrCreateOAuth({
+    provider,
+    oauthId,
+    username,
+    email,
+    avatar,
+    emailVerified = false,
+  }) {
     const existing = await prisma.user.findFirst({
       where: { userAuth: { oauthProvider: provider, oauthId } },
       select: SAFE_SELECT,
     });
     if (existing) return { user: existing, created: false };
 
-    // If we have an email, try to link to an existing local account.
     if (email) {
-      const user = await prisma.user.upsert({
+      // Refuse to silently link an OAuth identity to an existing local
+      // account by email — that's an account-takeover primitive if the
+      // attacker controls a Google/GitHub account that claims the same
+      // address. Only auto-link when the provider has verified the email
+      // AND the existing account has no auth method yet (defensive: rows in
+      // that state shouldn't exist).
+      const existingByEmail = await prisma.user.findUnique({
         where: { email },
-        update: {
-          userAuth: {
-            upsert: {
-              create: { oauthProvider: provider, oauthId },
-              update: { oauthProvider: provider, oauthId },
+        include: { userAuth: true },
+      });
+      if (existingByEmail) {
+        if (!emailVerified) {
+          throw new CustomError(
+            "An account with this email already exists. Sign in with your original method, then link from Settings.",
+            409,
+          );
+        }
+        const ua = existingByEmail.userAuth;
+        if (ua?.passwordHash || ua?.oauthProvider) {
+          throw new CustomError(
+            "An account with this email already exists. Sign in with your original method, then link from Settings.",
+            409,
+          );
+        }
+        // Safe link: existing row has no prior auth.
+        const linked = await prisma.user.update({
+          where: { id: existingByEmail.id },
+          data: {
+            userAuth: {
+              upsert: {
+                create: { oauthProvider: provider, oauthId },
+                update: { oauthProvider: provider, oauthId },
+              },
             },
           },
-        },
-        create: {
+          select: SAFE_SELECT,
+        });
+        return { user: linked, created: true };
+      }
+
+      const user = await prisma.user.create({
+        data: {
           username,
           email,
           avatar: avatar || "/avatars/default.svg",
           userAuth: { create: { oauthProvider: provider, oauthId } },
           userStats: { create: {} },
           userSettings: { create: {} },
-          alpacaFarm: { create: {} },
         },
         select: SAFE_SELECT,
       });
       return { user, created: true };
     }
 
-    // No email available (e.g. GitHub user with private email).
-    // Generate a unique internal email so the NOT NULL constraint is satisfied.
+    // No email (e.g. GitHub user with private email). Synthesize an internal
+    // address so the NOT NULL constraint is satisfied without colliding.
     const internalEmail = `${provider}_${oauthId}@oauth.internal`;
     const user = await prisma.user.create({
       data: {
@@ -109,7 +156,6 @@ const User = {
         userAuth: { create: { oauthProvider: provider, oauthId } },
         userStats: { create: {} },
         userSettings: { create: {} },
-        alpacaFarm: { create: {} },
       },
       select: SAFE_SELECT,
     });
@@ -117,15 +163,21 @@ const User = {
   },
 
   async findById(id) {
+    const n = toId(id);
+    if (n === null)
+      return null;
     return prisma.user.findUnique({
-      where: { id: Number(id) },
+      where: { id: n },
       select: SAFE_SELECT,
     });
   },
 
   async findByIdWithPassword(id) {
+    const n = toId(id);
+    if (n === null)
+      return null;
     return prisma.user.findUnique({
-      where: { id: Number(id) },
+      where: { id: n },
       include: {
         userAuth: true,
         userStats: true,
@@ -208,16 +260,14 @@ const User = {
 
     await Promise.all(ops);
     if (updatedUser === null) {
-      return null;
+      return Object.keys(userData).length ? null : this.findById(id);
     }
-
     if (
       updatedUser &&
       !Object.keys(settingsData).length &&
       !Object.keys(farmData).length
-    ) {
+    )
       return updatedUser;
-    }
     return this.findById(id);
   },
 
@@ -242,8 +292,57 @@ const User = {
     });
   },
 
-  async findAll({ limit = 50, offset = 0 } = {}) {
-    return prisma.user.findMany({
+  filterToPrismaWhere(filter = {}) {
+    let whereClause = {
+      AND: [],
+    };
+
+    for (const [key, value] of Object.entries(filter)) {
+      if (value === undefined || value === null || value === "") continue;
+      if (key === "username" || key === "bio") {
+        whereClause.AND.push({
+          [key]: { contains: value, mode: "insensitive" },
+        });
+      } else if (key === "public" && value === true) {
+        whereClause.AND.push({ userSettings: { isPublic: true } });
+      }
+    }
+
+    if (whereClause.AND.length === 0) {
+      delete whereClause.AND;
+    }
+
+    return whereClause;
+  },
+
+  sortToPrismaOrderBy(sort = {}) {
+    let orderByArray = [];
+
+    for (const [key, value] of Object.entries(sort)) {
+      if (value !== "asc" && value !== "desc") continue;
+      if (
+        key === "createdAt" ||
+        key === "id" ||
+        key === "online" ||
+        key === "username"
+      ) {
+        orderByArray.push({ [key]: value });
+      } else if (key === "level" || key === "xp") {
+        orderByArray.push({ userStats: { [key]: value } });
+      }
+    }
+    return orderByArray;
+  },
+
+  async findAll({ limit = 50, offset = 0, filter = {}, sort = {} } = {}) {
+    const whereClause = this.filterToPrismaWhere(filter);
+
+    const orderByObj = this.sortToPrismaOrderBy(sort);
+
+    const userCount = await prisma.user.count({ where: whereClause });
+
+    const usersFound = await prisma.user.findMany({
+      where: whereClause,
       select: {
         id: true,
         username: true,
@@ -253,45 +352,62 @@ const User = {
         isOnline: true,
         lastSeen: true,
         createdAt: true,
+        userStats: { select: { level: true } },
         userSettings: { select: { isPublic: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: orderByObj,
       take: Number(limit),
       skip: Number(offset),
     });
+
+    return { usersFound, userCount };
   },
 
   async count() {
     return prisma.user.count();
   },
 
-  async search(term, { limit = 20, offset = 0 } = {}) {
-    return prisma.user.findMany({
-      where: {
-        OR: [
-          { username: { startsWith: term, mode: "insensitive" } },
-          { bio: { contains: term, mode: "insensitive" } },
-        ],
-      },
+  async search(
+    { limit = 20, offset = 0, filter = {}, sort = {} } = {},
+    excludeUserId = -1,)
+  {
+    const whereClause = this.filterToPrismaWhere(filter);
+    whereClause.NOT = [];
+    whereClause.NOT.push({ id: excludeUserId });
+
+    const orderByObj = this.sortToPrismaOrderBy(sort);
+
+    const userCount = await prisma.user.count({ where: whereClause });
+
+    const usersFound = await prisma.user.findMany({
+      where: whereClause,
       select: {
         id: true,
         username: true,
         avatar: true,
         isOnline: true,
+        userStats: { select: { level: true } },
         userSettings: { select: { isPublic: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: orderByObj,
       take: Number(limit),
       skip: Number(offset),
     });
+    return { usersFound, userCount };
   },
 
   async deleteById(id) {
+    const n = toId(id);
+    if (n === null) return false;
     try {
-      await prisma.user.delete({ where: { id: Number(id) } });
+      await prisma.user.delete({ where: { id: n } });
       return true;
-    } catch {
-      return false;
+    } catch (err) {
+      // "Record to delete does not exist" — distinguish a true 404 from a
+      // real failure (FK conflict, DB down) so the controller can stop
+      // telling the user "Account deleted" when it wasn't.
+      if (err.code === "P2025") return false;
+      throw err;
     }
   },
 

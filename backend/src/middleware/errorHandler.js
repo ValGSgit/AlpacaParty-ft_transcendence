@@ -1,7 +1,6 @@
 /**
  * Error-handling Middleware
  * @owner DavidPoetsch, ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/2
  */
 
 import { Prisma } from "@prisma/client";
@@ -22,28 +21,33 @@ export const notFoundHandler = (_req, _res, next) => {
 */
 // eslint-disable-next-line no-unused-vars
 export const errorHandler = (err, _req, res, _next) => {
-  var status = err.status || 500;
-  var message = err.message || "Internal Server Error";
-  var prismaCode = -1; // -1 = no prisma error
-  var error = new CustomError(message, status);
+  let prismaCode = -1; // -1 = no prisma error
+  let error;
 
   if (err instanceof CustomError) {
     error = err;
   } else if (isValidationError(err)) {
-    if (!err.isEmpty()) {
+    if (err.isEmpty()) {
+      // A Result with no errors should never reach us; treat it as a bug
+      // rather than silently leaking a 500 with an empty body.
+      error = new CustomError("Internal Server Error", 500);
+    } else {
       const mapped = err.mapped();
       const firstError = Object.values(mapped)[0];
       return res.status(400).json({
-        error: {
-          message: firstError || "Validation failed",
-          fields: mapped,
-        },
+        error: { message: firstError || "Validation failed", fields: mapped },
         errors: mapped,
       });
     }
   } else if (err instanceof Prisma.PrismaClientKnownRequestError) {
     prismaCode = err.code;
     error = handlePrismaError(err);
+  } else {
+    // Generic error — preserve message and status the caller set. The
+    // information-disclosure concern from the review was specifically about
+    // unknown Prisma errors (raw schema/column names in the message),
+    // handled in handlePrismaError above.
+    error = new CustomError(err.message || "Internal Server Error", err.status || 500);
   }
 
   if (config.envIsDev)
@@ -54,7 +58,7 @@ export const errorHandler = (err, _req, res, _next) => {
       message: error.message,
       ...(process.env.NODE_ENV === "development" && {
         stack: err.stack,
-        prismaCode: prismaCode,
+        prismaCode,
       }),
     },
   });
@@ -82,8 +86,11 @@ const handlePrismaError = (err) => {
       return new CustomError(message, 404);
     }
     default: {
-      const message = `${prefix} Unknown prisma error ${err.message}`;
-      return new CustomError(message, 404);
+      // Don't leak schema/column names from err.message to the client.
+      const message = config.envIsDev
+        ? `${prefix} Unknown prisma error ${err.message}`
+        : "Internal Server Error";
+      return new CustomError(message, 500);
     }
   }
 };

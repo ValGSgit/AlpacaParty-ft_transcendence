@@ -40,41 +40,77 @@ const Message = {
     }));
   },
 
-  // DISTINCT ON is PostgreSQL-specific — keep as raw query
+  // Returns one entry per conversation partner, with the latest message and
+  // the unread count from that partner. Dedupe + counts are done in JS to
+  // keep this portable across DBs (the previous DISTINCT ON variant was
+  // PostgreSQL-only).
   async getConversationsList(userId) {
-    return prisma.$queryRaw`
-      SELECT DISTINCT ON (other_user_id)
-             other_user_id,
-             username,
-             avatar,
-             last_message,
-             created_at,
-             is_read,
-             unread_count
-      FROM (
-        SELECT
-          CASE WHEN sender_id = ${Number(userId)} THEN receiver_id ELSE sender_id END AS other_user_id,
-          CASE WHEN sender_id = ${Number(userId)} THEN r.username   ELSE s.username   END AS username,
-          CASE WHEN sender_id = ${Number(userId)} THEN r.avatar     ELSE s.avatar     END AS avatar,
-          m.content AS last_message,
-          m.created_at,
-          m.is_read,
-          (
-            SELECT COUNT(*)::int FROM message u
-            WHERE u.sender_id != ${Number(userId)}
-              AND u.receiver_id = ${Number(userId)}
-              AND u.is_read = false
-              AND u.sender_id = CASE WHEN m.sender_id = ${Number(userId)} THEN m.receiver_id ELSE m.sender_id END
-          ) AS unread_count
-        FROM message m
-        JOIN "user" s ON s.id = m.sender_id
-        JOIN "user" r ON r.id = m.receiver_id
-        WHERE (m.sender_id = ${Number(userId)} OR m.receiver_id = ${Number(userId)})
-          AND m.sender_id != m.receiver_id
-      ) sub
-      WHERE other_user_id != ${Number(userId)}
-      ORDER BY other_user_id, created_at DESC
-    `;
+    const uid = Number(userId);
+
+    // 1. Build the set of users blocked in either direction.
+    const blocked = await prisma.blockedUser.findMany({
+      where: { OR: [{ userId: uid }, { blockedUserId: uid }] },
+      select: { userId: true, blockedUserId: true },
+    });
+    const blockedIds = new Set(
+      blocked.flatMap((b) => [b.userId, b.blockedUserId]).filter((id) => id !== uid),
+    );
+
+    // 2. Pull every message touching this user, newest first, with both
+    // sides' username/avatar in one round-trip.
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [{ senderId: uid }, { receiverId: uid }],
+        NOT: { AND: [{ senderId: uid }, { receiverId: uid }] }, // skip self-msgs
+      },
+      include: {
+        sender: { select: { id: true, username: true, avatar: true } },
+        receiver: { select: { id: true, username: true, avatar: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // 3. Walk newest → oldest, keep the first hit per other-user id, skip
+    // blocked partners.
+    const seen = new Set();
+    const conversations = [];
+    for (const m of messages) {
+      const other = m.senderId === uid ? m.receiver : m.sender;
+      if (!other || other.id === uid || seen.has(other.id)) continue;
+      if (blockedIds.has(other.id)) continue;
+      seen.add(other.id);
+      conversations.push({
+        other_user_id: other.id,
+        username: other.username,
+        avatar: other.avatar,
+        last_message: m.content,
+        created_at: m.createdAt,
+        is_read: m.isRead,
+        unread_count: 0, // filled below
+      });
+    }
+
+    if (conversations.length === 0) return conversations;
+
+    // 4. Unread counts: one groupBy keyed by sender (rows where the other
+    // party wrote to us and we haven't read it yet).
+    const unread = await prisma.message.groupBy({
+      by: ["senderId"],
+      where: {
+        receiverId: uid,
+        isRead: false,
+        senderId: { in: conversations.map((c) => c.other_user_id) },
+      },
+      _count: { _all: true },
+    });
+    const unreadMap = new Map(
+      unread.map((row) => [row.senderId, row._count._all]),
+    );
+    for (const c of conversations) {
+      c.unread_count = unreadMap.get(c.other_user_id) ?? 0;
+    }
+
+    return conversations;
   },
 
   async markAsRead(receiverId, senderId) {

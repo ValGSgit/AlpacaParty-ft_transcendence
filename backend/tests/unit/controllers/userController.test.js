@@ -28,6 +28,7 @@ const mockAuthService = {
   validatePassword: jest.fn(),
   hashPassword: jest.fn(),
 };
+
 jest.unstable_mockModule("../../../src/services/authService.js", () => ({
   default: mockAuthService,
 }));
@@ -57,8 +58,27 @@ jest.unstable_mockModule(
   }),
 );
 
+const mockGamificationService = {
+  unlock: jest.fn().mockResolvedValue(true),
+};
+jest.unstable_mockModule(
+  "../../../src/services/GamificationService.js",
+  () => ({
+    default: mockGamificationService,
+  }),
+);
+
 const mockFriend = {
   areFriends: jest.fn(),
+  getFriendStatus: jest.fn(),
+  isBlockedBetween: jest.fn().mockResolvedValue(false),
+  isFriend: jest.fn().mockResolvedValue(false),
+  isBlocked: jest.fn().mockResolvedValue(false),
+  relationFlagsForMany: jest.fn().mockResolvedValue(new Map()),
+  requestInfo: jest.fn().mockResolvedValue({
+    requestSent: false,
+    requestReceived: false,
+  }),
 };
 jest.unstable_mockModule("../../../src/models/Friend.js", () => ({
   default: mockFriend,
@@ -73,7 +93,12 @@ jest.unstable_mockModule("../../../src/config/index.js", () => ({
 
 // Mock fs to prevent import-time side effects when the controller loads.
 jest.unstable_mockModule("fs", () => ({
-  default: { mkdirSync: jest.fn(), writeFileSync: jest.fn() },
+  default: {
+    existsSync: jest.fn().mockReturnValue(false),
+    mkdirSync: jest.fn(),
+    writeFileSync: jest.fn(),
+  },
+  existsSync: jest.fn().mockReturnValue(false),
   mkdirSync: jest.fn(),
   writeFileSync: jest.fn(),
 }));
@@ -410,9 +435,14 @@ describe("getUser", () => {
   });
 
   test("should return 403 for private profile of non-friend", async () => {
-    const user = { id: 5, username: "bob", isPublic: false };
+    // Privacy lives on the 1:1 UserSettings relation, not on User.isPublic.
+    const user = {
+      id: 5,
+      username: "bob",
+      userSettings: { isPublic: false },
+    };
     mockUser.findById.mockResolvedValue(user);
-    mockFriend.areFriends.mockResolvedValue(false);
+    mockFriend.getFriendStatus.mockResolvedValue({ status: "none" });
 
     const { req, res, next } = createReqRes({
       params: { id: "5" },
@@ -421,15 +451,40 @@ describe("getUser", () => {
     await getUser(req, res, next);
 
     expect(res._status).toBe(403);
-    expect(res._json).toEqual({
+    expect(res._json).toMatchObject({
       error: { message: "This profile is private" },
     });
   });
 
-  test("should allow viewing private profile if friends", async () => {
-    const user = { id: 5, username: "bob", isPublic: false };
+  test("should return 404 when the viewer is blocked by the target", async () => {
+    const user = {
+      id: 5,
+      username: "bob",
+      userSettings: { isPublic: true },
+    };
     mockUser.findById.mockResolvedValue(user);
-    mockFriend.areFriends.mockResolvedValue(true);
+    mockFriend.isBlockedBetween.mockResolvedValueOnce(true);
+
+    const { req, res, next } = createReqRes({
+      params: { id: "5" },
+      user: { id: 1, username: "alice" },
+    });
+    await getUser(req, res, next);
+
+    // Block hides existence — 404, not 403.
+    expect(res._status).toBe(404);
+    expect(res._json).toEqual({ error: { message: "User not found" } });
+    expect(mockFriend.getFriendStatus).not.toHaveBeenCalled();
+  });
+
+  test("should allow viewing private profile if friends", async () => {
+    const user = {
+      id: 5,
+      username: "bob",
+      userSettings: { isPublic: false },
+    };
+    mockUser.findById.mockResolvedValue(user);
+    mockFriend.getFriendStatus.mockResolvedValue({ status: "friends" });
 
     const { req, res, next } = createReqRes({
       params: { id: "5" },
@@ -442,7 +497,11 @@ describe("getUser", () => {
   });
 
   test("should allow viewing own private profile", async () => {
-    const user = { id: 1, username: "alice", isPublic: false };
+    const user = {
+      id: 1,
+      username: "alice",
+      userSettings: { isPublic: false },
+    };
     mockUser.findById.mockResolvedValue(user);
 
     const { req, res, next } = createReqRes({
@@ -453,7 +512,8 @@ describe("getUser", () => {
 
     expect(res._status).toBe(200);
     expect(res._json.user).toBeDefined();
-    expect(mockFriend.areFriends).not.toHaveBeenCalled();
+    expect(mockFriend.getFriendStatus).not.toHaveBeenCalled();
+    expect(mockFriend.isBlockedBetween).not.toHaveBeenCalled();
   });
 
   test("should call next on error", async () => {
@@ -473,50 +533,41 @@ describe("listUsers", () => {
       { id: 1, username: "alice", isPublic: true },
       { id: 2, username: "bob", isPublic: true },
     ];
-    mockUser.findAll.mockResolvedValue(users);
+    mockUser.search.mockResolvedValue({ usersFound: users, userCount: 2 });
 
     const { req, res, next } = createReqRes();
     await listUsers(req, res, next);
-
     expect(res._json.users).toHaveLength(2);
   });
 
-  test("should filter non-public users for non-admins", async () => {
-    const users = [
-      { id: 1, username: "alice", isPublic: true },
-      { id: 2, username: "bob", isPublic: false },
-      { id: 3, username: "charlie", isPublic: true },
-    ];
-    mockUser.findAll.mockResolvedValue(users);
+  test("use filter", async () => {
+    mockUser.search.mockResolvedValue({
+      usersFound: [{ id: 2, username: "bob", isPublic: true }],
+      userCount: 1,
+    });
+    const filter = { username: "bob" };
 
     const { req, res, next } = createReqRes({
+      query: { limit: 10, filter },
       user: { id: 1, username: "alice" },
     });
     await listUsers(req, res, next);
 
-    // Should include alice (own profile) and charlie (public), but not bob (private, not own)
-    expect(res._json.users).toHaveLength(2);
-    expect(res._json.users.map((u) => u.id)).toEqual([1, 3]);
-  });
-
-  test("should use search when query param provided", async () => {
-    mockUser.search.mockResolvedValue([
-      { id: 2, username: "bob", isPublic: true },
-    ]);
-
-    const { req, res, next } = createReqRes({
-      query: { search: "bob", limit: "10" },
-      user: { id: 1, username: "alice" },
-    });
-    await listUsers(req, res, next);
-
-    expect(mockUser.search).toHaveBeenCalledWith("bob", { limit: 10 });
+    expect(mockUser.search).toHaveBeenCalledWith(
+      {
+        limit: 10,
+        offset: 0,
+        filter,
+        sort: undefined,
+      },
+      undefined,
+    );
     expect(res._json.users).toHaveLength(1);
   });
 
   test("should call next on error", async () => {
     const error = new Error("fail");
-    mockUser.findAll.mockRejectedValue(error);
+    mockUser.search.mockRejectedValue(error);
 
     const { req, res, next } = createReqRes();
     await listUsers(req, res, next);

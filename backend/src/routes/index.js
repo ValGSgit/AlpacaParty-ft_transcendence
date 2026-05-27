@@ -1,7 +1,6 @@
 /**
  * API Route Index
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/9
  */
 import express from 'express';
 import authRoutes from './auth.js';
@@ -14,6 +13,7 @@ import notificationRoutes from './notifications.js';
 import uploadRoutes from './uploads.js';
 import publicRoutes from './public.js';
 import helpdeskRoutes from './helpdesk.js';
+import adminRoutes from './admin.js';
 
 const router = express.Router();
 
@@ -38,5 +38,6 @@ router.use('/notifications', notificationRoutes);
 router.use('/uploads', uploadRoutes);
 router.use('/public', publicRoutes);
 router.use('/helpdesk', helpdeskRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;

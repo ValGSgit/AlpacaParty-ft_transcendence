@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { debug } from '../../services/logger.js';
 import * as PRIMITIVES from '../assets/primitives.js';
 import { useCoinUI } from '../components/coins.js';
 import { editLight } from '../components/editLight.js';
@@ -14,6 +15,7 @@ import { getRandomInt, getRandomTimer } from '../utils/randomValues.js';
 import { adjustSunBox, setSunLight, setupLighting } from '../world/sceneBuilder.js';
 import { makeAnnouncement } from './annoucement.js';
 import { activeClient } from './GameClient.js';
+import { saveGameResult } from './utils.js';
 
 const roadLength = 700;
 const roadBack = -25;
@@ -220,10 +222,10 @@ export function updateAlpacaRoad(delta) {
 // =========================================================
 
 export function syncObstacles() {
-  const serverObstacles = activeClient.serverObstacles;
+  const serverObstacles = activeClient.serverData.obstacles;
   if (!serverObstacles) return;
 
-  roadSpeed = activeClient.roadSpeed;
+  roadSpeed = activeClient.serverData.roadSpeed;
   const serverIds = new Set(serverObstacles.map(o => o.id));
 
   for (let i = activeObstacles.length - 1; i >= 0; i--) {
@@ -561,7 +563,9 @@ function checkAlpaca(alpaca) {
     spawnFloatingText(alpaca.model, '-💔', 'hearts');
     if (alpaca.hp === 0) {
       alpaca.isDead = true;
-      alivePlayers--;
+      setTimeout(() => {
+        alivePlayers--;
+      }, 1500);
     }
   }
 }
@@ -619,11 +623,18 @@ function endMinigame() {
     playerPoints = activePlayers[0].point || 0;
   }
 
-  const earnedCoins = Math.floor(playerPoints / 1);
-  console.log(`Minigame Over! Points: ${playerPoints}, Coins: ${earnedCoins}`);
+  const earnedCoins = Math.floor(playerPoints / 2);
+  debug(`Minigame Over! Points: ${playerPoints}, Coins: ${earnedCoins}`);
 
   if (earnedCoins > 0) {
     setTimeout(() => { collectRewards(earnedCoins); }, 50);
+  }
+
+  // Offline only — server-side persists online matches via _persistOutcome.
+  // Backend rejects 'win' here; we only contribute the obstacle count to
+  // the leaderboard so a fast run still ranks even if the player died.
+  if (!gMinigame.value.isOnline && playerPoints > 0) {
+    saveGameResult('alpaca_road', 'loss', { obstacles: playerPoints });
   }
 }
 
@@ -702,5 +713,5 @@ function cleanupAlpacaRoad() {
   gUI.lockCamera = false;
   gUI.cameraMode = 1;
   gMinigame.value.isGameOver = false;
-  console.log("🧹 Minigame cleaned up.");
+  debug("🧹 Minigame cleaned up.");
 }

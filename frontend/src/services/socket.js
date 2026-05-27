@@ -1,9 +1,3 @@
-/**
- * Socket.io Client Service
- * @owner ValGSgit
- * Handles real-time events: chat, notifications, game state, presence
- */
-
 import { io } from "socket.io-client";
 
 let socket = null;

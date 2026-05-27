@@ -33,6 +33,9 @@ if [ -z "$IS_DEV" ]; then
   if [ -z "${JWT_PUBLIC_API_SECRET:-}" ]; then
     echo "[vault-seed] ERROR: JWT_PUBLIC_API_SECRET must be set before seeding" >&2; exit 1
   fi
+  if [ -z "${JWT_ADMIN_SECRET:-}" ]; then
+    echo "[vault-seed] ERROR: JWT_ADMIN_SECRET must be set before seeding" >&2; exit 1
+  fi
 fi
 
 echo "[vault-seed] Waiting for Vault to be ready..."
@@ -47,13 +50,13 @@ fi
 
 echo "[vault-seed] Writing secrets to secret/alpacaparty ..."
 vault kv put secret/alpacaparty \
-  db_user="${DB_USER:-alpacaparty}" \
+  db_user="${DB_USER:-alpacapartyUser}" \
   db_password="${DB_PASSWORD}" \
   db_name="${DB_NAME:-alpacaparty}" \
   jwt_secret="${JWT_SECRET}" \
   jwt_refresh_secret="${JWT_REFRESH_SECRET}" \
   jwt_public_api_secret="${JWT_PUBLIC_API_SECRET}" \
-  api_keys="${API_KEYS:-change-me-to-a-secure-key}" \
+  jwt_admin_secret="${JWT_ADMIN_SECRET:-change-me-admin-secret}" \
   google_client_id="${GOOGLE_CLIENT_ID:-}" \
   google_client_secret="${GOOGLE_CLIENT_SECRET:-}" \
   github_client_id="${GITHUB_CLIENT_ID:-}" \
@@ -61,7 +64,9 @@ vault kv put secret/alpacaparty \
   groq_api_key1="${GROQ_API_KEY1:-}" \
   groq_api_key2="${GROQ_API_KEY2:-}" \
   groq_api_key3="${GROQ_API_KEY3:-}" \
-  groq_model="${GROQ_MODEL:-}"
+  groq_model="${GROQ_MODEL:-}" \
+  seed_admin_password="${SEED_ADMIN_PASSWORD:-AdminPassword123}" \
+  seed_demo_password="${SEED_DEMO_PASSWORD:-LiveSeed123!}"
 
 echo "[vault-seed] Secrets written."
 
@@ -71,9 +76,15 @@ if vault policy list | grep -q '^alpacaparty-backend$'; then
 else
   echo "[vault-seed] Creating read-only policy for backend..."
   vault policy write alpacaparty-backend - <<'POLICY'
-# Backend service: read the single app secret path only.
+# Backend service: read main app secrets + manage per-admin permission entries.
 path "secret/data/alpacaparty" {
   capabilities = ["read"]
+}
+path "secret/data/alpacaparty/admins/*" {
+  capabilities = ["create", "read", "update", "delete"]
+}
+path "secret/metadata/alpacaparty/admins/*" {
+  capabilities = ["read", "delete", "list"]
 }
 POLICY
   echo "[vault-seed] Policy created."

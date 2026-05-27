@@ -1,8 +1,3 @@
-<!--
-  Register View
-  @owner fankahou, LukasStefanek
-  @issue https://github.com/ValGSgit/AlpacaParty/issues/8
--->
 <template>
   <div class="auth-page">
     <div class="auth-card">
@@ -102,8 +97,6 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
-import ErrorBanner from '../components/ErrorBanner.vue'
-import BaseButton from '../components/BaseButton.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()

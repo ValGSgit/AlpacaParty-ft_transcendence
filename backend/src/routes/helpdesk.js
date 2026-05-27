@@ -1,7 +1,3 @@
-/**
- * Help Desk Routes — /api/helpdesk
- * Proxies chat messages to Groq's LLM API so the API key stays server-side.
- */
 import express from 'express';
 import { body } from 'express-validator';
 import { checkValidation } from '../validators/validatorUtils.js';
@@ -47,7 +43,7 @@ AlpacaParty is a web-based platform where users can:
 
 ## Key Features
 - **Profile**: Customize your avatar, view your stats and achievements, see your post history
-- **Feed**: Share posts, like and repost content from other players, see trending alpaca content
+- **Feed**: Share posts, like and comment on content from other players, see trending alpaca content
 - **Friends**: Send/accept friend requests, see who's online, view friend profiles
 - **Messages**: Real-time direct messaging with friends (click the chat bubble icon in the bottom-left)
 - **Notifications**: Bell icon in the navbar — friend requests, game invites, post likes, achievements
@@ -73,10 +69,56 @@ AlpacaParty is a web-based platform where users can:
 
 Always sign off short answers with a friendly alpaca-themed closing when appropriate (e.g. "Happy farming! 🦙").`;
 
+async function pipeGroqStream(upstream, res) {
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // disables nginx buffering so chunks reach the browser immediately
+  res.flushHeaders?.();
+
+  const reader = upstream.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const events = buffer.split('\n\n');
+    buffer = events.pop() ?? '';
+
+    for (const evt of events) {
+      const line = evt.trim();
+      if (!line.startsWith('data:')) continue;
+      const payload = line.slice(5).trim();
+      if (payload === '[DONE]') {
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
+      }
+      try {
+        const json = JSON.parse(payload);
+        const delta = json.choices?.[0]?.delta?.content;
+        if (delta) res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
+      } catch {
+        // Groq occasionally emits keep-alives as unparseable frames.
+      }
+    }
+  }
+  // Stream closed without a [DONE] frame.
+  res.write('data: [DONE]\n\n');
+  res.end();
+}
+
+// Per-route body cap: messages are ≤ 20 × 2000 chars (~40 KB worth of text);
+// 64 KB leaves room for envelope overhead but rejects abuse long before the
+// 256 KB global limit (and the 10 MB previous global).
 router.post(
   '/chat',
   authenticate,
   helpdeskLimiter,
+  express.json({ limit: '16kb' }),
   [
     body('messages')
       .isArray({ min: 1, max: 20 })
@@ -98,37 +140,41 @@ router.post(
     }
 
     const { messages } = req.body;
+    const abortCtrl = new AbortController();
+    req.on('close', () => abortCtrl.abort());
 
+    let upstream;
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
           model: config.groq.model,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            ...messages,
-          ],
-          max_tokens: 600,
+          messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+          max_tokens: 400,
           temperature: 0.7,
+          stream: true,
         }),
+        signal: abortCtrl.signal,
       });
-
-      if (!response.ok) {
-        const err = await response.text();
-        console.error('[helpdesk] Groq error:', err);
-        return res.status(502).json({ error: { message: 'AI service unavailable.' } });
-      }
-
-      const data = await response.json();
-      const reply = data.choices?.[0]?.message?.content ?? '';
-      res.json({ reply });
     } catch (err) {
       console.error('[helpdesk] fetch error:', err.message);
-      res.status(502).json({ error: { message: 'Could not reach AI service.' } });
+      return res.status(502).json({ error: { message: 'Could not reach AI service.' } });
+    }
+
+    if (!upstream.ok) {
+      const err = await upstream.text().catch(() => '');
+      console.error('[helpdesk] Groq error:', err);
+      return res.status(502).json({ error: { message: 'AI service unavailable.' } });
+    }
+
+    try {
+      await pipeGroqStream(upstream, res);
+    } catch (err) {
+      if (err.name === 'AbortError') return; // client disconnected
+      console.error('[helpdesk] stream error:', err.message);
+      try { res.write(`data: ${JSON.stringify({ error: 'stream_failed' })}\n\n`); } catch { /* response torn down */ }
+      res.end();
     }
   },
 );

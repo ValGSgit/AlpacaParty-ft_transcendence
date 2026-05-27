@@ -1,7 +1,6 @@
 /**
  * Auth Routes
  * @owner ValGSgit
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/8
  */
 import express from "express";
 import passport from "passport";
@@ -15,7 +14,7 @@ import {
   oauthCallback,
   googleAuth,
 } from "../controllers/authController.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate, optionalAuth } from "../middleware/auth.js";
 import {
   authLoginValidation,
   authRegisterValidation,
@@ -26,12 +25,29 @@ const router = express.Router();
 
 // Keep strict limits in production, but allow larger volume in dev/e2e runs.
 // The global /api limiter (1000/15 min) is too loose to prevent brute-force.
-const authLimiterMax = process.env.NODE_ENV === "production" ? 50 : 1000;
+// AUTH_RATE_LIMIT_MAX env var overrides the default (useful for CI/E2E runs).
+const authLimiterMax = parseInt(process.env.AUTH_RATE_LIMIT_MAX, 10) ||
+  (process.env.NODE_ENV === "production" ? 50 : 1000);
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: authLimiterMax,
   skip: () => process.env.NODE_ENV === "test",
   message: "Too many authentication attempts, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Brute-force defence: a much tighter cap on /login specifically.
+// Successful logins do not count toward the cap so legitimate users with
+// flaky networks aren't penalised.
+const loginBruteForceMax = parseInt(process.env.LOGIN_RATE_LIMIT_MAX, 10) ||
+  (process.env.NODE_ENV === "production" ? 10 : 200);
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: loginBruteForceMax,
+  skip: () => process.env.NODE_ENV === "test",
+  skipSuccessfulRequests: true,
+  message: "Too many failed login attempts, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -68,7 +84,16 @@ const authLimiter = rateLimit({
  *       400: { description: Validation error }
  *       409: { description: Username or email already taken }
  */
-router.post("/register", authLimiter, authRegisterValidation(), register);
+// Per-route 4 KB body cap. Credentials + username + email are well under
+// 1 KB; the global 256 KB limit doesn't help against credential-stuffing
+// DoS (lots of tiny requests). Tight per-route cap keeps the parser cheap.
+router.post(
+  "/register",
+  express.json({ limit: "4kb" }),
+  authLimiter,
+  authRegisterValidation(),
+  register,
+);
 
 /**
  * @openapi
@@ -100,7 +125,14 @@ router.post("/register", authLimiter, authRegisterValidation(), register);
  *                 user: { $ref: '#/components/schemas/User' }
  *       401: { description: Invalid credentials }
  */
-router.post("/login", authLimiter, authLoginValidation(), login);
+router.post(
+  "/login",
+  express.json({ limit: "4kb" }),
+  loginLimiter,
+  authLimiter,
+  authLoginValidation(),
+  login,
+);
 
 /**
  * @openapi
@@ -161,7 +193,7 @@ router.post("/refresh", refresh);
  *                 user: { $ref: '#/components/schemas/User' }
  *       401: { description: Not authenticated }
  */
-router.get("/me", authenticate, me);
+router.get("/me", optionalAuth, me);
 
 // ── OAuth ─────────────────────────────────────────────────
 

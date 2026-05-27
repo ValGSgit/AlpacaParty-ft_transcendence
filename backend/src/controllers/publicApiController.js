@@ -5,11 +5,12 @@
  * Endpoints:
  *   GET    /api/public/users          — list public users
  *   GET    /api/public/users/:id      — get a public user profile
- *   GET    /api/public/leaderboard    — game leaderboard
  *   GET    /api/public/posts          — public feed
+ *   POST   /api/public/posts          — create a post
+ *   PUT    /api/public/posts/:id      — update a post
+ *   DELETE /api/public/posts/:id      — delete a post
  */
 import User from "../models/User.js";
-import Game from "../models/Game.js";
 import Post from "../models/Post.js";
 import CustomError from "#utils/CustomError.js";
 
@@ -27,25 +28,19 @@ const isUserPublic = (user) => {
   return user?.userSettings?.isPublic === true;
 };
 
-/** GET /api/public/users?search=&limit=20&offset=0 */
+/** GET /api/public/users?filter[username]=&limit=20&offset=0 */
 export const listUsers = async (req, res, next) => {
   try {
-    const { search, limit = 20, offset = 0 } = req.query;
-    let users;
-    if (search) {
-      users = await User.search(search, {
-        limit: Number(limit),
-        offset: Number(offset),
-      });
-    } else {
-      users = await User.findAll({
-        limit: Number(limit),
-        offset: Number(offset),
-      });
-    }
-    // Strip private profiles and remove sensitive fields.
+    const limit = req.query.limit ?? 20;
+    const offset = req.query.offset ?? 0;
+    // Force a public-only predicate so pagination + total reflect filtered set.
+    const filter = { ...(req.query.filter || {}), public: true };
+    const sort = req.query.sort;
+
+    const searchRes = await User.search({ limit, offset, filter, sort });
     res.json({
-      users: users.filter((u) => isUserPublic(u)).map((u) => toPublicUser(u)),
+      users: searchRes.usersFound.map((u) => toPublicUser(u)),
+      total: searchRes.userCount,
     });
   } catch (err) {
     next(err);
@@ -59,28 +54,6 @@ export const getUser = async (req, res, next) => {
     if (!user || !isUserPublic(user))
       throw new CustomError("User not found", 404);
     res.json({ user: toPublicUser(user) });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/**
- * GET /api/public/leaderboard?gameType=spit_royale
- */
-export const getLeaderboard = async (req, res, next) => {
-  try {
-    const { gameType = "spit_royale", limit = 20, offset = 0 } = req.query;
-    const leaderboard = await Game.getLeaderboard(gameType, {
-      limit: Number(limit),
-      offset: Number(offset),
-      publicOnly: true,
-    });
-    const shaped = leaderboard.map((row) => ({
-      ...row,
-      username: row.username,
-      avatar: row.avatar,
-    }));
-    res.json({ leaderboard: shaped });
   } catch (err) {
     next(err);
   }
@@ -105,7 +78,6 @@ export const getPosts = async (req, res, next) => {
       image_url: p.image_url,
       likes_count: p.likes_count,
       comments_count: p.comments_count,
-      reposts_count: p.reposts_count,
       created_at: p.created_at,
     }));
     res.json({ posts: shaped });
@@ -146,9 +118,9 @@ export const updatePost = async (req, res, next) => {
     if (!existingPost) throw new CustomError("Post not found", 404);
 
     if (existingPost.author_id !== req.userId)
-      throw new CustomError("Can not modify post of other user", 400);
+      throw new CustomError("Can not modify post of other user", 403);
 
-    const post = await Post.update(postId, {
+    const post = await Post.update(postId, req.userId, {
       content,
       imageUrl: imageUrl || null,
       isPublic,
@@ -171,9 +143,9 @@ export const deletePost = async (req, res, next) => {
     if (!existingPost) throw new CustomError("Post not found", 404);
 
     if (existingPost.author_id !== req.userId)
-      throw new CustomError("Can not delete post of other user", 400);
+      throw new CustomError("Can not delete post of other user", 403);
 
-    await Post.delete(id);
+    await Post.delete(id, req.userId);
     res.json({ message: "Post deleted" });
   } catch (err) {
     next(err);

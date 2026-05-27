@@ -8,12 +8,14 @@ const mockComment = {
 
 const mockPost = {
   findById: jest.fn(),
-  repost: jest.fn(),
-  unrepost: jest.fn(),
 }
 
 const mockNotificationService = {
   postCommented: jest.fn().mockResolvedValue(true),
+}
+
+const mockFriend = {
+  isBlockedBetween: jest.fn().mockResolvedValue(false),
 }
 
 jest.unstable_mockModule('../../../src/models/Comment.js', () => ({
@@ -24,6 +26,10 @@ jest.unstable_mockModule('../../../src/models/Post.js', () => ({
   default: mockPost,
 }))
 
+jest.unstable_mockModule('../../../src/models/Friend.js', () => ({
+  default: mockFriend,
+}))
+
 jest.unstable_mockModule('../../../src/services/notificationService.js', () => ({
   default: mockNotificationService,
 }))
@@ -32,8 +38,6 @@ const {
   getComments,
   createComment,
   deleteComment,
-  repostPost,
-  unrepostPost,
 } = await import('../../../src/controllers/commentController.js')
 
 function makeReqRes(overrides = {}) {
@@ -56,6 +60,7 @@ function makeReqRes(overrides = {}) {
 beforeEach(() => {
   jest.clearAllMocks()
   mockNotificationService.postCommented.mockResolvedValue(true)
+  mockFriend.isBlockedBetween.mockResolvedValue(false)
 })
 
 // ── getComments ──────────────────────────────────────────────────────────────
@@ -162,7 +167,7 @@ describe('deleteComment', () => {
     mockComment.delete.mockResolvedValue(true)
     const { req, res, next } = makeReqRes()
     await deleteComment(req, res, next)
-    expect(mockComment.delete).toHaveBeenCalledWith(10, 1)
+    expect(mockComment.delete).toHaveBeenCalledWith(10, 1, { isAdmin: false })
     expect(res._json).toEqual({ message: 'Comment deleted' })
   })
 
@@ -178,81 +183,6 @@ describe('deleteComment', () => {
     mockComment.delete.mockRejectedValue(new Error('fail'))
     const { req, res, next } = makeReqRes()
     await deleteComment(req, res, next)
-    expect(next).toHaveBeenCalled()
-  })
-})
-
-// ── repostPost ───────────────────────────────────────────────────────────────
-
-describe('repostPost', () => {
-  test('reposts and returns 201', async () => {
-    const post = { id: 5 }
-    const repost = { id: 200 }
-    mockPost.findById.mockResolvedValue(post)
-    mockPost.repost.mockResolvedValue(repost)
-    const { req, res, next } = makeReqRes({ body: { comment: 'nice' } })
-    await repostPost(req, res, next)
-    expect(res._status).toBe(201)
-    expect(res._json).toEqual({ repost })
-  })
-
-  test('returns 400 when repost comment exceeds 500 chars', async () => {
-    const { req, res, next } = makeReqRes({ body: { comment: 'x'.repeat(501) } })
-    await repostPost(req, res, next)
-    expect(res._status).toBe(400)
-    expect(res._json.error.message).toMatch(/500/)
-  })
-
-  test('returns 404 when post not found', async () => {
-    mockPost.findById.mockResolvedValue(null)
-    const { req, res, next } = makeReqRes({ body: {} })
-    await repostPost(req, res, next)
-    expect(res._status).toBe(404)
-    expect(res._json.error.message).toBe('Post not found')
-  })
-
-  test('returns 409 when already reposted', async () => {
-    mockPost.findById.mockResolvedValue({ id: 5 })
-    mockPost.repost.mockResolvedValue(null)
-    const { req, res, next } = makeReqRes({ body: {} })
-    await repostPost(req, res, next)
-    expect(res._status).toBe(409)
-    expect(res._json.error.message).toBe('Already reposted')
-  })
-
-  test('handles null comment body', async () => {
-    const post = { id: 5 }
-    const repost = { id: 200 }
-    mockPost.findById.mockResolvedValue(post)
-    mockPost.repost.mockResolvedValue(repost)
-    const { req, res, next } = makeReqRes({ body: {} })
-    await repostPost(req, res, next)
-    expect(mockPost.repost).toHaveBeenCalledWith(5, 1, null)
-  })
-
-  test('calls next on error', async () => {
-    mockPost.findById.mockRejectedValue(new Error('db'))
-    const { req, res, next } = makeReqRes({ body: {} })
-    await repostPost(req, res, next)
-    expect(next).toHaveBeenCalled()
-  })
-})
-
-// ── unrepostPost ─────────────────────────────────────────────────────────────
-
-describe('unrepostPost', () => {
-  test('unreposted and returns success message', async () => {
-    mockPost.unrepost.mockResolvedValue()
-    const { req, res, next } = makeReqRes()
-    await unrepostPost(req, res, next)
-    expect(mockPost.unrepost).toHaveBeenCalledWith(5, 1)
-    expect(res._json).toEqual({ message: 'Unreposted' })
-  })
-
-  test('calls next on error', async () => {
-    mockPost.unrepost.mockRejectedValue(new Error('fail'))
-    const { req, res, next } = makeReqRes()
-    await unrepostPost(req, res, next)
     expect(next).toHaveBeenCalled()
   })
 })

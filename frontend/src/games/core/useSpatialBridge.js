@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { gEngine, gPlayer } from './globals.js'
+import { debug, devWarn, devError } from '../../services/logger.js'
 import { CONST } from '../config/constants.js'
 import * as THREE from 'three'
 
@@ -16,7 +17,7 @@ export function useSpatialBridge(onSpatialData) {
 
     socket.value.onopen = () => {
       isConnected.value = true
-      console.log('✅ Spatial Bridge Connected')
+      debug('✅ Spatial Bridge Connected')
     }
 
     socket.value.onmessage = (event) => {
@@ -31,12 +32,12 @@ export function useSpatialBridge(onSpatialData) {
 
     socket.value.onclose = () => {
       isConnected.value = false
-      console.warn('❌ Spatial Bridge disconnected. Reconnecting...')
+      devWarn('❌ Spatial Bridge disconnected. Reconnecting...')
       setTimeout(() => initSpatialBridge(url), 3000)
     }
 
     socket.value.onerror = (err) => {
-      console.error('Spatial Bridge Error:', err)
+      devError('Spatial Bridge Error:', err)
     }
   }
 

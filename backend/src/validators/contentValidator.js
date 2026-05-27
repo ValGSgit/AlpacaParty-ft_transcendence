@@ -59,30 +59,10 @@ export const commentCreateValidation = () => [
   contentChain(body("content"), { max: 1000, field: "content" }),
 ];
 
-// ── Reposts ───────────────────────────────────────────────────────────────
-
-export const repostValidation = () => [
-  optionalContentChain(body("comment"), { max: 500, field: "comment" }),
-];
-
 // ── Chat messages & rooms ─────────────────────────────────────────────────
 
 export const chatMessageValidation = () => [
   contentChain(body("content"), { max: 2000, field: "content" }),
-];
-
-export const chatRoomCreateValidation = () => [
-  body("name")
-    .isString()
-    .withMessage("Room name must be a string")
-    .bail()
-    .trim()
-    .notEmpty()
-    .withMessage("Room name is required")
-    .bail()
-    .isLength({ min: 1, max: 100 })
-    .withMessage("Room name must be 100 characters or fewer"),
-  optionalContentChain(body("description"), { max: 500, field: "description" }),
 ];
 
 // ── Common path params ────────────────────────────────────────────────────

@@ -25,17 +25,19 @@ const Achievement = {
     const achievement = await prisma.achievement.findUnique({ where: { key: achievementKey } });
     if (!achievement) return null;
 
-    await prisma.userAchievement.upsert({
-        where: {
-          userId_achievementId: {
-            userId: Number(userId),
-            achievementId: achievement.id,
-          },
-        },
-        update: {},
-        create: { userId: Number(userId), achievementId: achievement.id },
-    });
-    return { achievement };
+    // Race-safe: two near-simultaneous unlocks (e.g. a win that also pushes
+    // the user to leaderboard #1) both pass a findUnique-then-create check.
+    // The unique constraint guarantees only one create wins; swallow P2002
+    // so the loser doesn't bubble as an "unhandled rejection" via .catch().
+    try {
+      await prisma.userAchievement.create({
+        data: { userId: Number(userId), achievementId: achievement.id },
+      });
+      return { achievement };
+    } catch (e) {
+      if (e.code === "P2002") return null; // already unlocked
+      throw e;
+    }
   },
 
   async getUserChallengeProgress(userId) {

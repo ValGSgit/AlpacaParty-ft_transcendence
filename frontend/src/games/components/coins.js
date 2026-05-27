@@ -56,7 +56,7 @@ export function useCoinUI() {
 
   const spawnFlyingCoin = (index, targetX, targetY) => {
     const coin = document.createElement('div');
-    coin.innerHTML = '🪙';
+    coin.innerHTML = '<img src="/icons/ui/coin.svg" alt="" width="42" height="42" />';
     coin.className = 'flying-coin';
 
     const isUp = Math.random() > 0.5;

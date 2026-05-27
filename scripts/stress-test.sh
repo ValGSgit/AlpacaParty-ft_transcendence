@@ -76,6 +76,10 @@ curl_get_auth() {
   curl -skL -o /dev/null -w "%{http_code}" --max-time 10 \
     -H "Authorization: Bearer ${ACCESS_TOKEN:-}" "$@" 2>/dev/null || echo "000"
 }
+curl_get_apikey() {
+  curl -skL -o /dev/null -w "%{http_code}" --max-time 10 \
+    -H "X-API-Key: ${API_KEY:-}" "$@" 2>/dev/null || echo "000"
+}
 curl_post() {
   curl -sk -X POST -H "Content-Type: application/json" --max-time 15 "$@" 2>/dev/null || echo ""
 }
@@ -84,27 +88,48 @@ curl_post_auth() {
     -H "Authorization: Bearer ${ACCESS_TOKEN:-}" --max-time 15 "$@" 2>/dev/null || echo ""
 }
 
+# Any 5xx is always an unconditional failure regardless of the expected set
+is_5xx() { [ "$1" -ge 500 ] && [ "$1" -lt 600 ] 2>/dev/null; }
+
 check() {
   local label="$1" url="$2" expected="${3:-200}"
   local got; got=$(curl_get "$url")
+  if is_5xx "$got"; then fail "$label — server 5xx ($got)"; FAILURES=$((FAILURES+1)); return; fi
   if [ "$got" -eq "$expected" ] 2>/dev/null; then ok "$label — $got"
   else fail "$label — expected $expected, got $got"; FAILURES=$((FAILURES+1)); fi
 }
 check_any() {
   local label="$1" url="$2"; shift 2
   local got; got=$(curl_get "$url")
+  if is_5xx "$got"; then fail "$label — server 5xx ($got)"; FAILURES=$((FAILURES+1)); return; fi
   for e in "$@"; do [ "$got" -eq "$e" ] 2>/dev/null && { ok "$label — $got"; return 0; }; done
   fail "$label — expected one of [$*], got $got"; FAILURES=$((FAILURES+1))
 }
 check_auth() {
   local label="$1" url="$2" expected="${3:-200}"
   local got; got=$(curl_get_auth "$url")
+  if is_5xx "$got"; then fail "$label — server 5xx ($got)"; FAILURES=$((FAILURES+1)); return; fi
   if [ "$got" -eq "$expected" ] 2>/dev/null; then ok "$label — $got"
   else fail "$label — expected $expected, got $got"; FAILURES=$((FAILURES+1)); fi
 }
 check_auth_any() {
   local label="$1" url="$2"; shift 2
   local got; got=$(curl_get_auth "$url")
+  if is_5xx "$got"; then fail "$label — server 5xx ($got)"; FAILURES=$((FAILURES+1)); return; fi
+  for e in "$@"; do [ "$got" -eq "$e" ] 2>/dev/null && { ok "$label — $got"; return 0; }; done
+  fail "$label — expected one of [$*], got $got"; FAILURES=$((FAILURES+1))
+}
+check_apikey() {
+  local label="$1" url="$2" expected="${3:-200}"
+  local got; got=$(curl_get_apikey "$url")
+  if is_5xx "$got"; then fail "$label — server 5xx ($got)"; FAILURES=$((FAILURES+1)); return; fi
+  if [ "$got" -eq "$expected" ] 2>/dev/null; then ok "$label — $got"
+  else fail "$label — expected $expected, got $got"; FAILURES=$((FAILURES+1)); fi
+}
+check_apikey_any() {
+  local label="$1" url="$2"; shift 2
+  local got; got=$(curl_get_apikey "$url")
+  if is_5xx "$got"; then fail "$label — server 5xx ($got)"; FAILURES=$((FAILURES+1)); return; fi
   for e in "$@"; do [ "$got" -eq "$e" ] 2>/dev/null && { ok "$label — $got"; return 0; }; done
   fail "$label — expected one of [$*], got $got"; FAILURES=$((FAILURES+1))
 }
@@ -237,7 +262,7 @@ fi
 [ -n "$TOKEN2" ] && ok "Secondary user registered (ID: ${USER2_ID:-unknown})"
 
 # ── Pre-create test resources to get real IDs ─────────────────────────────────
-POST1_ID="" NOTIF1_ID=""
+POST1_ID="" NOTIF1_ID="" API_KEY=""
 if [ -n "$ACCESS_TOKEN" ]; then
   info "Creating test post..."
   POST_RESP=$(curl_post_auth "${BASE_URL}/api/posts" \
@@ -245,6 +270,22 @@ if [ -n "$ACCESS_TOKEN" ]; then
   POST1_ID=$(extract_id "$POST_RESP")
   [ -n "$POST1_ID" ] && ok "Test post created: $POST1_ID" || warn "Post creation returned: $(printf "%s\n" "$POST_RESP" | head -c 200)"
 
+  # Provision an X-API-Key for the /api/public/* tests. The public API
+  # middleware (backend/src/middleware/apiKey.js) ONLY accepts X-API-Key —
+  # there is no Bearer-JWT fallback.
+  info "Provisioning public-API key (POST /api/users/me/api-key)..."
+  KEY_RESP=$(curl_post_auth "${BASE_URL}/api/users/me/api-key" -d '{}')
+  printf "%s\n" "$KEY_RESP" > "${TOOL_DIR}/apikey_${TIMESTAMP}.json"
+  if has jq; then
+    API_KEY=$(printf "%s\n" "$KEY_RESP" | jq -r '.apiKey // .data.apiKey // empty' 2>/dev/null || true)
+  else
+    API_KEY=$(printf "%s\n" "$KEY_RESP" | grep -o '"apiKey":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
+  fi
+  if [ -n "$API_KEY" ]; then
+    ok "API key provisioned (${#API_KEY} chars)"
+  else
+    warn "Could not provision API key — /api/public/* checks will be skipped"
+  fi
 fi
 
 # =============================================================================
@@ -261,7 +302,7 @@ if [ -n "$ACCESS_TOKEN" ]; then
   check_auth_any "GET /api/users"                                  "${BASE_URL}/api/users" 200 403
   check_auth_any "GET /api/users/:id (self)"                       "${BASE_URL}/api/users/${USER1_ID:-0}" 200 404
   check_auth_any "GET /api/users/me/export JSON"                   "${BASE_URL}/api/users/me/export?format=json" 200 202
-  check_auth_any "GET /api/users/me/data-requests"                 "${BASE_URL}/api/users/me/data-requests" 200 404
+  check_auth     "GET /api/users/me/data-requests"                 "${BASE_URL}/api/users/me/data-requests"
 
   # ── Posts ──────────────────────────────────────────────────────────────────
   check_auth     "GET /api/posts"                                  "${BASE_URL}/api/posts"
@@ -276,9 +317,11 @@ if [ -n "$ACCESS_TOKEN" ]; then
   check_auth     "GET /api/friends/blocked"                        "${BASE_URL}/api/friends/blocked"
 
   # ── Chat ───────────────────────────────────────────────────────────────────
-  check_auth_any "GET /api/chat/conversations"                     "${BASE_URL}/api/chat/conversations" 200 404
-  check_auth_any "GET /api/chat/unread"                            "${BASE_URL}/api/chat/unread" 200 404
-  check_auth_any "GET /api/chat/rooms"                             "${BASE_URL}/api/chat/rooms" 200 404
+  check_auth     "GET /api/chat/conversations"                     "${BASE_URL}/api/chat/conversations"
+  check_auth     "GET /api/chat/unread"                            "${BASE_URL}/api/chat/unread"
+  # /api/chat/rooms is not implemented — confirm it 404s rather than silently
+  # 200ing (which would suggest a route was added without test coverage).
+  check_auth     "GET /api/chat/rooms (unimplemented — expect 404)" "${BASE_URL}/api/chat/rooms" 404
 
   # ── Notifications ──────────────────────────────────────────────────────────
   check_auth     "GET /api/notifications"                          "${BASE_URL}/api/notifications?unreadOnly=false&limit=30&offset=0"
@@ -292,28 +335,56 @@ if [ -n "$ACCESS_TOKEN" ]; then
   check_auth_any "GET /api/game/challenges"                        "${BASE_URL}/api/game/challenges" 200 404
 
   # ── Uploads ────────────────────────────────────────────────────────────────
-  check_auth_any "GET /api/uploads"                                "${BASE_URL}/api/uploads" 200 404
+  check_auth     "GET /api/uploads"                                "${BASE_URL}/api/uploads"
 
-  # ── Admin (expect 403 for regular user) ────────────────────────────────────
-  check_auth_any "GET /api/admin/stats (403 for non-admin)"        "${BASE_URL}/api/admin/stats" 200 403
-  check_auth_any "GET /api/admin/users (403 for non-admin)"        "${BASE_URL}/api/admin/users?limit=50&offset=0" 200 403
-  check_auth_any "GET /api/admin/data-requests (403 for non-admin)" "${BASE_URL}/api/admin/data-requests" 200 403
+  # ── Admin module ───────────────────────────────────────────────────────────
+  # This codebase has no admin route module (see backend/src/routes/index.js).
+  # Confirm /api/admin/* returns 404 — surfaces silent additions later.
+  check_auth     "GET /api/admin/stats (no admin module — expect 404)"  "${BASE_URL}/api/admin/stats" 404
+  check_auth     "GET /api/admin/users (no admin module — expect 404)"  "${BASE_URL}/api/admin/users" 404
 
-  # ── Public endpoints (require X-API-Key OR valid Bearer JWT) ───────────────
-  # The public API middleware accepts a JWT Bearer token as a fallback so we
-  # reuse the authenticated test user's token here.
-  check_auth     "GET /api/public/users"                           "${BASE_URL}/api/public/users?search=&limit=20&offset=0"
-  check_auth_any "GET /api/public/users/:id"                       "${BASE_URL}/api/public/users/${USER1_ID:-0}" 200 404
-  check_auth     "GET /api/public/leaderboard"                     "${BASE_URL}/api/public/leaderboard?gameType=spit_royale"
-  check_auth     "GET /api/public/posts"                           "${BASE_URL}/api/public/posts?limit=20&offset=0"
-  check_auth_any "GET /api/public/mock"                            "${BASE_URL}/api/public/mock" 200 404
-  # Confirm X-API-Key gate still rejects unauthenticated calls
+  # ── Public endpoints (X-API-Key required) ──────────────────────────────────
+  # The public middleware (backend/src/middleware/apiKey.js) only honours
+  # X-API-Key — Bearer JWT is NOT accepted as a fallback. Use the API key we
+  # provisioned for the primary user.
+  if [ -n "$API_KEY" ]; then
+    check_apikey     "GET /api/public/users"                       "${BASE_URL}/api/public/users?search=&limit=20&offset=0"
+    check_apikey_any "GET /api/public/users/:id"                   "${BASE_URL}/api/public/users/${USER1_ID:-0}" 200 404
+    check_apikey     "GET /api/public/posts"                       "${BASE_URL}/api/public/posts?limit=20&offset=0"
+    # These two are documented in the / payload of public.js but never wired
+    # up to a router.get() — they should 404. The test enforces that gap so it
+    # fails loudly the day they get wired up without coverage.
+    check_apikey     "GET /api/public/leaderboard (documented, unwired — expect 404)" "${BASE_URL}/api/public/leaderboard?gameType=spit_royale" 404
+    check_apikey     "GET /api/public/mock (documented, unwired — expect 404)"        "${BASE_URL}/api/public/mock" 404
+  else
+    warn "Public API checks skipped — no X-API-Key provisioned"
+  fi
+
+  # Confirm the X-API-Key gate still rejects calls with no credentials AND
+  # calls that only carry a Bearer JWT (no apikey fallback).
   PUB_UNAUTH=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 \
     "${BASE_URL}/api/public/posts?limit=1" 2>/dev/null || echo "000")
   if [ "$PUB_UNAUTH" -eq 401 ]; then
-    ok "Public API correctly rejects missing X-API-Key / Bearer (401)"
+    ok "Public API rejects missing X-API-Key (401)"
   else
-    warn "Public API unauth probe returned $PUB_UNAUTH (expected 401)"
+    fail "Public API unauth probe returned $PUB_UNAUTH (expected 401)"; FAILURES=$((FAILURES+1))
+  fi
+  PUB_BEARER_ONLY=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 \
+    -H "Authorization: Bearer ${ACCESS_TOKEN:-}" \
+    "${BASE_URL}/api/public/posts?limit=1" 2>/dev/null || echo "000")
+  if [ "$PUB_BEARER_ONLY" -eq 401 ]; then
+    ok "Public API rejects Bearer-only (no apikey fallback) — 401"
+  else
+    fail "Public API Bearer-only probe returned $PUB_BEARER_ONLY (expected 401)"; FAILURES=$((FAILURES+1))
+  fi
+  # Probe a tampered API key
+  PUB_BAD_KEY=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 10 \
+    -H "X-API-Key: not.a.real.key" \
+    "${BASE_URL}/api/public/posts?limit=1" 2>/dev/null || echo "000")
+  if [ "$PUB_BAD_KEY" -eq 401 ]; then
+    ok "Public API rejects invalid X-API-Key (401)"
+  else
+    fail "Public API bad-key probe returned $PUB_BAD_KEY (expected 401)"; FAILURES=$((FAILURES+1))
   fi
 else
   warn "4. Endpoint smoke test skipped (no auth token)"
@@ -496,23 +567,62 @@ fi
 # 9. Siege — Public Unauthenticated Load Test (all public GET endpoints)
 # =============================================================================
 if has siege; then
-  header "9. Siege — Public Endpoints (unauthenticated)"
+  header "9. Siege — Public Endpoints"
 
+  # Two URL files: truly-unauthenticated endpoints, and X-API-Key endpoints.
+  # Mixing them in one siege run would corrupt the availability stat because
+  # the apikey routes 401 without the header.
   SIEGE_PUBLIC="${REPORT_DIR}/urls_public_${TIMESTAMP}.txt"
   cat > "$SIEGE_PUBLIC" <<EOF
 ${BASE_URL}/api/health
 ${BASE_URL}/api/docs
-${BASE_URL}/api/public/users?search=&limit=20&offset=0
-${BASE_URL}/api/public/posts?limit=20&offset=0
-${BASE_URL}/api/public/leaderboard?gameType=spit_royale
+${BASE_URL}/api/public
 ${BASE_URL}/
 EOF
 
-  info "siege -c $CONCURRENCY -t $DURATION — public endpoints"
+  info "siege -c $CONCURRENCY -t $DURATION — anonymous endpoints"
   SIEGE_PUB_OUT="${REPORT_DIR}/siege_public_${TIMESTAMP}.txt"
   siege -c "$CONCURRENCY" -t "$DURATION" --no-follow \
     --content-type="application/json" \
     -f "$SIEGE_PUBLIC" 2>&1 | tee "$SIEGE_PUB_OUT" || true
+
+  # X-API-Key load test — only run if a key was provisioned
+  if [ -n "${API_KEY:-}" ]; then
+    SIEGE_RC_KEY="${REPORT_DIR}/siegerc_apikey_${TIMESTAMP}"
+    cat > "$SIEGE_RC_KEY" <<EOF
+verbose = false
+show-logfile = false
+logging = false
+protocol = HTTP/1.1
+chunked = true
+cache = false
+connection = keep-alive
+header = X-API-Key: ${API_KEY}
+EOF
+    SIEGE_KEY_URLS="${REPORT_DIR}/urls_apikey_${TIMESTAMP}.txt"
+    cat > "$SIEGE_KEY_URLS" <<EOF
+${BASE_URL}/api/public/users?search=&limit=20&offset=0
+${BASE_URL}/api/public/posts?limit=20&offset=0
+EOF
+    [ -n "${USER1_ID:-}" ] && printf "%s\n" "${BASE_URL}/api/public/users/${USER1_ID}" >> "$SIEGE_KEY_URLS"
+
+    info "siege -c $CONCURRENCY -t $DURATION — X-API-Key endpoints"
+    SIEGE_KEY_OUT="${REPORT_DIR}/siege_apikey_${TIMESTAMP}.txt"
+    siege -c "$CONCURRENCY" -t "$DURATION" --no-follow \
+      --rc="$SIEGE_RC_KEY" \
+      -f "$SIEGE_KEY_URLS" 2>&1 | tee "$SIEGE_KEY_OUT" || true
+
+    AVAIL_K=$(grep -i "availability" "$SIEGE_KEY_OUT" | grep -o "[0-9.]*" | tail -1 || echo "N/A")
+    RPS_K=$(grep -Ei "transaction[ _]rate" "$SIEGE_KEY_OUT" | grep -o "[0-9.]*" | head -1 || echo "N/A")
+    info "X-API-Key — Availability: ${AVAIL_K}%  |  Trans/sec: $RPS_K"
+    if [ "$AVAIL_K" != "N/A" ] && [ "${AVAIL_K%.*}" -lt 99 ] 2>/dev/null; then
+      fail "X-API-Key availability below 99%: ${AVAIL_K}%"; FAILURES=$((FAILURES+1))
+    else
+      ok "X-API-Key availability: ${AVAIL_K}%"
+    fi
+  else
+    warn "Siege X-API-Key test skipped — no API key provisioned"
+  fi
 
   AVAIL=$(grep -i "availability" "$SIEGE_PUB_OUT" | grep -o "[0-9.]*" | tail -1 || echo "N/A")
   RPS=$(grep -Ei "transaction[ _]rate" "$SIEGE_PUB_OUT" | grep -o "[0-9.]*" | head -1 || echo "N/A")

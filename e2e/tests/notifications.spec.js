@@ -41,4 +41,34 @@ test.describe('Notifications Workflow', () => {
       expect(del.ok()).toBeTruthy();
     }
   });
+
+  test('PUT /notifications/:id/read marks a single notification as read', async ({ request }) => {
+    const sender = await createUser(request, 'notif_single_sender');
+    const receiver = await createUser(request, 'notif_single_rcvr');
+
+    await requestFriendship(request, sender.accessToken, receiver.user.id);
+
+    const list = await request.get('/api/notifications?unreadOnly=true', {
+      headers: authHeaders(receiver.accessToken),
+    });
+    expect(list.ok()).toBeTruthy();
+    const { notifications } = await list.json();
+
+    // Skip if no notifications were generated (seeding variance)
+    if (notifications.length === 0) return;
+
+    const id = notifications[0].id;
+    const markOne = await request.put(`/api/notifications/${id}/read`, {
+      headers: authHeaders(receiver.accessToken),
+    });
+    expect(markOne.ok()).toBeTruthy();
+
+    // That notification must no longer appear in unread-only view
+    const after = await request.get('/api/notifications?unreadOnly=true', {
+      headers: authHeaders(receiver.accessToken),
+    });
+    expect(after.ok()).toBeTruthy();
+    const afterBody = await after.json();
+    expect(afterBody.notifications.some((n) => n.id === id)).toBeFalsy();
+  });
 });

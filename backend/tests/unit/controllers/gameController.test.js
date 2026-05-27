@@ -6,9 +6,14 @@ import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 const mockGame = {
   getStats: jest.fn(),
   getMatchHistory: jest.fn(),
-  getLeaderboard: jest.fn(),
+  // Leaderboards split per-metric. The controller dispatches on ?board=.
+  getKillsLeaderboard: jest.fn(),
+  getObstaclesLeaderboard: jest.fn(),
+  getCoinsLeaderboard: jest.fn(),
   getFarm: jest.fn(),
   updateFarm: jest.fn(),
+  updateStats: jest.fn(),
+  incrementCounter: jest.fn(),
 };
 const mockAchievement = {
   getAll: jest.fn(),
@@ -38,7 +43,7 @@ beforeEach(() => jest.clearAllMocks());
 // ── getStats ─────────────────────────────────────────────────────────────────
 describe('getStats', () => {
   test('returns stats with default gameType', async () => {
-    const stats = { userId: 1, gameType: 'spit_royale', wins: 10, losses: 5, draws: 2, elo: 1200 };
+    const stats = { userId: 1, gameType: 'spit_royale', wins: 10, losses: 5, draws: 2};
     mockGame.getStats.mockResolvedValue(stats);
     const { req, res, next } = createReqRes();
     await getStats(req, res, next);
@@ -90,26 +95,43 @@ describe('getHistory', () => {
 });
 
 // ── getLeaderboard ───────────────────────────────────────────────────────────
+// /api/game/leaderboard?board=kills|obstacles|coins — one endpoint, three
+// backend helpers, all returning the same {userId, username, avatar, level,
+// value} shape.
 describe('getLeaderboard', () => {
-  test('returns leaderboard with defaults', async () => {
-    const lb = [{ userId: 1, elo: 1200 }];
-    mockGame.getLeaderboard.mockResolvedValue(lb);
+  test('defaults to kills board', async () => {
+    const lb = [{ userId: 1, value: 5 }];
+    mockGame.getKillsLeaderboard.mockResolvedValue(lb);
     const { req, res, next } = createReqRes();
     await getLeaderboard(req, res, next);
-    expect(mockGame.getLeaderboard).toHaveBeenCalledWith('spit_royale', { limit: 20, offset: 0 });
-    expect(res._json.leaderboard).toEqual(lb);
+    expect(mockGame.getKillsLeaderboard).toHaveBeenCalledWith({ limit: 20, offset: 0 });
+    expect(res._json).toEqual({ board: 'kills', leaderboard: lb });
   });
 
-  test('passes custom gameType and pagination', async () => {
-    mockGame.getLeaderboard.mockResolvedValue([]);
-    const { req, res, next } = createReqRes({ query: { gameType: 'chess', limit: '5', offset: '10' } });
+  test('routes board=obstacles to obstacles helper with pagination', async () => {
+    mockGame.getObstaclesLeaderboard.mockResolvedValue([]);
+    const { req, res, next } = createReqRes({ query: { board: 'obstacles', limit: '5', offset: '10' } });
     await getLeaderboard(req, res, next);
-    expect(mockGame.getLeaderboard).toHaveBeenCalledWith('chess', { limit: 5, offset: 10 });
+    expect(mockGame.getObstaclesLeaderboard).toHaveBeenCalledWith({ limit: 5, offset: 10 });
+    expect(mockGame.getKillsLeaderboard).not.toHaveBeenCalled();
+  });
+
+  test('routes board=coins to coins helper', async () => {
+    mockGame.getCoinsLeaderboard.mockResolvedValue([]);
+    const { req, res, next } = createReqRes({ query: { board: 'coins' } });
+    await getLeaderboard(req, res, next);
+    expect(mockGame.getCoinsLeaderboard).toHaveBeenCalledWith({ limit: 20, offset: 0 });
+  });
+
+  test('400s on unknown board', async () => {
+    const { req, res, next } = createReqRes({ query: { board: 'bogus' } });
+    await getLeaderboard(req, res, next);
+    expect(res._status).toBe(400);
   });
 
   test('calls next on error', async () => {
     const err = new Error('fail');
-    mockGame.getLeaderboard.mockRejectedValue(err);
+    mockGame.getKillsLeaderboard.mockRejectedValue(err);
     const { req, res, next } = createReqRes();
     await getLeaderboard(req, res, next);
     expect(next).toHaveBeenCalledWith(err);
@@ -138,12 +160,18 @@ describe('getFarm', () => {
 
 // ── saveFarm ─────────────────────────────────────────────────────────────────
 describe('saveFarm', () => {
-  test('saves farm data successfully', async () => {
-    const farm = { userId: 1, farmData: { alpacas: 5 } };
+  test('saves farm data successfully (clamped to whitelisted columns)', async () => {
+    const farm = { userId: 1, alpacas: [{ id: 'a' }] };
     mockGame.updateFarm.mockResolvedValue(farm);
-    const { req, res, next } = createReqRes({ body: { farmData: { alpacas: 5 } } });
+    // alpacas must be an array (schema is JSONB array); coins becomes the
+    // floor of the supplied number; anything outside the whitelist is dropped.
+    const body = { farmData: { alpacas: [{ id: 'a' }], coins: 12.7, junk: 'x' } };
+    const { req, res, next } = createReqRes({ body });
     await saveFarm(req, res, next);
-    expect(mockGame.updateFarm).toHaveBeenCalledWith(1, { alpacas: 5 });
+    expect(mockGame.updateFarm).toHaveBeenCalledWith(1, {
+      alpacas: [{ id: 'a' }],
+      coins: 12,
+    });
     expect(res._json.farm).toEqual(farm);
   });
 
@@ -157,7 +185,9 @@ describe('saveFarm', () => {
   test('calls next on error', async () => {
     const err = new Error('fail');
     mockGame.updateFarm.mockRejectedValue(err);
-    const { req, res, next } = createReqRes({ body: { farmData: {} } });
+    // Provide an empty but truthy farmData object — the controller skips the
+    // 400 path and reaches updateFarm so the rejection can propagate.
+    const { req, res, next } = createReqRes({ body: { farmData: { items: [] } } });
     await saveFarm(req, res, next);
     expect(next).toHaveBeenCalledWith(err);
   });

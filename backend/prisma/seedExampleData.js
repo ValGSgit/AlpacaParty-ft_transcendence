@@ -8,8 +8,6 @@ const cfg = {
   users: Number(process.env.SEED_USERS || 2400),
   posts: Number(process.env.SEED_POSTS || 1400),
   dmMessages: Number(process.env.SEED_DM_MESSAGES || 6000),
-  rooms: Number(process.env.SEED_ROOMS || 40),
-  roomMessages: Number(process.env.SEED_ROOM_MESSAGES || 7000),
   notifications: Number(process.env.SEED_NOTIFICATIONS || 250),
   avgFriends: Number(process.env.SEED_AVG_FRIENDS || 27),
 };
@@ -47,9 +45,6 @@ function makeContent(prefix) {
 
 async function hardReset() {
   const resetSteps = [
-    ["chatRoomMessage", () => prisma.chatRoomMessage.deleteMany({})],
-    ["chatRoomMember", () => prisma.chatRoomMember.deleteMany({})],
-    ["chatRoom", () => prisma.chatRoom.deleteMany({})],
     ["message", () => prisma.message.deleteMany({})],
     ["notification", () => prisma.notification.deleteMany({})],
     ["postLike", () => prisma.postLike.deleteMany({})],
@@ -182,7 +177,6 @@ async function seedUsers(passwordHash) {
         wins: r(0, 30),
         losses: r(0, 25),
         draws: r(0, 8),
-        elo: r(850, 1450),
       })),
       ...users.map((u) => ({
         userId: u.id,
@@ -190,7 +184,6 @@ async function seedUsers(passwordHash) {
         wins: r(0, 20),
         losses: r(0, 30),
         draws: 0,
-        elo: r(800, 1400),
       })),
     ],
     skipDuplicates: true,
@@ -404,16 +397,12 @@ async function main() {
     usersCount,
     postsCount,
     dmCount,
-    roomsCount,
-    roomMsgCount,
     notifCount,
     achievementCount,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.post.count(),
     prisma.message.count(),
-    prisma.chatRoom.count(),
-    prisma.chatRoomMessage.count(),
     prisma.notification.count(),
     prisma.achievement.count(),
   ]);
@@ -437,7 +426,7 @@ async function main() {
 
   console.log("[seed-live] Done");
   console.log(
-    `[seed-live] users=${usersCount}, posts=${postsCount}, dms=${dmCount}, rooms=${roomsCount}, roomMessages=${roomMsgCount}, notifications=${notifCount}, achievements=${achievementCount}`,
+    `[seed-live] users=${usersCount}, posts=${postsCount}, dms=${dmCount}, notifications=${notifCount}, achievements=${achievementCount}`,
   );
   console.log(`[seed-live] Shared password for seeded users: ${seedPassword}`);
   console.log("[seed-live] Seeded accounts: live_admin, live_demo, live_mod");

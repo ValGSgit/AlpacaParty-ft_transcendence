@@ -1,6 +1,5 @@
 # Docker Compose — Development
 # @owner ValGSgit
-# @issue https://github.com/ValGSgit/AlpacaParty/issues/3
 
 # include each service
 include:

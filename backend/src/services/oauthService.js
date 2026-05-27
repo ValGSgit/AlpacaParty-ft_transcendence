@@ -11,7 +11,24 @@ import { Strategy as GitHubStrategy } from 'passport-github2';
 import config from '../config/index.js';
 import User from '../models/User.js';
 import AuthService from './authService.js';
-import Achievement from '../models/Achievement.js';
+import GamificationService from './GamificationService.js';
+
+/**
+ * Reduce a raw provider profile name to the username character class our
+ * validator accepts ([A-Za-z0-9_-]). Without this an OAuth user with a
+ * unicode/punctuation display name ends up with a username they can never
+ * later edit (PUT /api/users/me would fail validation).
+ */
+function sanitizeUsername(raw, provider, providerId) {
+  const cleaned = String(raw || '')
+    .normalize('NFKD')
+    .replace(/\s+/g, '_')
+    .replace(/[^A-Za-z0-9_-]/g, '')
+    .slice(0, 28)
+    .toLowerCase();
+  if (cleaned.length >= 3) return cleaned;
+  return `${provider}_${String(providerId).slice(0, 12)}`;
+}
 
 export function initializePassport() {
   // ── Serialize / deserialize (for session-less JWT flows we only need id) ──
@@ -42,13 +59,18 @@ export function initializePassport() {
         async (accessToken, refreshToken, profile, done) => {
           try {
             const email = profile.emails?.[0]?.value;
+            const emailVerified = !!profile.emails?.[0]?.verified;
             const avatar = profile.photos?.[0]?.value;
-            let username = profile.displayName?.replace(/\s+/g, '_').toLowerCase().slice(0, 28) || `google_${profile.id}`;
+            let username = sanitizeUsername(
+              profile.displayName,
+              'google',
+              profile.id,
+            );
 
             // Ensure username uniqueness
             const existing = await User.findByUsername(username);
             if (existing && existing.userAuth?.oauthId !== profile.id) {
-              username = `${username}_${profile.id.slice(0, 4)}`;
+              username = `${username}_${String(profile.id).slice(0, 4)}`;
             }
 
             const { user, created } = await User.findOrCreateOAuth({
@@ -57,10 +79,11 @@ export function initializePassport() {
               username,
               email,
               avatar,
+              emailVerified,
             });
 
             if (created) {
-              await Achievement.unlock(user.id, 'first_login').catch(() => {});
+              GamificationService.onLogin(user.id).catch(() => {});
             }
 
             done(null, user);
@@ -90,8 +113,16 @@ export function initializePassport() {
         async (accessToken, refreshToken, profile, done) => {
           try {
             const email = profile.emails?.[0]?.value || null;
+            // GitHub's primary email is always verified (no flag exposed,
+            // but the API only returns verified primary emails for the
+            // user:email scope).
+            const emailVerified = !!email;
             const avatar = profile.photos?.[0]?.value;
-            let username = (profile.username || `github_${profile.id}`).slice(0, 28);
+            let username = sanitizeUsername(
+              profile.username || profile.displayName,
+              'github',
+              profile.id,
+            );
 
             const existing = await User.findByUsername(username);
             if (existing && existing.userAuth?.oauthId !== String(profile.id)) {
@@ -104,10 +135,11 @@ export function initializePassport() {
               username,
               email,
               avatar,
+              emailVerified,
             });
 
             if (created) {
-              await Achievement.unlock(user.id, 'first_login').catch(() => {});
+              GamificationService.onLogin(user.id).catch(() => {});
             }
 
             done(null, user);

@@ -1,12 +1,3 @@
-<!--
-  OAuthCallback View
-  @owner ValGSgit
-  @issue https://github.com/ValGSgit/AlpacaParty/issues/8
-
-  Handles the redirect from the backend after Google / GitHub OAuth.
-  The backend appends ?accessToken=…&refreshToken=… to this route's URL.
-  We read those tokens, persist them, fetch the user, and redirect home.
--->
 <template>
   <div class="oauth-callback">
     <p v-if="error" class="error-message">{{ error }}</p>

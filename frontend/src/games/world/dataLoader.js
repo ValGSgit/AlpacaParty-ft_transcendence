@@ -1,18 +1,24 @@
 import api from '../../services/api.js';
+import { debug, devError } from '../../services/logger.js';
 import { gUser } from '../core/globals.js';
 
-export async function loadGameData() {
+export async function loadGameData(visitPlayerId) {
   try {
-    const res = await api.get('/users/me/farmdata')
-    const farmData = res.data.farmData;
-    gUser.value.coins = farmData.coins;
+    let res
+    if (!visitPlayerId)
+      res = await api.get('/game/farm')
+    else
+      res = await api.get('/game/farm', { params: { userId: visitPlayerId } })
+    const farmData = res.data.farm;
+    if (!visitPlayerId)
+      gUser.value.coins = farmData.coins;
     gUser.value.upgrades = farmData.upgrades;
     gUser.value.herdsize = farmData.herdsize;
 
-    console.log("FarmData:", farmData);
+    debug("FarmData:", farmData);
     return farmData
   } catch (error) {
-    console.error('Failed to load user stats:', error)
+    devError('Failed to load user stats:', error)
     return null
   }
 }

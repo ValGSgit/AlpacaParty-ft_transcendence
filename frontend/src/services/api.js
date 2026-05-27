@@ -1,12 +1,3 @@
-/**
- * API Service — fetch-based backend client
- * @owner fankahou, LukasStefanek
- * @issue https://github.com/ValGSgit/AlpacaParty/issues/1
- *
- * Uses a small wrapper around the native Fetch API.
- * It preserves the call shape used across the app: api.get/post/put/patch/delete.
- */
-
 const env = import.meta?.env || {};
 
 const defaultBaseUrl = env.VITE_API_URL || "/api";
@@ -132,7 +123,9 @@ async function performRequest({
           timeout,
           retryOnAuth: false,
         });
-      } catch {}
+      } catch {
+        // Refresh failed — fall through and surface the original 401 below.
+      }
     }
 
     throw new HttpError(

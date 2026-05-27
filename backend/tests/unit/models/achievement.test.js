@@ -10,6 +10,7 @@ const mockPrisma = {
   },
   userAchievement: {
     findMany: jest.fn(),
+    findUnique: jest.fn(),
     create: jest.fn(),
     upsert: jest.fn(),
   },
@@ -74,16 +75,18 @@ describe('getUserAchievements', () => {
 
 // ── unlock ───────────────────────────────────────────────────────────────────
 describe('unlock', () => {
+  // Race-safe: Achievement.unlock now just attempts the create and swallows
+  // P2002 (unique-constraint violation = already unlocked). No findUnique
+  // probe — two concurrent callers race on the unique key, the loser sees
+  // P2002 and returns null cleanly.
   test('unlocks achievement successfully', async () => {
     const achievement = { id: 1, key: 'first_win', name: 'First Win' };
     mockPrisma.achievement.findUnique.mockResolvedValue(achievement);
-    mockPrisma.userAchievement.upsert.mockResolvedValue({});
+    mockPrisma.userAchievement.create.mockResolvedValue({});
     const result = await Achievement.unlock(1, 'first_win');
     expect(mockPrisma.achievement.findUnique).toHaveBeenCalledWith({ where: { key: 'first_win' } });
-    expect(mockPrisma.userAchievement.upsert).toHaveBeenCalledWith({
-      where: { userId_achievementId: { userId: 1, achievementId: 1 } },
-      update: {},
-      create: { userId: 1, achievementId: 1 },
+    expect(mockPrisma.userAchievement.create).toHaveBeenCalledWith({
+      data: { userId: 1, achievementId: 1 },
     });
     expect(result).toEqual({ achievement });
   });
@@ -92,23 +95,25 @@ describe('unlock', () => {
     mockPrisma.achievement.findUnique.mockResolvedValue(null);
     const result = await Achievement.unlock(1, 'nonexistent');
     expect(result).toBeNull();
-    expect(mockPrisma.userAchievement.upsert).not.toHaveBeenCalled();
+    expect(mockPrisma.userAchievement.create).not.toHaveBeenCalled();
   });
 
-  test('returns { achievement } even when already unlocked (upsert is idempotent)', async () => {
+  test('returns null when concurrent caller already unlocked (P2002)', async () => {
     const achievement = { id: 1, key: 'first_win' };
     mockPrisma.achievement.findUnique.mockResolvedValue(achievement);
-    mockPrisma.userAchievement.upsert.mockResolvedValue({});
+    const dupe = new Error('Unique constraint failed');
+    dupe.code = 'P2002';
+    mockPrisma.userAchievement.create.mockRejectedValue(dupe);
     const result = await Achievement.unlock(1, 'first_win');
-    expect(result).toEqual({ achievement });
+    expect(result).toBeNull();
   });
 
-  test('rethrows database errors', async () => {
+  test('rethrows non-P2002 database errors', async () => {
     const achievement = { id: 1, key: 'first_win' };
     mockPrisma.achievement.findUnique.mockResolvedValue(achievement);
     const err = new Error('DB error');
     err.code = 'P2003';
-    mockPrisma.userAchievement.upsert.mockRejectedValue(err);
+    mockPrisma.userAchievement.create.mockRejectedValue(err);
     await expect(Achievement.unlock(1, 'first_win')).rejects.toThrow('DB error');
   });
 });

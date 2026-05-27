@@ -1,8 +1,9 @@
 export class BaseMatch {
-  constructor(matchId, namespace, roomName) {
+  constructor(matchId, namespace, roomName, onStateChange) {
     this.matchId = matchId;
     this.namespace = namespace;
     this.roomName = roomName;
+    this.onStateChange = onStateChange;
 
     this.players = new Map();
     this.status = 'LOBBY';
@@ -12,7 +13,11 @@ export class BaseMatch {
   addPlayer(socket, name, color) {
     const player = {
       id: socket.id,
-      name: name || 'Vue_Alpaca',
+      // socket.user is attached by socketAuthMiddleware; matches require auth,
+      // but keep the guard so a missing user doesn't crash player setup.
+      userId: socket.user?.id ?? null,
+      level: socket.user?.level ?? socket.user?.userStats?.level ?? 1,
+      name: name || socket.user?.username || 'Vue_Alpaca',
       isReady: false,
       hp: 3,
       points: 0,
@@ -38,8 +43,27 @@ export class BaseMatch {
     }
   }
 
+  // Whitelist of fields safe to broadcast. NEVER serialise the raw player
+  // object — client-supplied / future server-side fields may include
+  // setTimeout handles, sockets, or other non-plain values whose internal
+  // pointers crash socket.io-parser's hasBinary walk (stack overflow).
+  // Subclasses extend this list as needed.
+  static _SAFE_PLAYER_FIELDS = [
+    'id', 'userId', 'level', 'name', 'isReady', 'hp', 'points', 'color',
+    'isDead', 'isHit', 'isJumping', 'isActive', 'point', 'lane',
+    'x', 'y', 'z', 'angle',
+  ];
+
+  shapePlayer(p) {
+    const out = {};
+    for (const k of this.constructor._SAFE_PLAYER_FIELDS) {
+      if (p[k] !== undefined) out[k] = p[k];
+    }
+    return out;
+  }
+
   syncLobby() {
-    const playerList = Array.from(this.players.values());
+    const playerList = Array.from(this.players.values()).map((p) => this.shapePlayer(p));
     this.broadcast('lobby_update', playerList);
   }
 
@@ -49,6 +73,7 @@ export class BaseMatch {
 
     if (allReady && this.status === 'LOBBY') {
       this.start();
+      if (this.onStateChange) this.onStateChange();
     }
   }
 

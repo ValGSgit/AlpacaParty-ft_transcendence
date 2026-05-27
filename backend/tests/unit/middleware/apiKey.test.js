@@ -22,6 +22,7 @@ jest.unstable_mockModule("#models/User.js", () => ({
 
 const mockAuthService = {
   verifyPublicApiToken: jest.fn(),
+  verifyToken: jest.fn(),
 };
 jest.unstable_mockModule("#services/authService.js", () => ({
   default: mockAuthService,
