@@ -17,7 +17,9 @@ import CustomError from "#utils/CustomError.js";
  * GET /api/users/me
  */
 export const getMe = async (req, res) => {
-  await GamificationService.checkTopPlayerAchievement(req.user.id).catch(() => {});
+  if (typeof GamificationService.checkTopPlayerAchievement === "function") {
+    await GamificationService.checkTopPlayerAchievement(req.user.id).catch(() => {});
+  }
   const fresh = await User.findById(req.user.id);
   res.json({ user: shapeUserForClient(fresh || req.user) });
 };
