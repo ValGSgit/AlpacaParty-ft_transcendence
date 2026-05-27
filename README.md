@@ -357,6 +357,9 @@ For an interactive system map (request pipeline, route catalog, Socket.IO namesp
 
 ---
 
+[![OctoCounts](https://api.octocounts.com/badge/ValGSgit/AlpacaParty-ft_transcendence/branch/main)](https://octocounts.com/?q=https%3A%2F%2Fgithub.com%2FValGSgit%2FAlpacaParty-ft_transcendence%2Ftree%2Fbackend&ref=main)
+
+---
 ## Resources
 
 ### Documentation & References
