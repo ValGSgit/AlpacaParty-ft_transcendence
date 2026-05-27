@@ -106,7 +106,7 @@
         endpoint reference, authentication details (X-API-Key header), and
         the 30 requests/minute rate limit. The interactive Swagger UI for
         the internal API is available at
-        <a href="/api/docs" target="_blank" rel="noopener">/api/docs</a>.
+        <a href="/api/docs/public" target="_blank" rel="noopener">/api/docs/public</a>.
       </p>
     </section>
 

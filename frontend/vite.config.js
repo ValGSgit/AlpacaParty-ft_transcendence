@@ -17,6 +17,7 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts: ['localhost', '10.13.10.7.nip.io'],
     host: true,
     port: 5173,
     watch: {

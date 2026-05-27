@@ -8,8 +8,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth.js'
 
 const router  = useRouter()
+const authStore = useAuthStore()
 const error   = ref('')
 
 onMounted(async () => {
@@ -17,6 +19,8 @@ onMounted(async () => {
   window.history.replaceState({}, '', window.location.pathname)
 
   try {
+    // Fetch the user from the API to populate auth store with tokens from cookies
+    await authStore.fetchUser()
     router.push('/')
   } catch {
     error.value = 'OAuth login failed — please try again.'
