@@ -439,6 +439,14 @@ watch(activeTab, (tab) => {
 
 // Initialization
 onMounted(async () => {
+  // Refresh canonical profile payload when entering own profile.
+  try {
+    const { data } = await api.get('/users/me')
+    if (data?.user) {
+      authStore.user = data.user
+    }
+  } catch (e) { devError(e) }
+
   // 1. Initialize Profile Form
   const u = authStore.user
   if (u) {

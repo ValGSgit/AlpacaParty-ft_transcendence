@@ -19,6 +19,7 @@ export const getHelmetConfig = () => ({
         "'self'",
         "data:",
         "blob:",
+        "https://avatars.githubusercontent.com",
         "https://*.googleusercontent.com",
         "https://*.githubusercontent.com",
         "https://picsum.photos",

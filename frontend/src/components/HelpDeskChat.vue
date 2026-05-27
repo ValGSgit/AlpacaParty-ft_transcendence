@@ -135,35 +135,6 @@ async function sendSuggestion(text) {
   await send()
 }
 
-async function* streamChunks(resp) {
-  const reader = resp.body.getReader()
-  const decoder = new TextDecoder('utf-8')
-  let buffer = ''
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done)
-      break
-    buffer += decoder.decode(value, { stream: true })
-    const events = buffer.split('\n\n')
-    buffer = events.pop() ?? ''
-    for (const evt of events) {
-      const line = evt.trim()
-      if (!line.startsWith('data:'))
-        continue
-      const payload = line.slice(5).trim()
-      if (payload === '[DONE]')
-      { reader.cancel().catch(() => {}); return }
-      let json
-      try { json = JSON.parse(payload) }
-        catch { continue } // malformed keep-alive frame
-      if (json.error)
-        throw new Error('Stream interrupted, please try again.')
-      if (json.content)
-        yield json.content
-    }
-  }
-}
-
 async function send() {
   const text = draft.value.trim()
   if (!text || loading.value || text.length > MAX_CHARS) return
@@ -185,32 +156,23 @@ async function send() {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        Accept: 'text/event-stream',
       },
       body: JSON.stringify({ messages: history }),
     })
 
     if (!resp.ok) {
-      // Non-streaming error path: body is JSON, not SSE.
       const errBody = await resp.json().catch(() => null)
       throw new Error(errBody?.error?.message || `Request failed (${resp.status})`)
     }
 
-    // Append an empty assistant message and let chunks fill it in.
-    messages.value.push({ role: 'assistant', content: '' })
-    const idx = messages.value.length - 1
-    loading.value = false // typing bubble disappears the moment we have a real bubble
-
-    for await (const chunk of streamChunks(resp)) {
-      messages.value[idx].content += chunk
-      scrollToBottom()
-    }
-
-    if (!messages.value[idx].content) {
-      // Backend ended without emitting a single delta — treat as failure.
-      messages.value.splice(idx, 1)
+    const body = await resp.json().catch(() => null)
+    const content = body?.content?.trim()
+    if (!content) {
       throw new Error('No response from the assistant.')
     }
+
+    messages.value.push({ role: 'assistant', content })
+    scrollToBottom()
   } catch (err) {
     error.value = err?.message || 'Something went wrong. Please try again.'
     // Roll the user's outbound message back if the assistant placeholder

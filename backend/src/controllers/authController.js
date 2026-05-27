@@ -108,7 +108,7 @@ export const login = async (req, res, next) => {
 export const logout = async (req, res, next) => {
   try {
     if (req.user) {
-      await User.setOffline(req.user.id);
+      await User.setOffline(req.user.id).catch(() => {});
     }
     // Clear auth cookies to end session client-side.
     res.clearCookie("jwt_token", { path: "/" });

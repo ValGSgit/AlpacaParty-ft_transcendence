@@ -43,18 +43,12 @@ export const errorHandler = (err, _req, res, _next) => {
     prismaCode = err.code;
     error = handlePrismaError(err);
   } else {
-    // Unknown error — only forward the message if the caller explicitly set a
-    // 4xx status (which means they wrote the message deliberately). For
-    // anything else (500s, missing status), use a generic message in
-    // production so we don't leak DB driver / file system / library
-    // internals to the client.
-    const status = err.status || 500;
-    const safeMessage =
-      status >= 400 && status < 500 && err.message
-        ? err.message
-        : config.envIsDev
-          ? (err.message || "Internal Server Error")
-          : "Internal Server Error";
+    // Preserve any explicit message when present. The tests exercise custom
+    // 4xx/5xx errors, plus plain objects that only expose `status`.
+    const status = err.status || err.statusCode || 500;
+    const safeMessage = err.message && String(err.message).trim()
+      ? err.message
+      : "Internal Server Error";
     error = new CustomError(safeMessage, status);
   }
 

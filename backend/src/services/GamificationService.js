@@ -105,6 +105,25 @@ const GamificationService = {
     return result.achievement;
   },
 
+  async checkTopPlayerAchievement(userId) {
+    userId = Number(userId);
+    if (!Number.isFinite(userId)) return null;
+
+    const [topKills, topObstacles, topCoins] = await Promise.all([
+      Game.getKillsLeaderboard({ limit: 1 }),
+      Game.getObstaclesLeaderboard({ limit: 1 }),
+      Game.getCoinsLeaderboard({ limit: 1 }),
+    ]);
+
+    const isTopPlayer =
+      topKills[0]?.userId === userId ||
+      topObstacles[0]?.userId === userId ||
+      topCoins[0]?.userId === userId;
+
+    if (!isTopPlayer) return null;
+    return this.unlock(userId, 'top_player');
+  },
+
   // ── Game events ───────────────────────────────────────────────────────────
 
   async onWin(userId, gameType) {
@@ -131,20 +150,6 @@ const GamificationService = {
     if ((streak.winStreak ?? 0) >= 5) await this.unlock(userId, 'win_streak_5');
     if (gameType === 'spit_royale' && gs.wins >= 10) await this.unlock(userId, 'sharpshooter');
     if (gameType === 'alpaca_road' && gs.wins >= 5)  await this.unlock(userId, 'road_warrior');
-
-    // top_player: #1 in any visible leaderboard (kills, obstacles, or coins).
-    const [topKills, topObstacles, topCoins] = await Promise.all([
-      Game.getKillsLeaderboard({ limit: 1 }),
-      Game.getObstaclesLeaderboard({ limit: 1 }),
-      Game.getCoinsLeaderboard({ limit: 1 }),
-    ]);
-    if (
-      topKills[0]?.userId === userId ||
-      topObstacles[0]?.userId === userId ||
-      topCoins[0]?.userId === userId
-    ) {
-      await this.unlock(userId, 'top_player');
-    }
 
     NotificationService.broadcastAll('game:finish');
   },

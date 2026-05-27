@@ -146,7 +146,7 @@ router.post(
  *       200:
  *         description: Logged out
  */
-router.post("/logout", authenticate, logout);
+router.post("/logout", optionalAuth, logout);
 
 /**
  * @openapi

@@ -113,6 +113,7 @@ router.post(
           messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...req.body.messages],
           max_tokens: MAX_TOKENS,
           temperature: 0.7,
+          stream: false,
         }),
         signal: abortCtrl.signal,
       });
