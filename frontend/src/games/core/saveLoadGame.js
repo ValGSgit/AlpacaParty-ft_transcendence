@@ -23,6 +23,13 @@ export function saveGame() {
   _saveTimer = setTimeout(_doSave, 300)
 }
 
+export async function flushSave() {
+  if (_suppressed) return
+  clearTimeout(_saveTimer)
+  _saveTimer = null
+  await _doSave()
+}
+
 async function _doSave() {
   const authStore = useAuthStore()
   if (!authStore.isAuthenticated || !authStore.user) {

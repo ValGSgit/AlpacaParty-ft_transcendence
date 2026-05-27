@@ -1,12 +1,3 @@
-<!--
-  OAuthCallback View
-  @owner ValGSgit
-
-  Landing page after a Google / GitHub OAuth round-trip. The backend has
-  already set the JWT cookies on the redirect, so the only work here is to
-  scrub any query string from the URL (so it doesn't leak into history) and
-  bounce the user to the home route.
--->
 <template>
   <div class="oauth-callback">
     <p v-if="error" class="error-message">{{ error }}</p>
@@ -17,8 +8,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth.js'
 
 const router  = useRouter()
+const authStore = useAuthStore()
 const error   = ref('')
 
 onMounted(async () => {
@@ -26,6 +19,8 @@ onMounted(async () => {
   window.history.replaceState({}, '', window.location.pathname)
 
   try {
+    // Fetch the user from the API to populate auth store with tokens from cookies
+    await authStore.fetchUser()
     router.push('/')
   } catch {
     error.value = 'OAuth login failed — please try again.'

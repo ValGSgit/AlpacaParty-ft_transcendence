@@ -1,7 +1,3 @@
-<!--
-  UserProfile View — view another user's public profile
-  @owner ValGSgit
--->
 <template>
   <div class="profile-wrap">
     <div v-if="loading" class="loading-msg">Loading profile…</div>

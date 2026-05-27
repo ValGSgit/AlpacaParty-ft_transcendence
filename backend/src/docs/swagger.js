@@ -1,6 +1,6 @@
 /**
  * OpenAPI / Swagger configuration
- * UI available at /api/docs
+ * UI available at /api/docs/public
  */
 import swaggerJsdoc from "swagger-jsdoc";
 

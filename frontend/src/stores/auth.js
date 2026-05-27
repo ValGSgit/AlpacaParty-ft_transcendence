@@ -1,7 +1,3 @@
-/**
- * Auth Store — Pinia store for authentication state
- * @owner fankahou, LukasStefanek
- */
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "../services/api.js";

@@ -1,7 +1,3 @@
-<!--
-  Register View
-  @owner fankahou, LukasStefanek
--->
 <template>
   <div class="auth-page">
     <div class="auth-card">

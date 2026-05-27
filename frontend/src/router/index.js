@@ -1,7 +1,3 @@
-/**
- * Vue Router Configuration
- * @owner fankahou, LukasStefanek
- */
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import { useAdminAuthStore } from '../stores/adminAuth.js'

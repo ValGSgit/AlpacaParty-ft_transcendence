@@ -309,7 +309,7 @@ import { updateCollectables } from './core/entities/Collectable.js'
 import { shopItems } from './core/entities/Item.js'
 import { cleanupFPSstats, initFPSstats } from './core/FPSstats.js'
 import { gAlpacas, gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser } from './core/globals.js'
-import { saveGame } from './core/saveLoadGame.js'
+import { saveGame, flushSave } from './core/saveLoadGame.js'
 import { changeCamera, checkControlsEnabled, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
 import { useInput } from './core/useInput.js'
@@ -426,9 +426,15 @@ const gameLoop = () => {
     render_redot()
 }
 
-onUnmounted(() => {
+onUnmounted(async () => {
   document.body.classList.remove('lock-screen');
-  saveGame()
+  try {
+    await flushSave()
+  } catch (e) {
+    // best-effort flush; continue teardown even on failure
+    // eslint-disable-next-line no-console
+    console.warn('flushSave failed during unmount:', e)
+  }
   if (stopMyWatcher) stopMyWatcher()
   cancelAnimationFrame(animationFrameId)
   window.removeEventListener('resize', onResize)
