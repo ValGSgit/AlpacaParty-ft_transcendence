@@ -279,14 +279,16 @@ const User = {
   },
 
   async setOnline(id, isOnline = true) {
-    await prisma.user.update({
+    // updateMany returns { count } and does not throw P2025 if the user was
+    // removed between socket connect and this call.
+    await prisma.user.updateMany({
       where: { id: Number(id) },
       data: { isOnline, lastSeen: new Date() },
     });
   },
 
   async setOffline(id) {
-    await prisma.user.update({
+    await prisma.user.updateMany({
       where: { id: Number(id) },
       data: { isOnline: false, lastSeen: new Date() },
     });

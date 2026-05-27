@@ -192,7 +192,11 @@ export function initializeSocket(httpServer, corsOrigins) {
     // ── Disconnect ───────────────────────────────────────────
     socket.on("disconnect", async (reason) => {
       debug(`[socket] ${user.username} disconnected: ${reason}`);
-      await markOffline(user.id, socket.id);
+      try {
+        await markOffline(user.id, socket.id);
+      } catch (err) {
+        debug(`[socket] markOffline failed: ${err.message}`);
+      }
     });
   });
 

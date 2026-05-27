@@ -59,10 +59,12 @@ services:
           "CMD-SHELL",
           "curl --insecure --fail --silent --connect-timeout 5 --max-time 10 https://localhost:3000/api/health || exit 1",
         ]
-      interval: 30s
+      interval: 10s
       timeout: 10s
-      retries: 3
-      start_period: 45s
+      retries: 6
+      # First boot runs Prisma migrate + generate + seed before the server listens;
+      # give it room so CI with a fresh pg volume doesn't flap.
+      start_period: 120s
     restart: always
     networks:
       - alpacaparty_net
