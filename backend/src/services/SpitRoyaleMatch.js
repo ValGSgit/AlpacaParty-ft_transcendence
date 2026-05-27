@@ -1,7 +1,6 @@
 import { error } from "#lib/logger.js";
 import { BaseMatch } from "./BaseMatch.js";
 import Game from "../models/Game.js";
-import { BaseMatch } from "./BaseMatch.js";
 import GamificationService from "./GamificationService.js";
 
 const ARENA_RADIUS = 25;
