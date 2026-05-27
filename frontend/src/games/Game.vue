@@ -316,7 +316,7 @@ import { useInput } from './core/useInput.js'
 import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
-import './game.css'
+import '../styles/games/game.css'
 import { changeGame, friendName, visitFarm } from './mini_games/init.js'
 import { updateMinigame } from './mini_games/minigames.js'
 import { getHearts } from './utils/uiHelpers.js'
@@ -445,4 +445,4 @@ onUnmounted(async () => {
 </script>
 
 <!---------------------- STYLE ------------------------->
-<style src="./game.css"></style>
+<style src="../styles/games/game.css"></style>
