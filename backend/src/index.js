@@ -23,6 +23,24 @@ import { waitForVaultToken } from "#lib/vault.js";
 
 const app = express();
 
+function resolveRequestOrigin(req) {
+  const forwardedHost = req.get("x-forwarded-host");
+  const host = forwardedHost || req.get("host");
+  const forwardedProto = req.get("x-forwarded-proto");
+  const proto = forwardedProto || req.protocol || "https";
+  return { host, proto };
+}
+
+function publicSwaggerForRequest(req) {
+  const { host, proto } = resolveRequestOrigin(req);
+  const spec = structuredClone(swaggerFilePubliApi);
+  if (host) {
+    spec.host = host;
+  }
+  spec.schemes = [proto];
+  return spec;
+}
+
 // Create HTTPS server with certificates
 const httpsServer = createHttpsServer(app);
 
@@ -108,8 +126,13 @@ if (config.envIsDev) {
 app.use(
   "/api/docs/public",
   swaggerUi.serveFiles(swaggerFilePubliApi),
-  swaggerUi.setup(swaggerFilePubliApi),
+  swaggerUi.setup(null, {
+    swaggerOptions: { url: "/api/docs/public/openapi.json" },
+  }),
 );
+app.get("/api/docs/public/openapi.json", (req, res) => {
+  res.json(publicSwaggerForRequest(req));
+});
 // Back-compat: bare /api/docs lands on the public spec so old bookmarks /
 // external links keep working. (The full internal spec stays gated.)
 app.get(["/api/docs", "/api/docs/"], (_req, res) =>
