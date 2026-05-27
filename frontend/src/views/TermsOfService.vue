@@ -1,201 +1,244 @@
-<!--
-  Terms of Service — AlpacaParty
--->
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 
 const sections = [
-  { id: 'acceptance',   title: '1. Acceptance of Terms' },
-  { id: 'description',  title: '2. Description of Service' },
-  { id: 'accounts',     title: '3. User Accounts' },
-  { id: 'conduct',      title: '4. Acceptable Use' },
-  { id: 'content',      title: '5. User-Generated Content' },
-  { id: 'economy',      title: '6. Game Economy' },
-  { id: 'privacy',      title: '7. Privacy' },
-  { id: 'termination',  title: '8. Suspension & Termination' },
-  { id: 'disclaimers',  title: '9. Disclaimers' },
-  { id: 'liability',    title: '10. Limitation of Liability' },
-  { id: 'changes',      title: '11. Modifications' },
-  { id: 'governing',    title: '12. Governing Law' },
-  { id: 'contact',      title: '13. Contact' },
+  { id: 'acceptance',   tone: 'gold',    n: '§1', title: 'Acceptance of terms' },
+  { id: 'accounts',     tone: 'gold',    n: '§2', title: 'Accounts' },
+  { id: 'conduct',      tone: 'magenta', n: '§3', title: 'Acceptable behavior' },
+  { id: 'content',      tone: 'magenta', n: '§4', title: 'User content & IP' },
+  { id: 'purchases',    tone: 'cyan',    n: '§5', title: 'Purchases & cosmetics' },
+  { id: 'termination',  tone: 'cyan',    n: '§6', title: 'Termination' },
+  { id: 'liability',    tone: 'gold',    n: '§7', title: 'Limitation of liability' },
+  { id: 'governing',    tone: 'green',   n: '§8', title: 'Disputes & governing law' },
 ]
 
 const activeId = ref(sections[0].id)
 const showToTop = ref(false)
+const flashId = ref(null)
 let observer = null
+let flashTimer = null
 
-function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }) }
 function jumpTo(id) {
-  const el = document.getElementById(id)
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const el = document.getElementById(id); if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  flashId.value = id
+  clearTimeout(flashTimer)
+  flashTimer = setTimeout(() => { flashId.value = null }, 1400)
 }
+function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }) }
 function onScroll() { showToTop.value = window.scrollY > 600 }
 
 async function rewireObserver() {
-  if (observer) observer.disconnect()
+  observer && observer.disconnect()
   await nextTick()
   observer = new IntersectionObserver(
     (entries) => {
-      const visible = entries
-        .filter(e => e.isIntersecting)
+      const v = entries.filter(e => e.isIntersecting)
         .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
-      if (visible[0]) activeId.value = visible[0].target.id
+      if (v[0]) activeId.value = v[0].target.id
     },
-    { rootMargin: '-30% 0px -60% 0px', threshold: [0, 1] }
+    { rootMargin: '-25% 0px -65% 0px', threshold: [0, 1] }
   )
   document.querySelectorAll('.doc-content section[id]').forEach(s => observer.observe(s))
 }
-
 onMounted(async () => {
   await rewireObserver()
   window.addEventListener('scroll', onScroll, { passive: true })
 })
-
 onBeforeUnmount(() => {
   observer && observer.disconnect()
+  clearTimeout(flashTimer)
   window.removeEventListener('scroll', onScroll)
 })
 </script>
 
 <template>
-  <main class="doc-page">
-    <div class="doc-shell">
-      <aside class="doc-toc" aria-label="On this page">
-        <h2>On this page</h2>
-        <ol>
-          <li v-for="s in sections" :key="s.id">
-            <a
-              :href="'#' + s.id"
-              :class="{ 'is-active': activeId === s.id }"
-              @click.prevent="jumpTo(s.id)"
-            >{{ s.title }}</a>
-          </li>
-        </ol>
-      </aside>
+  <main class="doc-page doc-page--terms">
+    <!-- ============ HERO ============ -->
+    <header class="hero" aria-labelledby="terms-title">
+      <div class="hero__bg" aria-hidden="true">
+        <span class="hero__grid"></span>
+        <span class="hero__glow"></span>
+      </div>
 
-      <article class="doc-content">
-        <header class="doc-header">
-          <span class="doc-eyebrow">Legal</span>
-          <h1 class="doc-title">Terms of Service</h1>
-          <p class="doc-lede">
-            The rules of the room. By using AlpacaParty you agree to these terms.
-          </p>
-          <span class="doc-meta">
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <rect x="2" y="3.5" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
-              <path d="M2 6.5h12M5.5 2v3M10.5 2v3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-            </svg>
-            Last updated · April 7, 2026
-          </span>
-        </header>
-
-        <div class="doc-jump">
-          <label for="doc-jump-select">Jump to</label>
-          <select
-            id="doc-jump-select"
-            @change="(e) => { jumpTo(e.target.value); e.target.value = '' }"
-          >
-            <option value="" disabled selected>Choose a section…</option>
-            <option v-for="s in sections" :key="s.id" :value="s.id">{{ s.title }}</option>
-          </select>
+      <div class="hero__inner">
+        <!-- Document + seal motif -->
+        <div class="doc-art" aria-hidden="true">
+          <svg viewBox="0 0 200 220" fill="none">
+            <defs>
+              <linearGradient id="paperFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#1a1a2a"/>
+                <stop offset="100%" stop-color="#12121a"/>
+              </linearGradient>
+            </defs>
+            <!-- back paper -->
+            <rect x="30" y="20" width="130" height="170" rx="6"
+                  fill="url(#paperFill)" stroke="#2a2a3a" stroke-width="1"
+                  transform="rotate(-4 95 105)"/>
+            <!-- front paper -->
+            <rect x="40" y="30" width="130" height="170" rx="6"
+                  fill="url(#paperFill)" stroke="#3a3a4d" stroke-width="1"/>
+            <!-- header -->
+            <rect x="52" y="46" width="60" height="6" rx="2" fill="#e8e8f0" opacity="0.85"/>
+            <rect x="52" y="58" width="40" height="3" rx="1.5" fill="#a0a0b0" opacity="0.5"/>
+            <!-- lines -->
+            <g stroke="#3a3a4d" stroke-width="1">
+              <line x1="52" y1="78"  x2="158" y2="78"/>
+              <line x1="52" y1="88"  x2="158" y2="88"/>
+              <line x1="52" y1="98"  x2="140" y2="98"/>
+              <line x1="52" y1="115" x2="158" y2="115"/>
+              <line x1="52" y1="125" x2="158" y2="125"/>
+              <line x1="52" y1="135" x2="120" y2="135"/>
+              <line x1="52" y1="152" x2="158" y2="152"/>
+              <line x1="52" y1="162" x2="100" y2="162"/>
+            </g>
+            <!-- signature swoosh -->
+            <path d="M52 180 q15 -8 28 -2 t30 -2" stroke="#00f0ff" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+            <!-- wax seal -->
+            <g transform="translate(140 162)">
+              <circle r="26" fill="#f5c842" opacity="0.18"/>
+              <circle r="20" fill="#1a1a2a" stroke="#f5c842" stroke-width="1.4"/>
+              <circle r="20" fill="none" stroke="#f5c842" stroke-width="0.6" stroke-dasharray="2 2"/>
+              <text x="0" y="3" font-family="JetBrains Mono, monospace" font-size="8" font-weight="700"
+                    text-anchor="middle" fill="#f5c842">SEAL</text>
+              <text x="0" y="11" font-family="Inter, sans-serif" font-size="3.4"
+                    text-anchor="middle" fill="#f5c842" opacity="0.7">EST. 2026</text>
+            </g>
+          </svg>
         </div>
 
-        <section id="acceptance">
-          <h2>1. Acceptance of Terms <a class="doc-anchor" href="#acceptance">#</a></h2>
-          <p>
-            By accessing or using <strong>AlpacaParty</strong> ("the Service"), you agree to be
-            bound by these Terms of Service ("Terms"). If you do not agree, please do not use the
-            Service.
+        <div class="hero__copy">
+          <span class="hero__eyebrow"><span class="dot"></span> Legal · §1–§8 · Eight clauses</span>
+          <h1 id="terms-title" class="hero__title">Terms of Service.</h1>
+          <p class="hero__lede">
+            The rules of the room — what we owe you, what you owe us, and what
+            happens when an alpaca gets out of line.
           </p>
+
+          <div class="meta-strip">
+            <div class="meta-strip__cell">
+              <span class="meta-strip__label">Effective</span>
+              <span class="meta-strip__value">May 27, 2026</span>
+            </div>
+            <div class="meta-strip__cell">
+              <span class="meta-strip__label">Version</span>
+              <span class="meta-strip__value">v3.2</span>
+            </div>
+            <div class="meta-strip__cell">
+              <span class="meta-strip__label">Reading time</span>
+              <span class="meta-strip__value">~6 min</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============ SHELL ============ -->
+    <div class="shell">
+      <aside class="toc" aria-label="Clauses">
+        <h2>Clauses</h2>
+        <ol>
+          <li v-for="s in sections" :key="s.id" :class="`tone-${s.tone}`">
+            <a :href="'#'+s.id"
+               :class="{ 'is-active': activeId === s.id }"
+               @click.prevent="jumpTo(s.id)">
+              <span class="toc__num">{{ s.n }}</span>
+              <span class="toc__label">{{ s.title }}</span>
+              <span class="toc__dot" aria-hidden="true"></span>
+            </a>
+          </li>
+        </ol>
+        <div class="toc__panel" aria-hidden="true">
+          <p class="toc__panel-title">Read the short version</p>
+          <p class="toc__panel-body">Be kind, don't cheat, pay for cosmetics, and we'll all have a nice time.</p>
+        </div>
+      </aside>
+
+      <div class="jump">
+        <label for="jump-select">Jump to clause</label>
+        <select id="jump-select" @change="(e) => { jumpTo(e.target.value); e.target.value='' }">
+          <option value="" disabled selected>Choose a clause…</option>
+          <option v-for="s in sections" :key="s.id" :value="s.id">{{ s.n }} · {{ s.title }}</option>
+        </select>
+      </div>
+
+      <article class="doc-content">
+
+        <section id="acceptance" :class="['sec','tone-gold',{ 'is-flash': flashId==='acceptance' }]">
+          <div class="sec__head"><span class="sec__num">§1</span>
+            <h2>Acceptance of terms <a class="anchor" href="#acceptance">#</a></h2>
+          </div>
+          <p>By accessing or using AlpacaParty (the "Service") you agree to be bound by these Terms. If you do not agree, do not use the Service. These Terms form a binding agreement between you and AlpacaParty Inc.</p>
         </section>
 
-        <section id="description">
-          <h2>2. Description of Service <a class="doc-anchor" href="#description">#</a></h2>
-          <p>
-            AlpacaParty is a social web application that lets users raise and customise a virtual
-            alpaca farm, interact with other users through messaging, posts,
-            and earn achievements. The Service is provided as-is for educational and entertainment
-            purposes as part of the 42 <em>ft_transcendence</em> project.
-          </p>
+        <section id="accounts" :class="['sec','tone-gold',{ 'is-flash': flashId==='accounts' }]">
+          <div class="sec__head"><span class="sec__num">§2</span>
+            <h2>Accounts <a class="anchor" href="#accounts">#</a></h2>
+          </div>
+          <p>You are responsible for all activity under your account. Keep your credentials private. You must be at least 13 years old (16 in the EEA) to register.</p>
+          <p>One account per person, please. Selling, sharing, or renting accounts is prohibited.</p>
         </section>
 
-        <section id="accounts">
-          <h2>3. User Accounts <a class="doc-anchor" href="#accounts">#</a></h2>
-          <ul>
-            <li>You must provide accurate information when creating an account.</li>
-            <li>You are responsible for maintaining the confidentiality of your credentials.</li>
-            <li>You must be at least 16 years old to create an account (GDPR Art. 8).</li>
-            <li>One person may register only one account. Multiple accounts per person are not allowed.</li>
-            <li>You are responsible for all activity that occurs under your account.</li>
-          </ul>
+        <section id="conduct" :class="['sec','tone-magenta',{ 'is-flash': flashId==='conduct' }]">
+          <div class="sec__head"><span class="sec__num">§3</span>
+            <h2>Acceptable behavior <a class="anchor" href="#conduct">#</a></h2>
+          </div>
+          <p>No harassment, hate speech, doxxing, threats, sexual content involving minors, cheating, exploiting bugs, scraping, or attempts to disrupt the Service. Moderators may mute, kick, or ban accounts that violate these rules.</p>
+
+          <div class="rules">
+            <div class="rules__col">
+              <h3 class="rules__title rules__title--ok">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3 3 7-7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Do
+              </h3>
+              <ul>
+                <li>Be kind to other alpacas (and humans behind them)</li>
+                <li>Report bugs and abuse</li>
+                <li>Respect room moderators' decisions</li>
+              </ul>
+            </div>
+            <div class="rules__col">
+              <h3 class="rules__title rules__title--no">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                Don't
+              </h3>
+              <ul>
+                <li>Harass, threaten, or impersonate</li>
+                <li>Cheat, exploit bugs, or use automation</li>
+                <li>Scrape or resell account data</li>
+              </ul>
+            </div>
+          </div>
         </section>
 
-        <section id="conduct">
-          <h2>4. Acceptable Use <a class="doc-anchor" href="#conduct">#</a></h2>
-          <p>You agree <strong>not</strong> to:</p>
-          <ul>
-            <li>Use the Service for any unlawful purpose or to promote illegal activity.</li>
-            <li>Harass, abuse, threaten, or impersonate other users.</li>
-            <li>Post content that is hateful, violent, sexually explicit, or otherwise objectionable.</li>
-            <li>Attempt to gain unauthorised access to other accounts, servers, or data.</li>
-            <li>Interfere with the normal operation of the Service, including exploiting bugs
-                or using automated scripts to gain an unfair advantage in the game.</li>
-            <li>Upload malicious code, viruses, or any material designed to disrupt the Service.</li>
-            <li>Scrape, crawl, or collect data from the Service without explicit permission.</li>
-          </ul>
+        <section id="content" :class="['sec','tone-magenta',{ 'is-flash': flashId==='content' }]">
+          <div class="sec__head"><span class="sec__num">§4</span>
+            <h2>User content &amp; IP <a class="anchor" href="#content">#</a></h2>
+          </div>
+          <p>You retain rights to content you create (display name, cosmetic combinations, voice clips, screenshots). You grant us a non-exclusive, worldwide license to host, display, and transmit it as needed to operate the Service.</p>
+          <p>AlpacaParty, the alpaca logo, and the in-game art are our intellectual property.</p>
         </section>
 
-        <section id="content">
-          <h2>5. User-Generated Content <a class="doc-anchor" href="#content">#</a></h2>
-          <p>
-            You retain ownership of content you create (posts, messages, profile information).
-            By posting content on AlpacaParty, you grant us a non-exclusive, royalty-free licence
-            to store, display, and distribute that content within the Service. We may remove any
-            content that violates these Terms.
-          </p>
+        <section id="purchases" :class="['sec','tone-cyan',{ 'is-flash': flashId==='purchases' }]">
+          <div class="sec__head"><span class="sec__num">§5</span>
+            <h2>Purchases &amp; cosmetics <a class="anchor" href="#purchases">#</a></h2>
+          </div>
+          <p>Cosmetics are sold for in-account use only. They are not transferable, redeemable for cash, or considered virtual currency. Refunds are issued per our Refund Policy at <code>/legal/refunds</code> — typically within 14 days of purchase if the item has not been equipped.</p>
         </section>
 
-        <section id="economy">
-          <h2>6. Game Economy <a class="doc-anchor" href="#economy">#</a></h2>
-          <p>
-            In-game currency ("coins") and items (alpacas, farm upgrades) have no real-world
-            monetary value. We reserve the right to adjust the game economy, reset progress, or
-            modify game mechanics at any time.
-          </p>
+        <section id="termination" :class="['sec','tone-cyan',{ 'is-flash': flashId==='termination' }]">
+          <div class="sec__head"><span class="sec__num">§6</span>
+            <h2>Termination <a class="anchor" href="#termination">#</a></h2>
+          </div>
+          <p>You may close your account at any time from <code>/settings/data</code>. We may suspend or terminate accounts for violations of these Terms; serious violations (cheating, harassment) may result in permanent bans without refund.</p>
         </section>
 
-        <section id="privacy">
-          <h2>7. Privacy <a class="doc-anchor" href="#privacy">#</a></h2>
-          <p>
-            Your use of the Service is also governed by our
-            <router-link to="/privacy">Privacy Policy</router-link>, which describes how we
-            collect, use, and protect your personal data.
-          </p>
-        </section>
+        <section id="liability" :class="['sec','tone-gold',{ 'is-flash': flashId==='liability' }]">
+          <div class="sec__head"><span class="sec__num">§7</span>
+            <h2>Limitation of liability <a class="anchor" href="#liability">#</a></h2>
+          </div>
 
-        <section id="termination">
-          <h2>8. Account Suspension &amp; Termination <a class="doc-anchor" href="#termination">#</a></h2>
-          <p>
-            We may suspend or terminate your account at our discretion if you violate these Terms.
-            You may delete your account at any time from the
-            <router-link to="/settings">Settings</router-link> page. Upon deletion, your personal
-            data will be removed in accordance with our Privacy Policy.
-          </p>
-        </section>
-
-        <section id="disclaimers">
-          <h2>9. Disclaimers <a class="doc-anchor" href="#disclaimers">#</a></h2>
-          <ul>
-            <li>The Service is provided <strong>"as is"</strong> without warranties of any kind, express or implied.</li>
-            <li>We do not guarantee uninterrupted or error-free operation.</li>
-            <li>We are not liable for any data loss, including loss of game progress.</li>
-          </ul>
-        </section>
-
-        <section id="liability">
-          <h2>10. Limitation of Liability <a class="doc-anchor" href="#liability">#</a></h2>
-
-          <aside class="callout callout--warning" role="note">
+          <aside class="callout callout--warning">
             <span class="callout__icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M12 3l10 18H2L12 3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
@@ -204,62 +247,43 @@ onBeforeUnmount(() => {
             </span>
             <div class="callout__body">
               <h3 class="callout__title">Limitation of liability</h3>
-              <p>
-                To the maximum extent permitted by law, AlpacaParty and its contributors shall not
-                be liable for any indirect, incidental, special, or consequential damages arising
-                from your use of the Service, including loss of profits, revenues, data, or
-                goodwill.
-              </p>
+              <p>To the maximum extent permitted by law, AlpacaParty and its affiliates are not liable for indirect, incidental, special, consequential, or punitive damages, or any loss of profits, revenues, data, or goodwill arising from your use of the Service.</p>
+              <p>Our aggregate liability for any claim relating to the Service will not exceed the greater of <strong>(a)</strong> the amount you paid us in the 12 months preceding the claim or <strong>(b)</strong> USD 50.</p>
             </div>
           </aside>
         </section>
 
-        <section id="changes">
-          <h2>11. Modifications <a class="doc-anchor" href="#changes">#</a></h2>
-          <p>
-            We reserve the right to update these Terms at any time. Changes take effect when
-            posted on this page. Continued use of the Service after changes constitutes acceptance
-            of the revised Terms.
-          </p>
+        <section id="governing" :class="['sec','tone-green',{ 'is-flash': flashId==='governing' }]">
+          <div class="sec__head"><span class="sec__num">§8</span>
+            <h2>Disputes &amp; governing law <a class="anchor" href="#governing">#</a></h2>
+          </div>
+          <p>These Terms are governed by the laws of France, excluding its conflict-of-laws rules. Disputes are resolved in the courts of Paris, France, unless a binding arbitration clause applies in your region under local law.</p>
+          <p>For questions, email <a href="mailto:legal@alpacaparty.example">legal@alpacaparty.example</a>.</p>
         </section>
 
-        <section id="governing">
-          <h2>12. Governing Law <a class="doc-anchor" href="#governing">#</a></h2>
-          <p>
-            These Terms are governed by the laws of the <strong>European Union</strong> and,
-            where applicable, the laws of <strong>Spain</strong> (the jurisdiction in which
-            this project is hosted and operated). Any disputes arising from or in connection
-            with these Terms shall be submitted to the exclusive jurisdiction of the competent
-            courts of Spain, without prejudice to your right as an EU consumer to bring
-            proceedings before the courts of your country of domicile.
-          </p>
-        </section>
-
-        <section id="contact">
-          <h2>13. Contact <a class="doc-anchor" href="#contact">#</a></h2>
-          <p>
-            For questions about these Terms, please use the
-            <router-link to="/help">Help</router-link> page to contact the AlpacaParty team.
-          </p>
-        </section>
-
-        <footer class="doc-footer">
-          <span>Last updated · April 7, 2026</span>
-          <span class="sep">·</span>
-          <router-link to="/help">contact</router-link>
-          <span class="sep">·</span>
-          <a href="#" @click.prevent="scrollToTop">back to top</a>
+        <footer class="signoff">
+          <div class="signoff__seal" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none">
+              <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"/>
+              <circle cx="20" cy="20" r="13" stroke="currentColor" stroke-width="1.3" fill="none"/>
+              <text x="20" y="24" font-family="JetBrains Mono, monospace" font-size="8" font-weight="700"
+                    text-anchor="middle" fill="currentColor">v3.2</text>
+            </svg>
+          </div>
+          <div>
+            <p class="signoff__line">Signed, sealed, and herded together. We'll publish material changes 14 days before they take effect.</p>
+            <p class="signoff__meta">
+              Effective May 27, 2026
+              <span>·</span> <a href="mailto:legal@alpacaparty.example">legal@alpacaparty.example</a>
+              <span>·</span> <a href="#" @click.prevent="scrollToTop">back to top</a>
+            </p>
+          </div>
         </footer>
       </article>
     </div>
 
-    <button
-      type="button"
-      class="doc-totop"
-      :class="{ 'is-visible': showToTop }"
-      aria-label="Back to top"
-      @click="scrollToTop"
-    >
+    <button type="button" class="totop" :class="{ 'is-visible': showToTop }"
+            aria-label="Back to top" @click="scrollToTop">
       <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M8 13V4M4 7.5L8 3.5l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -268,5 +292,333 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-@import '@/styles/assets/docs-layout.css';
+.doc-page--terms {
+  --tone-cyan: var(--primary, #00f0ff);
+  --tone-magenta: var(--magenta, #ff8ec4);
+  --tone-gold: var(--gold, #f5c842);
+  --tone-green: var(--green, #36e07a);
+  --measure: 64ch;
+
+  min-height: 100vh;
+  background: var(--bg-primary, #0a0a0f);
+  color: var(--text-primary, #e8e8f0);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+}
+.tone-cyan    { --tone: var(--tone-cyan); }
+.tone-magenta { --tone: var(--tone-magenta); }
+.tone-gold    { --tone: var(--tone-gold); }
+.tone-green   { --tone: var(--tone-green); }
+
+/* ---------- HERO (contract-leaning, gold accent) ---------- */
+.hero {
+  position: relative; padding: 80px 24px 56px;
+  isolation: isolate; overflow: hidden;
+  border-bottom: 1px solid var(--border-color, #2a2a3a);
+  background:
+    radial-gradient(700px 350px at 80% 10%, rgba(245,200,66,0.10), transparent 70%),
+    linear-gradient(180deg, var(--bg-primary), var(--bg-secondary, #12121a));
+}
+.hero__bg { position: absolute; inset: 0; z-index: -1; }
+.hero__grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(245,200,66,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,200,66,0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 30% 30%, #000 30%, transparent 80%);
+}
+.hero__glow {
+  position: absolute; width: 520px; height: 520px;
+  top: -200px; left: -160px;
+  border-radius: 50%; filter: blur(120px);
+  background: radial-gradient(circle, rgba(0,240,255,0.22), transparent 70%);
+}
+
+.hero__inner {
+  max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr; gap: 40px;
+  align-items: center;
+}
+@media (min-width: 880px) {
+  .hero__inner { grid-template-columns: 1fr 220px; gap: 56px; }
+  .doc-art { order: 2; }
+}
+
+.doc-art { width: 220px; margin: 0 auto; }
+.doc-art svg { width: 100%; height: auto; display: block;
+  filter: drop-shadow(0 18px 36px rgba(0,0,0,0.5)); }
+
+.hero__copy { min-width: 0; }
+.hero__eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-secondary, #a0a0b0); margin-bottom: 14px;
+}
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--gold); box-shadow: 0 0 10px var(--gold);
+  animation: blink 2.4s ease-in-out infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+.hero__title {
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: clamp(2.2rem, 1.5rem + 3vw, 3.4rem);
+  font-weight: 700; letter-spacing: -0.02em; line-height: 1.05;
+  margin: 0 0 14px;
+  background: linear-gradient(180deg, #fff 0%, #8a8a9c 140%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero__lede { margin: 0 0 24px; font-size: 1.0625rem; color: var(--text-secondary, #a0a0b0); max-width: 56ch; }
+
+.meta-strip {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary, #12121a);
+  overflow: hidden;
+  max-width: 480px;
+}
+.meta-strip__cell {
+  padding: 14px 16px;
+  border-right: 1px solid var(--border-color);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.meta-strip__cell:last-child { border-right: 0; }
+.meta-strip__label {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--text-muted, #6a6c7c);
+}
+.meta-strip__value {
+  font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ---------- SHELL ---------- */
+.shell {
+  max-width: 1200px; margin: 0 auto;
+  padding: 40px 24px 80px;
+  display: grid; grid-template-columns: 1fr; gap: 32px;
+}
+@media (min-width: 1024px) {
+  .shell { grid-template-columns: 260px minmax(0, 1fr); gap: 56px; padding: 56px 40px 120px; }
+}
+
+/* TOC */
+.toc { display: none; }
+@media (min-width: 1024px) {
+  .toc {
+    display: block; position: sticky; top: 32px; align-self: start;
+    max-height: calc(100vh - 64px); overflow-y: auto; padding-right: 8px;
+  }
+  .toc h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0 0 14px 4px;
+  }
+  .toc ol { list-style: none; margin: 0; padding: 0;
+    border-left: 1px solid var(--border-color); }
+  .toc a {
+    display: grid; grid-template-columns: 30px 1fr 8px;
+    align-items: center; gap: 10px;
+    padding: 10px 12px; margin-left: -1px;
+    border-left: 2px solid transparent;
+    color: var(--text-secondary); text-decoration: none;
+    font-size: 0.875rem; line-height: 1.3;
+    transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+  }
+  .toc__num {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+    color: var(--text-muted); transition: color 140ms ease;
+  }
+  .toc__dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: transparent; transition: background 180ms ease, box-shadow 180ms ease;
+  }
+  .toc a:hover { color: var(--text-primary); background: var(--bg-secondary); }
+  .toc a.is-active {
+    color: var(--text-primary);
+    background: linear-gradient(90deg, color-mix(in oklab, var(--tone) 14%, transparent), transparent 80%);
+    border-left-color: var(--tone);
+  }
+  .toc a.is-active .toc__num { color: var(--tone); }
+  .toc a.is-active .toc__dot { background: var(--tone); box-shadow: 0 0 12px var(--tone), 0 0 4px var(--tone); }
+  .toc a:focus-visible { outline: 2px solid var(--tone, var(--primary)); outline-offset: 2px; }
+
+  .toc__panel {
+    margin-top: 24px; padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color); border-radius: 12px;
+  }
+  .toc__panel-title { margin: 0 0 4px; font-family: 'Space Grotesk', sans-serif; font-size: 0.875rem; font-weight: 700; color: var(--text-primary); }
+  .toc__panel-body { margin: 0; font-size: 0.8125rem; color: var(--text-secondary); }
+}
+
+/* mobile jump */
+.jump {
+  position: sticky; top: 12px; z-index: 5;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: color-mix(in oklab, var(--bg-secondary) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color); border-radius: 10px;
+}
+.jump label { font-size: 0.8125rem; color: var(--text-secondary); }
+.jump select {
+  flex: 1; min-width: 0;
+  background: var(--bg-tertiary, #1a1a2a); color: var(--text-primary);
+  border: 1px solid var(--border-color); border-radius: 6px;
+  padding: 8px 10px; font: inherit; font-size: 0.9rem;
+}
+.jump select:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+@media (min-width: 1024px) { .jump { display: none; } }
+
+/* ---------- content (contract-grid feel) ---------- */
+.doc-content { min-width: 0; }
+.sec {
+  padding: 36px 0;
+  border-top: 1px dashed var(--border-color);
+  scroll-margin-top: 24px; position: relative;
+}
+.sec:first-of-type { border-top: 0; padding-top: 8px; }
+.sec.is-flash::before {
+  content: ''; position: absolute; inset: 0 -16px; border-radius: 16px;
+  background: color-mix(in oklab, var(--tone) 12%, transparent);
+  animation: flash 1.4s ease-out forwards; pointer-events: none;
+}
+@keyframes flash { to { background: transparent; } }
+
+.sec__head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+.sec__num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem; font-weight: 700;
+  padding: 6px 10px; border-radius: 8px;
+  color: var(--tone);
+  background: color-mix(in oklab, var(--tone) 14%, transparent);
+  border: 1px solid color-mix(in oklab, var(--tone) 35%, transparent);
+  letter-spacing: 0.02em;
+}
+.sec h2 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.35rem, 1.05rem + 0.8vw, 1.625rem);
+  font-weight: 700; letter-spacing: -0.01em; line-height: 1.2;
+  margin: 0; padding-left: 14px;
+  border-left: 3px solid var(--tone);
+  display: flex; align-items: center; gap: 10px;
+}
+.sec .anchor {
+  opacity: 0; color: var(--text-muted); text-decoration: none;
+  font-weight: 400; transition: opacity 150ms ease, color 120ms ease;
+}
+.sec h2:hover .anchor, .sec .anchor:focus-visible { opacity: 1; }
+.sec .anchor:hover { color: var(--tone); }
+
+.sec p { max-width: var(--measure); margin: 12px 0; }
+.sec a { color: var(--tone); text-decoration: underline; text-underline-offset: 3px; }
+.sec a:focus-visible { outline: 2px solid var(--tone); outline-offset: 2px; border-radius: 2px; }
+.sec code {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.85em;
+  background: var(--bg-tertiary, #1a1a2a); border: 1px solid var(--border-color);
+  padding: 1px 6px; border-radius: 4px;
+}
+
+/* Do/Don't grid */
+.rules {
+  display: grid; grid-template-columns: 1fr; gap: 12px;
+  margin: 18px 0; max-width: var(--measure);
+}
+@media (min-width: 600px) {
+  .rules { grid-template-columns: 1fr 1fr; }
+}
+.rules__col {
+  padding: 16px 18px; border-radius: 12px;
+  background: var(--bg-secondary, #12121a);
+  border: 1px solid var(--border-color);
+}
+.rules__title {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.875rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  margin: 0 0 10px;
+}
+.rules__title svg { width: 14px; height: 14px; }
+.rules__title--ok { color: var(--success, #00ff88); }
+.rules__title--no { color: var(--danger, #ff006e); }
+.rules__col ul { list-style: none; padding: 0; margin: 0; }
+.rules__col li {
+  padding: 4px 0; font-size: 0.9rem; color: var(--text-secondary);
+  border-top: 1px dashed var(--border-color);
+}
+.rules__col li:first-child { border-top: 0; }
+
+/* warning callout */
+.callout {
+  display: grid; grid-template-columns: 36px 1fr; gap: 16px;
+  padding: 22px 24px; margin: 16px 0; border-radius: 14px;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tone) 12%, var(--bg-secondary)), var(--bg-secondary));
+  border: 1px solid color-mix(in oklab, var(--tone) 35%, var(--border-color));
+  max-width: var(--measure);
+  position: relative; overflow: hidden;
+}
+.callout::after {
+  content: ''; position: absolute; top: 0; right: 0; width: 60px; height: 60px;
+  background: repeating-linear-gradient(45deg,
+    color-mix(in oklab, var(--tone) 18%, transparent) 0 6px,
+    transparent 6px 12px);
+  border-bottom-left-radius: 14px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.callout__icon {
+  width: 36px; height: 36px; display: grid; place-items: center;
+  border-radius: 10px; background: color-mix(in oklab, var(--tone) 18%, transparent);
+  color: var(--tone);
+}
+.callout__icon svg { width: 18px; height: 18px; }
+.callout__title { margin: 0 0 6px; font-family: 'Space Grotesk', sans-serif; color: var(--tone); font-size: 1rem; font-weight: 700; }
+.callout__body p:last-child { margin-bottom: 0; }
+.callout strong { color: var(--text-primary); font-weight: 700; }
+
+/* signoff */
+.signoff {
+  margin-top: 56px; padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex; align-items: center; gap: 16px;
+}
+.signoff__seal {
+  width: 52px; height: 52px; display: grid; place-items: center;
+  color: var(--gold);
+  border-radius: 50%;
+  background: rgba(245,200,66,0.08);
+  border: 1px solid color-mix(in oklab, var(--gold) 30%, transparent);
+}
+.signoff__seal svg { width: 38px; height: 38px; }
+.signoff__line { font-family: 'Space Grotesk', sans-serif; font-size: 1rem; margin: 0 0 2px; color: var(--text-primary); }
+.signoff__meta { margin: 0; font-size: 0.8125rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 6px; }
+.signoff__meta a { color: var(--text-secondary); text-decoration: none; }
+.signoff__meta a:hover { color: var(--primary); }
+
+/* totop */
+.totop {
+  position: fixed; right: 20px; bottom: 24px; z-index: 10;
+  width: 44px; height: 44px; display: grid; place-items: center;
+  border-radius: 999px;
+  background: var(--bg-secondary); border: 1px solid var(--border-color);
+  color: var(--text-primary); cursor: pointer;
+  opacity: 0; transform: translateY(8px); pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease, color 120ms ease, border-color 120ms ease;
+}
+.totop.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.totop:hover { color: var(--primary); border-color: var(--primary); box-shadow: 0 0 18px rgba(0,240,255,0.3); }
+.totop:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.totop svg { width: 18px; height: 18px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dot, .sec.is-flash::before { animation: none !important; }
+  .totop, .toc a { transition: none; }
+}
 </style>
