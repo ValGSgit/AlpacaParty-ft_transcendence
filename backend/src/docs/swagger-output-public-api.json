@@ -5,7 +5,7 @@
     "description": "Auto-generated Swagger documentation.\n## Getting Started\n\n1. **Log in** to your AlpacaParty account.\n2. Go to **Profile &rarr; Settings &rarr; Public API Key** and click **Generate Key**.\n3. Copy the key. \n4. Press the **Authorize** Button, paste the key and press authorize.\n\n_You can reveal, regenerate, or revoke the key at any time from the same page._\n",
     "version": "1.0.0"
   },
-  "host": "10.13.10.7:8443",
+  "host": "localhost:8443",
   "basePath": "/api/public",
   "schemes": [
     "https"

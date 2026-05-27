@@ -193,8 +193,6 @@ function syncPlayers(delta) {
 
         const targetRot = serverData.angle;
         let diff = targetRot - localAlpaca.model.rotation.y;
-        if (!localAlpaca.isMoving)
-          localAlpaca.isMoving = Math.abs(diff) > 0.1
 
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
