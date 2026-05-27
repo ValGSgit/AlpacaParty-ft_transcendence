@@ -11,6 +11,7 @@ const mockPrisma = {
     create: jest.fn(),
     upsert: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
     delete: jest.fn(),
     count: jest.fn(),
   },
@@ -195,9 +196,9 @@ describe("User.updatePassword", () => {
 
 describe("User.setOnline", () => {
   test("should call update with isOnline=true", async () => {
-    mockPrisma.user.update.mockResolvedValue({});
+    mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
     await User.setOnline(1, true);
-    expect(mockPrisma.user.update).toHaveBeenCalledWith(
+    expect(mockPrisma.user.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 1 },
         data: expect.objectContaining({ isOnline: true }),
@@ -206,9 +207,9 @@ describe("User.setOnline", () => {
   });
 
   test("should call update with isOnline=false", async () => {
-    mockPrisma.user.update.mockResolvedValue({});
+    mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
     await User.setOnline(1, false);
-    const call = mockPrisma.user.update.mock.calls[0][0];
+    const call = mockPrisma.user.updateMany.mock.calls[0][0];
     expect(call.data.isOnline).toBe(false);
   });
 });
@@ -418,9 +419,9 @@ describe("User.update — complex field handling", () => {
 
 describe("User.setOffline", () => {
   test("should set isOnline to false", async () => {
-    mockPrisma.user.update.mockResolvedValue({});
+    mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
     await User.setOffline(1);
-    expect(mockPrisma.user.update).toHaveBeenCalledWith(
+    expect(mockPrisma.user.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 1 },
         data: expect.objectContaining({ isOnline: false }),

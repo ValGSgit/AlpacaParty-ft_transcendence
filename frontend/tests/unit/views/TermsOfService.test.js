@@ -18,14 +18,14 @@ describe('TermsOfService.vue', () => {
     expect(wrapper.find('h1').text()).toBe('Terms of Service')
   })
 
-  it('has the legal-page container', () => {
+  it('has the doc-page container', () => {
     const wrapper = mountPage()
-    expect(wrapper.find('.legal-page').exists()).toBe(true)
+    expect(wrapper.find('.doc-page').exists()).toBe(true)
   })
 
   it('shows last updated date', () => {
     const wrapper = mountPage()
-    expect(wrapper.find('.updated').text()).toContain('2026')
+    expect(wrapper.find('.doc-meta').text()).toContain('2026')
   })
 
   it('contains multiple sections', () => {
