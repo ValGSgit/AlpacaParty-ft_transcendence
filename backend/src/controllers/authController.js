@@ -158,37 +158,69 @@ export const refresh = async (req, res, next) => {
 export const me = async (req, res) =>
   res.json({ user: req.user ? shapeUserForClient(req.user) : null });
 
-export const googleAuth = (req, res, next) => {
-  passport.authenticate("google", { session: false }, (err, user, info) => {
-    const frontendLogin = `${config.frontendUrl}/login`;
+// Build the post-OAuth redirect base from the same host that served this
+// callback request. Google/GitHub callback URLs must live on a real domain
+// (e.g. *.nip.io) for the providers to accept them, but FRONTEND_URL may be
+// configured for a different host (bare IP, localhost, etc.). Redirecting
+// across hosts loses the just-set Set-Cookie because cookies are scoped to
+// the origin that set them — the user lands logged-out and sees "OAuth
+// failed" even though the account was created. Staying on the callback's
+// own origin keeps the cookies in scope. The set of allowed origins is
+// already constrained by CORS_ORIGINS, and the callback URL itself is
+// fixed in the OAuth provider config, so this isn't an open-redirect sink.
+//
+// Host is read from X-Forwarded-Host first (covers proxies that rewrite the
+// upstream `Host` header to a port-less hostname — nginx's $host strips the
+// port, which silently breaks the redirect when the public origin uses a
+// non-default port like :8443). Falls back to the literal Host header, then
+// to FRONTEND_URL as last resort.
+function oauthRedirectOrigin(req) {
+  const xfHost = req.get("x-forwarded-host");
+  const host = xfHost || req.get("host");
+  if (!host) return config.frontendUrl;
+  // `req.protocol` already honours X-Forwarded-Proto when `trust proxy` is on
+  // (index.js sets it to 1). Treat http+req.secure as https for completeness.
+  const proto = req.protocol === "http" && req.secure ? "https" : req.protocol;
+  return `${proto}://${host}`;
+}
 
-    // Catch internal provider errors
-    if (err) {
-      console.error("Google OAuth Error:", err.message);
-      return res.redirect(`${frontendLogin}?error=oauth_provider_error`);
-    }
+// Custom-callback wrapper around passport.authenticate so OAuth failures
+// (provider error, user denied consent, strategy throw) redirect back to the
+// frontend's /login on the same host as the callback — instead of the
+// backend's non-existent /login path or a hard-coded FRONTEND_URL that may
+// be on a different host than the callback (which would drop the cookies).
+function customOAuthCallback(strategy) {
+  return (req, res, next) => {
+    passport.authenticate(strategy, { session: false }, (err, user /* , info */) => {
+      const frontendLogin = `${oauthRedirectOrigin(req)}/login`;
+      if (err) {
+        console.error(`${strategy} OAuth Error:`, err.message);
+        return res.redirect(`${frontendLogin}?error=oauth_provider_error`);
+      }
+      if (!user) {
+        return res.redirect(`${frontendLogin}?error=access_denied`);
+      }
+      req.user = user;
+      next();
+    })(req, res, next);
+  };
+}
 
-    // Catch auth failures
-    if (!user) {
-      return res.redirect(`${frontendLogin}?error=access_denied`);
-    }
-    req.user = user;
-    next();
-  })(req, res, next);
-};
+export const googleAuth = customOAuthCallback("google");
+export const githubAuth = customOAuthCallback("github");
 
 /**
  * OAuth callback (Google / GitHub)
  *
  * Tokens are issued as httpOnly cookies; the redirect just brings the user
- * back to the SPA. config.frontendUrl is a server-side constant (never derived
- * from a request header) so this is a safe, fixed-origin redirect.
+ * back to the SPA on the SAME host this callback was served from, so the
+ * cookies we just set are still in scope on the next request.
  */
 export const oauthCallback = (req, res) => {
   const { accessToken, refreshToken } = oauthTokensForUser(req.user);
   res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
   res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
-  res.redirect(302, `${config.frontendUrl}/oauth-callback`);
+  res.redirect(302, `${oauthRedirectOrigin(req)}/oauth-callback`);
 };
 
 /**

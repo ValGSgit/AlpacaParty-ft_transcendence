@@ -30,7 +30,7 @@
           A secured, rate-limited REST API for reading platform data and performing
           service-level writes. Every request requires an <code>X-API-Key</code> header.
         </p>
-        <a href="/api/docs" class="btn-primary">
+        <a href="/api/docs/public" target="_blank" rel="noopener" class="btn-primary">
           Open Interactive Swagger UI <span class="arrow">&rarr;</span>
         </a>
       </div>
@@ -246,7 +246,7 @@ const { users } = await res.json();</pre>
       <!-- Swagger link -->
       <div class="swagger-cta">
         <p>For full schema definitions, request/response examples, and a live request builder:</p>
-        <a href="/api/docs" class="btn-primary">
+        <a href="/api/docs/public" target="_blank" rel="noopener" class="btn-primary">
           Open Swagger UI <span class="arrow">&rarr;</span>
         </a>
       </div>

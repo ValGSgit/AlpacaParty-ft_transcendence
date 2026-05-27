@@ -13,6 +13,7 @@ import {
   me,
   oauthCallback,
   googleAuth,
+  githubAuth,
   validate,
 } from "../controllers/authController.js";
 import { authenticate, optionalAuth } from "../middleware/auth.js";
@@ -252,16 +253,6 @@ router.get(
     session: false,
   }),
 );
-// router.get(
-//   "/google/callback",
-//   requireStrategy("google"),
-//   passport.authenticate("google", {
-//     failureRedirect: "/login",
-//     session: false,
-//   }),
-//   oauthCallback,
-// );
-
 router.get(
   "/google/callback",
   requireStrategy("google"),
@@ -275,13 +266,14 @@ router.get(
   passport.authenticate("github", { scope: ["user:email"], session: false }),
 );
 
+// Use the custom callback form (like googleAuth) so failures redirect to the
+// frontend's /login on the same host as the callback, not the backend's
+// non-existent /login path. The previous `failureRedirect: "/login"` was a
+// relative URL and produced a backend 404 on any strategy error.
 router.get(
   "/github/callback",
   requireStrategy("github"),
-  passport.authenticate("github", {
-    failureRedirect: "/login",
-    session: false,
-  }),
+  githubAuth,
   oauthCallback,
 );
 

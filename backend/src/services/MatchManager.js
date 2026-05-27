@@ -8,11 +8,23 @@ const GAME_REGISTRY = {
   4: AlpacaRoadMatch,
 };
 
+// Reverse lookup so we can resolve match → typeKey in O(1) instead of
+// walking GAME_REGISTRY for every public-rooms broadcast.
+const TYPE_KEY_BY_CTOR = new Map(
+  Object.entries(GAME_REGISTRY).map(([k, Ctor]) => [Ctor, Number(k)]),
+);
+
 // Max concurrent players per game type — used by join/create gating.
 const PLAYER_CAP = {
   2: 10, // SpitRoyale: up to 10 players in the arena.
   4: 4,  // AlpacaRoad: 4 lanes, 4 players max.
 };
+
+function acceptsJoin(typeKey, status) {
+  if (typeKey === 4) return status === 'LOBBY';
+  if (typeKey === 2) return status === 'PLAYING';
+  return false;
+}
 
 export class MatchManager {
   constructor(ioNamespace) {
@@ -23,38 +35,44 @@ export class MatchManager {
     this.setupListeners();
   }
 
-  broadcastPublicRooms() {
+  listPublicRooms() {
     const publicRooms = [];
     for (const match of this.matches.values()) {
-      const typeKey = Number(
-        Object.keys(GAME_REGISTRY).find((k) => GAME_REGISTRY[k] === match.constructor),
-      );
+      const typeKey = TYPE_KEY_BY_CTOR.get(match.constructor);
+      if (typeKey == null) continue;
       const cap = PLAYER_CAP[typeKey];
-      const acceptingNew =
-        (typeKey === 4 && match.status === 'LOBBY') ||
-        (typeKey === 2 && match.status === 'PLAYING');
-      if (acceptingNew && match.players.size > 0 && match.players.size < cap) {
-        const levels = Array.from(match.players.values())
-          .map((player) => Number(player.level) || 1)
-          .filter((level) => Number.isFinite(level));
-        const averageLevel = levels.length
-          ? Math.round(levels.reduce((sum, level) => sum + level, 0) / levels.length)
-          : 1;
-        publicRooms.push({
-          id: match.matchId,
-          name: match.roomName,
-          playerCount: match.players.size,
-          gameType: typeKey,
-          averageLevel,
-        });
+      if (!acceptsJoin(typeKey, match.status)) continue;
+      if (match.players.size === 0 || match.players.size >= cap) continue;
+
+      let levelSum = 0;
+      let levelCount = 0;
+      for (const player of match.players.values()) {
+        const level = Number(player.level);
+        if (Number.isFinite(level)) {
+          levelSum += level;
+          levelCount++;
+        }
       }
+      publicRooms.push({
+        id: match.matchId,
+        name: match.roomName,
+        playerCount: match.players.size,
+        gameType: typeKey,
+        averageLevel: levelCount ? Math.round(levelSum / levelCount) : 1,
+      });
     }
-    this.io.emit('available_rooms', publicRooms);
+    return publicRooms;
+  }
+
+  broadcastPublicRooms() {
+    this.io.emit('available_rooms', this.listPublicRooms());
   }
 
   setupListeners() {
     this.io.on('connection', (socket) => {
-      this.broadcastPublicRooms();
+      // Send the room list to the new socket only — broadcasting to every
+      // connected client on every new connection floods the namespace.
+      socket.emit('available_rooms', this.listPublicRooms());
 
       const leaveCurrentRoom = () => {
         const matchId = this.playerToMatch.get(socket.id);
@@ -90,8 +108,10 @@ export class MatchManager {
 
         this.matches.set(roomId, match);
         this.playerToMatch.set(socket.id, roomId);
-        socket.emit('join_success', { roomId, roomName, gameType: typeKey });
+        // Add to the match before signalling success so the client can't fire
+        // gameplay events into an empty match between the two emits.
         match.addPlayer(socket, name, color);
+        socket.emit('join_success', { roomId, roomName, gameType: typeKey });
         this.broadcastPublicRooms();
       });
 
@@ -99,21 +119,16 @@ export class MatchManager {
         const match = this.matches.get(roomId);
         if (!match) return socket.emit('join_error', { reason: 'room_not_found' });
 
-        const typeKey = Number(
-          Object.keys(GAME_REGISTRY).find((k) => GAME_REGISTRY[k] === match.constructor),
-        );
+        const typeKey = TYPE_KEY_BY_CTOR.get(match.constructor);
         const cap = PLAYER_CAP[typeKey];
-        const acceptingNew =
-          (typeKey === 4 && match.status === 'LOBBY') ||
-          (typeKey === 2 && match.status === 'PLAYING');
-        if (!acceptingNew || match.players.size >= cap) {
+        if (!acceptsJoin(typeKey, match.status) || match.players.size >= cap) {
           return socket.emit('join_error', { reason: 'lobby_full' });
         }
 
         leaveCurrentRoom();
         this.playerToMatch.set(socket.id, roomId);
-        socket.emit('join_success', { roomId, roomName: match.roomName, gameType: typeKey });
         match.addPlayer(socket, name, color);
+        socket.emit('join_success', { roomId, roomName: match.roomName, gameType: typeKey });
         this.broadcastPublicRooms();
       });
 

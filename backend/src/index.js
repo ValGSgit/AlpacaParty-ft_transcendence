@@ -110,6 +110,11 @@ app.use(
   swaggerUi.serveFiles(swaggerFilePubliApi),
   swaggerUi.setup(swaggerFilePubliApi),
 );
+// Back-compat: bare /api/docs lands on the public spec so old bookmarks /
+// external links keep working. (The full internal spec stays gated.)
+app.get(["/api/docs", "/api/docs/"], (_req, res) =>
+  res.redirect(302, "/api/docs/public/"),
+);
 
 // API routes
 app.use("/api", routes);

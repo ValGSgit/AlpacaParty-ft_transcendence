@@ -122,28 +122,30 @@ export function initializeSocket(httpServer, corsOrigins) {
           return ack?.({ error: "Empty message" });
         if (content.length > DM_MAX_LEN)
           return ack?.({ error: `message too long (max ${DM_MAX_LEN})` });
-        if (Number(receiverId) === user.id)
+
+        const recvId = Number(receiverId);
+        if (!Number.isInteger(recvId) || recvId <= 0)
+          return ack?.({ error: "Invalid recipient" });
+        if (recvId === user.id)
           return ack?.({ error: "Cannot send a message to yourself" });
+
         // Prevent sending messages when either user has blocked the other.
-        const blocked = await Friend.isBlockedBetween(
-          user.id,
-          Number(receiverId),
-        );
+        const blocked = await Friend.isBlockedBetween(user.id, recvId);
         if (blocked)
           return ack?.({
             error: "Cannot send message: blocked or you have blocked this user",
           });
 
-        const friends = await Friend.areFriends(user.id, Number(receiverId));
+        const friends = await Friend.areFriends(user.id, recvId);
         if (!friends)
           return ack?.({ error: "You can only message friends" });
         const msg = await Message.create({
           senderId: user.id,
-          receiverId,
+          receiverId: recvId,
           content: content.trim(),
         });
 
-        const dmRoom = `dm:${Math.min(user.id, receiverId)}-${Math.max(user.id, receiverId)}`;
+        const dmRoom = `dm:${Math.min(user.id, recvId)}-${Math.max(user.id, recvId)}`;
         socket.join(dmRoom);
 
         // Map to snake_case for frontend compatibility
@@ -159,20 +161,23 @@ export function initializeSocket(httpServer, corsOrigins) {
         };
 
         // Send to receiver's personal room
-        io.to(`user:${receiverId}`).emit("dm:message", shaped);
+        io.to(`user:${recvId}`).emit("dm:message", shaped);
         // Echo back to sender
         socket.emit("dm:message", shaped);
 
         GamificationService.onMessageSent(user.id).catch(() => {});
 
         // Notification (non-blocking)
-        NotificationService.newMessage(receiverId, user.username).catch(
+        NotificationService.newMessage(recvId, user.username).catch(
           (err) => { debug("notification error (newMessage):", err.message); },
         );
 
         ack?.({ ok: true, message: shaped });
       } catch (err) {
-        ack?.({ error: err.message });
+        // Don't leak internal error messages (DB error strings, etc.) to the
+        // client — log server-side and return a generic response.
+        debug("dm:send failed:", err?.message);
+        ack?.({ error: "Failed to send message" });
       }
     });
 

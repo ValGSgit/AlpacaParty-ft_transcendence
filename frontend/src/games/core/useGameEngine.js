@@ -7,6 +7,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { shallowRef } from 'vue';
 import { CONST } from '../config/constants.js';
 import { gAlpacas, gCollectables, gCollidables, gDecorations, gEditables, gEditState, gItems, gPlayer, gScene, gUser } from './globals.js';
+import { clearModelCache } from './modelCache.js';
 
 export function useGameEngine(containerRef) {
   // Use shallowRef for Three.js objects (prevents Vue from making them reactive and slow)
@@ -118,7 +119,9 @@ export function useGameEngine(containerRef) {
     if (!scene) return;
 
     scene.traverse((object) => {
-      if (object.geometry) object.geometry.dispose();
+      if (object.geometry && !object.geometry.userData?.shared) {
+        object.geometry.dispose();
+      }
       if (object.material) {
         if (Array.isArray(object.material)) {
           object.material.forEach(cleanupMaterial);
@@ -132,10 +135,13 @@ export function useGameEngine(containerRef) {
       scene.remove(child);
     }
   };
+  // Skip resources owned by modelCache or the shared MATS table — disposing
+  // them here would corrupt the next clone (white meshes, missing textures).
   const cleanupMaterial = (material) => {
+    if (material.userData?.shared) return;
     for (const key in material) {
       const value = material[key];
-      if (value && value.isTexture) {
+      if (value && value.isTexture && !value.userData?.shared) {
         value.dispose();
       }
     }
@@ -186,6 +192,10 @@ export function useGameEngine(containerRef) {
       renderer.value.domElement.remove(); // Remove the canvas from the HTML
       renderer.value = null
     }
+
+    // 5. Drop cached GLB resources so a remount starts from a clean slate.
+    //    Safe here because cleanup is the unmount path — no live clones remain.
+    clearModelCache()
   }
 
   const onResize = () => {
