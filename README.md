@@ -72,7 +72,7 @@
 | **Auth** | JWT (access + refresh in HTTP-only cookies) + bcrypt | Standard secure pattern for email/password authentication |
 | **AI** | Groq LLM API — server-side proxy | Fast completions for the in-app "Paca" help desk; key never exposed to the browser |
 | **Reverse proxy + WAF** | nginx + ModSecurity (OWASP CRS 3.3.9) | HTTPS termination, WS upgrade, attack filtering |
-| **Secret management** | HashiCorp Vault (file backend, auto-init + auto-unseal) | All production secrets fetched at backend startup; no plaintext on disk |
+| **Secret management** | HashiCorp Vault (dev mode, KV v2) | All production secrets fetched at backend startup; no plaintext on disk |
 | **Containerization** | Docker Compose (`make up` / `make prod-up`) | Single-command deployment |
 | **API docs** | Swagger UI (OpenAPI 3) at `/api/docs/public`, embedded in the `/docs` frontend page | Interactive documentation for the public API + architecture map |
 
@@ -147,7 +147,7 @@ PostgreSQL with **22 Prisma models**, organized around users, social interaction
 | Notifications | Real-time notifications for friend requests, messages, likes, comments, achievements, game invites | ValGSgit |
 | Public API | 6 endpoints under `/api/public/*` with `X-API-Key` (`ap_…`) auth, 30 req/min, Swagger UI at `/api/docs/public` | ValGSgit |
 | File Uploads | Multi-type, MIME whitelist, 10 MB cap, hashed filenames, preview, delete | ValGSgit, DavidPoetsch |
-| Cybersecurity (WAF + Vault) | nginx + ModSecurity (OWASP CRS), Vault auto-init / unseal / seed; backend reads secrets at startup | ValGSgit, DavidPoetsch |
+| Cybersecurity (WAF + Vault) | nginx + ModSecurity (OWASP CRS), Vault (dev mode) seeded by `vault-init`; backend reads secrets at startup | ValGSgit, DavidPoetsch |
 | HTTPS | Self-signed TLS in dev, HSTS, security headers (CSP, X-Frame-Options) | DavidPoetsch, ValGSgit |
 | Privacy Policy / Terms | Project-specific copy (Help, Privacy, Terms) reflecting the real feature set; linked from every page footer | ValGSgit |
 | GDPR Data Management | Export (JSON/CSV/XML), account deletion (immediate via `DELETE /users/me`, or queued via `POST /users/me/delete-request`) | ValGSgit |
@@ -171,7 +171,7 @@ PostgreSQL with **22 Prisma models**, organized around users, social interaction
 | 8 | **Standard user management** — profile edit, avatar upload, friends, online status | User Mgmt | Major | **2** | ✅ | ValGSgit, fankahou |
 | 10 | **Game statistics & match history** — `/game/stats`, `/game/history`, leaderboards, achievements | User Mgmt | Minor | **1** | ✅ | ValGSgit |
 | 11 | **LLM system interface** — Groq-backed help desk; backend rate-limited, system-prompted | AI | Major | **2** | ✅ | ValGSgit |
-| 12 | **WAF/ModSecurity hardened + HashiCorp Vault** — strict ModSecurity with OWASP CRS; Vault auto-init/unseal seeds DB password, JWT secret, and Groq keys | Cybersecurity | Major | **2** | ✅ | ValGSgit, DavidPoetsch |
+| 12 | **WAF/ModSecurity hardened + HashiCorp Vault** — strict ModSecurity with OWASP CRS; Vault (dev mode) holds DB password, JWT secret, and Groq keys, seeded by `vault-init` | Cybersecurity | Major | **2** | ✅ | ValGSgit, DavidPoetsch |
 | 13 | **Web-based game** — Spit Royale: real-time multiplayer arena with clear win/loss rules | Gaming | Major | **2** | ✅ | ValGSgit, LukasStefanek |
 | 14 | **Add another game** — Alpaca Road: second distinct game with independent history + lobbies via `MatchManager` | Gaming | Major | **2** | ✅ | ValGSgit, LukasStefanek |
 | 15 | **Advanced 3D graphics (Three.js)** — immersive farm world, lighting, cameras, animations | Gaming | Major | **2** | ✅ | fankahou, LukasStefanek |
@@ -201,7 +201,7 @@ PostgreSQL with **22 Prisma models**, organized around users, social interaction
 8. **Standard user management** — Editable profile (username, email, bio, status, avatar). Default avatar served when none uploaded. Friends with real-time presence. Profile page shows level, XP progress, achievements, stats.
 10. **Game statistics & match history** — `GET /api/game/stats`, `GET /api/game/history`, `GET /api/game/leaderboard?board=kills|obstacles|coins`, `GET /api/game/achievements`, `GET /api/game/challenges` — backed by `GameStat` (per game type) and `Game` (match records).
 11. **LLM system interface** — `POST /api/helpdesk/chat` proxies user messages to Groq's LLM API. The backend keeps the API keys (rotating across multiple keys), injects a system prompt that explains AlpacaParty's features, applies a per-user rate limiter, and streams completions back to the floating `HelpDeskChat.vue` widget.
-12. **WAF + Vault** — `nginx_prod` runs ModSecurity with OWASP CRS 3.3.9 rules. Production secrets (DB password, JWT secret, Groq keys) live in HashiCorp Vault. `vault-init` is a one-shot service that initializes Vault on first boot, writes the unseal key + service token to a Docker volume, seeds secrets, then exits. The backend reads `VAULT_TOKEN` at startup and pulls secrets into memory — no plaintext on disk in app containers.
+12. **WAF + Vault** — `nginx_prod` runs ModSecurity with OWASP CRS 3.3.9 rules. Production secrets (DB password, JWT secret, Groq keys) live in HashiCorp Vault running in dev mode (auto-unsealed, KV v2 pre-mounted). `vault-init` is a one-shot service that seeds the secrets and exits. The backend uses `VAULT_TOKEN` (set via env) to fetch every secret at startup — no plaintext on disk in app containers.
 13. **Web-based game (Spit Royale)** — Real-time arena game over Socket.IO (`/minigames` namespace, dispatched by `MatchManager` to a `SpitRoyalMatch` instance per room). Free-for-all up to **10 players**; clear win condition (last alpaca standing). The server enforces a 500 ms spit cooldown, a 12 m maximum spit range, and a per-input movement-speed clamp — every `spit_hit` outside those windows is silently ignored.
 14. **Add another game (Alpaca Road)** — Second distinct game over Socket.IO (`/minigames` namespace). `MatchManager` pairs players into lobbies up to **4 lanes** and instantiates an `AlpacaRoadMatch`, running its own tick loop. Stats are tracked under `gameType = "alpaca_road"` so leaderboards and history are independent of Spit Royale.
 15. **Advanced 3D graphics** — Three.js scene graph with custom lighting, multiple cameras, alpaca model rigging + animation, and an interactive farm world with shop, customization, and editing.
@@ -221,7 +221,7 @@ PostgreSQL with **22 Prisma models**, organized around users, social interaction
 - **Services**: Gamification engine, NotificationService, dataExportService (JSON / CSV / XML), uploadService, adminAuthService, `socketService` for the `/` namespace, `MatchManager` on the `/minigames` namespace dispatching `SpitRoyalMatch` and `AlpacaRoadMatch`
 - **Admin Panel**: Role-based access control (admin / superadmin), `adminController`, `adminAuthService`, `admin.js` middleware, admin route definitions, dashboard statistics
 - **AI**: Groq LLM proxy (`/helpdesk`) with key rotation and rate limiting; floating `HelpDeskChat.vue` widget
-- **Cybersecurity**: HashiCorp Vault auto-init + auto-unseal + secret seeding; ModSecurity WAF tuned for the API; API-key session validation
+- **Cybersecurity**: HashiCorp Vault (dev mode) + secret seeding via `vault-init`; ModSecurity WAF tuned for the API; API-key session validation
 - **Frontend**: `Feed.vue`, `Profile.vue`, settings page, public-API-key management UI, `ApiDocs.vue`, `AdminPanel.vue`, `AdminLogin.vue`, notifications, `Help.vue`, `PrivacyPolicy.vue`, `TermsOfService.vue`, GDPR export + delete-request flows
 
 ### DavidPoetsch — Technical Lead / Developer
@@ -279,7 +279,7 @@ make build && make up
 make prod-build && make prod-up
 ```
 
-Production additionally starts the `vault` and `vault-init` services. `vault-init` initializes Vault on first boot, writes the unseal key + service token to the `vault_keys` Docker volume, and seeds all secrets. The backend reads `VAULT_TOKEN` from the volume at startup and pulls every secret into memory.
+Production additionally starts the `vault` and `vault-init` services. Vault runs in dev mode with the root token supplied via `VAULT_TOKEN`; `vault-init` seeds every secret on first boot and exits. The backend reads `VAULT_TOKEN` from compose env and pulls every secret into memory at startup.
 
 ### Local Development (without Docker)
 
@@ -344,7 +344,7 @@ See [.env.example](.env.example) for the full list. Highlights:
 | `frontend` | `alpacaparty_frontend` | Vite-built Vue 3 SPA |
 | `postgres` | `alpacaparty_db_prod` | PostgreSQL 16 |
 | `vault` | `alpacaparty_vault` | HashiCorp Vault (secret store) |
-| `vault-init` | `alpacaparty_vault_init` | One-shot init / unseal / seed, then exits |
+| `vault-init` | `alpacaparty_vault_init` | One-shot seed, then exits |
 
 For an interactive system map (request pipeline, route catalog, Socket.IO namespaces, secret flow, and more), open the **Architecture Map** tab on `/docs` once the app is running. The full canonical reference lives in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 

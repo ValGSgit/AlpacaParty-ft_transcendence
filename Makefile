@@ -39,7 +39,7 @@ endif
         seed-example seed-example-reset prod-seed-example prod-seed-example-reset \
         seed-live seed-live-reset prod-seed-live prod-seed-live-reset \
         vault-status vault-secrets vault-shell \
-        prod-vault-status prod-vault-unseal prod-vault-rotate-token prod-vault-reseed \
+        prod-vault-status prod-vault-reseed \
         waf-logs \
 				set-ip
 
@@ -98,8 +98,6 @@ help:
 	@echo "  $(GREEN)make vault-secrets$(RESET)             List secrets stored in Vault (dev)"
 	@echo "  $(GREEN)make vault-shell$(RESET)               Open interactive Vault shell (dev)"
 	@echo "  $(GREEN)make prod-vault-status$(RESET)         Show prod Vault status"
-	@echo "  $(GREEN)make prod-vault-unseal$(RESET)         Manually unseal prod Vault"
-	@echo "  $(GREEN)make prod-vault-rotate-token$(RESET)   Create new limited service token"
 	@echo "  $(GREEN)make prod-vault-reseed$(RESET)         Re-run vault-init to push new secrets"
 	@echo "  $(GREEN)make waf-logs$(RESET)                  Tail ModSecurity audit log (prod)"
 	@echo ""
@@ -380,7 +378,7 @@ vault-secrets:
 
 vault-shell:
 	$(DC) exec -e VAULT_ADDR=http://127.0.0.1:8200 \
-	           -e VAULT_TOKEN=$${VAULT_DEV_TOKEN:-alpacaparty-dev-token} \
+	           -e VAULT_TOKEN=$${VAULT_TOKEN:-alpacaparty-dev-token} \
 	           vault sh
 
 waf-logs:
@@ -390,37 +388,11 @@ waf-logs:
 prod-vault-status:
 	$(DC_PROD) exec vault vault status
 
-# Manually unseal prod vault (if vault-init container is no longer running).
-# Requires VAULT_UNSEAL_KEY in .env.
-prod-vault-unseal:
-	$(DC_PROD) exec \
-	  -e VAULT_ADDR=https://vault:8200 \
-	  -e VAULT_SKIP_VERIFY=true \
-	  vault vault operator unseal $${VAULT_UNSEAL_KEY}
-
-# Re-run vault-init to push updated secrets (e.g. after adding new keys to .env).
+# Re-run vault-init to push updated secrets (after editing .env).
 prod-vault-reseed:
 	$(DC_PROD) run --rm vault-init
 	@echo "$(GREEN)✓ Vault reseeded — restart the backend to pick up new secrets$(RESET)"
 	@echo "$(YELLOW)  make prod-down && make prod-up$(RESET)"
-
-# Create a new limited read-only service token.
-# Copy the printed token into VAULT_TOKEN in .env, then restart:
-#   make prod-down && make prod-up
-prod-vault-rotate-token:
-	@$(DC_PROD) exec \
-	  -e VAULT_ADDR=https://vault:8200 \
-	  -e VAULT_TOKEN=$${VAULT_TOKEN} \
-	  -e VAULT_SKIP_VERIFY=true \
-	  vault vault token create \
-	    -policy=alpacaparty-backend \
-	    -ttl=2160h \
-	    -renewable=true \
-	    -display-name=alpacaparty-backend \
-	    -format=json \
-	  | grep '"client_token"' \
-	  | sed 's/.*"client_token": *"\(.*\)".*/\1/' \
-	  | xargs -I{} echo "New VAULT_TOKEN: {}"
 
 # ── CLEANUP ─────────────────────────────────────────────────
 clean:

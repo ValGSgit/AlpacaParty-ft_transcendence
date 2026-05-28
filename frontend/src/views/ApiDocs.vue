@@ -129,13 +129,13 @@
                     <div class="am-node am-node--sec">
                       <span class="am-dot" style="background:#f5c842"></span>
                       <div class="am-node-name">vault_prod <span class="am-tag">hashi·vault</span></div>
-                      <div class="am-node-desc">File backend · TLS · secrets at startup</div>
+                      <div class="am-node-desc">Dev mode · KV v2 · secrets at startup</div>
                       <div class="am-ports"><span>:8200</span></div>
                     </div>
                     <div class="am-node am-node--sec">
                       <span class="am-dot" style="background:#f5c842"></span>
                       <div class="am-node-name">vault-init <span class="am-tag">one-shot</span></div>
-                      <div class="am-node-desc">init → unseal → seed → exit</div>
+                      <div class="am-node-desc">seed → exit</div>
                     </div>
                   </div>
                 </div>
@@ -456,24 +456,16 @@
               </div>
               <div class="am-timeline">
                 <div class="am-tl">
-                  <div class="am-tl-who">vault-init</div>
-                  <div class="am-tl-what">initialize vault — generate unseal key</div>
+                  <div class="am-tl-who">vault</div>
+                  <div class="am-tl-what">start in dev mode — auto-unsealed, KV v2 mounted at <code>secret/</code></div>
                 </div>
                 <div class="am-tl">
                   <div class="am-tl-who">vault-init</div>
-                  <div class="am-tl-what">unseal vault</div>
-                </div>
-                <div class="am-tl">
-                  <div class="am-tl-who">vault-init</div>
-                  <div class="am-tl-what">seed secrets — DB pass · JWT · Groq</div>
-                </div>
-                <div class="am-tl">
-                  <div class="am-tl-who">vault-init</div>
-                  <div class="am-tl-what">write <code>VAULT_TOKEN</code> → <code>vault_keys/keys.env</code>, exit (restart: no)</div>
+                  <div class="am-tl-what">seed secrets — DB pass · JWT · Groq, then exit (restart: no)</div>
                 </div>
                 <div class="am-tl am-tl--b">
                   <div class="am-tl-who">backend startup</div>
-                  <div class="am-tl-what">read <code>VAULT_TOKEN</code> from <code>keys.env</code></div>
+                  <div class="am-tl-what">read <code>VAULT_TOKEN</code> from compose env</div>
                 </div>
                 <div class="am-tl am-tl--b">
                   <div class="am-tl-who">backend startup</div>

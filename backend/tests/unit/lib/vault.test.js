@@ -18,27 +18,26 @@ const https = mockHttps;
 let Vault;
 
 describe('Vault lib', () => {
+  const originalEnv = { ...process.env };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    // Setup fs mocks
+    process.env.VAULT_TOKEN = 'test-token-123';
+    process.env.VAULT_ADDR = 'https://vault:8200';
+
     mockFs.existsSync.mockReturnValue(true);
     mockFs.readFileSync.mockImplementation((path) => {
-      if (path === '/run/vault-keys/keys.env') {
-        return 'VAULT_TOKEN=test-token-123';
-      }
-      if (path === '/app/ssl/cert.pem') {
-        return Buffer.from('mock-cert');
-      }
+      if (path === '/app/ssl/cert.pem') return Buffer.from('mock-cert');
       return '';
     });
 
-    // Import Vault after clearing mocks
     Vault = (await import('../../../src/lib/vault.js')).default;
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+    process.env = { ...originalEnv };
   });
 
   describe('read', () => {
@@ -409,16 +408,9 @@ describe('Vault lib', () => {
     });
 
     test('should include CA certificate when available', async () => {
-      mockFs.existsSync.mockImplementation((path) =>
-        path === '/run/vault-keys/keys.env' || path === '/app/ssl/cert.pem'
-      );
+      mockFs.existsSync.mockImplementation((path) => path === '/app/ssl/cert.pem');
       mockFs.readFileSync.mockImplementation((path) => {
-        if (path === '/run/vault-keys/keys.env') {
-          return 'VAULT_TOKEN=test-token-123';
-        }
-        if (path === '/app/ssl/cert.pem') {
-          return Buffer.from('mock-cert');
-        }
+        if (path === '/app/ssl/cert.pem') return Buffer.from('mock-cert');
         return '';
       });
 

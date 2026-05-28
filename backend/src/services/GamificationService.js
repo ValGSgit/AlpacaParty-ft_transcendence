@@ -224,7 +224,7 @@ const GamificationService = {
   async onLogin(userId) {
     userId = Number(userId);
     if (!Number.isFinite(userId)) return;
-
+    await GamificationService.checkTopPlayerAchievement(req.user.id).catch(() => {});
     await this.unlock(userId, 'first_login');
   },
 

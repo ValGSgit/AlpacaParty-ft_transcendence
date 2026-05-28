@@ -93,15 +93,15 @@ Security headers set exclusively at Nginx level; matching Helmet headers are str
 **Dev** (`compose.yaml`) — includes backend, frontend, postgres, nginx, vault, e2e (optional).  
 **Prod** (`compose.prod.yaml`) — same services with production Dockerfiles and vault-init automation.
 
-Shared network: `alpacaparty_net`. Named volumes: `pg_data`, `vault_data`, `vault_keys`, `ssl`, `backend_data`, `frontend_data`.
+Shared network: `alpacaparty_net`. Named volumes: `pg_data`, `ssl`, `backend_data`, `frontend_data`.
 
-Secrets are injected by mounting a tmpfs `/run/secrets` in the backend container; Vault credentials (unseal keys, root token) live in the `vault_keys` volume read-only.
+Secrets are injected by mounting a tmpfs `/run/secrets` in the backend container; `VAULT_TOKEN` is passed via compose env.
 
 ### HashiCorp Vault
 
-KV v2 store. The `vault/init/seed.sh` script runs once (via `vault-init` container) to write all secrets (DB password, JWT secrets, Groq API keys, admin JWT secret). The backend reads them at startup via `backend/src/tools/fetchSecrets.js` + `backend/src/lib/vault.js`.
+Vault runs in dev mode (auto-unsealed, KV v2 pre-mounted at `secret/`, fixed root token from `VAULT_TOKEN`). The `vault/init/seed.sh` script runs once via the `vault-init` container to write all secrets (DB password, JWT secrets, Groq API keys, admin JWT secret) into `secret/alpacaparty`. The backend reads them at startup via `backend/src/tools/fetchSecrets.js` + `backend/src/lib/vault.js`.
 
-Policy `alpacaparty-backend` grants **read-only** access to `secret/data/alpacaparty`. Admin panel reads/writes per-admin permission paths via `adminController`.
+The backend uses the dev-mode root token; the admin panel reads/writes per-admin permission paths under `secret/data/alpacaparty/admins/*` via `adminController`.
 
 ### Docker Entrypoints
 
@@ -167,7 +167,6 @@ Rate limited by `authLimiter` (50 req/15 min prod, 1 000 dev).
 | POST | `/logout` | Clear JWT cookies, mark user offline |
 | POST | `/refresh` | Exchange refresh cookie → new access token |
 | GET | `/me` | Return authenticated user object |
-| GET | `/validate` | Validate username or email availability |
 
 #### `/api/users` (`routes/users.js`) — all routes require `authenticate`
 

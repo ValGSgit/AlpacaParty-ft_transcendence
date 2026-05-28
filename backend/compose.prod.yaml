@@ -1,9 +1,8 @@
 # Backend (Express) — Production
 #
-# Secrets (DB_PASSWORD, JWT_SECRET, API keys) are NOT passed here.
-# They are fetched from Vault by load-secrets.sh (via fetchSecrets.js) at entrypoint time
-# and written to /run/secrets/.env (tmpfs). env-cmd then injects them for all commands.
-# Only non-sensitive infrastructure config is set in the environment block below.
+# Secrets are fetched from Vault by load-secrets.sh at entrypoint time using
+# VAULT_TOKEN (passed via env). Secrets are written to /run/secrets/.env
+# (tmpfs); env-cmd then injects them for all commands.
 services:
   backend:
     build:
@@ -32,23 +31,18 @@ services:
       PUBLIC_API_HOST: "${PUBLIC_API_HOST}"
 
       # ── Vault bootstrap ────────────────────────────────────────
-      VAULT_ADDR: https://vault:8200
-      # Trust the shared self-signed cert for HTTPS connections to Vault
-      NODE_EXTRA_CA_CERTS: /app/ssl/cert.pem
-      # VAULT_TOKEN is read from /run/vault-keys/keys.env by load-secrets.sh.
-      # Written there by vault-init on first boot — no manual token management required.
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN}
     tmpfs:
       - /run/secrets:size=64m,mode=1777
     volumes:
       - ssl:/app/ssl
       - backend_uploads:/app/uploads
-      # Read-only access to the keys written by vault-init (VAULT_TOKEN)
-      - vault_keys:/run/vault-keys:ro
     depends_on:
       postgres:
         condition: service_healthy
-      # Wait for vault-init to complete: ensures vault is initialized, unsealed,
-      # and all secrets are seeded before backend attempts to connect.
+      # Wait for vault-init to complete: ensures all secrets are seeded
+      # before backend attempts to fetch them.
       vault-init:
         condition: service_completed_successfully
     healthcheck:
