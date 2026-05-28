@@ -3,7 +3,6 @@
  * @owner ValGSgit
  */
 import express from "express";
-import passport from "passport";
 import rateLimit from "express-rate-limit";
 import {
   register,
@@ -11,17 +10,13 @@ import {
   logout,
   refresh,
   me,
-  oauthCallback,
-  googleAuth,
-  githubAuth,
   validate,
 } from "../controllers/authController.js";
-import { authenticate, optionalAuth } from "../middleware/auth.js";
+import { optionalAuth } from "../middleware/auth.js";
 import {
   authLoginValidation,
   authRegisterValidation,
 } from "#validators/authValidator.js";
-import config from "#config/index.js";
 
 const router = express.Router();
 
@@ -227,54 +222,5 @@ router.get("/me", optionalAuth, me);
  *                 message: { type: string }
  */
 router.get("/validate", validate);
-
-// ── OAuth ─────────────────────────────────────────────────
-
-/**
- * Guard that checks whether a Passport strategy is registered before
- * attempting authentication.  Returns 501 if the provider is not configured
- * (e.g. missing OAuth credentials) instead of crashing with
- * "Unknown authentication strategy".
- */
-const requireStrategy = (name) => (req, res, next) => {
-  if (!passport._strategy(name)) {
-    return res.status(501).json({
-      error: { message: `${name} login is not configured on this server` },
-    });
-  }
-  next();
-};
-
-router.get(
-  "/google",
-  requireStrategy("google"),
-  passport.authenticate("google", {
-    scope: ["profile", "email"],
-    session: false,
-  }),
-);
-router.get(
-  "/google/callback",
-  requireStrategy("google"),
-  googleAuth,
-  oauthCallback,
-);
-
-router.get(
-  "/github",
-  requireStrategy("github"),
-  passport.authenticate("github", { scope: ["user:email"], session: false }),
-);
-
-// Use the custom callback form (like googleAuth) so failures redirect to the
-// frontend's /login on the same host as the callback, not the backend's
-// non-existent /login path. The previous `failureRedirect: "/login"` was a
-// relative URL and produced a backend 404 on any strategy error.
-router.get(
-  "/github/callback",
-  requireStrategy("github"),
-  githubAuth,
-  oauthCallback,
-);
 
 export default router;

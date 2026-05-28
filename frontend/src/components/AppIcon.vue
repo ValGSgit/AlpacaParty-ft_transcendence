@@ -32,7 +32,6 @@ const props = defineProps({
 
 // Multi-color SVGs that live in /icons/ui/ and can't use currentColor
 const FILE_ICONS = {
-  'google':         '/icons/ui/google-color-svgrepo-com.svg',
   'close':          '/icons/ui/cross-close.svg',
   'message':        '/icons/ui/message.svg',
   'logout':         '/icons/ui/logout.svg',

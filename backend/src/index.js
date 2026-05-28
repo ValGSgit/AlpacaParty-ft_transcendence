@@ -15,7 +15,6 @@ import prisma from "#config/prisma.js";
 import cookieParser from "cookie-parser";
 import { errorHandler, notFoundHandler } from "#middleware/errorHandler.js";
 import { initializeSocket } from "#services/socketService.js";
-import { initializePassport } from "#services/oauthService.js";
 import { createHttpsServer } from "#lib/httpsServer.js";
 import { getHelmetConfig } from "#config/helmet.js";
 import { uploadSecurityCheck } from "#utils/uploadSecurity.js";
@@ -98,10 +97,6 @@ app.use(
 app.use(express.json({ limit: "256kb" }));
 app.use(express.urlencoded({ extended: true, limit: "256kb" }));
 app.use(cookieParser());
-
-// Passport (OAuth)
-const passport = initializePassport();
-app.use(passport.initialize());
 
 // This should happen here to ensure all routes, including static file serving, are protected by the upload security check.
 //  It will allow or deny access to the uploads directory based on the request's authentication and authorization status.

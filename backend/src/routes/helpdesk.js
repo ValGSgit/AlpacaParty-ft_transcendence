@@ -44,9 +44,8 @@ AlpacaParty is a web-based platform where users can:
 
 ## Getting Started
 1. Register at /register or log in at /login
-2. You can also sign in with Google or GitHub via OAuth
-3. After logging in, you land on the AlpacaFarm game automatically
-4. Navigate using the top navbar: AlpacaFarm, Feed, Friends, Profile
+2. After logging in, you land on the AlpacaFarm game automatically
+3. Navigate using the top navbar: AlpacaFarm, Feed, Friends, Profile
 
 ## Key Features
 - **Profile**: Customize your avatar, view your stats and achievements, see your post history

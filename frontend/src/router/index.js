@@ -2,8 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import { useAdminAuthStore } from '../stores/adminAuth.js'
 
-// const Login    = () => import('../views/Login.vue')
-// const Register = () => import('../views/Register.vue')
 const AuthV3   = () => import('../views/AuthV3.vue')
 const Profile  = () => import('../views/Profile.vue')
 const UserProfile = () => import('../views/UserProfile.vue')
@@ -11,7 +9,6 @@ const Friends  = () => import('../views/Friends.vue')
 const Game     = () => import('../games/Game.vue')
 const Feed     = () => import('../views/Feed.vue')
 const NotFound = () => import('../views/NotFound.vue')
-const OAuthCallback = () => import('../views/OAuthCallback.vue')
 const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
 const TermsOfService = () => import('../views/TermsOfService.vue')
 const ApiDocs  = () => import('../views/ApiDocs.vue')
@@ -26,18 +23,6 @@ const routes = [
     component: Game,
     meta: { requiresAuth: false },
   },
-  // {
-  //   path: '/login',
-  //   name: 'Login',
-  //   component: Login,
-  //   meta: { requiresAuth: false, guestOnly: true },
-  // },
-  // {
-  //   path: '/register',
-  //   name: 'Register',
-  //   component: Register,
-  //   meta: { requiresAuth: false, guestOnly: true },
-  // },
   {
     path: '/login',
     name: 'Login',
@@ -83,12 +68,6 @@ const routes = [
     path: '/docs',
     name: 'ApiDocs',
     component: ApiDocs,
-    meta: { requiresAuth: false },
-  },
-  {
-    path: '/oauth-callback',
-    name: 'OAuthCallback',
-    component: OAuthCallback,
     meta: { requiresAuth: false },
   },
   {

@@ -30,10 +30,9 @@
    - [Game Engine (Client)](#55-game-engine-client)
 6. [Key Data Flows](#6-key-data-flows)
    - [Authentication Flow](#61-authentication-flow)
-   - [OAuth Flow](#62-oauth-flow)
-   - [Real-Time (Socket.io)](#63-real-time-socketio)
-   - [Multiplayer Game Flow](#64-multiplayer-game-flow)
-   - [File Upload Flow](#65-file-upload-flow)
+   - [Real-Time (Socket.io)](#62-real-time-socketio)
+   - [Multiplayer Game Flow](#63-multiplayer-game-flow)
+   - [File Upload Flow](#64-file-upload-flow)
 7. [Security Model](#7-security-model)
 8. [Known Issues & Improvement Areas](#8-known-issues--improvement-areas)
 
@@ -60,12 +59,12 @@ Backend ──── PostgreSQL (Prisma ORM)
 | Layer | Technology |
 |---|---|
 | Reverse proxy | Nginx + ModSecurity (CRS WAF) |
-| Backend | Node.js, Express.js, Passport.js, Socket.io |
+| Backend | Node.js, Express.js, Socket.io |
 | Database | PostgreSQL via Prisma ORM |
 | Secrets | HashiCorp Vault (KV v2) |
 | Frontend | Vue 3 (Composition API), Pinia, Three.js |
 | Realtime | Socket.io (bidirectional, cookie-authenticated) |
-| Auth | JWT httpOnly cookies + OAuth 2.0 (Google / GitHub) |
+| Auth | JWT httpOnly cookies (email/password registration) |
 | File storage | Disk (Docker volume, UUID-prefixed filenames) |
 | AI | Groq LLM (SSE streaming, round-robin key rotation) |
 | Containers | Docker Compose (dev + prod variants) |
@@ -100,7 +99,7 @@ Secrets are injected by mounting a tmpfs `/run/secrets` in the backend container
 
 ### HashiCorp Vault
 
-KV v2 store. The `vault/init/seed.sh` script runs once (via `vault-init` container) to write all secrets (DB password, JWT secrets, OAuth keys, Groq API keys, admin JWT secret). The backend reads them at startup via `backend/src/tools/fetchSecrets.js` + `backend/src/lib/vault.js`.
+KV v2 store. The `vault/init/seed.sh` script runs once (via `vault-init` container) to write all secrets (DB password, JWT secrets, Groq API keys, admin JWT secret). The backend reads them at startup via `backend/src/tools/fetchSecrets.js` + `backend/src/lib/vault.js`.
 
 Policy `alpacaparty-backend` grants **read-only** access to `secret/data/alpacaparty`. Admin panel reads/writes per-admin permission paths via `adminController`.
 
@@ -134,20 +133,19 @@ Policy `alpacaparty-backend` grants **read-only** access to `secret/data/alpacap
 1. Load + validate config (`validateConfig.js` — hard-throws on missing required vars)
 2. Build Express app
 3. Apply middleware stack: CORS → Helmet (CSP) → trust-proxy → HTTPS-redirect → body parsers → global rate limiter
-4. Initialize Passport OAuth strategies (`oauthService.initializePassport()`)
-5. Serve `/uploads` static with `uploadSecurityCheck` middleware
-6. Mount all routes at `/api`
-7. Register `errorHandler` + `notFoundHandler`
-8. Create HTTPS server (`lib/httpsServer.js`)
-9. Attach Socket.io (`socketService.init(server)`)
-10. Listen; register SIGTERM/SIGINT graceful shutdown
+4. Serve `/uploads` static with `uploadSecurityCheck` middleware
+5. Mount all routes at `/api`
+6. Register `errorHandler` + `notFoundHandler`
+7. Create HTTPS server (`lib/httpsServer.js`)
+8. Attach Socket.io (`socketService.init(server)`)
+9. Listen; register SIGTERM/SIGINT graceful shutdown
 
 ### 3.2 Config & Secrets
 
 | File | Purpose |
 |---|---|
-| `config/index.js` | Single source for all env vars: port, JWT secrets/expiry/cookies, admin JWT, DB URL, CORS origins, rate limit settings, password policy, OAuth credentials, SSL paths, Groq key array, upload limits |
-| `config/helmet.js` | Helmet CSP: `default-src 'self'`; image sources include Google/GitHub avatars, picsum, pexels; WebSocket `wss:`; no eval; frames/objects/embeds blocked |
+| `config/index.js` | Single source for all env vars: port, JWT secrets/expiry/cookies, admin JWT, DB URL, CORS origins, rate limit settings, password policy, SSL paths, Groq key array, upload limits |
+| `config/helmet.js` | Helmet CSP: `default-src 'self'`; image sources include picsum, pexels; WebSocket `wss:`; no eval; frames/objects/embeds blocked |
 | `config/prisma.js` | Prisma Client singleton (`@prisma/adapter-pg`) |
 | `config/validateConfig.js` | Startup guard — throws on missing required vars; admin JWT only required in prod |
 
@@ -169,10 +167,7 @@ Rate limited by `authLimiter` (50 req/15 min prod, 1 000 dev).
 | POST | `/logout` | Clear JWT cookies, mark user offline |
 | POST | `/refresh` | Exchange refresh cookie → new access token |
 | GET | `/me` | Return authenticated user object |
-| GET | `/google` | Initiate Google OAuth |
-| GET | `/google/callback` | Google OAuth callback → issue tokens |
-| GET | `/github` | Initiate GitHub OAuth |
-| GET | `/github/callback` | GitHub OAuth callback → issue tokens |
+| GET | `/validate` | Validate username or email availability |
 
 #### `/api/users` (`routes/users.js`) — all routes require `authenticate`
 
@@ -323,7 +318,7 @@ Validates 1–20 messages, max 2 000 chars each. Groq API keys rotated round-rob
 
 | Controller | Key Responsibilities |
 |---|---|
-| `authController` | Register, login, logout, token refresh, `me`, OAuth callback |
+| `authController` | Register, login, logout, token refresh, `me`, validate |
 | `userController` | Profile CRUD, password change, GDPR export/deletion, API key management, `friend_status` in `getUser` |
 | `friendController` | Friend list, requests, block/unblock |
 | `chatController` | Conversation list, DM history, unread count |
@@ -345,12 +340,6 @@ Validates 1–20 messages, max 2 000 chars each. Groq API keys rotated round-rob
 
 #### `adminAuthService.js`
 - `generateToken` / `verifyToken` — admin-specific JWT, 1 h expiry, separate secret
-
-#### `oauthService.js`
-- `initializePassport()` — configures Google + GitHub Passport strategies
-- Auto-creates or links existing users by provider + ID; handles username collisions (appends provider-id suffix)
-- Triggers `first_login` achievement on new accounts
-- `oauthTokensForUser(user)` — issues access + refresh tokens post-OAuth
 
 #### `socketService.js`
 
@@ -447,7 +436,7 @@ Arena battle royale. Players spawn in a circle (radius 25). HP=3; eliminated at 
 
 | Model | Key Methods |
 |---|---|
-| `User` | `create`, `findById/ByUsername/ByEmail`, `findOrCreateOAuth`, `update`, `updatePassword`, `search`, `findAll`, `setOnline/setOffline`, `shapeUserForClient`, `getApiKey/setApiKey/revokeApiKey`, `deleteById` |
+| `User` | `create`, `findById/ByUsername/ByEmail`, `update`, `updatePassword`, `search`, `findAll`, `setOnline/setOffline`, `shapeUserForClient`, `getApiKey/setApiKey/revokeApiKey`, `deleteById` |
 | `Game` | `create`, `joinGame`, `finishGame`, `cancelGame`, `getStats`, `getMatchHistory`, `getLeaderboard`, `getCoinsLeaderboard`, `updateStats`, `updateElo`, `getFarm`, `updateFarm` |
 | `Friend` | `sendRequest`, `acceptRequest`, `declineRequest`, `getFriends`, `getOnlineFriends`, `areFriends`, `getFriendStatus`, `removeFriend`, `blockUser`, `unblockUser`, `isBlockedBetween` |
 | `Message` | `create`, `getConversation`, `getConversationsList`, `countUnread`, `markAsRead` |
@@ -491,7 +480,7 @@ All use `express-validator`. `validatorUtils.checkValidation` converts errors in
 ## 4. Database Schema
 
 ```
-User ──────── UserAuth         (1:1) password hash, oauthProvider/Id
+User ──────── UserAuth         (1:1) password hash
          ├─── UserStats        (1:1) XP, level
          ├─── UserSettings     (1:1) isPublic
          ├─── PublicApi        (1:1) API key
@@ -540,7 +529,6 @@ User ──────── UserAuth         (1:1) password hash, oauthProvide
 | `/feed` | `Feed.vue` | Yes |
 | `/user/:id` | `UserProfile.vue` | Yes |
 | `/messages` | `Messages.vue` | Yes |
-| `/oauth-callback` | `OAuthCallback.vue` | No |
 | `/docs` | `ApiDocs.vue` | No |
 | `/help` | `Help.vue` | No |
 | `/privacy` | `PrivacyPolicy.vue` | No |
@@ -583,7 +571,6 @@ Socket.io client for the default `/` namespace. `connectSocket()` / `disconnectS
 | View | Key Features |
 |---|---|
 | `AuthV3.vue` | Unified login/register with tab switching |
-| `OAuthCallback.vue` | Reads tokens from URL fragment; calls `fetchUser()`; navigates to `/profile` |
 | `UserProfile.vue` | Read-only public profile; friend button with four states (none / pending\_sent / pending\_received / friends); Accept, Decline, Unfriend actions |
 | `Profile.vue` | Editable profile form; settings tabs (account, privacy, password, data, danger zone); achievements grid |
 | `Feed.vue` | Create post (with image upload), infinite-scroll feed, like/comment per post |
@@ -642,22 +629,7 @@ Browser          Frontend              Backend
   │                  │─ retry request ───►│ 200
 ```
 
-### 6.2 OAuth Flow
-
-```
-Browser       Frontend       Backend         Provider
-  │               │               │               │
-  │─ click ──────►│─ GET /auth/google ───────────►│ redirect
-  │               │               │               │ user approves
-  │◄─ redirect to /oauth-callback#access_token=...&refresh_token=...
-  │               │ reads fragment (never sent to server)
-  │               │ fetchUser() to hydrate store
-  │─ navigate ───►│
-```
-
-Tokens are in the URL **fragment** (after `#`) — not sent to the server on redirect. `OAuthCallback.vue` reads them client-side and sets cookies via `POST /auth/refresh` or equivalent.
-
-### 6.3 Real-Time (Socket.io)
+### 6.2 Real-Time (Socket.io)
 
 ```
 Client                   Backend (socket)           DB
@@ -673,7 +645,7 @@ Client                   Backend (socket)           DB
   │                      │─ notification:event ──────►│ (to user:{id} room)
 ```
 
-### 6.4 Multiplayer Game Flow
+### 6.3 Multiplayer Game Flow
 
 ```
 Player A           /minigames ns         Player B
@@ -691,7 +663,7 @@ Player A           /minigames ns         Player B
   │                 │ Game.updateElo()   │
 ```
 
-### 6.5 File Upload Flow
+### 6.4 File Upload Flow
 
 ```
 Browser          Nginx           Backend
@@ -719,7 +691,6 @@ Browser          Nginx           Backend
 | Auth | httpOnly + Secure + SameSite=Strict JWT cookies; refresh token rotation |
 | Admin auth | Separate JWT + separate cookie; role hierarchy user → admin → superadmin |
 | Passwords | bcrypt 12 rounds; policy enforced server-side |
-| OAuth | Tokens delivered via URL fragment only (never query params sent to server) |
 | Public API | Per-user API keys; `X-API-Key` header; 30 req/min rate limit |
 | Rate limiting | Per-route Express limiters; stricter in production |
 | Input validation | `express-validator` on all mutation endpoints |

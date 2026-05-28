@@ -250,8 +250,8 @@ docker compose up -d --build
 
 The app has two pieces of durable state, both of which must be backed up
 together for a restore to succeed: **Postgres** (all user data, posts,
-games, achievements) and **Vault** (DB password, JWT secrets, OAuth
-client secrets, API keys, Groq keys). A Postgres backup alone is
+games, achievements) and **Vault** (DB password, JWT secrets,
+API keys, Groq keys). A Postgres backup alone is
 useless if Vault is lost — the backend won't know the DB password.
 
 ### What you're backing up

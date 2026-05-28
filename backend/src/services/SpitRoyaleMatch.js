@@ -21,11 +21,6 @@ export class SpitRoyalMatch extends BaseMatch {
     this.isPlaying = false;
     this.playersJoined = 0;
     this.finalized = false;
-    // Heartbeat is started lazily in addPlayer() when the first player
-    // arrives. Starting it in the constructor leaked the interval if a
-    // match was constructed but never received an addPlayer (e.g. socket
-    // disconnected between MatchManager creating the match and the
-    // first addPlayer call). BaseMatch.stop() clears `this.heartbeat`.
   }
 
   _ensureHeartbeat() {

@@ -175,7 +175,7 @@ onBeforeUnmount(() => {
           <div class="sec__head"><span class="sec__num">§2</span>
             <h2>Accounts <a class="anchor" href="#accounts">#</a></h2>
           </div>
-          <p>You are responsible for all activity under your account. Keep your credentials private. You must be at least 13 years old (16 in the EEA) to register. We support email/password registration as well as Google and GitHub OAuth.</p>
+          <p>You are responsible for all activity under your account. Keep your credentials private. You must be at least 13 years old (16 in the EEA) to register. We support email/password registration.</p>
           <p>One account per person, please. Selling, sharing, or renting accounts is prohibited. If you forget your password, you can request a reset; we do not store passwords in a recoverable form.</p>
         </section>
 

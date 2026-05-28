@@ -60,7 +60,6 @@ describe('Router', () => {
         'Game',
         'Feed',
         'ApiDocs',
-        'OAuthCallback',
         'PrivacyPolicy',
         'TermsOfService',
         'NotFound',
@@ -274,18 +273,7 @@ describe('Router', () => {
     })
   })
 
-  describe('oauth and special routes', () => {
-    it('should have OAuthCallback route', () => {
-      const oauthRoute = router.getRoutes().find(r => r.name === 'OAuthCallback')
-      expect(oauthRoute).toBeDefined()
-      expect(oauthRoute.path).toBe('/oauth-callback')
-    })
-
-    it('OAuthCallback should be public', () => {
-      const oauthRoute = router.getRoutes().find(r => r.name === 'OAuthCallback')
-      expect(oauthRoute.meta.requiresAuth).toBe(false)
-    })
-
+  describe('docs routes', () => {
     it('should have ApiDocs route', () => {
       const docsRoute = router.getRoutes().find(r => r.name === 'ApiDocs')
       expect(docsRoute).toBeDefined()

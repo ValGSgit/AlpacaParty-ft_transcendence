@@ -16,7 +16,7 @@ const sections = [
   {
     id: 'account-privacy', tone: 'gold', n: '03',
     title: 'Account & privacy',
-    blurb: 'OAuth logins, data exports, GDPR rights, and what we remember about you.',
+    blurb: 'Data exports, GDPR rights, and what we remember about you.',
   },
   {
     id: 'public-api', tone: 'green', n: '04',
@@ -209,7 +209,7 @@ watch(query, () => rewireObserver())
             <!-- per-section content -->
             <template v-if="s.id === 'getting-started'">
               <h3>Create your account</h3>
-              <p>Register with a username, email, and password, or sign in with <strong>Google</strong> or <strong>GitHub</strong>. You'll pick your alpaca's color on first launch — change it any time from <router-link to="/profile?tab=settings">Profile → Settings</router-link>.</p>
+              <p>Register with a username, email, and password. You'll pick your alpaca's color on first launch — change it any time from <router-link to="/profile?tab=settings">Profile → Settings</router-link>.</p>
               <h3>Join your first room</h3>
               <p>From the home screen, browse the public room list or create a new one. Each game type has its own room — Spit Royale (up to 10 players) and Alpaca Road (up to 4 lanes).</p>
 

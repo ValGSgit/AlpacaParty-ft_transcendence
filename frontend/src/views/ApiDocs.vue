@@ -145,16 +145,6 @@
                   <div class="am-lane-row">
                     <div class="am-node am-node--ext">
                       <span class="am-dot" style="background:#f59e0b"></span>
-                      <div class="am-node-name am-node-name--ext">Google OAuth 2.0</div>
-                      <div class="am-node-desc">/auth/google · login redirect</div>
-                    </div>
-                    <div class="am-node am-node--ext">
-                      <span class="am-dot" style="background:#f59e0b"></span>
-                      <div class="am-node-name am-node-name--ext">GitHub OAuth 2.0</div>
-                      <div class="am-node-desc">/auth/github · login redirect</div>
-                    </div>
-                    <div class="am-node am-node--ext">
-                      <span class="am-dot" style="background:#f59e0b"></span>
                       <div class="am-node-name am-node-name--ext">Groq LLM API</div>
                       <div class="am-node-desc">/helpdesk/chat · 20 req/min</div>
                     </div>
@@ -209,9 +199,7 @@
                   <div class="am-rg-head"><span class="am-prefix">/auth</span><span class="am-rg-label">Auth</span></div>
                   <ul class="am-rl">
                     <li><span class="am-verb am-v-post">POST</span><span>/register · /login · /logout · /refresh</span></li>
-                    <li><span class="am-verb am-v-get">GET</span><span>/me</span></li>
-                    <li><span class="am-verb am-v-get">GET</span><span>/google → /google/callback</span></li>
-                    <li><span class="am-verb am-v-get">GET</span><span>/github → /github/callback</span></li>
+                    <li><span class="am-verb am-v-get">GET</span><span>/me · /validate</span></li>
                   </ul>
                 </div>
 
@@ -321,9 +309,7 @@
               <div class="am-fe-tree">
                 <div class="am-fe-col">
                   <h4>Auth</h4>
-                  <div class="am-fe-item"><span class="am-fe-file">Login.vue</span><span class="am-fe-route">/login</span></div>
-                  <div class="am-fe-item"><span class="am-fe-file">Register.vue</span><span class="am-fe-route">/register</span></div>
-                  <div class="am-fe-item"><span class="am-fe-file">OAuthCallback.vue</span><span class="am-fe-route">/oauth-callback</span></div>
+                  <div class="am-fe-item"><span class="am-fe-file">AuthV3.vue</span><span class="am-fe-route">/login · /register</span></div>
                 </div>
                 <div class="am-fe-col">
                   <h4>App</h4>
@@ -479,7 +465,7 @@
                 </div>
                 <div class="am-tl">
                   <div class="am-tl-who">vault-init</div>
-                  <div class="am-tl-what">seed secrets — DB pass · JWT · OAuth · Groq</div>
+                  <div class="am-tl-what">seed secrets — DB pass · JWT · Groq</div>
                 </div>
                 <div class="am-tl">
                   <div class="am-tl-who">vault-init</div>

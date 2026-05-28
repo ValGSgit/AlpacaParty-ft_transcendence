@@ -29,8 +29,8 @@ backend/
 ├── src/
 │   ├── index.js              # Entry — middleware, routes, HTTPS, Socket.IO attach
 │   ├── config/
-│   │   ├── index.js          # Centralised env-var config (JWT, DB, CORS, rate limits, OAuth, Groq, uploads)
-│   │   ├── helmet.js         # Helmet CSP — `default-src 'self'`, allows Google/GitHub avatars + `wss:`
+│   │   ├── index.js          # Centralised env-var config (JWT, DB, CORS, rate limits, Groq, uploads)
+│   │   ├── helmet.js         # Helmet CSP — `default-src 'self'` + `wss:`
 │   │   ├── prisma.js         # Prisma client singleton
 │   │   └── validateConfig.js # Hard-throws on missing required env vars
 │   ├── controllers/          # auth, users, friends, chat, posts, comments, game, notifications, uploads, public, helpdesk, admin
@@ -48,7 +48,7 @@ backend/
 │   ├── models/               # User, Game, Post, Comment, Friend, Message, Notification, File, GameStat, AlpacaFarm, Achievement, … (Prisma-backed DAL)
 │   ├── routes/
 │   │   ├── index.js          # Mounts everything under /api
-│   │   ├── auth.js           # /api/auth/* (register, login, logout, refresh, me, google, github)
+│   │   ├── auth.js           # /api/auth/* (register, login, logout, refresh, me, validate)
 │   │   ├── users.js          # /api/users/* (profile, password, export, delete, api-key, list, :id)
 │   │   ├── friends.js        # /api/friends/* (list, requests, block)
 │   │   ├── chat.js           # /api/chat/* (conversations, unread, dm history) — sending is via Socket.IO
@@ -61,7 +61,6 @@ backend/
 │   │   └── admin.js          # /api/admin/* (admin JWT)
 │   ├── services/
 │   │   ├── authService.js          # hashPassword, comparePassword, JWT sign/verify
-│   │   ├── oauthService.js         # Passport (Google + GitHub) strategy setup
 │   │   ├── socketService.js        # `/` namespace: presence, DMs, post broadcasts, notifications
 │   │   ├── socketAuth.js           # Cookie-based JWT verification for both namespaces
 │   │   ├── MatchManager.js         # `/minigames` namespace dispatcher
@@ -110,7 +109,7 @@ Local (host):  http://localhost:3000/api   (no nginx)
 | Mount | Auth | Notes |
 |---|---|---|
 | `GET /api/health` | — | Docker healthcheck |
-| `/api/auth/*` | mixed | register / login / logout / refresh / me / google / github |
+| `/api/auth/*` | mixed | register / login / logout / refresh / me / validate |
 | `/api/users/*` | JWT | profile, password change, GDPR export & delete, public-API key CRUD, user listing |
 | `/api/friends/*` | JWT | list, requests (send/accept/decline), block / unblock |
 | `/api/chat/*` | JWT | conversations + DM history (sending is Socket.IO `dm:send`) |
@@ -184,15 +183,13 @@ See `.env.example` at the project root. The most important ones:
 | `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh token lifetime |
 | `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | dev defaults | PostgreSQL — password overridden by Vault in prod |
 | `CORS_ORIGINS` | `https://localhost:8443` | Comma-separated allowed origins |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | — | Google OAuth (optional) |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | — | GitHub OAuth (optional) |
 | `GROQ_API_KEYS` | — | Comma-separated Groq keys for the help desk |
 | `API_KEYS` | — | Default service-level public-API keys |
 | `AUTH_RATE_LIMIT_MAX` | `50` | Auth-route limit — bumped by `make prod-e2e` for tests |
 | `VAULT_ADDR` / `VAULT_TOKEN` | — | Read at startup in prod by `tools/fetchSecrets.js` |
 | `SSL_KEY_PATH` / `SSL_CERT_PATH` | dev paths | Used by `lib/httpsServer.js` |
 
-In production, `vault-init` seeds `DB_PASSWORD`, `JWT_SECRET`, OAuth secrets, and `GROQ_API_KEYS` into Vault, and the backend reads them at boot — no plaintext secrets on the app container disk.
+In production, `vault-init` seeds `DB_PASSWORD`, `JWT_SECRET`, and `GROQ_API_KEYS` into Vault, and the backend reads them at boot — no plaintext secrets on the app container disk.
 
 ---
 

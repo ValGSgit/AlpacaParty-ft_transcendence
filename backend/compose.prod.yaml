@@ -1,6 +1,6 @@
 # Backend (Express) — Production
 #
-# Secrets (DB_PASSWORD, JWT_SECRET, OAuth creds, API keys) are NOT passed here.
+# Secrets (DB_PASSWORD, JWT_SECRET, API keys) are NOT passed here.
 # They are fetched from Vault by load-secrets.sh (via fetchSecrets.js) at entrypoint time
 # and written to /run/secrets/.env (tmpfs). env-cmd then injects them for all commands.
 # Only non-sensitive infrastructure config is set in the environment block below.
@@ -25,8 +25,6 @@ services:
       JWT_ADMIN_EXPIRES_IN: "${JWT_ADMIN_EXPIRES_IN:-30d}"
       CORS_ORIGINS: ${CORS_ORIGINS}
       FRONTEND_URL: ${FRONTEND_URL}
-      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
-      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL}
       SSL_CERT_PATH: /app/ssl/cert.pem
       SSL_KEY_PATH: /app/ssl/key.pem
       UPLOAD_DIR: /app/uploads

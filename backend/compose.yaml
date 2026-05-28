@@ -17,8 +17,6 @@ services:
       FRONTEND_URL: ${FRONTEND_URL}
       SSL_CERT_PATH: /app/ssl/cert.pem
       SSL_KEY_PATH: /app/ssl/key.pem
-      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
-      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL}
       CORS_ORIGINS: "${CORS_ORIGINS}"
       VAULT_ADDR: https://vault:8200
       UPLOAD_DIR: "/app/uploads"

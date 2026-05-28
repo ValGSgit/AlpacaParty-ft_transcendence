@@ -192,19 +192,11 @@ describe("key mapping", () => {
     mockVaultSuccess({
       ...FULL_SECRETS,
       api_keys: "k1,k2",
-      google_client_id: "gcid",
-      google_client_secret: "gcsec",
-      github_client_id: "ghid",
-      github_client_secret: "ghsec",
     });
     await runFetchSecrets();
 
     const written = mockFs.writeFileSync.mock.calls[0][1];
     expect(written).toContain('API_KEYS="k1,k2"');
-    expect(written).toContain('GOOGLE_CLIENT_ID="gcid"');
-    expect(written).toContain('GOOGLE_CLIENT_SECRET="gcsec"');
-    expect(written).toContain('GITHUB_CLIENT_ID="ghid"');
-    expect(written).toContain('GITHUB_CLIENT_SECRET="ghsec"');
     });
 });
 

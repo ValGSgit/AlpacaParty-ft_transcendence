@@ -61,7 +61,7 @@ X-API-Key: ap_your_key_here
     tags: [
       {
         name: "Auth",
-        description: "Register, login, OAuth (Google / GitHub), token refresh",
+        description: "Register, login, logout, token refresh",
       },
       {
         name: "Users",

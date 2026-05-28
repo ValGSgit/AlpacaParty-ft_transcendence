@@ -5,13 +5,12 @@ const sections = [
   { id: 'overview',        tone: 'cyan',    n: '01', title: 'Overview' },
   { id: 'data-collected',  tone: 'cyan',    n: '02', title: 'Data we collect' },
   { id: 'how-we-use',      tone: 'cyan',    n: '03', title: 'How we use it' },
-  { id: 'oauth',           tone: 'magenta', n: '04', title: 'OAuth providers' },
-  { id: 'cookies',         tone: 'magenta', n: '05', title: 'Cookies & tracking' },
-  { id: 'sharing',         tone: 'magenta', n: '06', title: 'Sharing & subprocessors' },
-  { id: 'retention',       tone: 'gold',    n: '07', title: 'Data retention' },
-  { id: 'rights',          tone: 'gold',    n: '08', title: 'Your rights (GDPR)' },
-  { id: 'children',        tone: 'green',   n: '09', title: 'Children\'s privacy' },
-  { id: 'contact',         tone: 'green',   n: '10', title: 'Contact the DPO' },
+  { id: 'cookies',         tone: 'magenta', n: '04', title: 'Cookies & tracking' },
+  { id: 'sharing',         tone: 'magenta', n: '05', title: 'Sharing & subprocessors' },
+  { id: 'retention',       tone: 'gold',    n: '06', title: 'Data retention' },
+  { id: 'rights',          tone: 'gold',    n: '07', title: 'Your rights (GDPR)' },
+  { id: 'children',        tone: 'green',   n: '08', title: 'Children\'s privacy' },
+  { id: 'contact',         tone: 'green',   n: '09', title: 'Contact the DPO' },
 ]
 
 const activeId = ref(sections[0].id)
@@ -175,7 +174,7 @@ onBeforeUnmount(() => {
             <h2>Data we collect <a class="anchor" href="#data-collected">#</a></h2>
           </div>
           <h3>Account data</h3>
-          <p>Username, email address, bcrypt-hashed password, optional avatar, and the OAuth provider ID if you sign in via Google or GitHub.</p>
+          <p>Username, email address, bcrypt-hashed password, and an optional avatar.</p>
           <h3>Gameplay data</h3>
           <p>Per-game stats (wins, losses, kills, level), match history for 1-vs-1 games, and your alpaca's colour. We do <em>not</em> use a microphone — there is no voice chat.</p>
           <h3>Social data</h3>
@@ -192,29 +191,22 @@ onBeforeUnmount(() => {
           <p>Help-desk messages are forwarded to a third-party large-language-model provider (Groq) to generate a reply. The provider receives the text of your question and recent conversation context, nothing else.</p>
         </section>
 
-        <section id="oauth" :class="['sec','tone-magenta',{ 'is-flash': flashId==='oauth' }]">
-          <div class="sec__head"><span class="sec__num">04</span>
-            <h2>OAuth providers <a class="anchor" href="#oauth">#</a></h2>
-          </div>
-          <p>If you sign in with Google or GitHub, those providers share your email address, display name, avatar URL, and a stable provider user ID with us. We do not request additional scopes — no contact list, no repository access, no calendar.</p>
-        </section>
-
         <section id="cookies" :class="['sec','tone-magenta',{ 'is-flash': flashId==='cookies' }]">
-          <div class="sec__head"><span class="sec__num">05</span>
+          <div class="sec__head"><span class="sec__num">04</span>
             <h2>Cookies &amp; tracking <a class="anchor" href="#cookies">#</a></h2>
           </div>
           <p>We use first-party cookies for authentication only: <code>jwt_token</code> (short-lived access) and <code>refresh_token</code> (longer-lived refresh). Both are <code>HttpOnly</code> and <code>Secure</code>. No third-party advertising or analytics cookies are set.</p>
         </section>
 
         <section id="sharing" :class="['sec','tone-magenta',{ 'is-flash': flashId==='sharing' }]">
-          <div class="sec__head"><span class="sec__num">06</span>
+          <div class="sec__head"><span class="sec__num">05</span>
             <h2>Sharing &amp; subprocessors <a class="anchor" href="#sharing">#</a></h2>
           </div>
-          <p>We use a small number of subprocessors to run the service: the hosting provider that runs our containers, the OAuth providers you choose (Google, GitHub), and Groq for help-desk replies. We do not sell, rent, or otherwise share personal data with anyone else. There is no payment processor — AlpacaParty is free and nothing is sold.</p>
+          <p>We use a small number of subprocessors to run the service: the hosting provider that runs our containers, and Groq for help-desk replies. We do not sell, rent, or otherwise share personal data with anyone else. There is no payment processor — AlpacaParty is free and nothing is sold.</p>
         </section>
 
         <section id="retention" :class="['sec','tone-gold',{ 'is-flash': flashId==='retention' }]">
-          <div class="sec__head"><span class="sec__num">07</span>
+          <div class="sec__head"><span class="sec__num">06</span>
             <h2>Data retention <a class="anchor" href="#retention">#</a></h2>
           </div>
           <div class="grid">
@@ -234,7 +226,7 @@ onBeforeUnmount(() => {
         </section>
 
         <section id="rights" :class="['sec','tone-gold',{ 'is-flash': flashId==='rights' }]">
-          <div class="sec__head"><span class="sec__num">08</span>
+          <div class="sec__head"><span class="sec__num">07</span>
             <h2>Your rights (GDPR) <a class="anchor" href="#rights">#</a></h2>
           </div>
 
@@ -254,14 +246,14 @@ onBeforeUnmount(() => {
         </section>
 
         <section id="children" :class="['sec','tone-green',{ 'is-flash': flashId==='children' }]">
-          <div class="sec__head"><span class="sec__num">09</span>
+          <div class="sec__head"><span class="sec__num">08</span>
             <h2>Children's privacy <a class="anchor" href="#children">#</a></h2>
           </div>
           <p>AlpacaParty is not directed to children under 13 (16 in the EEA). We do not knowingly collect data from them. If you believe a child has provided us with personal data, contact a maintainer and we will erase it.</p>
         </section>
 
         <section id="contact" :class="['sec','tone-green',{ 'is-flash': flashId==='contact' }]">
-          <div class="sec__head"><span class="sec__num">10</span>
+          <div class="sec__head"><span class="sec__num">09</span>
             <h2>Contact us <a class="anchor" href="#contact">#</a></h2>
           </div>
           <p>For privacy questions, open the in-app <router-link to="/help">help desk</router-link> and request a human, or reach a project maintainer through the source repository. Most requests (data export, account deletion) are already self-service in your <router-link to="/profile?tab=settings">settings</router-link>.</p>
