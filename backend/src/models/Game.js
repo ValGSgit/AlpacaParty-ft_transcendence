@@ -92,6 +92,8 @@ const Game = {
         level: 1,
       };
     }
+    
+    await GamificationService.checkTopPlayerAchievement(req.user.id).catch(() => {});
 
     // Canonical level lives on UserStats; fall back to the row-local level
     // field (legacy) and finally to 1.

@@ -34,7 +34,8 @@ export const register = async (req, res, next) => {
     const passwordHash = await AuthService.hashPassword(password);
     const user = await User.create({ username, email, passwordHash });
 
-    GamificationService.onLogin(user.id).catch(() => {});
+    await GamificationService.onLogin(user.id);
+
     const accessToken = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
 
@@ -93,10 +94,11 @@ export const login = async (req, res, next) => {
 
     const safeUser = shapeUserForClient(await User.findById(user.id));
 
+    await GamificationService.onLogin(user.id);
+
     res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
     res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
     res.json({ user: safeUser });
-    GamificationService.onLogin(user.id).catch(() => {});
   } catch (err) {
     next(err);
   }

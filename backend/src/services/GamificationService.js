@@ -32,23 +32,31 @@ const GamificationService = {
   /**
    * Increment a user's XP and persist the new level.
    * Fires a level_up notification and checks the level_10 achievement.
+   *
+   * One round-trip: we read the current xp/level, compute the next state in
+   * JS, and upsert both fields together. The previous implementation did an
+   * upsert (xp increment) followed by a conditional second update (level) —
+   * two round-trips on every XP event.
    */
   async awardXp(userId, amount) {
     userId = Number(userId);
-    const updated = await prisma.userStats.upsert({
+
+    const existing = await prisma.userStats.findUnique({
+      where: { userId },
+      select: { xp: true, level: true },
+    });
+    const oldXp = existing?.xp ?? 0;
+    const oldLevel = existing?.level ?? 0;
+    const newXp = oldXp + amount;
+    const newLevel = Math.floor(newXp / XP_PER_LEVEL);
+
+    await prisma.userStats.upsert({
       where:  { userId },
-      update: { xp: { increment: amount } },
-      create: { userId, xp: amount, level: 0 },
+      update: { xp: newXp, level: newLevel },
+      create: { userId, xp: newXp, level: newLevel },
     });
 
-    const newLevel = Math.floor(updated.xp / XP_PER_LEVEL);
-    const oldLevel = updated.level ?? 0;
-
     if (newLevel > oldLevel) {
-      await prisma.userStats.update({
-        where: { userId },
-        data:  { level: newLevel },
-      });
       NotificationService.notify({
         userId,
         type:    'level_up',
@@ -58,7 +66,7 @@ const GamificationService = {
       if (newLevel >= 10) await this._unlockNoXp(userId, 'level_10');
     }
 
-    return { xp: updated.xp, level: newLevel };
+    return { xp: newXp, level: newLevel };
   },
 
   // ── Achievement unlock ────────────────────────────────────────────────────
@@ -130,24 +138,48 @@ const GamificationService = {
     userId = Number(userId);
     if (!Number.isFinite(userId)) return;
 
-    await this.awardXp(userId, WIN_XP);
-
-    await prisma.alpacaFarm.upsert({
-      where:  { userId },
-      update: { coins: { increment: WIN_COINS } },
-      create: { userId, coins: WIN_COINS },
+    // Single read, compute next state in JS, then one $transaction batch
+    // that persists xp + level + winStreak + coins atomically. The previous
+    // implementation issued three separate upserts (awardXp's two queries
+    // plus a winStreak upsert plus a coins upsert) — four round-trips per
+    // win and three of them on the same row.
+    const stats = await prisma.userStats.findUnique({
+      where: { userId },
+      select: { xp: true, level: true, winStreak: true },
     });
+    const oldXp = stats?.xp ?? 0;
+    const oldLevel = stats?.level ?? 0;
+    const newXp = oldXp + WIN_XP;
+    const newLevel = Math.floor(newXp / XP_PER_LEVEL);
+    const newStreak = (stats?.winStreak ?? 0) + 1;
 
-    const streak = await prisma.userStats.upsert({
-      where:  { userId },
-      update: { winStreak: { increment: 1 } },
-      create: { userId, winStreak: 1 },
-    });
+    await prisma.$transaction([
+      prisma.userStats.upsert({
+        where:  { userId },
+        update: { xp: newXp, level: newLevel, winStreak: newStreak },
+        create: { userId, xp: newXp, level: newLevel, winStreak: newStreak },
+      }),
+      prisma.alpacaFarm.upsert({
+        where:  { userId },
+        update: { coins: { increment: WIN_COINS } },
+        create: { userId, coins: WIN_COINS },
+      }),
+    ]);
 
-    // Achievement checks (game stats already updated by the caller)
+    if (newLevel > oldLevel) {
+      NotificationService.notify({
+        userId,
+        type:    'level_up',
+        title:   'Level Up!',
+        message: `You reached level ${newLevel}!`,
+      }).catch((err) => logNotifyError('level_up', err));
+      if (newLevel >= 10) await this._unlockNoXp(userId, 'level_10');
+    }
+
+    // Achievement checks (game stats already updated by the caller).
     const gs = await Game.getStats(userId, gameType);
     if (gs.wins === 1)  await this.unlock(userId, 'first_win');
-    if ((streak.winStreak ?? 0) >= 5) await this.unlock(userId, 'win_streak_5');
+    if (newStreak >= 5) await this.unlock(userId, 'win_streak_5');
     if (gameType === 'spit_royale' && gs.wins >= 10) await this.unlock(userId, 'sharpshooter');
     if (gameType === 'alpaca_road' && gs.wins >= 5)  await this.unlock(userId, 'road_warrior');
 
@@ -158,13 +190,31 @@ const GamificationService = {
     userId = Number(userId);
     if (!Number.isFinite(userId)) return;
 
-    await this.awardXp(userId, LOSS_XP);
+    // Mirror onWin's pattern: one read, one combined upsert for xp+level+streak.
+    const stats = await prisma.userStats.findUnique({
+      where: { userId },
+      select: { xp: true, level: true },
+    });
+    const oldXp = stats?.xp ?? 0;
+    const oldLevel = stats?.level ?? 0;
+    const newXp = oldXp + LOSS_XP;
+    const newLevel = Math.floor(newXp / XP_PER_LEVEL);
 
     await prisma.userStats.upsert({
       where:  { userId },
-      update: { winStreak: 0 },
-      create: { userId, winStreak: 0 },
+      update: { xp: newXp, level: newLevel, winStreak: 0 },
+      create: { userId, xp: newXp, level: newLevel, winStreak: 0 },
     });
+
+    if (newLevel > oldLevel) {
+      NotificationService.notify({
+        userId,
+        type:    'level_up',
+        title:   'Level Up!',
+        message: `You reached level ${newLevel}!`,
+      }).catch((err) => logNotifyError('level_up', err));
+      if (newLevel >= 10) await this._unlockNoXp(userId, 'level_10');
+    }
 
     NotificationService.broadcastAll('game:finish');
   },

@@ -83,7 +83,14 @@ export function initializePassport() {
             });
 
             if (created) {
-              GamificationService.onLogin(user.id).catch(() => {});
+              // Await: this used to be fire-and-forget, which raced the
+              // OAuth callback handler's own Prisma calls (User.findById,
+              // cookie writes) and triggered pg's "client already executing"
+              // deprecation warning. First-login work is small (one
+              // createMany + at most one Notification.create) and the OAuth
+              // round-trip already involves an external HTTP hop, so the
+              // added latency is invisible to the user.
+              await GamificationService.onLogin(user.id);
             }
 
             done(null, user);
@@ -139,7 +146,9 @@ export function initializePassport() {
             });
 
             if (created) {
-              GamificationService.onLogin(user.id).catch(() => {});
+              // See Google strategy above — await prevents the gamification
+              // queries from racing the response-handler Prisma calls.
+              await GamificationService.onLogin(user.id);
             }
 
             done(null, user);

@@ -4,6 +4,24 @@
  */
 import prisma from "#config/prisma.js";
 
+// The achievement table is seeded once at boot and never changes at runtime,
+// so we can cache the key → row lookup. Saves a findUnique per unlock attempt
+// (which fires on every game finish, message sent, post liked, etc.).
+const achievementCache = new Map();
+
+async function getAchievement(key) {
+  let row = achievementCache.get(key);
+  if (row) return row;
+  row = await prisma.achievement.findUnique({ where: { key } });
+  if (row) achievementCache.set(key, row);
+  return row;
+}
+
+// Exposed for tests; production code never needs it.
+export function _resetAchievementCache() {
+  achievementCache.clear();
+}
+
 const Achievement = {
   async getAll() {
     return prisma.achievement.findMany({ orderBy: { id: "asc" } });
@@ -20,24 +38,21 @@ const Achievement = {
   /**
    * Unlock an achievement for a user.
    * Returns { achievement } if newly unlocked, null if already unlocked or key not found.
+   *
+   * Uses createMany({ skipDuplicates: true }) so the unique constraint isn't
+   * a thrown exception — that pattern (try/create/catch P2002) costs an extra
+   * round-trip and litters Prisma error logs under concurrent unlocks
+   * (e.g. a win that pushes the user to leaderboard #1 fires two unlocks).
    */
   async unlock(userId, achievementKey) {
-    const achievement = await prisma.achievement.findUnique({ where: { key: achievementKey } });
+    const achievement = await getAchievement(achievementKey);
     if (!achievement) return null;
 
-    // Race-safe: two near-simultaneous unlocks (e.g. a win that also pushes
-    // the user to leaderboard #1) both pass a findUnique-then-create check.
-    // The unique constraint guarantees only one create wins; swallow P2002
-    // so the loser doesn't bubble as an "unhandled rejection" via .catch().
-    try {
-      await prisma.userAchievement.create({
-        data: { userId: Number(userId), achievementId: achievement.id },
-      });
-      return { achievement };
-    } catch (e) {
-      if (e.code === "P2002") return null; // already unlocked
-      throw e;
-    }
+    const { count } = await prisma.userAchievement.createMany({
+      data: [{ userId: Number(userId), achievementId: achievement.id }],
+      skipDuplicates: true,
+    });
+    return count > 0 ? { achievement } : null;
   },
 
   async getUserChallengeProgress(userId) {
