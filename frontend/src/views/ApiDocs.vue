@@ -199,7 +199,7 @@
                   <div class="am-rg-head"><span class="am-prefix">/auth</span><span class="am-rg-label">Auth</span></div>
                   <ul class="am-rl">
                     <li><span class="am-verb am-v-post">POST</span><span>/register · /login · /logout · /refresh</span></li>
-                    <li><span class="am-verb am-v-get">GET</span><span>/me · /validate</span></li>
+                    <li><span class="am-verb am-v-get">GET</span><span>/me</span></li>
                   </ul>
                 </div>
 

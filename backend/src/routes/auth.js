@@ -10,7 +10,6 @@ import {
   logout,
   refresh,
   me,
-  validate,
 } from "../controllers/authController.js";
 import { optionalAuth } from "../middleware/auth.js";
 import {
@@ -191,36 +190,5 @@ router.post("/refresh", refresh);
  *       401: { description: Not authenticated }
  */
 router.get("/me", optionalAuth, me);
-
-/**
- * @openapi
- * /auth/validate:
- *   get:
- *     tags: [Auth]
- *     summary: Validate username or email availability
- *     parameters:
- *       - in: query
- *         name: type
- *         required: true
- *         schema:
- *           type: string
- *           enum: [username, email]
- *       - in: query
- *         name: value
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Validation result
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 valid: { type: boolean }
- *                 message: { type: string }
- */
-router.get("/validate", validate);
 
 export default router;
