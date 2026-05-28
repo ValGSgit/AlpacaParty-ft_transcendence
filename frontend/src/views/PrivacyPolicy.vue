@@ -145,7 +145,7 @@ onBeforeUnmount(() => {
         </ol>
         <div class="toc__panel" aria-hidden="true">
           <p class="toc__panel-title">Exercise your rights</p>
-          <p class="toc__panel-body">Export, anonymize, or delete your data from <code>/settings/data</code>.</p>
+          <p class="toc__panel-body">Export or delete your data from <router-link to="/profile?tab=settings">Profile → Settings</router-link>.</p>
         </div>
       </aside>
 
@@ -162,7 +162,7 @@ onBeforeUnmount(() => {
           <div class="sec__head"><span class="sec__num">01</span>
             <h2>Overview <a class="anchor" href="#overview">#</a></h2>
           </div>
-          <p>AlpacaParty ("we", "us") operates a 3D multiplayer social platform. This policy describes how we handle personal data of players and visitors. We're a small team and we take this seriously — every line below reflects what we actually do, not what a template says.</p>
+          <p>AlpacaParty ("we", "us") is a 3D multiplayer browser game built around two arena games — Spit Royale and Alpaca Road — plus social features (friends, direct messages, a feed, and an AI help desk). This policy describes how we handle personal data of players and visitors. Every line below reflects what we actually do, not what a template says.</p>
 
           <div class="key">
             <span class="key__tag">TL;DR</span>
@@ -175,39 +175,42 @@ onBeforeUnmount(() => {
             <h2>Data we collect <a class="anchor" href="#data-collected">#</a></h2>
           </div>
           <h3>Account data</h3>
-          <p>Email address, display name, hashed password, and OAuth provider IDs if you sign in via Google or GitHub.</p>
+          <p>Username, email address, bcrypt-hashed password, optional avatar, and the OAuth provider ID if you sign in via Google or GitHub.</p>
           <h3>Gameplay data</h3>
-          <p>Room IDs, session length, voice toggles, cosmetic choices, and aggregate latency metrics.</p>
-          <h3>What we <em>don't</em> store</h3>
-          <p>Voice and text chat content beyond a rolling moderation window. IP addresses are hashed at the edge before being logged.</p>
+          <p>Per-game stats (wins, losses, kills, level), match history for 1-vs-1 games, and your alpaca's colour. We do <em>not</em> use a microphone — there is no voice chat.</p>
+          <h3>Social data</h3>
+          <p>Posts, comments, likes, friend relationships, direct messages, and AI help-desk conversations are stored in our database so they show up next time you open the app.</p>
+          <h3>Operational data</h3>
+          <p>Standard HTTP access logs (IP, user-agent, path) kept for short-term security and abuse prevention. No third-party analytics or advertising SDKs are loaded.</p>
         </section>
 
         <section id="how-we-use" :class="['sec','tone-cyan',{ 'is-flash': flashId==='how-we-use' }]">
           <div class="sec__head"><span class="sec__num">03</span>
             <h2>How we use it <a class="anchor" href="#how-we-use">#</a></h2>
           </div>
-          <p>To operate the service, enforce community rules, prevent abuse, and improve features. We do not sell personal data, and we do not use it for ad targeting on any platform.</p>
+          <p>To operate the service, authenticate you, persist your matches and social activity, enforce community rules, and answer your questions through the help-desk assistant. We do not sell personal data, and we do not use it for advertising on any platform.</p>
+          <p>Help-desk messages are forwarded to a third-party large-language-model provider (Groq) to generate a reply. The provider receives the text of your question and recent conversation context, nothing else.</p>
         </section>
 
         <section id="oauth" :class="['sec','tone-magenta',{ 'is-flash': flashId==='oauth' }]">
           <div class="sec__head"><span class="sec__num">04</span>
             <h2>OAuth providers <a class="anchor" href="#oauth">#</a></h2>
           </div>
-          <p>If you sign in with Google or GitHub, those providers share your email address and provider user ID with us. We do not request additional scopes (no contact list, no repo access).</p>
+          <p>If you sign in with Google or GitHub, those providers share your email address, display name, avatar URL, and a stable provider user ID with us. We do not request additional scopes — no contact list, no repository access, no calendar.</p>
         </section>
 
         <section id="cookies" :class="['sec','tone-magenta',{ 'is-flash': flashId==='cookies' }]">
           <div class="sec__head"><span class="sec__num">05</span>
             <h2>Cookies &amp; tracking <a class="anchor" href="#cookies">#</a></h2>
           </div>
-          <p>We use first-party cookies for authentication and preferences. No third-party advertising cookies are set. The full list lives at <code>/legal/cookies</code>.</p>
+          <p>We use first-party cookies for authentication only: <code>jwt_token</code> (short-lived access) and <code>refresh_token</code> (longer-lived refresh). Both are <code>HttpOnly</code> and <code>Secure</code>. No third-party advertising or analytics cookies are set.</p>
         </section>
 
         <section id="sharing" :class="['sec','tone-magenta',{ 'is-flash': flashId==='sharing' }]">
           <div class="sec__head"><span class="sec__num">06</span>
             <h2>Sharing &amp; subprocessors <a class="anchor" href="#sharing">#</a></h2>
           </div>
-          <p>Limited subprocessors handle hosting, error reporting, and payment processing. Each one is contractually bound to our data-protection standards. The list is published at <code>/legal/subprocessors</code> and is updated 30 days before any change.</p>
+          <p>We use a small number of subprocessors to run the service: the hosting provider that runs our containers, the OAuth providers you choose (Google, GitHub), and Groq for help-desk replies. We do not sell, rent, or otherwise share personal data with anyone else. There is no payment processor — AlpacaParty is free and nothing is sold.</p>
         </section>
 
         <section id="retention" :class="['sec','tone-gold',{ 'is-flash': flashId==='retention' }]">
@@ -216,16 +219,16 @@ onBeforeUnmount(() => {
           </div>
           <div class="grid">
             <div class="grid__card">
-              <span class="grid__metric">90 days</span>
-              <p>Gameplay logs &amp; moderation records</p>
+              <span class="grid__metric">lifetime</span>
+              <p>Account, stats, posts &amp; matches — kept while your account exists</p>
+            </div>
+            <div class="grid__card">
+              <span class="grid__metric">immediate</span>
+              <p>Account deletion erases your personal data on request</p>
             </div>
             <div class="grid__card">
               <span class="grid__metric">30 days</span>
-              <p>Account data after deletion (recoverable)</p>
-            </div>
-            <div class="grid__card">
-              <span class="grid__metric">forever</span>
-              <p>Aggregate, anonymous analytics</p>
+              <p>Server access logs for security and abuse prevention</p>
             </div>
           </div>
         </section>
@@ -245,7 +248,7 @@ onBeforeUnmount(() => {
             <div class="callout__body">
               <h3 class="callout__title">Your rights under the GDPR</h3>
               <p>If you are in the EU/EEA, UK, or Switzerland you have the right to access, rectify, erase, restrict, port, and object to the processing of your personal data. You also have the right to lodge a complaint with your local supervisory authority.</p>
-              <p>To exercise any of these rights, email <a href="mailto:dpo@alpacaparty.example">dpo@alpacaparty.example</a>. We respond within 30 days.</p>
+              <p>Access and erasure are self-service: <strong>Export my data</strong> and <strong>Delete my account</strong> both live in <router-link to="/profile?tab=settings">Profile → Settings → Danger zone</router-link>. For any other request, contact a project maintainer through the repository.</p>
             </div>
           </aside>
         </section>
@@ -254,14 +257,14 @@ onBeforeUnmount(() => {
           <div class="sec__head"><span class="sec__num">09</span>
             <h2>Children's privacy <a class="anchor" href="#children">#</a></h2>
           </div>
-          <p>AlpacaParty is not directed to children under 13 (16 in the EEA). We do not knowingly collect data from them. If you believe a child has provided us with personal data, contact our DPO and we will erase it.</p>
+          <p>AlpacaParty is not directed to children under 13 (16 in the EEA). We do not knowingly collect data from them. If you believe a child has provided us with personal data, contact a maintainer and we will erase it.</p>
         </section>
 
         <section id="contact" :class="['sec','tone-green',{ 'is-flash': flashId==='contact' }]">
           <div class="sec__head"><span class="sec__num">10</span>
-            <h2>Contact the DPO <a class="anchor" href="#contact">#</a></h2>
+            <h2>Contact us <a class="anchor" href="#contact">#</a></h2>
           </div>
-          <p>Email <a href="mailto:dpo@alpacaparty.example">dpo@alpacaparty.example</a>. We aim to acknowledge within two business days and resolve within thirty.</p>
+          <p>For privacy questions, open the in-app <router-link to="/help">help desk</router-link> and request a human, or reach a project maintainer through the source repository. Most requests (data export, account deletion) are already self-service in your <router-link to="/profile?tab=settings">settings</router-link>.</p>
         </section>
 
         <footer class="signoff">
@@ -275,7 +278,7 @@ onBeforeUnmount(() => {
             <p class="signoff__line">Signed off by your friendly herd. We'll revise this policy when the law or our practices change.</p>
             <p class="signoff__meta">
               Effective May 27, 2026
-              <span>·</span> <a href="mailto:dpo@alpacaparty.example">dpo@alpacaparty.example</a>
+              <span>·</span> <router-link to="/help">help desk</router-link>
               <span>·</span> <a href="#" @click.prevent="scrollToTop">back to top</a>
             </p>
           </div>

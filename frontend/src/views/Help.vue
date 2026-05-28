@@ -6,22 +6,22 @@ const sections = [
   {
     id: 'getting-started', tone: 'cyan', n: '01',
     title: 'Getting started',
-    blurb: 'Pick your alpaca, claim a name, and step onto the farm in under a minute.',
+    blurb: 'Sign up, pick your alpaca\'s color, and step onto the farm in under a minute.',
   },
   {
     id: 'playing-games', tone: 'magenta', n: '02',
     title: 'Playing the games',
-    blurb: 'Spit Royale, Alpaca Road, and the seasonal events. How to queue, score, and rage-quit gracefully.',
+    blurb: 'Spit Royale and Alpaca Road — how matchmaking, scoring, and the public lobby work.',
   },
   {
     id: 'account-privacy', tone: 'gold', n: '03',
     title: 'Account & privacy',
-    blurb: 'Linked logins, data exports, GDPR rights, and what Paca remembers about you.',
+    blurb: 'OAuth logins, data exports, GDPR rights, and what we remember about you.',
   },
   {
     id: 'public-api', tone: 'green', n: '04',
     title: 'Public API',
-    blurb: 'REST + WebSocket endpoints, rate limits, and how to get a developer key.',
+    blurb: 'REST endpoints, the X-API-Key header, rate limits, and how to generate a key.',
   },
   {
     id: 'contact', tone: 'cyan', n: '05',
@@ -209,9 +209,9 @@ watch(query, () => rewireObserver())
             <!-- per-section content -->
             <template v-if="s.id === 'getting-started'">
               <h3>Create your account</h3>
-              <p>Sign in with Google, GitHub, or email. You'll choose your alpaca's color and a starter hat on first launch — both are re-rollable from <code>/settings/appearance</code>.</p>
+              <p>Register with a username, email, and password, or sign in with <strong>Google</strong> or <strong>GitHub</strong>. You'll pick your alpaca's color on first launch — change it any time from <router-link to="/profile?tab=settings">Profile → Settings</router-link>.</p>
               <h3>Join your first room</h3>
-              <p>From the lobby, click any room card or paste an invite link. Your mic is muted by default; press <kbd>V</kbd> to talk.</p>
+              <p>From the home screen, browse the public room list or create a new one. Each game type has its own room — Spit Royale (up to 10 players) and Alpaca Road (up to 4 lanes).</p>
 
               <aside class="quote">
                 <p>"The trick is to spit <em>before</em> they spit. Source: every Spit Royale champion ever."</p>
@@ -221,26 +221,28 @@ watch(query, () => rewireObserver())
 
             <template v-else-if="s.id === 'playing-games'">
               <h3>Spit Royale</h3>
-              <p>20-player free-for-all on a shrinking arena. Last alpaca standing wins. <strong>Spitballs</strong> recharge over 1.5s; combos extend your reach.</p>
+              <p>Up to <strong>10 alpacas</strong> in a single arena. Last alpaca standing wins. Each spit has a <strong>0.5s cooldown</strong> and a server-validated <strong>12m range</strong>, so aiming matters more than spamming.</p>
               <h3>Alpaca Road</h3>
-              <p>Time-trial racing across procedural farmlands. Daily ghost lap unlocks at 06:00 UTC.</p>
+              <p>Up to <strong>4 players</strong> dodge obstacles across procedurally spawned lanes. Survive longer, climb the level — falling off ends the run.</p>
+              <h3>Stats &amp; leaderboard</h3>
+              <p>Wins, kills, and matches played are persisted to your profile and appear on the global leaderboard. Solo matches don't count toward ranked stats.</p>
             </template>
 
             <template v-else-if="s.id === 'account-privacy'">
               <div class="key">
                 <span class="key__tag">Key takeaway</span>
-                <p>You can export, anonymize, or fully delete your account from <code>/settings/data</code> — no email loop required.</p>
+                <p>Export or fully delete your account from <router-link to="/profile?tab=settings">Profile → Settings → Danger zone</router-link> — no email loop required.</p>
               </div>
-              <p>We retain gameplay logs for 90 days for moderation, then aggregate-only thereafter. Full details live in our <router-link to="/privacy">Privacy Policy</router-link>.</p>
+              <p>We keep gameplay records as long as your account exists; deleting the account removes them. Full details live in our <router-link to="/privacy">Privacy Policy</router-link>.</p>
             </template>
 
             <template v-else-if="s.id === 'public-api'">
-              <p>The REST API lives at <code>api.alpacaparty.example/v1</code>. Authenticate with a developer token from <code>/settings/developer</code>. Default rate limit is <strong>120 req/min</strong>.</p>
-              <p>For live presence and room state, subscribe over the WebSocket gateway at <code>wss://gateway.alpacaparty.example</code>.</p>
+              <p>The REST API lives under <code>/api/public/*</code> on this host. Authenticate by sending an <code>X-API-Key</code> header — generate the key from <router-link to="/profile?tab=settings">Profile → Settings → Public API Key</router-link>. Keys start with <code>ap_</code> followed by a 32-character hex string.</p>
+              <p>Default rate limit is <strong>30 requests / minute</strong>. The interactive Swagger UI is at <router-link to="/docs">/docs</router-link>.</p>
             </template>
 
             <template v-else-if="s.id === 'contact'">
-              <p>Paca handles ~92% of incoming questions. For the rest — moderation escalations, billing disputes, security reports — email <a href="mailto:help@alpacaparty.example">help@alpacaparty.example</a>. Expect a reply within one business day.</p>
+              <p>Paca handles most incoming questions in the in-app chat. For anything Paca can't solve — moderation escalations, security reports, GDPR requests — open the help desk and ask for a human handoff, or contact a project maintainer directly through the repository.</p>
             </template>
           </section>
         </template>
@@ -261,7 +263,7 @@ watch(query, () => rewireObserver())
             <p class="signoff__line">That's all we've got. If you find a gap — tell Paca.</p>
             <p class="signoff__meta">
               Last updated · May 27, 2026
-              <span>·</span> <a href="mailto:help@alpacaparty.example">help@alpacaparty.example</a>
+              <span>·</span> <router-link to="/profile?tab=settings">your settings</router-link>
               <span>·</span> <a href="#" @click.prevent="scrollToTop">back to top</a>
             </p>
           </div>

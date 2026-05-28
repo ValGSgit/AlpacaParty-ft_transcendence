@@ -6,7 +6,7 @@ const sections = [
   { id: 'accounts',     tone: 'gold',    n: '§2', title: 'Accounts' },
   { id: 'conduct',      tone: 'magenta', n: '§3', title: 'Acceptable behavior' },
   { id: 'content',      tone: 'magenta', n: '§4', title: 'User content & IP' },
-  { id: 'purchases',    tone: 'cyan',    n: '§5', title: 'Purchases & cosmetics' },
+  { id: 'public-api',   tone: 'cyan',    n: '§5', title: 'Public API & automation' },
   { id: 'termination',  tone: 'cyan',    n: '§6', title: 'Termination' },
   { id: 'liability',    tone: 'gold',    n: '§7', title: 'Limitation of liability' },
   { id: 'governing',    tone: 'green',   n: '§8', title: 'Disputes & governing law' },
@@ -150,7 +150,7 @@ onBeforeUnmount(() => {
         </ol>
         <div class="toc__panel" aria-hidden="true">
           <p class="toc__panel-title">Read the short version</p>
-          <p class="toc__panel-body">Be kind, don't cheat, pay for cosmetics, and we'll all have a nice time.</p>
+          <p class="toc__panel-body">Be kind, don't cheat, respect the API rate limit, and we'll all have a nice time.</p>
         </div>
       </aside>
 
@@ -168,22 +168,22 @@ onBeforeUnmount(() => {
           <div class="sec__head"><span class="sec__num">§1</span>
             <h2>Acceptance of terms <a class="anchor" href="#acceptance">#</a></h2>
           </div>
-          <p>By accessing or using AlpacaParty (the "Service") you agree to be bound by these Terms. If you do not agree, do not use the Service. These Terms form a binding agreement between you and AlpacaParty Inc.</p>
+          <p>By accessing or using AlpacaParty (the "Service") you agree to be bound by these Terms. If you do not agree, do not use the Service. AlpacaParty is a non-commercial student project — these Terms describe how the Service may be used, not a commercial contract.</p>
         </section>
 
         <section id="accounts" :class="['sec','tone-gold',{ 'is-flash': flashId==='accounts' }]">
           <div class="sec__head"><span class="sec__num">§2</span>
             <h2>Accounts <a class="anchor" href="#accounts">#</a></h2>
           </div>
-          <p>You are responsible for all activity under your account. Keep your credentials private. You must be at least 13 years old (16 in the EEA) to register.</p>
-          <p>One account per person, please. Selling, sharing, or renting accounts is prohibited.</p>
+          <p>You are responsible for all activity under your account. Keep your credentials private. You must be at least 13 years old (16 in the EEA) to register. We support email/password registration as well as Google and GitHub OAuth.</p>
+          <p>One account per person, please. Selling, sharing, or renting accounts is prohibited. If you forget your password, you can request a reset; we do not store passwords in a recoverable form.</p>
         </section>
 
         <section id="conduct" :class="['sec','tone-magenta',{ 'is-flash': flashId==='conduct' }]">
           <div class="sec__head"><span class="sec__num">§3</span>
             <h2>Acceptable behavior <a class="anchor" href="#conduct">#</a></h2>
           </div>
-          <p>No harassment, hate speech, doxxing, threats, sexual content involving minors, cheating, exploiting bugs, scraping, or attempts to disrupt the Service. Moderators may mute, kick, or ban accounts that violate these rules.</p>
+          <p>No harassment, hate speech, doxxing, threats, sexual content involving minors, cheating, exploiting bugs, scraping, or attempts to disrupt the Service. The game enforces server-side anti-cheat (move-speed clamps, spit cooldowns and range checks); circumventing those checks is a ban-worthy offence. Administrators may mute, kick, or ban accounts that violate these rules.</p>
 
           <div class="rules">
             <div class="rules__col">
@@ -215,22 +215,23 @@ onBeforeUnmount(() => {
           <div class="sec__head"><span class="sec__num">§4</span>
             <h2>User content &amp; IP <a class="anchor" href="#content">#</a></h2>
           </div>
-          <p>You retain rights to content you create (display name, cosmetic combinations, voice clips, screenshots). You grant us a non-exclusive, worldwide license to host, display, and transmit it as needed to operate the Service.</p>
-          <p>AlpacaParty, the alpaca logo, and the in-game art are our intellectual property.</p>
+          <p>You retain rights to content you post on the Service (display name, avatar, feed posts, comments, direct messages, screenshots). You grant us a non-exclusive, worldwide license to host, display, and transmit that content as needed to operate the Service. How we actually handle that data is set out in our <router-link to="/privacy">Privacy Policy</router-link>.</p>
+          <p>The AlpacaParty name, the alpaca logo, and the in-game 3D art and source code remain the property of the project authors and their respective licensors.</p>
         </section>
 
-        <section id="purchases" :class="['sec','tone-cyan',{ 'is-flash': flashId==='purchases' }]">
+        <section id="public-api" :class="['sec','tone-cyan',{ 'is-flash': flashId==='public-api' }]">
           <div class="sec__head"><span class="sec__num">§5</span>
-            <h2>Purchases &amp; cosmetics <a class="anchor" href="#purchases">#</a></h2>
+            <h2>Public API &amp; automation <a class="anchor" href="#public-api">#</a></h2>
           </div>
-          <p>Cosmetics are sold for in-account use only. They are not transferable, redeemable for cash, or considered virtual currency. Refunds are issued per our Refund Policy at <code>/legal/refunds</code> — typically within 14 days of purchase if the item has not been equipped.</p>
+          <p>The Public API is provided "as is" for personal, non-commercial use. You authenticate with a key generated from your profile, prefixed <code>ap_</code>. The key is yours alone — do not share or publish it.</p>
+          <p>Respect the published rate limit (30 requests / minute by default). Bypassing it, scraping data en masse, or using the API to harass other users will result in revocation of the key and may lead to account suspension. We may rotate or revoke any key at any time.</p>
         </section>
 
         <section id="termination" :class="['sec','tone-cyan',{ 'is-flash': flashId==='termination' }]">
           <div class="sec__head"><span class="sec__num">§6</span>
             <h2>Termination <a class="anchor" href="#termination">#</a></h2>
           </div>
-          <p>You may close your account at any time from <code>/settings/data</code>. We may suspend or terminate accounts for violations of these Terms; serious violations (cheating, harassment) may result in permanent bans without refund.</p>
+          <p>You may close your account at any time from <router-link to="/profile?tab=settings">Profile → Settings → Danger zone</router-link>. Deletion is immediate and removes your personal data; posts and messages you authored are anonymized or removed. We may suspend or terminate accounts for violations of these Terms; serious violations (cheating, harassment) may result in a permanent ban.</p>
         </section>
 
         <section id="liability" :class="['sec','tone-gold',{ 'is-flash': flashId==='liability' }]">
@@ -247,8 +248,8 @@ onBeforeUnmount(() => {
             </span>
             <div class="callout__body">
               <h3 class="callout__title">Limitation of liability</h3>
-              <p>To the maximum extent permitted by law, AlpacaParty and its affiliates are not liable for indirect, incidental, special, consequential, or punitive damages, or any loss of profits, revenues, data, or goodwill arising from your use of the Service.</p>
-              <p>Our aggregate liability for any claim relating to the Service will not exceed the greater of <strong>(a)</strong> the amount you paid us in the 12 months preceding the claim or <strong>(b)</strong> USD 50.</p>
+              <p>The Service is provided <strong>"as is"</strong>, without warranty of any kind. To the maximum extent permitted by law, the project authors are not liable for indirect, incidental, special, consequential, or punitive damages, or any loss of profits, revenues, data, or goodwill arising from your use of the Service.</p>
+              <p>Because AlpacaParty is a free, non-commercial project, no payment ever flows from you to us — and our aggregate liability for any claim relating to the Service is correspondingly limited to the amount you paid us, which is <strong>zero</strong>.</p>
             </div>
           </aside>
         </section>
@@ -257,8 +258,8 @@ onBeforeUnmount(() => {
           <div class="sec__head"><span class="sec__num">§8</span>
             <h2>Disputes &amp; governing law <a class="anchor" href="#governing">#</a></h2>
           </div>
-          <p>These Terms are governed by the laws of France, excluding its conflict-of-laws rules. Disputes are resolved in the courts of Paris, France, unless a binding arbitration clause applies in your region under local law.</p>
-          <p>For questions, email <a href="mailto:legal@alpacaparty.example">legal@alpacaparty.example</a>.</p>
+          <p>These Terms are governed by the laws of France, excluding its conflict-of-laws rules. Disputes are resolved in the competent courts of Paris, France, unless a binding consumer-protection clause applies in your region under local law.</p>
+          <p>For questions, open the in-app <router-link to="/help">help desk</router-link> or contact a project maintainer through the source repository.</p>
         </section>
 
         <footer class="signoff">
@@ -274,7 +275,7 @@ onBeforeUnmount(() => {
             <p class="signoff__line">Signed, sealed, and herded together. We'll publish material changes 14 days before they take effect.</p>
             <p class="signoff__meta">
               Effective May 27, 2026
-              <span>·</span> <a href="mailto:legal@alpacaparty.example">legal@alpacaparty.example</a>
+              <span>·</span> <router-link to="/help">help desk</router-link>
               <span>·</span> <a href="#" @click.prevent="scrollToTop">back to top</a>
             </p>
           </div>

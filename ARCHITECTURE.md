@@ -2,7 +2,7 @@
 
 > Full-stack social gaming platform. Users raise alpacas in a 3-D farm, compete in multiplayer mini-games (SpitRoyale, AlpacaRoad), build a social graph, share posts, and earn achievements — all served over HTTPS with real-time WebSocket communication.
 
-*Last updated: 2026-05-14. Reflects all changes through the cleanup pass: 2FA removal, sanitizer consolidation, feed pagination fix, room-ID hardening, logger adoption, and seed-password vault migration.*
+*Last updated: 2026-05-28. Reflects all changes through the latest pass: 2FA removal, sanitizer consolidation, feed pagination fix, room-ID hardening, logger adoption, seed-password vault migration, CSS reorganization into `frontend/src/styles/`, and the Help/Privacy/Terms rewrite for accurate, project-specific content.*
 
 ---
 
@@ -543,7 +543,8 @@ User ──────── UserAuth         (1:1) password hash, oauthProvide
 | `/oauth-callback` | `OAuthCallback.vue` | No |
 | `/docs` | `ApiDocs.vue` | No |
 | `/help` | `Help.vue` | No |
-| `/privacy`, `/terms` | Static | No |
+| `/privacy` | `PrivacyPolicy.vue` | No |
+| `/terms` | `TermsOfService.vue` | No |
 | `/admin/panel` | `AdminPanel.vue` | Admin JWT |
 | `*` | `NotFound.vue` | No |
 
@@ -591,7 +592,10 @@ Socket.io client for the default `/` namespace. `connectSocket()` / `disconnectS
 | `AdminLogin.vue` | Admin-specific login using `adminAuth` store |
 | `AdminPanel.vue` | Dashboard stats, paginated user table with ban/role/delete actions |
 | `ApiDocs.vue` | Embedded Swagger UI + custom endpoint reference |
-| `Help.vue` | Streams SSE from `/helpdesk/chat` as "Paca" AI assistant |
+| `Help.vue` | Project help center: searchable TOC, sections covering getting started, the two games (Spit Royale / Alpaca Road), GDPR / account settings, the Public API, and contact. Dispatches `open-paca` to surface `HelpDeskChat.vue` for the AI assistant |
+| `HelpDeskChat.vue` | Floating "Paca" AI widget — streams SSE from `/helpdesk/chat` (Groq-backed) |
+| `PrivacyPolicy.vue` | GDPR-aligned privacy notice — describes the data actually collected (account, gameplay, social, operational), the Groq subprocessor for help-desk replies, and self-service rights (export, deletion) via Profile → Settings |
+| `TermsOfService.vue` | Non-commercial student-project ToS — acceptance, accounts, conduct & anti-cheat, user content + IP (cross-links to Privacy), Public API rules, termination, liability ("as is", capped at zero), governed by French law |
 | `App.vue` | Navbar (auth-aware), router outlet, socket lifecycle, notification toasts, DM bubble |
 
 ### 5.5 Game Engine (Client)
