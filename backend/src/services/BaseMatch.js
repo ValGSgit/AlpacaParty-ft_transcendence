@@ -84,7 +84,14 @@ export class BaseMatch {
   start() { }
   update() { }
   stop() {
-    clearInterval(this.heartbeat);
+    if (this.heartbeat) {
+      clearInterval(this.heartbeat);
+      // Null the handle so subclasses' lazy `_ensureHeartbeat()` guard
+      // (which short-circuits on a truthy value) can correctly tell that
+      // no interval is currently armed if stop() is ever followed by a
+      // re-armed match.
+      this.heartbeat = null;
+    }
     this.status = 'FINISHED';
   }
 }

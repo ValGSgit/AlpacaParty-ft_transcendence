@@ -87,10 +87,6 @@ Legend:
 - [x] `GET /api/game/achievements` — achievement progression
 - [x] `GET /api/game/leaderboard` — ELO leaderboard (K = 32), with `ActiveLeaderboard.vue` UI
 
-### 🟡 Minor: Remote authentication with OAuth 2.0 — ✅ 1 pt
-
-- [x] Google + GitHub via Passport.js; callback URLs proxied through nginx; account auto-link by email
-
 ---
 
 # 4. Artificial Intelligence
@@ -110,7 +106,7 @@ Legend:
 ### 🟢 Major: WAF/ModSecurity (hardened) + HashiCorp Vault — ✅ 2 pts
 
 - [x] `nginx_prod` runs **ModSecurity** with OWASP CRS 3.3.9 (strict mode, tuned for the API surface)
-- [x] **HashiCorp Vault** holds all production secrets (DB password, JWT secret, OAuth client secrets, Groq API keys)
+- [x] **HashiCorp Vault** holds all production secrets (DB password, JWT secret, Groq API keys)
 - [x] `vault-init` one-shot service auto-initializes Vault on first boot, writes unseal key + service token to a Docker volume, seeds secrets, then exits
 - [x] Backend reads `VAULT_TOKEN` at startup and pulls every secret into memory — no plaintext on disk in app containers
 
@@ -175,7 +171,6 @@ Implements **5 of the 6** suggested mechanics (only need 3):
 | 6 | Notification system | Web | Minor | 1 |
 | 7 | File upload and management | Web | Minor | 1 |
 | 8 | Standard user management + authentication | User Mgmt | Major | 2 |
-| 9 | OAuth 2.0 (Google + GitHub) | User Mgmt | Minor | 1 |
 | 10 | Game statistics & match history | User Mgmt | Minor | 1 |
 | 11 | LLM system interface (Groq help desk) | AI | Major | 2 |
 | 12 | WAF/ModSecurity hardened + HashiCorp Vault | Cybersecurity | Major | 2 |

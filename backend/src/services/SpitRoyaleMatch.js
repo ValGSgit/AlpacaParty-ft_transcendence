@@ -1,6 +1,6 @@
 import { error } from "#lib/logger.js";
-import Game from "../models/Game.js";
 import { BaseMatch } from "./BaseMatch.js";
+import Game from "../models/Game.js";
 import GamificationService from "./GamificationService.js";
 
 const ARENA_RADIUS = 25;
@@ -21,6 +21,10 @@ export class SpitRoyalMatch extends BaseMatch {
     this.isPlaying = false;
     this.playersJoined = 0;
     this.finalized = false;
+  }
+
+  _ensureHeartbeat() {
+    if (this.heartbeat) return;
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
 
@@ -59,6 +63,10 @@ export class SpitRoyalMatch extends BaseMatch {
     player.point = 0;
 
     this.playersJoined++;
+
+    // Start ticking only once we actually have a player to tick for.
+    // BaseMatch.stop() clears this in removePlayer→checkWinCondition.
+    this._ensureHeartbeat();
 
     this.syncLobby();
 

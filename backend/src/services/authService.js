@@ -4,7 +4,6 @@
  */
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { randomBytes } from "crypto";
 import config from "../config/index.js";
 
 const SALT_ROUNDS = 12;

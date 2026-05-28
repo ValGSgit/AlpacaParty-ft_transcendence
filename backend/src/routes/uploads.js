@@ -2,12 +2,12 @@
  * Upload Routes — /api/uploads
  */
 import express from 'express';
-import { uploadFiles, listMyFiles, deleteFile } from '../controllers/uploadController.js';
-import { authenticate } from '../middleware/auth.js';
-import { upload } from '../services/uploadService.js';
-import { uploadLimiter } from '../middleware/rateLimiters.js';
-import { idParamValidation } from '../validators/contentValidator.js';
-import { checkValidation } from '../validators/validatorUtils.js';
+import { uploadFiles, listMyFiles, deleteFile } from '#controllers/uploadController.js';
+import { authenticate } from '#middleware/auth.js';
+import { upload } from '#services/uploadService.js';
+import { uploadLimiter } from '#middleware/rateLimiters.js';
+import { idParamValidation } from '#validators/contentValidator.js';
+import { checkValidation } from '#validators/validatorUtils.js';
 
 const router = express.Router();
 router.use(authenticate);

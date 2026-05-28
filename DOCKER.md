@@ -248,20 +248,51 @@ docker compose up -d --build
 
 ## Backup and Restore
 
-### Backup Database
+The app has two pieces of durable state, both of which must be backed up
+together for a restore to succeed: **Postgres** (all user data, posts,
+games, achievements). Vault runs in dev mode (in-memory) — secrets are
+re-seeded from `.env` on every `vault-init` run, so the `.env` file is
+the canonical source of truth for Vault and should be backed up out of
+band.
+
+### What you're backing up
+
+| Source                | Volume                | Holds                                        |
+|-----------------------|-----------------------|----------------------------------------------|
+| Postgres data         | `alpacaparty_pg_data` | All tables, rows, sequences                  |
+| `.env`                | host filesystem       | DB password, JWT secrets, API keys, Groq keys |
+| nginx / app TLS certs | `ssl/` on host        | Self-signed dev / prod certs                 |
+
+### Snapshot Postgres
+
 ```bash
-docker compose exec postgres pg_dump -U alpacaparty alpacaparty > backup.sql
+TS=$(date -u +%Y%m%dT%H%M%SZ)
+mkdir -p backups
+docker compose -f compose.prod.yaml exec -T postgres \
+  pg_dump -U "$DB_USER" --clean --if-exists "$DB_NAME" \
+  | gzip > "backups/pg-${TS}.sql.gz"
 ```
 
-### Restore Database
+### Restore Postgres
+
 ```bash
-cat backup.sql | docker compose exec -T postgres psql -U alpacaparty alpacaparty
+docker compose -f compose.prod.yaml stop backend
+gunzip -c backups/pg-20260526T020000Z.sql.gz \
+  | docker compose -f compose.prod.yaml exec -T postgres \
+      psql -U "$DB_USER" "$DB_NAME"
+docker compose -f compose.prod.yaml start backend
 ```
 
-### Backup Volume
-```bash
-docker run --rm -v alpacaparty_pg_data:/data -v $(pwd):/backup alpine tar czf /backup/db-backup.tar.gz /data
-```
+The dump uses `--clean --if-exists`, so it drops existing tables before
+recreating them.
+
+### Disaster recovery (lost host)
+
+1. Clone the repo and check out the same commit the backup was taken from.
+2. Copy `.env` and `backups/pg-*.sql.gz` to the new host.
+3. `make ssl-certs` to mint fresh certs.
+4. `make prod-up` — vault-init re-seeds Vault from `.env` automatically.
+5. Restore the Postgres dump (above).
 
 ## Environment Variables Reference
 

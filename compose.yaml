@@ -14,10 +14,6 @@ include:
 
 volumes:
   pg_data:
-  vault_data:
-    driver: local
-  vault_keys:
-    driver: local
   stress_test_results:
     driver: local
   backend_data:

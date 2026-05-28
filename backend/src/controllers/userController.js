@@ -16,8 +16,10 @@ import CustomError from "#utils/CustomError.js";
 /**
  * GET /api/users/me
  */
-export const getMe = async (req, res) =>
-  res.json({ user: shapeUserForClient(req.user) });
+export const getMe = async (req, res) => { 
+  const fresh = await User.findById(req.user.id);
+  res.json({ user: shapeUserForClient(fresh || req.user) });
+};
 
 /**
  * PUT /api/users/me

@@ -78,7 +78,7 @@ const config = {
       : [],
   },
 
-  // Explicit frontend URL used for OAuth post-login redirects.
+  // Explicit frontend URL used for production HTTPS redirects.
   // Falls back to the first CORS origin when not set.
   frontendUrl: process.env.FRONTEND_URL,
 
@@ -97,24 +97,6 @@ const config = {
     requireUppercase: true,
     requireLowercase: true,
     requireNumber: true,
-  },
-
-  // OAuth 2.0
-  oauth: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      callbackUrl:
-        process.env.GOOGLE_CALLBACK_URL ||
-        "https://localhost:8443/api/auth/google/callback",
-    },
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID || "",
-      clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-      callbackUrl:
-        process.env.GITHUB_CALLBACK_URL ||
-        "https://localhost:8443/api/auth/github/callback",
-    },
   },
 
   // SSL/TLS certificates

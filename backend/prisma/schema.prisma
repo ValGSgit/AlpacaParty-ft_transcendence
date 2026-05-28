@@ -53,16 +53,13 @@ model User {
 }
 
 model UserAuth {
-  id            Int     @id @default(autoincrement())
-  passwordHash  String? @db.VarChar(255)
-  oauthProvider String?
-  oauthId       String?
+  id           Int     @id @default(autoincrement())
+  passwordHash String? @db.VarChar(255)
 
   // Relations
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int  @unique
 
-  @@unique([oauthProvider, oauthId], name: "idx_users_oauth")
   @@map("user_auth")
 }
 

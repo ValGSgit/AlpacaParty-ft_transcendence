@@ -1,33 +1,21 @@
-# HashiCorp Vault (production — file storage backend, TLS enabled)
-# Fully automated: vault-init handles init, unseal, seed, and token creation.
-# Keys are persisted in the vault_keys Docker volume — no manual .env editing required.
+# HashiCorp Vault — dev mode (production stack uses the same dev-mode setup
+# for simplicity: auto-unsealed, UI enabled, KV v2 pre-mounted at `secret/`).
+# Secrets must be supplied via .env before `make prod-up`.
 services:
   vault:
     image: hashicorp/vault:1.16
     container_name: vault_prod
-    user: "0"        # start as root so we can chown /vault/data before dropping to vault user
-    # Fix named-volume ownership (root:root on first creation) then drop to vault (uid 100 gid 1000).
-    # su-exec is shipped in the hashicorp/vault image; -config=/vault/config loads vault.hcl from
-    # the directory mount.  Do NOT use "command: server" here — entrypoint already sets the command.
-    entrypoint:
-      - sh
-      - -c
-      - "chown -R 100:1000 /vault/data && exec su-exec vault vault server -config=/vault/config"
     cap_add:
       - IPC_LOCK
     environment:
-      VAULT_API_ADDR: https://vault:8200
-      VAULT_LOG_LEVEL: warn
-    volumes:
-      - ssl:/vault/ssl:ro
-      - vault_data:/vault/data
-      - ./config/vault-prod.hcl:/vault/config/vault.hcl:ro
-      - ./init:/vault/init:ro
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN:?VAULT_TOKEN must be set before bringing up the prod stack}
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      VAULT_ADDR: http://127.0.0.1:8200
+    command: server -dev
+    ports:
+      - "8200:8200"
     healthcheck:
-      # Returns 200 regardless of seal state — we only need to know the process is up.
-      # vault-init handles the init+unseal; backend waits for vault-init to complete.
-      test: ["CMD", "wget", "--no-check-certificate", "-q", "--spider",
-             "https://127.0.0.1:8200/v1/sys/health?sealedcode=200&uninitcode=200&standbyok=true"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8200/v1/sys/health"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -39,12 +27,9 @@ services:
   vault-init:
     image: hashicorp/vault:1.16
     container_name: alpacaparty_vault_init
-    user: "0"        # root needed: (1) write to vault_keys volume (root:root on creation),
-                     #              (2) install jq if absent via apk add
     environment:
-      VAULT_ADDR: https://vault:8200
-      VAULT_CACERT: /vault/ssl/cert.pem
-      # Secrets to seed into Vault (only needed at seed time, not by the running backend)
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_USER: ${DB_USER:-alpacaparty}
       DB_NAME: ${DB_NAME:-alpacaparty}
@@ -52,21 +37,14 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_PUBLIC_API_SECRET: ${JWT_PUBLIC_API_SECRET}
       JWT_ADMIN_SECRET: ${JWT_ADMIN_SECRET}
-      API_KEYS: ${API_KEYS:-change-me-to-a-secure-key}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      API_KEYS: ${API_KEYS:?API_KEYS must be set before bringing up the prod stack}
       GROQ_API_KEY1: ${GROQ_API_KEY1:-}
       GROQ_API_KEY2: ${GROQ_API_KEY2:-}
       GROQ_API_KEY3: ${GROQ_API_KEY3:-}
       GROQ_MODEL: ${GROQ_MODEL:-}
     volumes:
-      - ssl:/vault/ssl:ro
       - ./init:/vault/init:ro
-      # Shared volume: init-unseal-seed.sh writes keys here; backend reads token from here
-      - vault_keys:/vault/keys
-    command: sh /vault/init/init-unseal-seed.sh
+    command: sh /vault/init/seed.sh
     depends_on:
       vault:
         condition: service_healthy

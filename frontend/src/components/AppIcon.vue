@@ -32,7 +32,6 @@ const props = defineProps({
 
 // Multi-color SVGs that live in /icons/ui/ and can't use currentColor
 const FILE_ICONS = {
-  'google':         '/icons/ui/google-color-svgrepo-com.svg',
   'close':          '/icons/ui/cross-close.svg',
   'message':        '/icons/ui/message.svg',
   'logout':         '/icons/ui/logout.svg',
@@ -64,15 +63,4 @@ const FILE_ICONS = {
 const fileSrc = computed(() => FILE_ICONS[props.name] ?? null)
 </script>
 
-<style scoped>
-.app-icon {
-  display: inline-block;
-  vertical-align: middle;
-  flex-shrink: 0;
-  overflow: visible;
-}
-.app-icon--img {
-  object-fit: contain;
-  overflow: hidden;
-}
-</style>
+<style src="../styles/components/AppIcon.css" scoped></style>

@@ -53,7 +53,10 @@
       id="coin-hud"
       v-if="gMinigame.mode === 0 || gMinigame.isGameOver"
       class="stat" :class="{ 'overlay': gMinigame.isGameOver }">
-      <span class="hud-coins"><AppIcon name="coin" :size="36" /> {{ gUser.coins }}</span>
+      <span class="hud-coins">
+        <AppIcon name="coin" :size="36" />
+        <span class="hud-coins-val">{{ gUser.coins }}</span>
+      </span>
     </div>
       <template v-if="gMinigame.mode === 1 || gMinigame.mode === 2">
         <div v-for="player in gMinigame.players" :key="'ui-' + player.id" class="stat multiplayer-row">
@@ -316,7 +319,7 @@ import { useInput } from './core/useInput.js'
 import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
-import './game.css'
+import '../styles/games/game.css'
 import { changeGame, friendName, visitFarm } from './mini_games/init.js'
 import { updateMinigame } from './mini_games/minigames.js'
 import { getHearts } from './utils/uiHelpers.js'
@@ -374,7 +377,7 @@ onMounted(async () => {
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
 
-    if (authStore.isAuthenticated)
+    if (authStore.isAuthenticated && authStore.user?.username)
       gUser.value.name = authStore.user.username;
     await initWorld(gScene.value, authStore.isAuthenticated)
     gameIsReady.value = true
@@ -445,4 +448,4 @@ onUnmounted(async () => {
 </script>
 
 <!---------------------- STYLE ------------------------->
-<style src="./game.css"></style>
+<style src="../styles/games/game.css"></style>

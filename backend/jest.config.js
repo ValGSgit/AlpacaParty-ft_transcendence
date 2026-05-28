@@ -13,7 +13,6 @@ export default {
     "!src/server.js",
     "!src/config/database.js",
     "!src/config/prisma.js",
-    "!src/services/oauthService.js",
     "!src/services/socketService.js",
     "!src/services/spitRoyaleNamespace.js",
     "!src/tools/fetchSecrets.js",

@@ -26,7 +26,6 @@
 | 6 | Notification system | Web · Minor | 1 | ✅ | Like a post → bell increments |
 | 7 | File upload (avatars + post images) | Web · Minor | 1 | ✅ | Upload avatar; bad-MIME path 4xxs |
 | 8 | Standard user management | User Mgmt · Major | 2 | ✅ | Profile edit, friends, online status |
-| 9 | OAuth (Google + GitHub via Passport) | User Mgmt · Minor | 1 | ✅ | Login → GitHub → auto-link |
 | 10 | Game stats & match history | User Mgmt · Minor | 1 | ✅ | `/profile` history; leaderboard |
 | 11 | LLM helpdesk (Groq) | AI · Major | 2 | ✅ | FAB chat or `/help` page |
 | 12 | WAF (ModSecurity + OWASP CRS) + Vault | Cybersecurity · Major | 2 | ✅ | `?id=1' OR '1'='1` → 403; `vault status` |
@@ -188,7 +187,6 @@ the full PR-by-PR history, use `git log`.
 | #13 | Socket event handlers | ✅ |
 | #14 | 3D alpaca farm | ✅ |
 | #15 | Three.js advanced graphics | ✅ |
-| #16 | OAuth 2.0 (Google + GitHub) | ✅ |
 | #17 | GDPR (export + deletion + grace period) | ✅ |
 | #19 | Gamification (XP, achievements, leaderboard) | ✅ |
 | #20 | Game stats & match history | ✅ |

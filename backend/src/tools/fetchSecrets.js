@@ -1,4 +1,5 @@
 import fs from "fs";
+import http from "node:http";
 import https from "node:https";
 import { URL } from "node:url";
 
@@ -13,10 +14,6 @@ const KEY_MAP = {
   jwt_public_api_secret: "JWT_PUBLIC_API_SECRET",
   jwt_admin_secret: "JWT_ADMIN_SECRET",
   api_keys: "API_KEYS",
-  google_client_id: "GOOGLE_CLIENT_ID",
-  google_client_secret: "GOOGLE_CLIENT_SECRET",
-  github_client_id: "GITHUB_CLIENT_ID",
-  github_client_secret: "GITHUB_CLIENT_SECRET",
   groq_api_key1: "GROQ_API_KEY1",
   groq_api_key2: "GROQ_API_KEY2",
   groq_api_key3: "GROQ_API_KEY3",
@@ -26,30 +23,27 @@ const KEY_MAP = {
 };
 
 /**
- * Performs a GET request to the Vault HTTPS endpoint using a custom CA cert
- * instead of disabling TLS verification globally.
- *
- * NODE_EXTRA_CA_CERTS is set in compose.prod.yaml but may not be resolved by
- * Node's TLS layer before this short-lived helper process starts (timing
- * issue with some Alpine Node builds). Using https.request with an explicit
- * `ca` option is reliable regardless of env-var timing.
+ * GET a Vault path. Supports http (dev mode) and https (file-backend mode)
+ * by dispatching on the URL scheme. When CA cert is present, https verifies
+ * against it explicitly.
  */
 function vaultGet(url, token, caPath) {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
+    const client = parsed.protocol === "https:" ? https : http;
     const options = {
       hostname: parsed.hostname,
-      port: parseInt(parsed.port, 10) || 443,
+      port: parseInt(parsed.port, 10) || (parsed.protocol === "https:" ? 443 : 80),
       path: parsed.pathname + parsed.search,
       method: "GET",
       headers: { "X-Vault-Token": token },
     };
 
-    if (caPath && fs.existsSync(caPath)) {
+    if (parsed.protocol === "https:" && caPath && fs.existsSync(caPath)) {
       options.ca = fs.readFileSync(caPath);
     }
 
-    const req = https.request(options, (res) => {
+    const req = client.request(options, (res) => {
       let body = "";
       res.on("data", (chunk) => {
         body += chunk;

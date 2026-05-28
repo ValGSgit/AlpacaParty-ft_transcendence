@@ -3,7 +3,6 @@
  * @owner ValGSgit
  */
 import express from "express";
-import passport from "passport";
 import rateLimit from "express-rate-limit";
 import {
   register,
@@ -11,15 +10,12 @@ import {
   logout,
   refresh,
   me,
-  oauthCallback,
-  googleAuth,
 } from "../controllers/authController.js";
-import { authenticate, optionalAuth } from "../middleware/auth.js";
+import { optionalAuth } from "../middleware/auth.js";
 import {
   authLoginValidation,
   authRegisterValidation,
 } from "#validators/authValidator.js";
-import config from "#config/index.js";
 
 const router = express.Router();
 
@@ -144,7 +140,7 @@ router.post(
  *       200:
  *         description: Logged out
  */
-router.post("/logout", authenticate, logout);
+router.post("/logout", optionalAuth, logout);
 
 /**
  * @openapi
@@ -194,63 +190,5 @@ router.post("/refresh", refresh);
  *       401: { description: Not authenticated }
  */
 router.get("/me", optionalAuth, me);
-
-// ── OAuth ─────────────────────────────────────────────────
-
-/**
- * Guard that checks whether a Passport strategy is registered before
- * attempting authentication.  Returns 501 if the provider is not configured
- * (e.g. missing OAuth credentials) instead of crashing with
- * "Unknown authentication strategy".
- */
-const requireStrategy = (name) => (req, res, next) => {
-  if (!passport._strategy(name)) {
-    return res.status(501).json({
-      error: { message: `${name} login is not configured on this server` },
-    });
-  }
-  next();
-};
-
-router.get(
-  "/google",
-  requireStrategy("google"),
-  passport.authenticate("google", {
-    scope: ["profile", "email"],
-    session: false,
-  }),
-);
-// router.get(
-//   "/google/callback",
-//   requireStrategy("google"),
-//   passport.authenticate("google", {
-//     failureRedirect: "/login",
-//     session: false,
-//   }),
-//   oauthCallback,
-// );
-
-router.get(
-  "/google/callback",
-  requireStrategy("google"),
-  googleAuth,
-  oauthCallback,
-);
-
-router.get(
-  "/github",
-  requireStrategy("github"),
-  passport.authenticate("github", { scope: ["user:email"], session: false }),
-);
-
-router.get(
-  "/github/callback",
-  requireStrategy("github"),
-  passport.authenticate("github", {
-    failureRedirect: "/login",
-    session: false,
-  }),
-  oauthCallback,
-);
 
 export default router;

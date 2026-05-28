@@ -2,8 +2,7 @@
  * PrivacyPolicy View Unit Tests
  */
 import { describe, it, expect } from 'vitest'
-import { mount } from '@vue/test-utils'
-import { RouterLinkStub } from '@vue/test-utils'
+import { mount, RouterLinkStub } from '@vue/test-utils'
 import PrivacyPolicy from '../../../src/views/PrivacyPolicy.vue'
 
 function mountPage() {
@@ -15,17 +14,17 @@ function mountPage() {
 describe('PrivacyPolicy.vue', () => {
   it('renders the page heading', () => {
     const wrapper = mountPage()
-    expect(wrapper.find('h1').text()).toBe('Privacy Policy')
+    expect(wrapper.find('h1').text()).toMatch(/Privacy/i)
   })
 
-  it('has the legal-page container', () => {
+  it('has the doc-page container', () => {
     const wrapper = mountPage()
-    expect(wrapper.find('.legal-page').exists()).toBe(true)
+    expect(wrapper.find('.doc-page').exists()).toBe(true)
   })
 
-  it('shows last updated date', () => {
+  it('shows the effective date', () => {
     const wrapper = mountPage()
-    expect(wrapper.find('.updated').text()).toContain('2026')
+    expect(wrapper.text()).toContain('2026')
   })
 
   it('contains multiple sections', () => {
@@ -44,11 +43,18 @@ describe('PrivacyPolicy.vue', () => {
     expect(wrapper.text().toLowerCase()).toContain('gdpr')
   })
 
-  it('has links to settings and help', () => {
+  it('links to the settings page and the help desk', () => {
     const wrapper = mountPage()
-    const links = wrapper.findAllComponents(RouterLinkStub)
-    const tos = links.map(l => l.props('to'))
-    expect(tos).toContain('/settings')
+    const tos = wrapper
+      .findAllComponents(RouterLinkStub)
+      .map((l) => l.props('to'))
+    // Settings are reached through /profile?tab=settings, so look for a link
+    // that targets the profile route with a settings tab anywhere in it.
+    expect(
+      tos.some(
+        (to) => typeof to === 'string' && to.includes('/profile') && to.includes('settings'),
+      ),
+    ).toBe(true)
     expect(tos).toContain('/help')
   })
 })

@@ -60,6 +60,25 @@ async function parseResponse(response) {
   return await response.text();
 }
 
+// Single in-flight refresh promise. Without this, two concurrent 401s would
+// each POST /auth/refresh in parallel — the second loses to the first's
+// token rotation and the user gets a spurious "session expired".
+let refreshInFlight = null;
+
+function refreshAccessToken() {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = performRequest({
+    method: "POST",
+    path: "/auth/refresh",
+    data: {},
+    retryOnAuth: false,
+  });
+  // Clear the slot once the request settles (success OR failure) so the
+  // next 401 can issue a fresh refresh.
+  refreshInFlight.finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
+}
+
 async function performRequest({
   method = "GET",
   path,
@@ -107,25 +126,26 @@ async function performRequest({
 
     if (response.status === 401 && retryOnAuth) {
       try {
-        await performRequest({
-          method: "POST",
-          path: "/auth/refresh",
-          data: {},
-          retryOnAuth: false,
-        });
-
-        return await performRequest({
-          method,
-          path,
-          data,
-          params,
-          headers,
-          timeout,
-          retryOnAuth: false,
-        });
+        await refreshAccessToken();
       } catch {
         // Refresh failed — fall through and surface the original 401 below.
+        throw new HttpError(
+          `Request failed with status ${response.status}`,
+          response,
+          errorData,
+        );
       }
+      // One retry only; the inner call disables retryOnAuth so we cannot
+      // loop here if the second attempt also returns 401.
+      return await performRequest({
+        method,
+        path,
+        data,
+        params,
+        headers,
+        timeout,
+        retryOnAuth: false,
+      });
     }
 
     throw new HttpError(

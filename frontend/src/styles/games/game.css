@@ -93,6 +93,17 @@ html {
   right: 20px;
 }
 
+.hud-coins {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 6px;
+}
+
+.hud-coins-val {
+  margin-left: auto;
+}
+
 /* ========================================= */
 /* SHARED COMPONENT STYLES (Consolidated!)   */
 /* ========================================= */
@@ -531,7 +542,7 @@ input:checked+.slider:before {
 }
 
 .floating-text {
-  color: #00f0ff;
+  color: var(--primary);
   margin-top: -100px;
   text-shadow: 1px 3px 0px #007780, 0px 4px 6px rgba(0, 0, 0, 0.5);
 }
@@ -692,15 +703,15 @@ input:checked+.slider:before {
 }
 
 .feature-card {
-  background: var(--bg-secondary, #12121a);
-  border: 1px solid var(--border-color, #2a2a3a);
+  background: var(--bg-secondary, var(--bg-secondary));
+  border: 1px solid var(--border-color, var(--border-color));
   border-radius: 12px;
   padding: 1.75rem 1.25rem;
   transition: border-color 0.2s, transform 0.15s;
 }
 
 .feature-card:hover {
-  border-color: var(--primary, #00f0ff);
+  border-color: var(--primary, var(--primary));
   transform: translateY(-3px);
 }
 

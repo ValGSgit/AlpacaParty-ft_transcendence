@@ -1,6 +1,7 @@
 /**
- * OpenAPI / Swagger configuration
- * UI available at /api/docs/public
+ * OpenAPI / Swagger configuration (full internal API)
+ * UI available at /api/docs/dev — dev only (gated by NODE_ENV in index.js).
+ * The publicly-mounted, externally-safe spec lives at /api/docs/public.
  */
 import swaggerJsdoc from "swagger-jsdoc";
 
@@ -60,7 +61,7 @@ X-API-Key: ap_your_key_here
     tags: [
       {
         name: "Auth",
-        description: "Register, login, OAuth (Google / GitHub), token refresh",
+        description: "Register, login, logout, token refresh",
       },
       {
         name: "Users",

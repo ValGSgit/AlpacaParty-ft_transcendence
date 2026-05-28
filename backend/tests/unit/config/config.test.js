@@ -48,14 +48,6 @@ describe("config", () => {
     expect(Number.isNaN(config.port)).toBe(false);
   });
 
-  test("should have oauth configuration with google and github", () => {
-    expect(config.oauth).toBeDefined();
-    expect(config.oauth.google).toBeDefined();
-    expect(config.oauth.google.callbackUrl).toBeDefined();
-    expect(config.oauth.github).toBeDefined();
-    expect(config.oauth.github.callbackUrl).toBeDefined();
-  });
-
   test("should have frontendUrl defined", () => {
     expect(config.frontendUrl).toBeDefined();
     expect(typeof config.frontendUrl).toBe("string");
@@ -144,42 +136,6 @@ describe("config", () => {
     expect(keys).toContain("requireUppercase");
     expect(keys).toContain("requireLowercase");
     expect(keys).toContain("requireNumber");
-  });
-
-  // ── OAuth config ──────────────────────────────────────────────────────────
-
-  test("oauth.google should have clientId, clientSecret, callbackUrl", () => {
-    expect(config.oauth.google).toHaveProperty("clientId");
-    expect(config.oauth.google).toHaveProperty("clientSecret");
-    expect(config.oauth.google).toHaveProperty("callbackUrl");
-    expect(typeof config.oauth.google.clientId).toBe("string");
-    expect(typeof config.oauth.google.clientSecret).toBe("string");
-    expect(typeof config.oauth.google.callbackUrl).toBe("string");
-  });
-
-  test("oauth.github should have clientId, clientSecret, callbackUrl", () => {
-    expect(config.oauth.github).toHaveProperty("clientId");
-    expect(config.oauth.github).toHaveProperty("clientSecret");
-    expect(config.oauth.github).toHaveProperty("callbackUrl");
-    expect(typeof config.oauth.github.clientId).toBe("string");
-    expect(typeof config.oauth.github.clientSecret).toBe("string");
-    expect(typeof config.oauth.github.callbackUrl).toBe("string");
-  });
-
-  test("oauth callback URLs should contain /api/auth/", () => {
-    expect(config.oauth.google.callbackUrl).toMatch(
-      /\/api\/auth\/google\/callback/,
-    );
-    expect(config.oauth.github.callbackUrl).toMatch(
-      /\/api\/auth\/github\/callback/,
-    );
-  });
-
-  test("oauth should only have google and github providers", () => {
-    const providers = Object.keys(config.oauth);
-    expect(providers).toContain("google");
-    expect(providers).toContain("github");
-    expect(providers).toHaveLength(2);
   });
 
   // ── SSL / Uploads / XP ────────────────────────────────────────────────────

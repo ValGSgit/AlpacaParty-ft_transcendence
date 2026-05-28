@@ -118,4 +118,4 @@ const leaveRoom = () => {
 </script>
 
 <!---------------------- STYLE ------------------------->
-<style src="../game.css" scoped></style>
+<style src="../../styles/games/game.css" scoped></style>

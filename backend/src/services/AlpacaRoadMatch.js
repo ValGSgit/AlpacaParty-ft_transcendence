@@ -26,6 +26,16 @@ export class AlpacaRoadMatch extends BaseMatch {
     // in syncLobby() (which broadcasts raw player objects) crashed
     // socket.io-parser's hasBinary() walk with a stack overflow.
     this.hitTimers = new Map();
+    // Tracks the COUNTDOWN→PLAYING transition timer so stop() can cancel it
+    // before it flips state on an already-torn-down match.
+    this.countdownTimer = null;
+    // Heartbeat is started lazily in addPlayer() once the first player
+    // arrives — see SpitRoyaleMatch for the rationale. BaseMatch.stop()
+    // clears it on teardown.
+  }
+
+  _ensureHeartbeat() {
+    if (this.heartbeat) return;
     this.heartbeat = setInterval(() => this.update(), this.tickRate);
   }
 
@@ -52,6 +62,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     player.isJumping = false;
     player.isActive = true;
     player.lastActive = Date.now();
+    this._ensureHeartbeat();
     this.syncLobby();
   }
 
@@ -59,11 +70,12 @@ export class AlpacaRoadMatch extends BaseMatch {
     this.status = 'COUNTDOWN';
     this.initObstacles();
     this.broadcast('game_start');
-    setTimeout(() => {
+    this.countdownTimer = setTimeout(() => {
+      this.countdownTimer = null;
       this.status = 'PLAYING';
       this.isPlaying = true;
       this.roadSpeed = 30;
-    }, 4000)
+    }, 4000);
   }
 
   stop() {
@@ -71,6 +83,10 @@ export class AlpacaRoadMatch extends BaseMatch {
     this.isPlaying = false;
     this.obstacles = [];
     this.roadSpeed = 0;
+    if (this.countdownTimer) {
+      clearTimeout(this.countdownTimer);
+      this.countdownTimer = null;
+    }
     // Drain any pending hit-clear timers so they don't fire after teardown.
     for (const t of this.hitTimers.values()) clearTimeout(t);
     this.hitTimers.clear();
@@ -185,10 +201,9 @@ export class AlpacaRoadMatch extends BaseMatch {
           obs.pointGiven = true;
           let awardedPoint = false;
 
-          for (const [id, player] of this.players) {
+          for (const player of this.players.values()) {
             if (!player.isDead && !player.isHit && player.isActive) {
               if (obs.isFull || player.lane === obs.lane) {
-                obs.pointGiven = true;
                 player.points++;
                 awardedPoint = true;
               }
@@ -287,7 +302,7 @@ export class AlpacaRoadMatch extends BaseMatch {
     if (!this.isPlaying) return;
 
     const now = Date.now();
-    for (const [id, player] of this.players) {
+    for (const player of this.players.values()) {
       if (!player.isDead && player.isActive) {
         if (now - player.lastActive > 3000) {
           debug(`Server: ${player.name} is inactive!`);

@@ -16,6 +16,15 @@ services:
         condition: service_started
     volumes:
       - ssl:/etc/nginx/conf/ssl
+    healthcheck:
+      # Vite preview serves index.html on 5173 — a 2xx response means the
+      # build succeeded and the static server is up. Without this check
+      # nginx will proxy to a broken upstream silently.
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     restart: unless-stopped
     networks:
       - alpacaparty_net

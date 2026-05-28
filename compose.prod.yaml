@@ -1,14 +1,10 @@
 # Docker Compose — Production
 # @owner ValGSgit
 #
-# Usage:
-#   make prod-up
+# Usage: make prod-up
 #
-# Vault is fully automated:
-#   - vault-init initializes, unseals, and seeds Vault on first boot
-#   - Unseal key + service token are saved to the vault_keys Docker volume
-#   - On reboots vault-init reads the key from the volume and unseals automatically
-#   - The backend reads VAULT_TOKEN from the volume — no manual steps required
+# Vault runs in dev mode (auto-unsealed, fixed root token from VAULT_TOKEN
+# env var). vault-init seeds app secrets once Vault is healthy.
 
 include:
   - ./backend/compose.prod.yaml
@@ -19,10 +15,6 @@ include:
 
 volumes:
   pg_data:
-    driver: local
-  vault_data:
-    driver: local
-  vault_keys:
     driver: local
   backend_uploads:
     driver: local

@@ -28,6 +28,14 @@
   /* Borders */
   --border-color: #2a2a3a;
 
+  /* Extended palette */
+  --magenta: #ff8ec4;
+  --gold:    #f5c842;
+  --silver:  #cfd3df;
+  --bronze:  #d68a4c;
+  --green:   #36e07a;
+  --text-muted: #6a6c7c;
+
   /* Typography */
   font-family: Inter, system-ui, -apple-system, sans-serif;
   line-height: 1.6;
@@ -136,4 +144,9 @@ a:hover {
 
 .modal-close-top:hover {
   color: #fff;
+}
+
+/* Shared spin animation (used by loaders across the app) */
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

@@ -11,6 +11,7 @@ const mockPrisma = {
     create: jest.fn(),
     upsert: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
     delete: jest.fn(),
     count: jest.fn(),
   },
@@ -195,9 +196,9 @@ describe("User.updatePassword", () => {
 
 describe("User.setOnline", () => {
   test("should call update with isOnline=true", async () => {
-    mockPrisma.user.update.mockResolvedValue({});
+    mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
     await User.setOnline(1, true);
-    expect(mockPrisma.user.update).toHaveBeenCalledWith(
+    expect(mockPrisma.user.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 1 },
         data: expect.objectContaining({ isOnline: true }),
@@ -206,9 +207,9 @@ describe("User.setOnline", () => {
   });
 
   test("should call update with isOnline=false", async () => {
-    mockPrisma.user.update.mockResolvedValue({});
+    mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
     await User.setOnline(1, false);
-    const call = mockPrisma.user.update.mock.calls[0][0];
+    const call = mockPrisma.user.updateMany.mock.calls[0][0];
     expect(call.data.isOnline).toBe(false);
   });
 });
@@ -282,89 +283,6 @@ describe("User.findByIdWithPassword", () => {
   });
 });
 
-describe("User.findOrCreateOAuth", () => {
-  test("should return existing user when OAuth account exists", async () => {
-    mockPrisma.user.findFirst.mockResolvedValue(fakeUser);
-    const result = await User.findOrCreateOAuth({
-      provider: "github",
-      oauthId: "123",
-      username: "test",
-      email: "test@example.com",
-    });
-    expect(result.user).toEqual(fakeUser);
-    expect(result.created).toBe(false);
-  });
-
-  test("should link to existing email when creating OAuth user", async () => {
-    mockPrisma.user.findFirst.mockResolvedValue(null);
-    mockPrisma.user.findUnique.mockResolvedValue({ id: 99, userAuth: {} });
-    mockPrisma.user.update.mockResolvedValue(fakeUser);
-    const result = await User.findOrCreateOAuth({
-      provider: "google",
-      oauthId: "456",
-      username: "newuser",
-      email: "existing@example.com",
-      avatar: "/avatar.jpg",
-      emailVerified: true,
-    });
-    expect(result.created).toBe(true);
-    expect(mockPrisma.user.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 99 },
-        data: expect.objectContaining({
-          userAuth: {
-            upsert: {
-              create: {
-                oauthProvider: "google",
-                oauthId: "456",
-              },
-              update: {
-                oauthProvider: "google",
-                oauthId: "456",
-              },
-            },
-          },
-        }),
-      }),
-    );
-  });
-
-  test("should create user with internal email when no email provided", async () => {
-    mockPrisma.user.findFirst.mockResolvedValue(null);
-    mockPrisma.user.create.mockResolvedValue(fakeUser);
-    const result = await User.findOrCreateOAuth({
-      provider: "github",
-      oauthId: "789",
-      username: "nomail",
-    });
-    expect(result.created).toBe(true);
-    expect(mockPrisma.user.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          email: "github_789@oauth.internal",
-        }),
-      }),
-    );
-  });
-
-  test("should use default avatar when not provided", async () => {
-    mockPrisma.user.findFirst.mockResolvedValue(null);
-    mockPrisma.user.create.mockResolvedValue(fakeUser);
-    await User.findOrCreateOAuth({
-      provider: "github",
-      oauthId: "789",
-      username: "nomail",
-    });
-    expect(mockPrisma.user.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          avatar: "/avatars/default.svg",
-        }),
-      }),
-    );
-  });
-});
-
 describe("User.update — complex field handling", () => {
   beforeEach(() => {
     mockPrisma.user.update.mockResolvedValue(fakeUser);
@@ -418,9 +336,9 @@ describe("User.update — complex field handling", () => {
 
 describe("User.setOffline", () => {
   test("should set isOnline to false", async () => {
-    mockPrisma.user.update.mockResolvedValue({});
+    mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
     await User.setOffline(1);
-    expect(mockPrisma.user.update).toHaveBeenCalledWith(
+    expect(mockPrisma.user.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 1 },
         data: expect.objectContaining({ isOnline: false }),

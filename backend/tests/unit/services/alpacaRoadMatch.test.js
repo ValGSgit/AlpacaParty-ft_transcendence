@@ -33,10 +33,6 @@ describe('AlpacaRoadMatch constructor', () => {
     expect(match.roadSpeed).toBe(0)
     expect(match.status).toBe('LOBBY')
   })
-
-  test('starts heartbeat interval', () => {
-    expect(match.heartbeat).not.toBeNull()
-  })
 })
 
 describe('addPlayer', () => {
