@@ -53,7 +53,10 @@
       id="coin-hud"
       v-if="gMinigame.mode === 0 || gMinigame.isGameOver"
       class="stat" :class="{ 'overlay': gMinigame.isGameOver }">
-      <span class="hud-coins"><AppIcon name="coin" :size="36" /> {{ gUser.coins }}</span>
+      <span class="hud-coins">
+        <AppIcon name="coin" :size="36" />
+        <span class="hud-coins-val">{{ gUser.coins }}</span>
+      </span>
     </div>
       <template v-if="gMinigame.mode === 1 || gMinigame.mode === 2">
         <div v-for="player in gMinigame.players" :key="'ui-' + player.id" class="stat multiplayer-row">

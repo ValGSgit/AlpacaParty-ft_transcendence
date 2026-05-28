@@ -52,7 +52,7 @@
               <span class="feat-icon"><img src="/icons/Water Trough.png" alt="" /></span>
               <div>
                 <strong>Social Hub</strong>
-                <span>Feed, direct messages, group chat &amp; organisations</span>
+                <span>Feed, direct messages &amp; friends</span>
               </div>
             </div>
             <div class="feat">
@@ -284,6 +284,20 @@ function switchMode(m) {
 }
 
 watch(() => authStore.error, v => { errorMsg.value = v || '' })
+
+// When the navbar links between /login and /register without unmounting the
+// component, the route path changes but our local `mode` ref stays stale.
+// Sync it back so the tab switches to match the URL.
+watch(() => route.path, (path) => {
+  const next = path.includes('register') ? 'register' : 'login'
+  if (next === mode.value) return
+  slideDir.value = next === 'register' ? 'sl-left' : 'sl-right'
+  mode.value     = next
+  errorMsg.value = ''
+  showPwd.value  = false
+  regStep.value  = 1
+  authStore.error = null
+})
 
 // ── login ──────────────────────────────────────────────────────
 const loginForm = reactive({ username: '', password: '' })

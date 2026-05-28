@@ -93,6 +93,17 @@ html {
   right: 20px;
 }
 
+.hud-coins {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 6px;
+}
+
+.hud-coins-val {
+  margin-left: auto;
+}
+
 /* ========================================= */
 /* SHARED COMPONENT STYLES (Consolidated!)   */
 /* ========================================= */

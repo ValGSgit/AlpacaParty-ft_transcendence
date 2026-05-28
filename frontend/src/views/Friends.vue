@@ -156,7 +156,7 @@
           </button>
         </div>
 
-        <div v-else class="empty-state">
+        <div v-if="!friends.length" class="empty-state">
           <span class="empty-icon">🦙</span>
           <p v-if="friendSearch">No friends matching "{{ friendSearch }}"</p>
           <p v-else>No friends yet — start by discovering users below!</p>
