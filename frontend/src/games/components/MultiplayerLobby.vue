@@ -21,6 +21,7 @@
         <div v-for="player in gMinigame.players" :key="player.id" class="stat-row">
           {{ player.name }} - {{ player.isReady ? '✅ Ready' : '⏳ Waiting' }}
         </div>
+        <div v-if="gMinigame.players.length < 2" class="stat-row">⏳ Waiting for another player to join…</div>
         <button class="shop-btn" @click="toggleReady">
           {{ gMinigame.isReady ? 'Cancel Ready' : 'Ready Up' }}
         </button>

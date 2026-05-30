@@ -10,6 +10,11 @@ export class BaseMatch {
     this.players = new Map();
     this.status = 'LOBBY';
     this.heartbeat = null;
+    // Minimum players that must be present (and ready) before a match can
+    // start. Defaults to 1 (solo-friendly, e.g. Alpaca Road). Subclasses that
+    // are pointless solo — Spit Royale — raise this so a lone player waits in
+    // the lobby for an opponent instead of starting an empty arena.
+    this.minPlayers = 1;
   }
 
   addPlayer(socket, name, color) {
@@ -71,9 +76,10 @@ export class BaseMatch {
 
   checkStart() {
     const playerList = Array.from(this.players.values());
+    const enoughPlayers = playerList.length >= this.minPlayers;
     const allReady = playerList.length > 0 && playerList.every(p => p.isReady);
 
-    if (allReady && this.status === 'LOBBY') {
+    if (enoughPlayers && allReady && this.status === 'LOBBY') {
       this.start();
       if (this.onStateChange) this.onStateChange();
     }

@@ -21,6 +21,8 @@ export class SpitRoyalMatch extends BaseMatch {
     this.isPlaying = false;
     this.playersJoined = 0;
     this.finalized = false;
+    // Require a second player so a lone alpaca waits in the lobby instead of starting alone.
+    this.minPlayers = 2;
   }
 
   getValidSpawn() {

@@ -339,6 +339,9 @@ export class AlpacaRoadMatch extends BaseMatch {
         } else {
           await GamificationService.onLoss(p.userId);
         }
+        // "Road Warrior" = complete 5 stages. this.level is the furthest stage
+        // the run reached; everyone who played the run shares it.
+        await GamificationService.onAlpacaRoadStage(p.userId, this.level);
       }),
     );
 

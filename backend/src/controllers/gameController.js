@@ -119,6 +119,9 @@ export const saveGameResult = async (req, res, next) => {
     // can't farm the leaderboard with arbitrary numbers.
     const killsThisRun = clampInt(req.body.kills, 0, 200);
     const obstaclesThisRun = clampInt(req.body.obstacles, 0, 500);
+    // Stage/level reached this run — drives the road_warrior achievement
+    // ("complete 5 stages"). Clamped like the other client-supplied counters.
+    const stageReached = clampInt(req.body.stage, 0, 1000);
 
     await Game.updateStats(req.user.id, gameType, result);
     if (gameType === 'spit_royale' && killsThisRun > 0) {
@@ -133,6 +136,9 @@ export const saveGameResult = async (req, res, next) => {
 
     if (result === 'loss') {
       GamificationService.onLoss(req.user.id).catch(() => {});
+    }
+    if (gameType === 'alpaca_road') {
+      GamificationService.onAlpacaRoadStage(req.user.id, stageReached).catch(() => {});
     }
   } catch (err) { next(err); }
 };

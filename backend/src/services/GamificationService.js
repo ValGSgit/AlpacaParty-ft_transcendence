@@ -181,7 +181,10 @@ const GamificationService = {
     if (gs.wins === 1)  await this.unlock(userId, 'first_win');
     if (newStreak >= 5) await this.unlock(userId, 'win_streak_5');
     if (gameType === 'spit_royale' && gs.wins >= 10) await this.unlock(userId, 'sharpshooter');
-    if (gameType === 'alpaca_road' && gs.wins >= 5)  await this.unlock(userId, 'road_warrior');
+    
+    await this.checkTopPlayerAchievement(userId).catch((err) =>
+      logError('[gamification] top-player check failed:', err?.message || err),
+    );
 
     NotificationService.broadcastAll('game:finish');
   },
@@ -219,6 +222,18 @@ const GamificationService = {
     NotificationService.broadcastAll('game:finish');
   },
 
+  /**
+   * Alpaca Road "Road Warrior" — Complete 5 stages (reach level 5) in a run.
+   * Keyed off the stage reached, not wins/losses: a fast run that ends in a
+   * loss still counts. Called by AlpacaRoadMatch (online, with the match's
+   * shared level) and by the /game/result handler (offline solo runs).
+   */
+  async onAlpacaRoadStage(userId, stage) {
+    userId = Number(userId);
+    if (!Number.isFinite(userId)) return;
+    if (Number(stage) >= 5) await this.unlock(userId, 'road_warrior');
+  },
+
   // ── Auth events ───────────────────────────────────────────────────────────
 
   async onLogin(userId) {
@@ -236,7 +251,8 @@ const GamificationService = {
     postAuthorId = Number(postAuthorId);
     if (!Number.isFinite(postAuthorId)) return;
 
-    if (newLikesCount >= 10) await this.unlock(postAuthorId, 'kinda_relatable');
+    // CSV: "Get a post with more than 10 likes" → strictly greater than 10.
+    if (newLikesCount > 10) await this.unlock(postAuthorId, 'kinda_relatable');
   },
 
   // ── Farm events ───────────────────────────────────────────────────────────
