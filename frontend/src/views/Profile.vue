@@ -558,7 +558,12 @@ async function saveProfile() {
     await authStore.updateProfile(profileForm.value)
     flash('Profile saved.')
   } catch (e) {
-    flash(e.response?.data?.error?.message || 'Failed to save profile.', 'error')
+    flash(
+      e.data?.error?.message ||
+        e.response?.data?.error?.message ||
+        'Failed to save profile.',
+      'error',
+    )
   } finally {
     savingProfile.value = false
   }
@@ -570,8 +575,17 @@ async function changePassword() {
     pwError.value = 'New passwords do not match.'
     return
   }
-  if (pwForm.value.newPw.length < 8) {
+  // Mirror the backend password policy so the user gets an immediate, specific
+  // reason instead of a bare 400. The server (userValidator.js) enforces the
+  // same rules; this is just faster, clearer feedback.
+  const pw = pwForm.value.newPw
+  if (pw.length < 8) {
     pwError.value = 'Password must be at least 8 characters.'
+    return
+  }
+  if (!/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/\d/.test(pw)) {
+    pwError.value =
+      'Password must include an uppercase letter, a lowercase letter, and a number.'
     return
   }
   savingPw.value = true
@@ -583,7 +597,13 @@ async function changePassword() {
     pwForm.value = { current: '', newPw: '', confirm: '' }
     flash('Password updated.')
   } catch (e) {
-    pwError.value = e.response?.data?.error?.message || 'Failed to update password.'
+    // The api.js client exposes the parsed error body on e.data (not the
+    // axios-style e.response.data). Read e.data first so the real server
+    // message — e.g. "Current password is incorrect" — actually surfaces.
+    pwError.value =
+      e.data?.error?.message ||
+      e.response?.data?.error?.message ||
+      'Failed to update password.'
   } finally {
     savingPw.value = false
   }

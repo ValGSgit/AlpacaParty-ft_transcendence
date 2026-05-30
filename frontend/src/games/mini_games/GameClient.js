@@ -53,7 +53,10 @@ export class GameClient {
         gMinigame.value.mode = mode;
         changeGame(mode, 1);
         gMinigame.value.currentRoomName = data.roomName;
-        gUI.lobbyMenu = mode === 4;
+        gMinigame.value.isReady = false;
+        // Keep the lobby (ready screen) open for both game types. Spit Royale
+        // used to skip straight into the arena; now it waits for ready-up too.
+        gUI.lobbyMenu = mode === 2 || mode === 4;
       },
 
       lobby_update: (playerList) => {
@@ -63,11 +66,13 @@ export class GameClient {
       game_start: (data) => {
         gUI.lobbyMenu = false;
         gMinigame.value.isActive = true;
-        if (data && data.instant) {
-          if (data.spawn) {
-            gMinigame.value.spawnData = data.spawn;
-          }
-        } else {
+        // Spit Royale carries a per-player spawn; store it whether or not the
+        // start is instant. `instant` (legacy) skips the countdown — both game
+        // types now run the 3-2-1 countdown after the lobby ready screen.
+        if (data && data.spawn) {
+          gMinigame.value.spawnData = data.spawn;
+        }
+        if (!(data && data.instant)) {
           playCountDown(3);
         }
       },

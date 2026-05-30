@@ -34,11 +34,6 @@ export class AlpacaRoadMatch extends BaseMatch {
     // clears it on teardown.
   }
 
-  _ensureHeartbeat() {
-    if (this.heartbeat) return;
-    this.heartbeat = setInterval(() => this.update(), this.tickRate);
-  }
-
   addPlayer(socket, name, color) {
     super.addPlayer(socket, name, color);
     const player = this.players.get(socket.id);

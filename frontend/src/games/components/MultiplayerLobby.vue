@@ -1,19 +1,31 @@
 <template>
   <div class="modal-overlay">
-    <div v-if="gMinigame.mode === 2" class="shop-title">
-      Spit Royale Lobby
-      <button class="shop-btn" @click="handleCreateRoom(gMinigame.mode)" title="Create New Room">
-        Create New Room
-      </button>
-      <button v-if="spitRooms.length > 0" class="shop-btn" @click="handleJoinRandom(gMinigame.mode)" title="Join Random Room">
-        Join Random Room
-      </button>
-      <div v-for="room in spitRooms" :key="room.id">
-        <button class="shop-btn" @click="handleJoinRoom(room.id)" title="Join Room">
-          Join {{ room.name }} (Lv {{ room.averageLevel ?? 1 }}, {{ room.playerCount }}/10)
+    <div v-if="gMinigame.mode === 2">
+      <div v-if="!gMinigame.currentRoomName" class="shop-title">
+        Spit Royale Lobby
+        <button class="shop-btn" @click="handleCreateRoom(gMinigame.mode)" title="Create New Room">
+          Create New Room
         </button>
+        <button v-if="spitRooms.length > 0" class="shop-btn" @click="handleJoinRandom(gMinigame.mode)" title="Join Random Room">
+          Join Random Room
+        </button>
+        <div v-for="room in spitRooms" :key="room.id">
+          <button class="shop-btn" @click="handleJoinRoom(room.id)" title="Join Room">
+            Join {{ room.name }} (Lv {{ room.averageLevel ?? 1 }}, {{ room.playerCount }}/10)
+          </button>
+        </div>
+        <button class="close-btn" @click="closeLobbyMenu()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
-      <button class="close-btn" @click="closeLobbyMenu()" title="Close"><AppIcon name="close" :size="22" /></button>
+      <div v-else class="shop-title">
+        {{ gMinigame.currentRoomName }} ({{ gMinigame.players.length }}/10)
+        <div v-for="player in gMinigame.players" :key="player.id" class="stat-row">
+          {{ player.name }} - {{ player.isReady ? '✅ Ready' : '⏳ Waiting' }}
+        </div>
+        <button class="shop-btn" @click="toggleReady">
+          {{ gMinigame.isReady ? 'Cancel Ready' : 'Ready Up' }}
+        </button>
+        <button class="close-btn" @click="leaveRoom()" title="Close"><AppIcon name="close" :size="22" /></button>
+      </div>
     </div>
     <div v-if="gMinigame.mode === 4">
       <div v-if="!gMinigame.currentRoomName" class="shop-title">

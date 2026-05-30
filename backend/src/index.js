@@ -191,4 +191,17 @@ process.on("SIGTERM", () => {
   shutdown("SIGTERM");
 });
 
+// Last-resort safety net. A stray unhandled rejection (e.g. an un-awaited
+// promise in a socket handler or background task) would otherwise terminate
+// the process under Node's default policy, taking the whole API down and
+// turning every in-flight request into a 502 until the container restarts.
+// Log loudly and keep serving instead — the per-request errorHandler already
+// owns errors that originate inside route handlers.
+process.on("unhandledRejection", (reason) => {
+  console.error("[process] Unhandled promise rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[process] Uncaught exception:", err);
+});
+
 export default app;

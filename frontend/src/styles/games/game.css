@@ -104,6 +104,17 @@ html {
   margin-left: auto;
 }
 
+/* The shared .stat box is a fixed 100px, which clips long coin balances
+   (big sales, debug coins). Let the coin HUD specifically grow with its
+   value — 100px stays the floor so a single-digit balance still looks right,
+   and padding keeps the number off the border. */
+#coin-hud {
+  width: auto;
+  min-width: 100px;
+  max-width: 260px;
+  padding: 0 12px;
+}
+
 /* ========================================= */
 /* SHARED COMPONENT STYLES (Consolidated!)   */
 /* ========================================= */

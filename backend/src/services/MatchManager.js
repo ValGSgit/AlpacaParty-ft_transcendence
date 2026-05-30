@@ -21,8 +21,12 @@ const PLAYER_CAP = {
 };
 
 function acceptsJoin(typeKey, status) {
-  if (typeKey === 4) return status === 'LOBBY';
-  if (typeKey === 2) return status === 'PLAYING';
+  // Both game types now use the same lobby model: a room is joinable only
+  // while it is gathering players in the LOBBY. Once everyone readies up and
+  // the match starts (PLAYING), it leaves the public list and no longer
+  // accepts joins — Spit Royale used to accept mid-game joins, which skipped
+  // the ready screen entirely.
+  if (typeKey === 4 || typeKey === 2) return status === 'LOBBY';
   return false;
 }
 

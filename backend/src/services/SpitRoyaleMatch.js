@@ -23,11 +23,6 @@ export class SpitRoyalMatch extends BaseMatch {
     this.finalized = false;
   }
 
-  _ensureHeartbeat() {
-    if (this.heartbeat) return;
-    this.heartbeat = setInterval(() => this.update(), this.tickRate);
-  }
-
   getValidSpawn() {
     for (let attempts = 0; attempts < 50; attempts++) {
       const angle = Math.random() * Math.PI * 2;
@@ -49,33 +44,34 @@ export class SpitRoyalMatch extends BaseMatch {
     return { x: 0, z: 0, angle: 0 };
   }
 
-  addPlayer(socket, name, color) {
-    super.addPlayer(socket, name, color);
-    const player = this.players.get(socket.id);
+  // No addPlayer override: players join the LOBBY via BaseMatch.addPlayer and
+  // ready up, exactly like Alpaca Road. The transition to PLAYING is driven by
+  // BaseMatch.toggleReady → checkStart → start(). Spawns, the heartbeat and the
+  // game_start signal are all deferred to start() — joining a room no longer
+  // drops you straight into the arena with no ready screen.
 
-    const spawn = this.getValidSpawn();
-    player.x = spawn.x;
-    player.y = 0;
-    player.z = spawn.z;
-    player.angle = spawn.angle;
-    player.hp = 3;
-    player.isDead = false;
-    player.point = 0;
-
-    this.playersJoined++;
-
-    // Start ticking only once we actually have a player to tick for.
-    // BaseMatch.stop() clears this in removePlayer→checkWinCondition.
+  // Called by BaseMatch.checkStart() once every player in the lobby is ready.
+  start() {
+    if (this.status === 'PLAYING') return;
+    this.status = 'PLAYING';
+    this.isPlaying = true;
+    this.playersJoined = this.players.size;
     this._ensureHeartbeat();
 
-    this.syncLobby();
-
-    if (this.status === 'LOBBY') {
-      this.status = 'PLAYING';
-      this.isPlaying = true;
+    // Assign spawns in iteration order so each one avoids the players placed
+    // before it (getValidSpawn checks already-set positions). Each client gets
+    // its own spawn with the game_start signal that ends the countdown.
+    for (const [id, player] of this.players) {
+      const spawn = this.getValidSpawn();
+      player.x = spawn.x;
+      player.y = 0;
+      player.z = spawn.z;
+      player.angle = spawn.angle;
+      player.hp = 3;
+      player.isDead = false;
+      player.point = 0;
+      this.namespace.to(id).emit('game_start', { spawn });
     }
-
-    socket.emit('game_start', { instant: true, spawn });
   }
 
   removePlayer(socketId) {

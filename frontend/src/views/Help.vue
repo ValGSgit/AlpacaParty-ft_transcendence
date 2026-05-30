@@ -55,11 +55,6 @@ function jumpTo(id) {
 }
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }) }
 function onScroll() { showToTop.value = window.scrollY > 600 }
-function openAssistant() {
-  window.dispatchEvent(new Event('open-paca'))
-  // eslint-disable-next-line no-console
-  console.log('[Help] open-paca dispatched')
-}
 
 async function rewireObserver() {
   observer && observer.disconnect()
@@ -131,16 +126,6 @@ watch(query, () => rewireObserver())
           </p>
 
           <div class="hero__actions">
-            <button type="button" class="btn btn--primary" @click="openAssistant">
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" width="14" height="14">
-                <path d="M3 8.5C3 5.5 5.5 3 8.5 3S14 5.5 14 8.5c0 1.4-.5 2.7-1.5 3.7l.8 2.3-2.5-1A5.5 5.5 0 0 1 3 8.5Z"
-                  stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-                <circle cx="6.5" cy="8.5" r="0.8" fill="currentColor"/>
-                <circle cx="9" cy="8.5" r="0.8" fill="currentColor"/>
-                <circle cx="11.5" cy="8.5" r="0.8" fill="currentColor"/>
-              </svg>
-              Ask Paca
-            </button>
             <a href="#contact" class="btn btn--ghost" @click.prevent="jumpTo('contact')">
               Talk to a human
             </a>
@@ -181,8 +166,7 @@ watch(query, () => rewireObserver())
         </ol>
         <div class="toc__panel" aria-hidden="true">
           <p class="toc__panel-title">Still stuck?</p>
-          <p class="toc__panel-body">Paca answers most questions in under 4 seconds.</p>
-          <button type="button" class="btn btn--small btn--primary" @click="openAssistant">Open Paca</button>
+          <p class="toc__panel-body">Jump to “Contact a human” below to reach a moderator.</p>
         </div>
       </aside>
 

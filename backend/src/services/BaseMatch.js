@@ -1,3 +1,5 @@
+import { error } from "#lib/logger.js";
+
 export class BaseMatch {
   constructor(matchId, namespace, roomName, onStateChange) {
     this.matchId = matchId;
@@ -79,6 +81,29 @@ export class BaseMatch {
 
   broadcast(eventName, data) {
     this.namespace.to(this.matchId).emit(eventName, data);
+  }
+
+  // Lazily arm the per-match game loop. Identical for every match type, so it
+  // lives here rather than being copy-pasted into each subclass. Subclasses set
+  // `this.tickRate` in their constructor before the first player arrives.
+  _ensureHeartbeat() {
+    if (this.heartbeat) return;
+    this.heartbeat = setInterval(() => this._tick(), this.tickRate);
+  }
+
+  // A throw inside a setInterval callback escapes as an uncaughtException and,
+  // because the interval keeps firing (~30x/sec), repeats forever — spamming
+  // logs and wedging the loop. Contain it: log once and tear the match down so
+  // one bad tick can't take the process with it. A match that can't tick is
+  // already dead; players drop back to the lobby and the room is freed on the
+  // resulting disconnects.
+  _tick() {
+    try {
+      this.update();
+    } catch (err) {
+      error(`[match ${this.matchId}] tick failed, stopping match:`, err?.message);
+      this.stop();
+    }
   }
 
   start() { }
