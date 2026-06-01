@@ -172,7 +172,7 @@ describe('AdminLogin.vue', () => {
   describe('error handling', () => {
     it('should display error message on login failure', async () => {
       api.post.mockRejectedValueOnce({
-        response: { data: { error: { message: 'Invalid credentials' } } },
+        data: { error: { message: 'Invalid credentials' } },
       })
 
       await wrapper.find('input#username').setValue('admin')
@@ -186,7 +186,7 @@ describe('AdminLogin.vue', () => {
 
     it('should display fallback error message when response has no message', async () => {
       api.post.mockRejectedValueOnce({
-        response: { data: {} },
+        data: {},
       })
 
       await wrapper.find('input#username').setValue('admin')
@@ -212,7 +212,7 @@ describe('AdminLogin.vue', () => {
 
     it('should clear previous error on new submission attempt', async () => {
       api.post.mockRejectedValueOnce({
-        response: { data: { error: { message: 'Invalid credentials' } } },
+        data: { error: { message: 'Invalid credentials' } },
       })
 
       await wrapper.find('input#username').setValue('admin')
@@ -242,7 +242,7 @@ describe('AdminLogin.vue', () => {
 
     it('should include error icon in error banner', async () => {
       api.post.mockRejectedValueOnce({
-        response: { data: { error: { message: 'Login failed' } } },
+        data: { error: { message: 'Login failed' } },
       })
 
       await wrapper.find('input#username').setValue('admin')

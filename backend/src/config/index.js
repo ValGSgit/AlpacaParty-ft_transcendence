@@ -27,11 +27,9 @@ const config = {
       secret: process.env.JWT_SECRET,
       refreshSecret: process.env.JWT_REFRESH_SECRET,
       publicApiSecret: process.env.JWT_PUBLIC_API_SECRET,
-      adminSecret: process.env.JWT_ADMIN_SECRET,
       expiresIn: process.env.JWT_EXPIRES_IN,
       refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
       publicApiExpiresIn: process.env.JWT_PUBLIC_API_EXPIRES_IN,
-      adminExpiresIn: process.env.JWT_ADMIN_EXPIRES_IN,
       cookieOptions: {
         httpOnly: true,
         secure: secureCookies,
@@ -45,16 +43,6 @@ const config = {
         sameSite,
         maxAge: ms(process.env.JWT_REFRESH_EXPIRES_IN),
         path: "/api/auth/refresh",
-      },
-      cookieOptionsAdmin: {
-        httpOnly: true,
-        secure: secureCookies,
-        sameSite,
-        maxAge: ms(process.env.JWT_ADMIN_EXPIRES_IN),
-        // Scoped to /api/admin so the admin token isn't sent on every normal
-        // request — and never ends up captured in WAF audit logs of, say,
-        // /socket.io upgrades made by a logged-in non-admin tab.
-        path: "/api/admin",
       },
     };
   })(),

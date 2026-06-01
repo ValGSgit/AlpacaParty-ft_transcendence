@@ -1,16 +1,12 @@
 # Docker Compose — Production
 #
 # Usage: make prod-up
-#
-# Vault runs in dev mode (auto-unsealed, fixed root token from VAULT_TOKEN
-# env var). vault-init seeds app secrets once Vault is healthy.
 
 include:
   - ./backend/compose.prod.yaml
   - ./frontend/compose.prod.yaml
   - ./nginx/compose.prod.yaml
   - ./database/compose.prod.yaml
-  - ./vault/compose.prod.yaml
 
 volumes:
   pg_data:

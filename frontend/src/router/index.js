@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
-import { useAdminAuthStore } from '../stores/adminAuth.js'
 
 const AuthV3   = () => import('../views/AuthV3.vue')
 const Profile  = () => import('../views/Profile.vue')
@@ -13,8 +12,6 @@ const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
 const TermsOfService = () => import('../views/TermsOfService.vue')
 const ApiDocs  = () => import('../views/ApiDocs.vue')
 const Help     = () => import('../views/Help.vue')
-const AdminLogin = () => import('../views/AdminLogin.vue')
-const AdminPanel = () => import('../views/AdminPanel.vue')
 
 const routes = [
   {
@@ -95,18 +92,6 @@ const routes = [
     meta: { requiresAuth: false },
   },
   {
-    path: '/admin/login',
-    name: 'AdminLogin',
-    component: AdminLogin,
-    meta: { requiresAuth: false, guestOnly: false },
-  },
-  {
-    path: '/admin/panel',
-    name: 'AdminPanel',
-    component: AdminPanel,
-    meta: { requiresAuth: false, requiresAdminAuth: true },
-  },
-  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: NotFound,
@@ -128,15 +113,6 @@ const router = createRouter({
 // logically unreachable and only confused readers debugging session bugs.
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
-  const adminAuth = useAdminAuthStore()
-
-  // Check admin auth requirement — fetch once if needed
-  if (to.meta.requiresAdminAuth && !adminAuth.isAuthenticated) {
-    await adminAuth.fetchMe()
-  }
-  if (to.meta.requiresAdminAuth && !adminAuth.isAuthenticated) {
-    return { name: 'AdminLogin', query: { redirect: to.fullPath } }
-  }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return { name: 'Login', query: { redirect: to.fullPath } }
