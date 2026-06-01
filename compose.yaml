@@ -7,7 +7,6 @@ include:
   - ./frontend/compose.yaml
   - ./nginx/compose.yaml
   - ./database/compose.yaml
-  - ./vault/compose.yaml
   - ./scripts/compose.yaml
 
 

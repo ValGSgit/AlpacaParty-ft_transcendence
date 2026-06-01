@@ -7,6 +7,7 @@ import AuthService from "#services/authService.js";
 import config from "#config/index.js";
 import { customValidationResult } from "#validators/validatorUtils.js";
 import CustomError from "#utils/CustomError.js";
+import { extractPasswordHash } from "#utils/userAuth.js";
 
 /**
  * POST /api/auth/register
@@ -52,16 +53,6 @@ async function findLoginUser(identifier) {
   const byName = await User.findByUsername(identifier);
   if (byName) return byName;
   return User.findByEmail(identifier);
-}
-
-/**
- * Password hash may live on the joined userAuth row (current schema) or
- * on the user row itself (legacy). Return the first one found, or null.
- */
-function extractPasswordHash(user) {
-  if (user.userAuth && user.userAuth.passwordHash) return user.userAuth.passwordHash;
-  if (user.passwordHash) return user.passwordHash;
-  return null;
 }
 
 /**
@@ -128,7 +119,11 @@ export const refresh = async (req, res, next) => {
     if (!refreshToken) throw new CustomError("refresh token is required", 401);
 
     const decoded = AuthService.verifyRefreshToken(refreshToken);
-    if (!decoded)
+    // Symmetric guard to middleware/auth.js (which rejects refresh tokens on
+    // access-protected routes). Today the two secrets differ, so a stolen
+    // access token can't validate here anyway — this is defense in depth in
+    // case the secrets ever get unified or a future cookie mix-up swaps them.
+    if (!decoded || decoded.type !== "refresh")
       throw new CustomError("Invalid or expired refresh token", 401);
 
     const user = await User.findByIdWithPassword(decoded.id);

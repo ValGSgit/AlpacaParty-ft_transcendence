@@ -77,7 +77,7 @@ describe('useAuthStore', () => {
 
     it('should set error on register failure', async () => {
       api.post.mockRejectedValueOnce({
-        response: { data: { error: { message: 'Username already taken' } } },
+        data: { error: { message: 'Username already taken' } },
       })
 
       await expect(store.register({ username: 'taken', email: 'a@b.com', password: 'Pass1234' }))
@@ -153,7 +153,7 @@ describe('useAuthStore', () => {
 
     it('should set error on login failure', async () => {
       api.post.mockRejectedValueOnce({
-        response: { data: { error: { message: 'Invalid credentials' } } },
+        data: { error: { message: 'Invalid credentials' } },
       })
 
       await expect(store.login({ username: 'u', password: 'p' })).rejects.toBeTruthy()
@@ -265,7 +265,7 @@ describe('useAuthStore', () => {
 
     it('should set error on failure', async () => {
       api.put.mockRejectedValueOnce({
-        response: { data: { error: { message: 'Username taken' } } },
+        data: { error: { message: 'Username taken' } },
       })
 
       await expect(store.updateProfile({ username: 'taken' })).rejects.toBeTruthy()

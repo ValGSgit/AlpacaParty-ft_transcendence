@@ -13,7 +13,7 @@
 | Framework | Express.js 4 + `express-validator` |
 | Database | PostgreSQL 16 via Prisma (`@prisma/adapter-pg`) |
 | Real-time | Socket.IO (two namespaces: `/` for presence + DMs + posts + notifications, `/minigames` for match lobbies) |
-| Auth | JWT (access + refresh, HTTP-only `jwt_token` / `refresh_token` cookies) · bcrypt · Passport.js (Google + GitHub) |
+| Auth | JWT (access + refresh, HTTP-only `jwt_token` / `refresh_token` cookies) · bcrypt password hashing |
 | Security | `helmet` (CSP) · `cors` · `express-rate-limit` (per-user / per-IP) · HashiCorp Vault (KV v2) for secrets · `uploadSecurityCheck` middleware |
 | HTTPS | Self-signed dev cert (Makefile target) + HTTPS server from `lib/httpsServer.js` |
 | AI | Groq LLM API (round-robin key rotation) — server-side proxy in `helpdesk.js` |

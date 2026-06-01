@@ -137,7 +137,10 @@ watch(showMessagesModal, (open) => {
 const PAGES_WITHOUT_FOOTER = ['Game', 'Home']
 const hasFooter = computed(() => !PAGES_WITHOUT_FOOTER.includes(route.name))
 const isGameRoute = computed(() => ['Game', 'SpitRoyale'].includes(route.name))
-const isAuthRoute = computed(() => ['AdminLogin', 'AdminPanel'].includes(route.name))
+// Used to hide the global nav / footer on fullscreen-only pages. Empty for
+// now — kept as a hook so future routes (game-over modal, splash, etc.) can
+// opt out of the chrome without touching every consumer.
+const isAuthRoute = computed(() => false)
 
 router.afterEach(() => { mobileOpen.value = false })
 

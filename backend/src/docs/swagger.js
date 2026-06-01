@@ -33,7 +33,7 @@ The \`/public/*\` group uses an **X-API-Key** header instead of JWT:
 X-API-Key: ap_your_key_here
 \`\`\`
 
-**Generating a key:** log in, go to **Profile → Settings → Public API Key**, and click **Generate Key**. You can revoke and regenerate at any time from the same page. Server-level keys (set via \`API_KEYS\` env / Vault) are also accepted.
+**Generating a key:** log in, go to **Profile → Settings → Public API Key**, and click **Generate Key**. You can revoke and regenerate at any time from the same page. Server-level keys (set via the \`API_KEYS\` env var) are also accepted.
 
 ### Public endpoints
 | Method | Path | Description |
@@ -104,7 +104,7 @@ X-API-Key: ap_your_key_here
           in: "header",
           name: "X-API-Key",
           description:
-            "API key for **/public/*** endpoints. Generate yours at **Profile → Settings → Public API Key**. Format: `ap_<uuid-no-dashes>`. Server-level keys (Vault/env `API_KEYS`) are also accepted.",
+            "API key for **/public/*** endpoints. Generate yours at **Profile → Settings → Public API Key**. Format: `ap_<uuid-no-dashes>`. Server-level keys (env `API_KEYS`) are also accepted.",
         },
       },
       parameters: {

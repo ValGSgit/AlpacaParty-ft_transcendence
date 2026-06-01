@@ -368,7 +368,7 @@ describe("deletePost", () => {
     expect(res._json).toEqual({ message: "Post deleted" });
   });
 
-  test("should return 404 if not found and user is not admin", async () => {
+  test("should return 404 if post does not exist or is not the user's", async () => {
     mockPost.delete.mockResolvedValue(false);
 
     const { req, res, next } = createReqRes({ params: { id: "999" } });

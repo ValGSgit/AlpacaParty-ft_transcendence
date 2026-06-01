@@ -1,28 +1,21 @@
 #!/bin/sh
 set -e
 
-# Creates package lock if it does not exist
-echo "run npm install"
+# Install deps (cheap when node_modules is already populated).
 npm install
 
-# Builds the /run/secrets/.env file
-/usr/local/bin/load-secrets.sh
-
-# Use local binaries directly — avoids npx re-downloading packages
-# when the npm 11 lookup misses local node_modules/.bin.
-run_with_secrets="./node_modules/.bin/env-cmd -f /run/secrets/.env"
 prisma="./node_modules/.bin/prisma"
 
 echo "Applying database migrations"
-$run_with_secrets $prisma migrate dev --name init
+$prisma migrate dev --name init
 
-echo "Create prisma client"
-$run_with_secrets $prisma generate
+echo "Generating Prisma client"
+$prisma generate
 
-echo "Seed database"
-$run_with_secrets npm run seed
+echo "Seeding database"
+npm run seed
 
-echo "Build docs"
+echo "Building API docs"
 rm -f /app/src/docs/swagger-output-public-api.json
 npm run buildDocs
 

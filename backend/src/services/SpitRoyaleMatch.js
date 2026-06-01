@@ -77,12 +77,19 @@ export class SpitRoyalMatch extends BaseMatch {
   }
 
   removePlayer(socketId) {
+    // Mark the leaver as dead BEFORE running the win check, then remove them
+    // from the player map. The previous order mutated the player after
+    // super.removePlayer() had already deleted them, so the mutation hit an
+    // orphan reference and checkWinCondition could not see the change — a
+    // mid-match leaver did not count toward the elimination total, blocking
+    // last-alpaca-standing from firing when the last opponent ragequit.
     const player = this.players.get(socketId);
-    if (player) {
+    if (player && !player.isDead) {
       player.isDead = true;
+      this.eliminations = (this.eliminations || 0) + 1;
     }
-    super.removePlayer(socketId);
     this.checkWinCondition();
+    super.removePlayer(socketId);
   }
 
   handlePlayerInput(socketId, { x, y, z, angle }) {

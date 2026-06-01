@@ -35,7 +35,13 @@ export const userEmailChain = (chain) =>
     .withMessage("Email must be 254 characters or fewer")
     .isEmail()
     .withMessage("Please provide a valid email")
-    .normalizeEmail();
+    // Plain lowercase instead of express-validator's `.normalizeEmail()` —
+    // the latter also strips gmail dots ("a.b@gmail.com" → "ab@gmail.com")
+    // and the login chain previously did NOT normalize, so users could
+    // register and then never log in. Both chains share this sanitizer now.
+    .customSanitizer((value) =>
+      typeof value === "string" ? value.toLowerCase() : value,
+    );
 
 export const userBioChain = (chain) =>
   chain

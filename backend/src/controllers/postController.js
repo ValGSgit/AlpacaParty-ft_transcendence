@@ -171,7 +171,12 @@ export const likePost = async (req, res, next) => {
       return res.status(404).json({ error: { message: "Post not found" } });
     if (await notFoundIfBlocked(req, post.author_id))
       return res.status(404).json({ error: { message: "Post not found" } });
-    await Post.like(post.id, req.user.id);
+    // Post.like returns true only on first-time like — false when the user
+    // re-likes (P2002). Gate the side effects on `inserted` so re-clicking
+    // the heart doesn't re-fire the author's notification or re-award XP.
+    const inserted = await Post.like(post.id, req.user.id);
+    res.json({ message: "Liked" });
+    if (!inserted) return;
     const newLikesCount = (post.likes_count ?? 0) + 1;
     if (post.author_id !== req.user.id) {
       NotificationService.postLiked(
@@ -185,7 +190,6 @@ export const likePost = async (req, res, next) => {
     GamificationService.onPostLiked(post.author_id, newLikesCount).catch(
       () => {},
     );
-    res.json({ message: "Liked" });
   } catch (err) {
     next(err);
   }
