@@ -182,7 +182,7 @@ describe('deleteComment', () => {
     mockComment.delete.mockResolvedValue(true)
     const { req, res, next } = makeReqRes()
     await deleteComment(req, res, next)
-    expect(mockComment.delete).toHaveBeenCalledWith(10, 1, { isAdmin: false })
+    expect(mockComment.delete).toHaveBeenCalledWith(10, 1)
     expect(res._json).toEqual({ message: 'Comment deleted' })
   })
 

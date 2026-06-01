@@ -126,17 +126,6 @@
                       <div class="am-node-name">alpacaparty_db_prod <span class="am-tag">postgres·16</span></div>
                       <div class="am-node-desc">Primary store · accessed via Prisma</div>
                     </div>
-                    <div class="am-node am-node--sec">
-                      <span class="am-dot" style="background:#f5c842"></span>
-                      <div class="am-node-name">vault_prod <span class="am-tag">hashi·vault</span></div>
-                      <div class="am-node-desc">Dev mode · KV v2 · secrets at startup</div>
-                      <div class="am-ports"><span>:8200</span></div>
-                    </div>
-                    <div class="am-node am-node--sec">
-                      <span class="am-dot" style="background:#f5c842"></span>
-                      <div class="am-node-name">vault-init <span class="am-tag">one-shot</span></div>
-                      <div class="am-node-desc">seed → exit</div>
-                    </div>
                   </div>
                 </div>
                 <div class="am-connector"></div>
@@ -447,41 +436,10 @@
               </div>
             </section>
 
-            <!-- 07 Secret Flow -->
+            <!-- 07 nginx Routing -->
             <section class="am-card">
               <div class="am-card-head">
                 <span class="am-num">07</span>
-                <h2>Secret Flow</h2>
-                <span class="am-card-sub">vault-init → vault → backend</span>
-              </div>
-              <div class="am-timeline">
-                <div class="am-tl">
-                  <div class="am-tl-who">vault</div>
-                  <div class="am-tl-what">start in dev mode — auto-unsealed, KV v2 mounted at <code>secret/</code></div>
-                </div>
-                <div class="am-tl">
-                  <div class="am-tl-who">vault-init</div>
-                  <div class="am-tl-what">seed secrets — DB pass · JWT · Groq, then exit (restart: no)</div>
-                </div>
-                <div class="am-tl am-tl--b">
-                  <div class="am-tl-who">backend startup</div>
-                  <div class="am-tl-what">read <code>VAULT_TOKEN</code> from compose env</div>
-                </div>
-                <div class="am-tl am-tl--b">
-                  <div class="am-tl-who">backend startup</div>
-                  <div class="am-tl-what">fetch all secrets from vault → <code>process.env</code></div>
-                </div>
-                <div class="am-tl am-tl--b">
-                  <div class="am-tl-who">backend ready</div>
-                  <div class="am-tl-what">Prisma connects · Express + Socket.IO listen on :3000</div>
-                </div>
-              </div>
-            </section>
-
-            <!-- 08 nginx Routing -->
-            <section class="am-card">
-              <div class="am-card-head">
-                <span class="am-num">08</span>
                 <h2>nginx Routing</h2>
                 <span class="am-card-sub">match order</span>
               </div>
