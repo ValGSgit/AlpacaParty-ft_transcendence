@@ -1,6 +1,5 @@
 /**
  * Game Model — Prisma data access layer (games, game_stats, alpaca_farms)
- * @owner ValGSgit
  */
 import prisma from "#config/prisma.js";
 

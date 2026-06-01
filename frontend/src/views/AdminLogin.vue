@@ -106,7 +106,7 @@ async function handleLogin() {
     await adminAuth.login({ username: form.value.username, password: form.value.password });
     router.push({ name: 'AdminPanel' });
   } catch (err) {
-    error.value = err.response?.data?.error?.message || adminAuth.error || 'Login failed';
+    error.value = err.data?.error?.message || adminAuth.error || 'Login failed';
   } finally {
     loading.value = false;
   }

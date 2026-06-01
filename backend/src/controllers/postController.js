@@ -1,6 +1,5 @@
 /**
  * Post Controller — social feed / posts
- * @owner ValGSgit
  */
 import Post from "#models/Post.js";
 import Friend from "#models/Friend.js";

@@ -1,7 +1,6 @@
 /**
  * Game Controller — REST endpoints for game history, stats, leaderboard, farm
  * Real-time game flow is handled by socketService.js
- * @owner ValGSgit
  */
 import Game from '#models/Game.js';
 import Achievement from '#models/Achievement.js';

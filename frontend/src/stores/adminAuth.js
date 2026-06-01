@@ -18,7 +18,8 @@ export const useAdminAuthStore = defineStore("adminAuth", () => {
       admin.value = data.user;
       return data;
     } catch (err) {
-      error.value = err.response?.data?.error?.message || "Login failed";
+      // HttpError stores the parsed body on `err.data`, not `err.response.data`.
+      error.value = err.data?.error?.message || "Login failed";
       throw err;
     } finally {
       loading.value = false;

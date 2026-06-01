@@ -1,6 +1,5 @@
 /**
  * Auth Routes
- * @owner ValGSgit
  */
 import express from "express";
 import rateLimit from "express-rate-limit";

@@ -1,6 +1,5 @@
 /**
  * Auth Controller — handles registration, login, logout, token refresh
- * @owner ValGSgit
  */
 import User, { shapeUserForClient } from "#models/User.js";
 import GamificationService from "#services/GamificationService.js";

@@ -1,5 +1,4 @@
 # Backend Dockerfile (Development)
-# @owner ValGSgit
 
 FROM node:24-alpine3.22
 

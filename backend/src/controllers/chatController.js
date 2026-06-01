@@ -1,6 +1,5 @@
 /**
  * Chat Controller — DM + group rooms
- * @owner ValGSgit
  */
 import Message from "#models/Message.js";
 import Friend from "#models/Friend.js";

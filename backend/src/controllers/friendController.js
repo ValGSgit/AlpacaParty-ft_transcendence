@@ -1,6 +1,5 @@
 /**
  * Friend Controller
- * @owner ValGSgit
  */
 import Friend from "../models/Friend.js";
 import User from "../models/User.js";

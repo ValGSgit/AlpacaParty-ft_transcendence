@@ -1,6 +1,5 @@
 /**
  * Auth Middleware — JWT verification
- * @owner ValGSgit
  */
 import AuthService from "../services/authService.js";
 import User from "../models/User.js";

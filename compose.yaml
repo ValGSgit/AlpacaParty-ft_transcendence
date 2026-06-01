@@ -1,5 +1,4 @@
 # Docker Compose — Development
-# @owner ValGSgit
 
 # include each service
 include:

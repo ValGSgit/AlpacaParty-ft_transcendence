@@ -1,6 +1,5 @@
 /**
  * User Controller — profile viewing, editing, GDPR
- * @owner ValGSgit
  */
 import User, { shapeUserForClient } from "#models/User.js";
 import Friend from "#models/Friend.js";

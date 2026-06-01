@@ -1,6 +1,5 @@
 /**
  * Express Application Entry Point
- * @owner DavidPoetsch, ValGSgit
  */
 import express from "express";
 import cors from "cors";

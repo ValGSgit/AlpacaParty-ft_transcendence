@@ -1,6 +1,5 @@
 /**
  * Achievement Model — Prisma data access layer (achievements + daily challenges)
- * @owner ValGSgit
  */
 import prisma from "#config/prisma.js";
 

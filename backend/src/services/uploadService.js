@@ -1,6 +1,5 @@
 /**
  * Upload Service — multer configuration for local disk uploads
- * @owner ValGSgit
  */
 import multer from "multer";
 import path from "path";

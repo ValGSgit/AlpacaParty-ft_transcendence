@@ -1,6 +1,5 @@
 /**
  * Socket Service — Real-time WebSocket hub
- * @owner ValGSgit
  *
  * Namespaces:
  *   /          — general: presence, notifications, DM chat

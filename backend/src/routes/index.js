@@ -1,6 +1,5 @@
 /**
  * API Route Index
- * @owner ValGSgit
  */
 import express from 'express';
 import authRoutes from './auth.js';

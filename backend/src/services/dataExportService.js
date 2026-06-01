@@ -1,6 +1,5 @@
 /**
  * Data Export Service — GDPR-compliant data export in JSON, CSV, XML
- * @owner ValGSgit
  */
 import User from '../models/User.js';
 

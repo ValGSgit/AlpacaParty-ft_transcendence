@@ -1,6 +1,5 @@
 /**
  * Vite Configuration
- * @owner fankahou, LukasStefanek
  */
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'

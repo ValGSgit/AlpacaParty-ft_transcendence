@@ -1,5 +1,4 @@
 # Frontend Dockerfile (Development)
-# @owner fankahou, LukasStefanek
 
 FROM node:24-alpine3.22
 

@@ -1,6 +1,5 @@
 /**
  * Auth Service — JWT generation, password hashing
- * @owner ValGSgit
  */
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";

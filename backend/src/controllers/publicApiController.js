@@ -1,6 +1,5 @@
 /**
  * Public API Controller — documented endpoints with API key auth
- * @owner ValGSgit
  *
  * Endpoints:
  *   GET    /api/public/users          — list public users

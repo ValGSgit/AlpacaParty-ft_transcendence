@@ -1,6 +1,5 @@
 /**
  * Post Model — Prisma data access layer
- * @owner ValGSgit
  */
 import prisma from "#config/prisma.js";
 import { stripDangerousHtml } from "#utils/htmlSanitizer.js";

@@ -1,6 +1,5 @@
 /**
  * Upload Controller
- * @owner ValGSgit
  */
 import File from '#models/File.js';
 import { saveFileRecord, deleteFileFromDisk, validateFileMagicBytes } from '#services/uploadService.js';

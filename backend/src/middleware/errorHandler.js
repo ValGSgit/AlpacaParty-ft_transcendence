@@ -1,6 +1,5 @@
 /**
  * Error-handling Middleware
- * @owner DavidPoetsch, ValGSgit
  */
 
 import { Prisma } from "@prisma/client";

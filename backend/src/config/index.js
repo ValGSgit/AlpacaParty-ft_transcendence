@@ -1,6 +1,5 @@
 /**
  * Application Configuration
- * @owner ValGSgit
  *
  * Centralised config from environment variables.
  * See .env.example at the project root for required variables.
