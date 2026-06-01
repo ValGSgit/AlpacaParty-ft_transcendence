@@ -119,15 +119,16 @@ const router = createRouter({
   routes,
 })
 
-// Navigation guard — redirect to login if route requires auth
+// Navigation guard — redirect to login if route requires auth.
+//
+// Session restore (calling /auth/me on a cold load so a still-valid cookie
+// rehydrates the store) lives in main.js, BEFORE the router is mounted —
+// previously there was a `if (isAuthenticated && !user) fetchUser()` block
+// here, but isAuthenticated is derived as `!!user`, so the condition was
+// logically unreachable and only confused readers debugging session bugs.
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   const adminAuth = useAdminAuthStore()
-
-  // Fetch profile if authenticated and not already loaded
-  if (authStore.isAuthenticated && !authStore.user) {
-    await authStore.fetchUser()
-  }
 
   // Check admin auth requirement — fetch once if needed
   if (to.meta.requiresAdminAuth && !adminAuth.isAuthenticated) {

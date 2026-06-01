@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { debug } from "#lib/logger.js";
 import { AlpacaRoadMatch } from "./AlpacaRoadMatch.js";
 import { SpitRoyalMatch } from "./SpitRoyaleMatch.js";
+import { ensureSocketAuthed } from "./socketAuth.js";
 
 const GAME_REGISTRY = {
   2: SpitRoyalMatch,
@@ -74,6 +75,10 @@ export class MatchManager {
 
   setupListeners() {
     this.io.on('connection', (socket) => {
+      // BaseMatch.addPlayer reads `socket.user.id`; bail early if the auth
+      // middleware ever failed open. ensureSocketAuthed disconnects the
+      // socket and returns false in that case.
+      if (!ensureSocketAuthed(socket)) return;
       // Send the room list to the new socket only — broadcasting to every
       // connected client on every new connection floods the namespace.
       socket.emit('available_rooms', this.listPublicRooms());

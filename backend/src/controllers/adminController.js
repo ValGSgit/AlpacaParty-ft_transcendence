@@ -322,12 +322,25 @@ export const updateUserRole = async (req, res, next) => {
     const validRoles = ["user", "admin", "superadmin"];
 
     if (!validRoles.includes(role)) throw new CustomError("Invalid role", 400);
+
+    // Block self-demote — banUser already rejects id === req.admin.id; do the
+    // same here so a superadmin can't accidentally lock themselves out by
+    // setting their own role to "user".
+    if (id === req.admin.id) {
+      throw new CustomError("Cannot change your own role", 400);
+    }
+
     if (
       (role === "admin" || role === "superadmin") &&
       req.admin.role !== "superadmin"
     ) {
       throw new CustomError("Only superadmins can grant admin roles", 403);
     }
+
+    // Rank check: without this, a plain `admin` could demote a `superadmin`
+    // to `user` and remove the only safeguard above them. Mirror the
+    // protection ban/unban already get from assertCanModerate.
+    await assertCanModerate(req, id);
 
     const user = await prisma.user.update({
       where: { id },
@@ -428,6 +441,14 @@ export const deleteUser = async (req, res, next) => {
 export const getAdminPermissions = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
+    // Reading another admin's Vault permissions exposes which actions they're
+    // authorised for — useful intel for an attacker who's compromised a
+    // low-privilege admin. Restrict cross-admin reads to superadmin; any admin
+    // may still read their own row (mirrors the read scope the user expects in
+    // their own profile / settings UI).
+    if (id !== req.admin.id && req.admin.role !== "superadmin") {
+      throw new CustomError("Only superadmins can read other admins' permissions", 403);
+    }
     const data = await Vault.read(`secret/data/alpacaparty/admins/${id}`);
     res.json({ permissions: data ?? {} });
   } catch (err) {
