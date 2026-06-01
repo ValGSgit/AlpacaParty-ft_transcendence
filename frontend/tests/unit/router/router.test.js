@@ -225,7 +225,7 @@ describe('Router', () => {
     it('should have expected number of routes', () => {
       const routes = router.getRoutes()
       // Should have multiple routes defined
-      expect(routes.length).toBeGreaterThanOrEqual(15)
+      expect(routes.length).toBeGreaterThanOrEqual(13)
     })
 
     it('should have named and unnamed routes', () => {

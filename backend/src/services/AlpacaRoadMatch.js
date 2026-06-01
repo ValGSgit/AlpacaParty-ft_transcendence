@@ -250,29 +250,20 @@ export class AlpacaRoadMatch extends BaseMatch {
 
     const allDead = playersArr.length > 0 && playersArr.every(p => p.isDead === true);
     if (allDead && this.status !== 'GAME_OVER') {
-      // Flip the status synchronously so further ticks bail (see the L184
-      // guard at the top of update()).
+      // Flip status synchronously so further ticks bail (see L184 guard).
       this.status = 'GAME_OVER';
-      // Serialize persist → broadcast → stop. The previous version fired
-      // persistOutcome() unawaited and used a fixed 1500ms timer for the
-      // game_over broadcast; if persistOutcome threw mid-write, clients
-      // already had the "game over" banner and the DB rows were left half
-      // applied. Doing it as one async chain means the broadcast either
-      // follows a successful persist or follows a logged failure, but never
-      // races with one. We still wait ~1.5s on success so the death
-      // animation has time to play before the client UI tears down.
-      (async () => {
-        try {
-          await this.persistOutcome();
-        } catch (err) {
-          error('[alpaca-road] failed to persist outcome:', err?.message || err);
-        }
-        // Hold on the death scene long enough for the player to read it.
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+      // persistOutcome is fire-and-forget — it logs its own failures and the
+      // 1.5s delay below lets the death animation play out before we tear
+      // the match down.
+      this.persistOutcome().catch((err) => {
+        error('[alpaca-road] failed to persist outcome:', err?.message || err);
+      });
+
+      setTimeout(() => {
         this.isPlaying = false;
         this.broadcast('game_over');
         this.stop();
-      })();
+      }, 1500);
     }
 
     this.broadcast('tick', {

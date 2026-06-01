@@ -1,11 +1,11 @@
 # Points
 
 **Required to pass: 14 points** — Major = 2 pts, Minor = 1 pt.
-**AlpacaParty claims 27 points** (10 Major × 2 + 7 Minor × 1) — intentional headroom in case any module is contested at peer evaluation.
+**AlpacaParty claims 25 points** (9 Major × 2 + 7 Minor × 1) — intentional headroom in case any module is contested at peer evaluation.
 
 > This file is the authoritative claim ledger and must stay in sync with
-> the module table in [`README.md`](README.md) and the status table in
-> [`ISSUES.md`](ISSUES.md). When the three diverge, the README wins.
+> the module table in [`README.md`](README.md). When the two diverge, the
+> README wins.
 
 Legend:
 - 🟢 **Major** module (2 pts)
@@ -46,7 +46,7 @@ Legend:
 
 ### 🟡 Minor: Use an ORM for the database — ✅ 1 pt
 
-- [x] **Prisma** with `@prisma/adapter-pg` across 27 models, with migrations and seed data
+- [x] **Prisma** with `@prisma/adapter-pg` across 22 models, with migrations and seed data
 
 ### 🟡 Minor: Complete notification system for create / update / delete actions — ✅ 1 pt
 
@@ -67,7 +67,7 @@ Legend:
 
 # 2. Accessibility and Internationalization
 
-> No modules claimed in this category. Browser-compat work was done but is not formally claimed — see "Not claimed" section.
+> No modules claimed in this category.
 
 ---
 
@@ -103,12 +103,11 @@ Legend:
 
 # 5. Cybersecurity
 
-### 🟢 Major: WAF/ModSecurity (hardened) + HashiCorp Vault — ✅ 2 pts
-
-- [x] `nginx_prod` runs **ModSecurity** with OWASP CRS 3.3.9 (strict mode, tuned for the API surface)
-- [x] **HashiCorp Vault** holds all production secrets (DB password, JWT secret, Groq API keys)
-- [x] `vault-init` one-shot service auto-initializes Vault on first boot, writes unseal key + service token to a Docker volume, seeds secrets, then exits
-- [x] Backend reads `VAULT_TOKEN` at startup and pulls every secret into memory — no plaintext on disk in app containers
+> No modules claimed in this category. The "WAF/ModSecurity + HashiCorp
+> Vault" Major was previously implemented but de-scoped: the project is
+> already at 25 points (11 above the 14-point bar), and defending Vault
+> requires significant ops familiarity from every team member at
+> evaluation. We chose to ship without it for clarity over headroom.
 
 ---
 
@@ -120,7 +119,6 @@ Legend:
 - [x] Two players on separate computers play live; up to 10 players in a single arena
 - [x] Live matches with clear rules and win/loss conditions (last alpaca standing)
 - [x] 3D rendering via Three.js
-- [x] 1v1 matchmaking with ELO, survival mode vs AI bots, spectator slots, rematch voting
 - [x] Network latency and disconnections handled gracefully (`MatchManager` cleans up dropped players; Socket.IO `connectionStateRecovery` restores presence)
 
 ### 🟢 Major: Add another game with user history and matchmaking — ✅ 2 pts (Alpaca Road)
@@ -149,7 +147,7 @@ Legend:
 Implements **5 of the 6** suggested mechanics (only need 3):
 
 - [x] **Achievements** — `first_win`, `win_streak_5`, `level_10`, `social_butter` (10 friends), `first_post`, `org_founder`
-- [x] **Leaderboards** — ELO leaderboard with K = 32
+- [x] **Leaderboards** — leaderboards by kills (Spit Royale), obstacles (Alpaca Road), and coins
 - [x] **XP / level system** — XP for wins (with bonuses for accuracy, eliminations, powerups, survival time, flawless), losses, posts, challenges; auto level-up
 - [x] **Daily challenges** — rotate daily, persisted completions per user
 - [x] **Rewards** — coin economy for the farm, XP bonuses
@@ -167,20 +165,19 @@ Implements **5 of the 6** suggested mechanics (only need 3):
 | 2 | Real-time features (Socket.IO, 2 namespaces) | Web | Major | 2 |
 | 3 | User interaction (chat + profile + friends) | Web | Major | 2 |
 | 4 | Public API (6 endpoints, key + rate limit + Swagger) | Web | Major | 2 |
-| 5 | ORM (Prisma, 27 models) | Web | Minor | 1 |
+| 5 | ORM (Prisma, 22 models) | Web | Minor | 1 |
 | 6 | Notification system | Web | Minor | 1 |
 | 7 | File upload and management | Web | Minor | 1 |
 | 8 | Standard user management + authentication | User Mgmt | Major | 2 |
-| 10 | Game statistics & match history | User Mgmt | Minor | 1 |
-| 11 | LLM system interface (Groq help desk) | AI | Major | 2 |
-| 12 | WAF/ModSecurity hardened + HashiCorp Vault | Cybersecurity | Major | 2 |
-| 13 | Web-based game (Spit Royale) | Gaming | Major | 2 |
-| 14 | Add another game (Alpaca Road) with matchmaking | Gaming | Major | 2 |
-| 15 | Advanced 3D graphics (Three.js) | Gaming | Major | 2 |
-| 16 | Game customization | Gaming | Minor | 1 |
-| 17 | Gamification | Gaming | Minor | 1 |
+| 9 | Game statistics & match history | User Mgmt | Minor | 1 |
+| 10 | LLM system interface (Groq help desk) | AI | Major | 2 |
+| 11 | Web-based game (Spit Royale) | Gaming | Major | 2 |
+| 12 | Add another game (Alpaca Road) with matchmaking | Gaming | Major | 2 |
+| 13 | Advanced 3D graphics (Three.js) | Gaming | Major | 2 |
+| 14 | Game customization | Gaming | Minor | 1 |
+| 15 | Gamification | Gaming | Minor | 1 |
 
-**Total: 27 points** — 13 points above the 14-point mandatory bar, with surplus reserved as evaluation headroom.
+**Total: 25 points** — 11 points above the 14-point mandatory bar, with surplus reserved as evaluation headroom.
 
 > Per the subject, the bonus part is capped at **5 additional points** beyond the required 14. The team's primary claim is the 14-point core; the surplus modules are documented to absorb any module that fails to pass peer evaluation.
 
