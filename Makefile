@@ -157,8 +157,13 @@ generate-secrets:
 		DB_USER=$${DB_USER:-alpacaparty}; \
 		DB_PASS=$$(openssl rand -hex 24) && \
 		$(SED_I) "s|^DB_PASSWORD=.*|DB_PASSWORD=$$DB_PASS|" .env && \
-		$(SED_I) "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://$$DB_USER:$$DB_PASS@postgres:5432/$$DB_NAME?schema=public|" .env && \
-		echo "$(GREEN)✓ DB_PASSWORD randomised$(RESET)"
+		DB_URL="postgresql://$$DB_USER:$$DB_PASS@postgres:5432/$$DB_NAME?schema=public" && \
+		if grep -q '^DATABASE_URL=' .env; then \
+			$(SED_I) "s|^DATABASE_URL=.*|DATABASE_URL=$$DB_URL|" .env; \
+		else \
+			printf '\nDATABASE_URL=%s\n' "$$DB_URL" >> .env; \
+		fi && \
+		echo "$(GREEN)✓ DB_PASSWORD + DATABASE_URL randomised$(RESET)"
 	@JWT=$$(openssl rand -hex 40) && \
 		$(SED_I) "s|^JWT_SECRET=.*|JWT_SECRET=$$JWT|" .env && \
 		echo "$(GREEN)✓ JWT_SECRET randomised$(RESET)"
