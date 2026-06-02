@@ -83,7 +83,7 @@ describe('useAdminAuthStore', () => {
 
     it('should set error on login failure', async () => {
       api.post.mockRejectedValueOnce({
-        response: { data: { error: { message: 'Invalid credentials' } } },
+        data: { error: { message: 'Invalid credentials' } },
       })
 
       await expect(store.login({ username: 'admin', password: 'wrong' })).rejects.toBeTruthy()
