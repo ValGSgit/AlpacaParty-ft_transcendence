@@ -103,11 +103,23 @@ Legend:
 
 # 5. Cybersecurity
 
-> No modules claimed in this category. The "WAF/ModSecurity + HashiCorp
-> Vault" Major was previously implemented but de-scoped: the project is
-> already at 25 points (11 above the 14-point bar), and defending Vault
-> requires significant ops familiarity from every team member at
-> evaluation. We chose to ship without it for clarity over headroom.
+> No modules claimed in this category. The subject's only Cybersecurity
+> Major bundles **WAF/ModSecurity (hardened) + HashiCorp Vault** as a single
+> 2-point module — both halves are required to claim it.
+>
+> **Vault has been removed entirely** from the codebase: there is no longer a
+> `vault` service, `vault-init` bootstrap, or `lib/vault.js` / `fetchSecrets`
+> client. Secrets are now read straight from the project-root `.env` file via
+> Docker Compose's `env_file` directive (`make generate-secrets` randomizes
+> them). Defending a live Vault demo required significant ops familiarity from
+> every team member at evaluation, and with the project already at 25 points
+> (11 above the 14-point bar) the indirection was net cost with no benefit.
+>
+> The **WAF half is still shipped**: production nginx is built from the
+> `owasp/modsecurity-crs:nginx` image (ModSecurity v3 + OWASP CRS v4, see
+> [`nginx/Dockerfile.prod`](nginx/Dockerfile.prod)) and runs as defense-in-depth.
+> Because the Major needs both WAF **and** Vault, this category is not claimed
+> for points — the WAF simply hardens the deployment for free.
 
 ---
 

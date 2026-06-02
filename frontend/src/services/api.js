@@ -74,8 +74,12 @@ function refreshAccessToken() {
     retryOnAuth: false,
   });
   // Clear the slot once the request settles (success OR failure) so the
-  // next 401 can issue a fresh refresh.
-  refreshInFlight.finally(() => { refreshInFlight = null; });
+  // next 401 can issue a fresh refresh. Using then(fn, fn) instead of
+  // finally() means the rejection is handled here too, so a failed refresh
+  // doesn't surface as an unhandled promise rejection — the awaiting caller
+  // still sees the rejection via the returned promise below.
+  const clearSlot = () => { refreshInFlight = null; };
+  refreshInFlight.then(clearSlot, clearSlot);
   return refreshInFlight;
 }
 

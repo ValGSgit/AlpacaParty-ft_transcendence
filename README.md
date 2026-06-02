@@ -183,6 +183,15 @@ PostgreSQL with **22 Prisma models**, organized around users, social interaction
 > data operations" bullet is not currently implemented, so the module
 > would not survive a literal evaluation.
 
+> The **Cybersecurity** Major is not claimed either. The subject bundles
+> WAF/ModSecurity **and** HashiCorp Vault into a single 2-point module, and
+> Vault has been removed from the project — secrets now load from the
+> project-root `.env` file via Compose's `env_file` directive. The
+> production nginx image still ships the OWASP ModSecurity CRS WAF
+> (`owasp/modsecurity-crs:nginx`) as defense-in-depth, but without the Vault
+> half the module cannot be claimed. See [Points.md](Points.md#5-cybersecurity)
+> for the full rationale.
+
 ### Module Implementation Details
 
 1. **Frontend + Backend Frameworks** — Vue 3 + Vite + Pinia + Vue Router on the client; Express.js with modular controller/service/route architecture on the server.

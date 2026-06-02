@@ -48,10 +48,3 @@ test-results/
 
 # ── Prisma ───────────────────────────────────────────────────
 backend/prisma/migrations
-
-# ── Vault secrets (operator-only — never commit) ────────────
-# vault-init writes the unseal key + root token into vault/secrets/ on the
-# host. The directory itself must exist (compose bind-mounts it), so we keep
-# .gitkeep but ignore every actual file inside.
-vault/secrets/*
-!vault/secrets/.gitkeep
