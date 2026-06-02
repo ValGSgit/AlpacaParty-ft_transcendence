@@ -148,6 +148,39 @@ describe('api HTTP client', () => {
     })
   })
 
+  describe('account banned', () => {
+    it('dispatches an auth:banned event on a 403 with code ACCOUNT_BANNED', async () => {
+      fetch.mockResolvedValueOnce(
+        makeResponse({
+          status: 403,
+          body: { error: { code: 'ACCOUNT_BANNED', message: 'Account is banned' } },
+        }),
+      )
+      const onBanned = vi.fn()
+      window.addEventListener('auth:banned', onBanned)
+
+      const err = await api.get('/feed').catch((e) => e)
+
+      expect(err).toBeInstanceOf(HttpError)
+      expect(onBanned).toHaveBeenCalledTimes(1)
+      expect(onBanned.mock.calls[0][0].detail.message).toBe('Account is banned')
+      window.removeEventListener('auth:banned', onBanned)
+    })
+
+    it('does not dispatch on an ordinary 403 without the ban code', async () => {
+      fetch.mockResolvedValueOnce(
+        makeResponse({ status: 403, body: { error: { message: 'Forbidden' } } }),
+      )
+      const onBanned = vi.fn()
+      window.addEventListener('auth:banned', onBanned)
+
+      await api.get('/feed').catch(() => {})
+
+      expect(onBanned).not.toHaveBeenCalled()
+      window.removeEventListener('auth:banned', onBanned)
+    })
+  })
+
   describe('401 refresh flow', () => {
     it('refreshes once on 401 then retries the original request', async () => {
       fetch

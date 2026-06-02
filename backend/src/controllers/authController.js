@@ -73,7 +73,7 @@ export const login = async (req, res, next) => {
     const valid = await AuthService.comparePassword(password, passwordHash);
     if (!valid) throw new CustomError("Invalid credentials", 401);
 
-    if (user.isBanned) throw new CustomError("Account is banned", 403);
+    if (user.isBanned) throw new CustomError("Account is banned", 403, "ACCOUNT_BANNED");
 
     await User.setOnline(user.id);
 
@@ -129,7 +129,7 @@ export const refresh = async (req, res, next) => {
     const user = await User.findByIdWithPassword(decoded.id);
     if (!user) throw new CustomError("User not found", 401);
 
-    if (user.isBanned) throw new CustomError("Account is banned", 403);
+    if (user.isBanned) throw new CustomError("Account is banned", 403, "ACCOUNT_BANNED");
 
     const accessToken = AuthService.generateAccessToken(user);
     const newRefreshToken = AuthService.generateRefreshToken(user);
@@ -148,6 +148,13 @@ export const refresh = async (req, res, next) => {
 
 /**
  * GET /api/auth/me
+ *
+ * Uses optionalAuth, which does NOT enforce the ban (unlike `authenticate`),
+ * so a banned user holding a stale cookie could otherwise restore a session
+ * here. Treat a banned user as no session so session-restore fails cleanly;
+ * any protected route they hit afterwards returns 403 ACCOUNT_BANNED.
  */
-export const me = async (req, res) =>
-  res.json({ user: req.user ? shapeUserForClient(req.user) : null });
+export const me = async (req, res) => {
+  if (!req.user || req.user.isBanned) return res.json({ user: null });
+  return res.json({ user: shapeUserForClient(req.user) });
+};

@@ -20,6 +20,12 @@ services:
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
+      # Set at the environment level (not just via env_file ../.env) so the
+      # value resolves from the active --env-file: dev uses .env (host
+      # `postgres`), the test profile uses .env.test (host `postgres_test`).
+      # environment: wins over env_file:, so backend_test no longer inherits
+      # the dev .env DATABASE_URL.
+      DATABASE_URL: ${DATABASE_URL}
       FRONTEND_URL: ${FRONTEND_URL}
       SSL_CERT_PATH: /app/ssl/cert.pem
       SSL_KEY_PATH: /app/ssl/key.pem

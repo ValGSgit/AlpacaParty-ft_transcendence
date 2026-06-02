@@ -181,7 +181,15 @@ export const getUser = async (req, res, next) => {
         });
       }
     }
-    res.json({ user: shapeUserForClient(user), friend_status: friendStatus });
+    const shaped = shapeUserForClient(user);
+    // shapeUserForClient is built for the *owner's* view and includes
+    // self-only fields (email, api_key). Strip them when another user is
+    // viewing this profile so we don't leak PII / credentials.
+    if (user.id !== req.user?.id) {
+      delete shaped.email;
+      delete shaped.api_key;
+    }
+    res.json({ user: shaped, friend_status: friendStatus });
   } catch (err) {
     next(err);
   }
