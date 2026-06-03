@@ -7,6 +7,7 @@ import AuthService from "#services/authService.js";
 import config from "#config/index.js";
 import { customValidationResult } from "#validators/validatorUtils.js";
 import CustomError from "#utils/CustomError.js";
+import { extractPasswordHash } from "#utils/userAuth.js";
 
 /**
  * POST /api/auth/register
@@ -55,16 +56,6 @@ async function findLoginUser(identifier) {
 }
 
 /**
- * Password hash may live on the joined userAuth row (current schema) or
- * on the user row itself (legacy). Return the first one found, or null.
- */
-function extractPasswordHash(user) {
-  if (user.userAuth && user.userAuth.passwordHash) return user.userAuth.passwordHash;
-  if (user.passwordHash) return user.passwordHash;
-  return null;
-}
-
-/**
  * POST /api/auth/login
  */
 export const login = async (req, res, next) => {
@@ -82,7 +73,7 @@ export const login = async (req, res, next) => {
     const valid = await AuthService.comparePassword(password, passwordHash);
     if (!valid) throw new CustomError("Invalid credentials", 401);
 
-    if (user.isBanned) throw new CustomError("Account is banned", 403);
+    if (user.isBanned) throw new CustomError("Account is banned", 403, "ACCOUNT_BANNED");
 
     await User.setOnline(user.id);
 
@@ -128,13 +119,17 @@ export const refresh = async (req, res, next) => {
     if (!refreshToken) throw new CustomError("refresh token is required", 401);
 
     const decoded = AuthService.verifyRefreshToken(refreshToken);
-    if (!decoded)
+    // Symmetric guard to middleware/auth.js (which rejects refresh tokens on
+    // access-protected routes). Today the two secrets differ, so a stolen
+    // access token can't validate here anyway — this is defense in depth in
+    // case the secrets ever get unified or a future cookie mix-up swaps them.
+    if (!decoded || decoded.type !== "refresh")
       throw new CustomError("Invalid or expired refresh token", 401);
 
     const user = await User.findByIdWithPassword(decoded.id);
     if (!user) throw new CustomError("User not found", 401);
 
-    if (user.isBanned) throw new CustomError("Account is banned", 403);
+    if (user.isBanned) throw new CustomError("Account is banned", 403, "ACCOUNT_BANNED");
 
     const accessToken = AuthService.generateAccessToken(user);
     const newRefreshToken = AuthService.generateRefreshToken(user);
@@ -153,6 +148,13 @@ export const refresh = async (req, res, next) => {
 
 /**
  * GET /api/auth/me
+ *
+ * Uses optionalAuth, which does NOT enforce the ban (unlike `authenticate`),
+ * so a banned user holding a stale cookie could otherwise restore a session
+ * here. Treat a banned user as no session so session-restore fails cleanly;
+ * any protected route they hit afterwards returns 403 ACCOUNT_BANNED.
  */
-export const me = async (req, res) =>
-  res.json({ user: req.user ? shapeUserForClient(req.user) : null });
+export const me = async (req, res) => {
+  if (!req.user || req.user.isBanned) return res.json({ user: null });
+  return res.json({ user: shapeUserForClient(req.user) });
+};

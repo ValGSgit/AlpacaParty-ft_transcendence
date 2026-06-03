@@ -13,8 +13,8 @@
 | Framework | Express.js 4 + `express-validator` |
 | Database | PostgreSQL 16 via Prisma (`@prisma/adapter-pg`) |
 | Real-time | Socket.IO (two namespaces: `/` for presence + DMs + posts + notifications, `/minigames` for match lobbies) |
-| Auth | JWT (access + refresh, HTTP-only `jwt_token` / `refresh_token` cookies) · bcrypt · Passport.js (Google + GitHub) |
-| Security | `helmet` (CSP) · `cors` · `express-rate-limit` (per-user / per-IP) · HashiCorp Vault (KV v2) for secrets · `uploadSecurityCheck` middleware |
+| Auth | JWT (access + refresh, HTTP-only `jwt_token` / `refresh_token` cookies) · bcrypt password hashing |
+| Security | `helmet` (CSP) · `cors` · `express-rate-limit` (per-user / per-IP) · `uploadSecurityCheck` middleware |
 | HTTPS | Self-signed dev cert (Makefile target) + HTTPS server from `lib/httpsServer.js` |
 | AI | Groq LLM API (round-robin key rotation) — server-side proxy in `helpdesk.js` |
 | Docs | Swagger UI at `/api/docs/public` (public API) and `/api/docs/dev` (internal) |
@@ -33,15 +33,13 @@ backend/
 │   │   ├── helmet.js         # Helmet CSP — `default-src 'self'` + `wss:`
 │   │   ├── prisma.js         # Prisma client singleton
 │   │   └── validateConfig.js # Hard-throws on missing required env vars
-│   ├── controllers/          # auth, users, friends, chat, posts, comments, game, notifications, uploads, public, helpdesk, admin
+│   ├── controllers/          # auth, users, friends, chat, posts, comments, game, notifications, uploads, public, helpdesk
 │   ├── docs/                 # swagger.js + generated swagger-output-public-api.json
 │   ├── lib/
 │   │   ├── httpsServer.js    # HTTPS server factory
-│   │   ├── logger.js         # debug / info / warn / error (env-aware)
-│   │   └── vault.js          # KV v2 client (read at startup)
+│   │   └── logger.js         # debug / info / warn / error (env-aware)
 │   ├── middleware/
 │   │   ├── auth.js           # authenticate() / optionalAuth() / requireApiKey()
-│   │   ├── admin.js          # requireAdmin() — admin JWT cookie
 │   │   ├── rateLimiters.js   # postWriteLimiter, chatSendLimiter, helpdeskLimiter, apiKeyRegenerateLimiter, …
 │   │   ├── uploadSecurityCheck.js
 │   │   └── errorHandler.js   # notFoundHandler + global error handler (JSON envelope)
@@ -57,8 +55,7 @@ backend/
 │   │   ├── notifications.js  # /api/notifications/*
 │   │   ├── uploads.js        # /api/uploads/* (multer, MIME whitelist, hashed names)
 │   │   ├── helpdesk.js       # /api/helpdesk/chat (Groq proxy)
-│   │   ├── public.js         # /api/public/* (X-API-Key, 30 req/min)
-│   │   └── admin.js          # /api/admin/* (admin JWT)
+│   │   └── public.js         # /api/public/* (X-API-Key, 30 req/min)
 │   ├── services/
 │   │   ├── authService.js          # hashPassword, comparePassword, JWT sign/verify
 │   │   ├── socketService.js        # `/` namespace: presence, DMs, post broadcasts, notifications
@@ -71,11 +68,11 @@ backend/
 │   │   ├── notificationService.js  # create + push via socket
 │   │   ├── dataExportService.js    # GDPR JSON / CSV / XML export
 │   │   └── uploadService.js
-│   ├── tools/                # fetchSecrets.js (Vault → memory at boot), seed scripts
+│   ├── tools/                # seed + helper scripts
 │   ├── utils/                # cryptoUtils, validators, small helpers
 │   └── validators/           # express-validator chains per route
 ├── prisma/
-│   └── schema.prisma         # 27 models — see ARCHITECTURE.md §4
+│   └── schema.prisma         # 22 models — see ARCHITECTURE.md §4
 └── tests/
     ├── setup.js
     ├── helpers/createApp.js  # Test app factory (no listen)
@@ -91,7 +88,7 @@ backend/
 
 ```
 Dev (Docker):  https://localhost:8443/api
-Prod (Docker): https://<host>/api          (nginx + ModSecurity in front)
+Prod (Docker): https://<host>/api          (nginx reverse proxy in front)
 Local (host):  http://localhost:3000/api   (no nginx)
 ```
 
@@ -101,7 +98,6 @@ Local (host):  http://localhost:3000/api   (no nginx)
 |---|---|
 | `jwt_token` (HttpOnly, Secure) | Short-lived access token |
 | `refresh_token` (HttpOnly, Secure) | Long-lived refresh token — used by `POST /auth/refresh` |
-| `admin_jwt_token` (HttpOnly, Secure) | Separate session for `/api/admin/*` |
 | `X-API-Key: ap_<32-char hex>` | Public API auth, generated from Profile → Settings |
 
 ### Endpoint map (full list in [ARCHITECTURE.md §3.3](../ARCHITECTURE.md#33-routes) and Swagger)
@@ -119,7 +115,6 @@ Local (host):  http://localhost:3000/api   (no nginx)
 | `/api/uploads/*` | JWT | multipart upload (1–10 files, ≤ 10 MB each, MIME whitelist) |
 | `/api/helpdesk/chat` | JWT | Groq LLM proxy, per-user rate-limited |
 | `/api/public/*` | API key | 6 RESTful endpoints, 30 req/min per key |
-| `/api/admin/*` | admin JWT | dashboard, user management, role / ban / unban |
 
 ### Rate limits (see `middleware/rateLimiters.js`)
 
@@ -178,18 +173,18 @@ See `.env.example` at the project root. The most important ones:
 |----------|---------|-------------|
 | `PORT` | `3000` | HTTPS listen port |
 | `NODE_ENV` | `development` | `development` \| `production` |
-| `JWT_SECRET` | *(from Vault in prod)* | **Required** — JWT signing secret |
+| `JWT_SECRET` | — | **Required** — JWT signing secret |
 | `JWT_EXPIRES_IN` | `15m` | Access token lifetime |
 | `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh token lifetime |
-| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | dev defaults | PostgreSQL — password overridden by Vault in prod |
+| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | dev defaults | PostgreSQL connection |
 | `CORS_ORIGINS` | `https://localhost:8443` | Comma-separated allowed origins |
-| `GROQ_API_KEYS` | — | Comma-separated Groq keys for the help desk |
+| `GROQ_API_KEY1..3` | — | Up to 3 Groq keys for the help desk (round-robin) |
 | `API_KEYS` | — | Default service-level public-API keys |
 | `AUTH_RATE_LIMIT_MAX` | `50` | Auth-route limit — bumped by `make prod-e2e` for tests |
-| `VAULT_ADDR` / `VAULT_TOKEN` | — | Read at startup in prod by `tools/fetchSecrets.js` |
 | `SSL_KEY_PATH` / `SSL_CERT_PATH` | dev paths | Used by `lib/httpsServer.js` |
 
-In production, `vault-init` seeds `DB_PASSWORD`, `JWT_SECRET`, and `GROQ_API_KEYS` into Vault, and the backend reads them at boot — no plaintext secrets on the app container disk.
+Secrets are loaded straight from the project-root `.env` file in both dev and
+prod via Docker Compose's `env_file` directive — no intermediate secret store.
 
 ---
 
@@ -231,7 +226,7 @@ Integration tests spin up an in-process Express app via `tests/helpers/createApp
 Browser / Client
       │
       ▼
-  nginx :8443  ──── ModSecurity WAF (OWASP CRS) ──── HSTS / CSP / X-Frame-Options
+  nginx :8443  ──── HSTS / CSP / X-Frame-Options
       │  /api/*
       ▼
   index.js

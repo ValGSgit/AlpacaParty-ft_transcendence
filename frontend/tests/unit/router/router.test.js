@@ -21,7 +21,6 @@ vi.mock('../../../src/services/api.js', () => ({
 
 import router from '../../../src/router/index.js'
 import { useAuthStore } from '../../../src/stores/auth.js'
-import { useAdminAuthStore } from '../../../src/stores/adminAuth.js'
 
 describe('Router', () => {
   describe('route definitions', () => {
@@ -63,36 +62,20 @@ describe('Router', () => {
         'PrivacyPolicy',
         'TermsOfService',
         'NotFound',
-        'AdminLogin',
-        'AdminPanel',
         'Help',
       ]
       expectedRoutes.forEach(name => {
         expect(routeNames).toContain(name)
       })
     })
-
-    it('should have AdminLogin route', () => {
-      const adminLoginRoute = router.getRoutes().find(r => r.name === 'AdminLogin')
-      expect(adminLoginRoute).toBeDefined()
-      expect(adminLoginRoute.path).toBe('/admin/login')
-    })
-
-    it('should have AdminPanel route with requiresAdminAuth', () => {
-      const adminPanelRoute = router.getRoutes().find(r => r.name === 'AdminPanel')
-      expect(adminPanelRoute).toBeDefined()
-      expect(adminPanelRoute.path).toBe('/admin/panel')
-      expect(adminPanelRoute.meta.requiresAdminAuth).toBe(true)
-    })
   })
 
   describe('navigation guards', () => {
-    let authStore, adminAuthStore
+    let authStore
 
     beforeEach(() => {
       setActivePinia(createPinia())
       authStore = useAuthStore()
-      adminAuthStore = useAdminAuthStore()
       vi.clearAllMocks()
     })
 
@@ -164,13 +147,6 @@ describe('Router', () => {
       expect(termsRoute.meta.requiresAuth).toBe(false)
     })
 
-    it('should have correct meta for admin routes', () => {
-      const adminLoginRoute = router.getRoutes().find(r => r.name === 'AdminLogin')
-      const adminPanelRoute = router.getRoutes().find(r => r.name === 'AdminPanel')
-
-      expect(adminLoginRoute.meta.requiresAuth).toBe(false)
-      expect(adminPanelRoute.meta.requiresAdminAuth).toBe(true)
-    })
   })
 
   describe('route paths', () => {
@@ -197,16 +173,6 @@ describe('Router', () => {
     it('feed route should be at /feed', () => {
       const feedRoute = router.getRoutes().find(r => r.name === 'Feed')
       expect(feedRoute.path).toBe('/feed')
-    })
-
-    it('admin login route should be at /admin/login', () => {
-      const adminLoginRoute = router.getRoutes().find(r => r.name === 'AdminLogin')
-      expect(adminLoginRoute.path).toBe('/admin/login')
-    })
-
-    it('admin panel route should be at /admin/panel', () => {
-      const adminPanelRoute = router.getRoutes().find(r => r.name === 'AdminPanel')
-      expect(adminPanelRoute.path).toBe('/admin/panel')
     })
 
     it('home route should be at /', () => {
@@ -259,7 +225,7 @@ describe('Router', () => {
     it('should have expected number of routes', () => {
       const routes = router.getRoutes()
       // Should have multiple routes defined
-      expect(routes.length).toBeGreaterThanOrEqual(15)
+      expect(routes.length).toBeGreaterThanOrEqual(13)
     })
 
     it('should have named and unnamed routes', () => {

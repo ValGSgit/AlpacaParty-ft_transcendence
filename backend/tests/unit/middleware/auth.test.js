@@ -132,24 +132,24 @@ describe("authenticate middleware", () => {
     expect(next).toHaveBeenCalledWith(expect.any(Error));
   });
 
-  test("should attach admin user and call next", async () => {
-    const adminUser = {
+  test("should attach a second user and call next", async () => {
+    const secondUser = {
       id: 2,
-      username: "admin",
-      email: "admin@test.com",
+      username: "bob",
+      email: "bob@test.com",
     };
     const token = AuthService.generateAccessToken({
       id: 2,
-      username: "admin",
+      username: "bob",
     });
-    mockUserFindById.mockResolvedValueOnce(adminUser);
+    mockUserFindById.mockResolvedValueOnce(secondUser);
 
     const { req, res } = createReqRes({}, { jwt_token: `${token}` });
     const next = jest.fn();
 
     await authenticate(req, res, next);
 
-    expect(req.user).toEqual(adminUser);
+    expect(req.user).toEqual(secondUser);
     expect(next).toHaveBeenCalledTimes(1);
   });
 

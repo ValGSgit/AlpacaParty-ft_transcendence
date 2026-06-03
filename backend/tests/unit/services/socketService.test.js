@@ -55,6 +55,10 @@ jest.unstable_mockModule('cookie-parser', () => ({
 
 jest.unstable_mockModule('../../../src/services/socketAuth.js', () => ({
   socketAuthMiddleware: jest.fn(() => (_socket, next) => next()),
+  // socketService now also imports ensureSocketAuthed as a belt-and-braces
+  // guard at the top of its connection handler. Tests rely on the auth
+  // middleware mock above to pass, so this guard should default to "pass".
+  ensureSocketAuthed: jest.fn(() => true),
 }))
 
 const mockMatchManager = {}

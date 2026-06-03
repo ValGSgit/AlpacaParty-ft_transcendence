@@ -44,7 +44,7 @@
 Browser
   │  HTTPS :8443
   ▼
-Nginx + ModSecurity WAF
+Nginx (reverse proxy)
   │
   ├── /api/*        → Backend (Express + HTTPS :3000)
   ├── /socket.io/*  → Backend (Socket.io, same port)
@@ -58,7 +58,7 @@ Backend ──── PostgreSQL (Prisma ORM)
 
 | Layer | Technology |
 |---|---|
-| Reverse proxy | Nginx + ModSecurity (CRS WAF) |
+| Reverse proxy | Nginx |
 | Backend | Node.js, Express.js, Socket.io |
 | Database | PostgreSQL via Prisma ORM |
 | Secrets | HashiCorp Vault (KV v2) |
@@ -79,7 +79,6 @@ Single HTTPS server block, port 443 (host-mapped to 8443). HTTP redirects to HTT
 
 | Location | Destination | Notes |
 |---|---|---|
-| `= /api/users/me` | `https://backend` | ModSecurity **off** — CRS false-positive on profile PUT |
 | `/api/` | `https://backend` | Upgrade headers pass-through for SSE; 24 h read timeout |
 | `/socket.io/` | `https://backend` | WebSocket upgrade, 24 h timeout |
 | `/uploads/` | `https://backend` | Proxied to backend static serving |
@@ -99,9 +98,7 @@ Secrets are injected by mounting a tmpfs `/run/secrets` in the backend container
 
 ### HashiCorp Vault
 
-Vault runs in dev mode (auto-unsealed, KV v2 pre-mounted at `secret/`, fixed root token from `VAULT_TOKEN`). The `vault/init/seed.sh` script runs once via the `vault-init` container to write all secrets (DB password, JWT secrets, Groq API keys, admin JWT secret) into `secret/alpacaparty`. The backend reads them at startup via `backend/src/tools/fetchSecrets.js` + `backend/src/lib/vault.js`.
-
-The backend uses the dev-mode root token; the admin panel reads/writes per-admin permission paths under `secret/data/alpacaparty/admins/*` via `adminController`.
+Vault runs in dev mode (auto-unsealed, KV v2 pre-mounted at `secret/`, fixed root token from `VAULT_TOKEN`). The `vault/init/seed.sh` script runs once via the `vault-init` container to write all secrets (DB password, JWT secrets, Groq API keys) into `secret/alpacaparty`. The backend reads them at startup via `backend/src/tools/fetchSecrets.js` + `backend/src/lib/vault.js`.
 
 ### Docker Entrypoints
 
@@ -144,10 +141,10 @@ The backend uses the dev-mode root token; the admin panel reads/writes per-admin
 
 | File | Purpose |
 |---|---|
-| `config/index.js` | Single source for all env vars: port, JWT secrets/expiry/cookies, admin JWT, DB URL, CORS origins, rate limit settings, password policy, SSL paths, Groq key array, upload limits |
+| `config/index.js` | Single source for all env vars: port, JWT secrets/expiry/cookies, DB URL, CORS origins, rate limit settings, password policy, SSL paths, Groq key array, upload limits |
 | `config/helmet.js` | Helmet CSP: `default-src 'self'`; image sources include picsum, pexels; WebSocket `wss:`; no eval; frames/objects/embeds blocked |
 | `config/prisma.js` | Prisma Client singleton (`@prisma/adapter-pg`) |
-| `config/validateConfig.js` | Startup guard — throws on missing required vars; admin JWT only required in prod |
+| `config/validateConfig.js` | Startup guard — throws on missing required vars |
 
 ### 3.3 Routes
 
@@ -250,7 +247,7 @@ REST is for history only; sending messages is done over Socket.io (`dm:send`).
 | DELETE | `/:id/like` | required | Unlike post |
 | GET | `/:id/comments` | optional | Post comments |
 | POST | `/:id/comments` | required | Add comment |
-| DELETE | `/:id/comments/:commentId` | required | Delete comment (owner / post-owner / admin) |
+| DELETE | `/:id/comments/:commentId` | required | Delete comment (owner / post-owner) |
 
 Rate limited per action type (`postWriteLimiter`, `commentWriteLimiter`, `likeLimiter`).
 
@@ -270,24 +267,6 @@ Rate limited per action type (`postWriteLimiter`, `commentWriteLimiter`, `likeLi
 | POST | `/` | Upload 1–10 files (multipart/form-data, max 10 MB each) |
 | GET | `/` | List my uploaded files |
 | DELETE | `/:id` | Delete file (record + disk) |
-
-#### `/api/admin` (`routes/admin.js`)
-
-Separate JWT (`admin_jwt_token` cookie). Public: login/logout. All others require `requireAdmin`.
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/login` | — | Admin login |
-| POST | `/logout` | admin | Logout |
-| GET | `/me` | admin | Logged-in admin info |
-| GET | `/dashboard` | admin | Stats (users, posts, online) |
-| GET | `/users` | admin | User list (paginated + search) |
-| PATCH | `/users/:id/role` | superadmin | Change role |
-| PATCH | `/users/:id/ban` | admin | Ban user |
-| PATCH | `/users/:id/unban` | admin | Unban user |
-| DELETE | `/users/:id` | superadmin | Hard-delete user |
-| GET | `/admins/:id/permissions` | admin | Get Vault permissions |
-| PUT | `/admins/:id/permissions` | superadmin | Set Vault permissions |
 
 #### `/api/public` (`routes/public.js`)
 
@@ -326,7 +305,6 @@ Validates 1–20 messages, max 2 000 chars each. Groq API keys rotated round-rob
 | `commentController` | Comment CRUD (imported by `routes/posts.js`) |
 | `notificationController` | List, mark read, delete |
 | `uploadController` | Upload (multer → magic-byte validation → DB record), list, delete |
-| `adminController` | Admin auth, dashboard, user management, role/ban/delete, Vault permissions |
 | `publicApiController` | Public API equivalents of user/post endpoints with optional anonymization |
 
 ### 3.5 Services
@@ -336,9 +314,6 @@ Validates 1–20 messages, max 2 000 chars each. Groq API keys rotated round-rob
 - `generateAccessToken` / `generateRefreshToken` / `generatePublicApiToken` — JWT signing
 - `verifyToken` / `verifyRefreshToken` / `verifyPublicApiToken` — JWT verification
 - `validatePassword` — policy: ≥8 chars, uppercase, lowercase, number
-
-#### `adminAuthService.js`
-- `generateToken` / `verifyToken` — admin-specific JWT, 1 h expiry, separate secret
 
 #### `socketService.js`
 
@@ -424,7 +399,6 @@ Arena battle royale. Players spawn in a circle (radius 25). HP=3; eliminated at 
 | File | Exports | Purpose |
 |---|---|---|
 | `middleware/auth.js` | `authenticate`, `optionalAuth` | Verify JWT from `jwt_token` cookie; reject banned users; attach `req.user` |
-| `middleware/admin.js` | `requireAdmin`, `requireSuperAdmin` | Verify admin JWT from `admin_jwt_token` cookie; enforce role |
 | `middleware/apiKey.js` | `requireApiKey` | Validate `X-API-Key` header; attach `req.userId` |
 | `middleware/rateLimiters.js` | Multiple limiters | Per-route limiters (friend requests, chat, posts, comments, likes, uploads, helpdesk, API key regen) keyed by `u:{userId}` or `ip:{IP}` |
 | `middleware/errorHandler.js` | `errorHandler`, `notFoundHandler` | Global error → `{ error: { message, fields? } }`; 404 fallback |
@@ -532,7 +506,6 @@ User ──────── UserAuth         (1:1) password hash
 | `/help` | `Help.vue` | No |
 | `/privacy` | `PrivacyPolicy.vue` | No |
 | `/terms` | `TermsOfService.vue` | No |
-| `/admin/panel` | `AdminPanel.vue` | Admin JWT |
 | `*` | `NotFound.vue` | No |
 
 ### 5.2 State Management (Pinia)
@@ -550,9 +523,6 @@ State: `user`, `loading`, `error`. Getters: `isAuthenticated`, `username`.
 | `changePassword` | `PUT /users/me/password` |
 | `deleteAccount` | `DELETE /users/me` |
 | `getPublicProfile` | `GET /users/:id` |
-
-#### `stores/adminAuth.js`
-State: `admin`, `loading`, `error`. Actions: `adminLogin`, `adminLogout`, `fetchAdmin`.
 
 ### 5.3 Services
 
@@ -575,8 +545,6 @@ Socket.io client for the default `/` namespace. `connectSocket()` / `disconnectS
 | `Feed.vue` | Create post (with image upload), infinite-scroll feed, like/comment per post |
 | `Friends.vue` | Friend list, requests, blocked users; search + sort |
 | `Messages.vue` | Conversation list + DM chat panel; sends via `socket.emit('dm:send')` |
-| `AdminLogin.vue` | Admin-specific login using `adminAuth` store |
-| `AdminPanel.vue` | Dashboard stats, paginated user table with ban/role/delete actions |
 | `ApiDocs.vue` | Embedded Swagger UI + custom endpoint reference |
 | `Help.vue` | Project help center: searchable TOC, sections covering getting started, the two games (Spit Royale / Alpaca Road), GDPR / account settings, the Public API, and contact. Dispatches `open-paca` to surface `HelpDeskChat.vue` for the AI assistant |
 | `HelpDeskChat.vue` | Floating "Paca" AI widget — streams SSE from `/helpdesk/chat` (Groq-backed) |
@@ -685,10 +653,8 @@ Browser          Nginx           Backend
 | Layer | Mechanism |
 |---|---|
 | Transport | TLS 1.2/1.3, HSTS 1 year |
-| WAF | Nginx + ModSecurity CRS; specific paths bypass for known false-positives |
 | Headers | Helmet CSP (no eval, no frames) + Nginx (X-Frame-Options, X-Content-Type-Options, Permissions-Policy) |
 | Auth | httpOnly + Secure + SameSite=Strict JWT cookies; refresh token rotation |
-| Admin auth | Separate JWT + separate cookie; role hierarchy user → admin → superadmin |
 | Passwords | bcrypt 12 rounds; policy enforced server-side |
 | Public API | Per-user API keys; `X-API-Key` header; 30 req/min rate limit |
 | Rate limiting | Per-route Express limiters; stricter in production |
@@ -742,5 +708,4 @@ Browser          Nginx           Backend
 - No heartbeat timeout to auto-close zombie matches (e.g., all players disconnect without `leave_room`).
 
 **Minor / Code Quality**
-- Admin actions (ban, role change) have no audit log.
 - `proxy_read_timeout 86400` in Nginx is excessive for non-WebSocket API routes.

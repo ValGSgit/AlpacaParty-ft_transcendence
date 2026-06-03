@@ -8,26 +8,33 @@ services:
     ports:
       - "${API_PORT}:${API_PORT}"
       - "${PRISMA_STUDIO_PORT}:${PRISMA_STUDIO_PORT}"
+    # Secrets live in the project-root .env file and are passed straight into
+    # the container — previously they took a detour through Vault, but the
+    # project no longer claims the Cybersecurity module so that indirection
+    # was net cost with no benefit.
+    env_file:
+      - ../.env
     environment:
       NODE_ENV: development
       API_PORT: ${API_PORT}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
+      # Set at the environment level (not just via env_file ../.env) so the
+      # value resolves from the active --env-file: dev uses .env (host
+      # `postgres`), the test profile uses .env.test (host `postgres_test`).
+      # environment: wins over env_file:, so backend_test no longer inherits
+      # the dev .env DATABASE_URL.
+      DATABASE_URL: ${DATABASE_URL}
       FRONTEND_URL: ${FRONTEND_URL}
       SSL_CERT_PATH: /app/ssl/cert.pem
       SSL_KEY_PATH: /app/ssl/key.pem
       CORS_ORIGINS: "${CORS_ORIGINS}"
-      VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN:-alpacaparty-dev-token}
       UPLOAD_DIR: "/app/uploads"
       JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-1h}"
       JWT_REFRESH_EXPIRES_IN: "${JWT_REFRESH_EXPIRES_IN:-7d}"
       JWT_PUBLIC_API_EXPIRES_IN: "${JWT_PUBLIC_API_EXPIRES_IN:-30d}"
-      JWT_ADMIN_EXPIRES_IN: "${JWT_ADMIN_EXPIRES_IN:-30d}"
       PUBLIC_API_HOST: "${PUBLIC_API_HOST}"
-    tmpfs:
-      - /run/secrets:size=64m,mode=1777
     volumes:
       - backend_data:/app
       - ssl:/app/ssl
@@ -41,10 +48,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      vault:
-        condition: service_healthy
-      vault-init:
-        condition: service_completed_successfully
     restart: unless-stopped
 
   backend_test:
@@ -54,8 +57,4 @@ services:
     depends_on:
       postgres_test:
         condition: service_healthy
-      vault:
-        condition: service_healthy
-      vault-init:
-        condition: service_completed_successfully
     restart: no

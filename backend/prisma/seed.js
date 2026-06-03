@@ -43,34 +43,6 @@ async function main() {
     }
   }
 
-  // Seed default admin user
-  {
-    const adminUsername = "admin";
-    const adminEmail = "admin@alpacaparty.local";
-    const adminPassword = process.env.SEED_ADMIN_PASSWORD || "AdminPassword123";
-
-    const existing = await prisma.user.findFirst({
-      where: { OR: [{ username: adminUsername }, { email: adminEmail }] },
-    });
-
-    if (!existing) {
-      const passwordHash = await bcrypt.hash(adminPassword, 12);
-      await prisma.user.create({
-        data: {
-          username: adminUsername,
-          email: adminEmail,
-          role: "superadmin",
-          userAuth: {
-            create: { passwordHash },
-          },
-          userStats: { create: {} },
-          userSettings: { create: {} },
-          alpacaFarm: { create: {} },
-        },
-      });
-      console.log(`✓ Seeded admin user: ${adminUsername} / ${adminEmail}`);
-    }
-  }
 }
 
 main()

@@ -12,6 +12,7 @@
 import User from "../models/User.js";
 import Post from "../models/Post.js";
 import CustomError from "#utils/CustomError.js";
+import { parseLimitOffset } from "#utils/pagination.js";
 
 const toPublicUser = (user) => ({
   id: user.id,
@@ -30,8 +31,10 @@ const isUserPublic = (user) => {
 /** GET /api/public/users?filter[username]=&limit=20&offset=0 */
 export const listUsers = async (req, res, next) => {
   try {
-    const limit = req.query.limit ?? 20;
-    const offset = req.query.offset ?? 0;
+    // Use the shared limit/offset clamp instead of passing raw query strings
+    // to the DB. A valid API key + `?limit=1000000` could otherwise stream
+    // the full user table on a single request.
+    const { limit, offset } = parseLimitOffset(req.query, { defaultLimit: 20, maxLimit: 100 });
     // Force a public-only predicate so pagination + total reflect filtered set.
     const filter = { ...(req.query.filter || {}), public: true };
     const sort = req.query.sort;
@@ -63,10 +66,12 @@ export const getUser = async (req, res, next) => {
  */
 export const getPosts = async (req, res, next) => {
   try {
-    const { limit = 20, offset = 0 } = req.query;
+    // Shared clamp — same reasoning as listUsers: never pass raw, unbounded
+    // pagination input to the DB.
+    const { limit, offset } = parseLimitOffset(req.query, { defaultLimit: 20, maxLimit: 100 });
     const posts = await Post.getFeed({
-      limit: Number(limit),
-      offset: Number(offset),
+      limit,
+      offset,
     });
     const shaped = posts.map((p) => ({
       id: p.id,
@@ -85,6 +90,31 @@ export const getPosts = async (req, res, next) => {
   }
 };
 
+// Same length cap the in-app post controller enforces. Kept inline (rather
+// than imported from postController) so the public API has no surprising
+// drift if the in-app limit changes — bump both sides intentionally.
+const POST_CONTENT_MAX = 5000;
+const POST_IMAGE_URL_MAX = 2048;
+
+/** Shape-validates a post body. Returns an error message string, or null. */
+function validatePostBody(body, { contentRequired }) {
+  const { content, imageUrl } = body;
+  if (contentRequired || content !== undefined) {
+    if (typeof content !== "string" || !content.trim()) {
+      return "content is required";
+    }
+    if (content.length > POST_CONTENT_MAX) {
+      return `content must be ${POST_CONTENT_MAX} characters or fewer`;
+    }
+  }
+  if (imageUrl !== undefined && imageUrl !== null) {
+    if (typeof imageUrl !== "string" || imageUrl.length > POST_IMAGE_URL_MAX) {
+      return "invalid imageUrl";
+    }
+  }
+  return null;
+}
+
 /**
  * POST /api/public/posts — create a post via API key.
  *
@@ -92,10 +122,16 @@ export const getPosts = async (req, res, next) => {
  */
 export const createPost = async (req, res, next) => {
   try {
-    let { content, imageUrl, isPublic } = req.body;
+    // Previously this endpoint passed req.body.content straight to Post.create
+    // with no checks — `{}` would store an empty post and a 1MB body would
+    // store the lot. Mirror the in-app validator at postController.js.
+    const errMsg = validatePostBody(req.body, { contentRequired: true });
+    if (errMsg) throw new CustomError(errMsg, 400);
+
+    const { content, imageUrl, isPublic } = req.body;
     const post = await Post.create({
       authorId: req.userId,
-      content: content,
+      content: content.trim(),
       imageUrl: imageUrl || null,
       isPublic,
     });
@@ -110,7 +146,12 @@ export const createPost = async (req, res, next) => {
  */
 export const updatePost = async (req, res, next) => {
   try {
-    let { content, imageUrl, isPublic } = req.body;
+    // Same shape rules as createPost, but content is optional on update so
+    // an API client can edit just the image without resending the body.
+    const errMsg = validatePostBody(req.body, { contentRequired: false });
+    if (errMsg) throw new CustomError(errMsg, 400);
+
+    const { content, imageUrl, isPublic } = req.body;
     const postId = Number(req.params.id);
 
     const existingPost = await Post.findById(postId);
@@ -120,7 +161,7 @@ export const updatePost = async (req, res, next) => {
       throw new CustomError("Can not modify post of other user", 403);
 
     const post = await Post.update(postId, req.userId, {
-      content,
+      content: content !== undefined ? content.trim() : undefined,
       imageUrl: imageUrl || null,
       isPublic,
     });

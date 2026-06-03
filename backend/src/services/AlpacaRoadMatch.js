@@ -250,15 +250,19 @@ export class AlpacaRoadMatch extends BaseMatch {
 
     const allDead = playersArr.length > 0 && playersArr.every(p => p.isDead === true);
     if (allDead && this.status !== 'GAME_OVER') {
+      // Flip status synchronously so further ticks bail (see L184 guard).
       this.status = 'GAME_OVER';
+      // persistOutcome is fire-and-forget — it logs its own failures and the
+      // 1.5s delay below lets the death animation play out before we tear
+      // the match down.
       this.persistOutcome().catch((err) => {
-        error('[alpaca-road] failed to persist outcome:', err.message);
+        error('[alpaca-road] failed to persist outcome:', err?.message || err);
       });
 
       setTimeout(() => {
         this.isPlaying = false;
         this.broadcast('game_over');
-        this.stop()
+        this.stop();
       }, 1500);
     }
 

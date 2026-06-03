@@ -5,18 +5,20 @@ import Friend from "../models/Friend.js";
 import User from "../models/User.js";
 import NotificationService from "../services/notificationService.js";
 import GamificationService from "../services/GamificationService.js";
+import { parseLimitOffset } from "#utils/pagination.js";
 
 /** GET /api/friends — list my friends */
 export const listFriends = async (req, res, next) => {
   try {
-    const limit = Math.min(req.query.limit || 50, 100);
-    const offset = Math.max(0, Number(req.query.offset) || 0);
+    // Shared clamp — the old `Math.min(req.query.limit || 50, 100)` relied on
+    // string→number coercion in Math.min and would silently let "abc" through.
+    const { limit, offset } = parseLimitOffset(req.query, { defaultLimit: 50, maxLimit: 100 });
     const filter = req.query.filter;
     const sort = req.query.sort;
 
     const { friends, count } = await Friend.getFriends(req.user.id, {
-      limit: Number(limit),
-      offset: Number(offset),
+      limit,
+      offset,
       filter,
       sort,
     });
@@ -151,6 +153,13 @@ export const blockUser = async (req, res, next) => {
     const { userId } = req.body;
     if (!userId)
       return res.status(400).json({ error: { message: "userId is required" } });
+    // Reject self-block. Mirrors the guard sendRequest already has — without
+    // it, isBlockedBetween(me, me) starts returning true and the user loses
+    // access to their own profile and DMs.
+    if (Number(userId) === req.user.id)
+      return res
+        .status(400)
+        .json({ error: { message: "Cannot block yourself" } });
     await Friend.blockUser(req.user.id, Number(userId));
     res.json({ message: "User blocked" });
   } catch (err) {
