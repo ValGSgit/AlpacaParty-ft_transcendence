@@ -43,7 +43,7 @@ export async function changeGame(mode = 0, playerCount = 1) {
   initGameMode(mode, playerCount, tempAlpacas);
 }
 
-async function returnFarm() {
+export async function returnFarm() {
   const authStore = useAuthStore()
 
   activeClient.disconnect();

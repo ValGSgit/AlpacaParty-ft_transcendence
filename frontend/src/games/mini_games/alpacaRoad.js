@@ -649,7 +649,7 @@ function updateRoadScene(delta) {
   for (let i = 1; i < roadScene.length; i++) {
     const item = roadScene[i];
     item.position.z -= movement;
-    if (item.position.z < roadBack) {
+    if (item.position.z < roadBack - 10) {
       item.position.z = startZ;
       item.scale.set(0.1, 0.1, 0.1);
     }
