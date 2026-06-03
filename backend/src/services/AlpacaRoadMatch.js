@@ -1,4 +1,4 @@
-import { debug, error } from "#lib/logger.js";
+import { error } from "#lib/logger.js";
 import Game from "../models/Game.js";
 import { BaseMatch } from "./BaseMatch.js";
 import GamificationService from "./GamificationService.js";
@@ -6,7 +6,7 @@ import GamificationService from "./GamificationService.js";
 const GAME_TYPE = "alpaca_road";
 const MIN_RANKED_PLAYERS = 2;
 const MAX_LANES = 4;
-const HIT_TIMEOUT_MS = 1500; 
+const HIT_TIMEOUT_MS = 1500;
 
 export class AlpacaRoadMatch extends BaseMatch {
   constructor(id, namespace, roomName, onStateChange) {
@@ -161,7 +161,6 @@ export class AlpacaRoadMatch extends BaseMatch {
   }
 
   update() {
-    if (this.status === 'GAME_OVER') return;
     if (this.players.size === 0) return;
 
     const tick = this.tickRate / 1000;

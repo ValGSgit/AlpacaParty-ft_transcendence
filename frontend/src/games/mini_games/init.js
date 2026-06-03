@@ -1,10 +1,10 @@
 import { ref } from 'vue';
-import { useAuthStore } from '../../stores/auth.js';
 import { debug } from '../../services/logger.js';
+import { useAuthStore } from '../../stores/auth.js';
 import { clearCoins } from '../components/coins.js';
 import { CONST } from '../config/constants.js';
 import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
-import { pauseSaves, resumeSaves, saveGame, flushSave } from '../core/saveLoadGame.js';
+import { flushSave, pauseSaves, resumeSaves } from '../core/saveLoadGame.js';
 import { useGameEngine } from '../core/useGameEngine.js';
 import { initWorld } from '../world/initWorld.js';
 import { initAlpacaRoad, initAlpacaRoadOnline } from './alpacaRoad.js';
@@ -124,7 +124,7 @@ async function initGameMode(mode, playerCount, tempAlpacas) {
   }
 }
 
-export async function visitFarm(playerId, username){
+export async function visitFarm(playerId, username) {
   visitPlayerId = playerId
   friendName = username
   gUI.lobbyMenu = false
