@@ -20,10 +20,6 @@ export function socketAuthMiddleware() {
       const user = await User.findById(decoded.id);
       if (!user)
         return next(new Error("User not found"));
-      // Banned users should not be able to hold a live socket either — block
-      // here so the namespace's connection handler never sees them.
-      if (user.isBanned)
-        return next(new Error("Account is banned"));
 
       socket.user = user;
       next();
