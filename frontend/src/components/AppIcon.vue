@@ -58,6 +58,7 @@ const FILE_ICONS = {
   'tools':          '/icons/ui/tools.svg',
   'mouse':          '/icons/ui/mouse.svg',
   'scroll-icon':    '/icons/ui/scroll.svg',
+  'exit':           '/icons/ui/exit.svg',
 }
 
 const fileSrc = computed(() => FILE_ICONS[props.name] ?? null)

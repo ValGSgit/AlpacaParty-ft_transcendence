@@ -8,7 +8,7 @@ if find prisma/migrations -mindepth 1 -maxdepth 1 -type d | grep -q .; then
   npx prisma migrate deploy
 else
   echo "No committed migrations — pushing schema"
-  npx prisma db push --accept-data-loss
+  npx prisma migrate dev --name init
 fi
 
 echo "Generating Prisma client"

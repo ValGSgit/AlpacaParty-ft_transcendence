@@ -86,7 +86,7 @@
     </div>
 
     <div class="hud-container hud-right">
-      <button class="hud-btn" @click="openGameMenu()" title="Mini Games"><AppIcon name="joystick-full" :size="28" /></button>
+      <button class="hud-btn" @click="openGameMenu()" :title="gMinigame.mode ? 'Exit Game' : 'Minigames'"><AppIcon :name="gMinigame.mode ? 'exit' : 'joystick-full'" :size="28" /></button>
       <button v-if="isAuthenticated && !gMinigame.mode" class="hud-btn" @click="openLobbyMenu(5)" title="Visit Farm"><AppIcon name="barn" :size="28" /></button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="openShopMenu()" title="Shop"><AppIcon name="shopping-bags" :size="28" /></button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="openEditMode()" title="Edit Scene"><AppIcon name="pencil-ruler" :size="28" /></button>
@@ -296,6 +296,7 @@ import { StereoEffect } from 'three/addons/effects/StereoEffect.js'
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import { devError } from '../services/logger.js'
 import { useAuthStore } from '../stores/auth.js'
+import '../styles/games/game.css'
 import { alpacaHandling } from './components/alpacaHandling.js'
 import { alpacaConfig, alpacaShop } from './components/alpacaShop.js'
 import { alpacaStats } from './components/alpacaStats.js'
@@ -312,7 +313,7 @@ import { updateCollectables } from './core/entities/Collectable.js'
 import { shopItems } from './core/entities/Item.js'
 import { cleanupFPSstats, initFPSstats } from './core/FPSstats.js'
 import { gAlpacas, gEditState, gEngine, gMinigame, gPlayer, gScene, gUI, gUser } from './core/globals.js'
-import { saveGame, flushSave } from './core/saveLoadGame.js'
+import { flushSave } from './core/saveLoadGame.js'
 import { changeCamera, checkControlsEnabled, useCamera } from './core/useCamera.js'
 import { useGameEngine } from './core/useGameEngine.js'
 import { useInput } from './core/useInput.js'
@@ -320,7 +321,7 @@ import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import '../styles/games/game.css'
-import { changeGame, friendName, visitFarm, returnFarm } from './mini_games/init.js'
+import { changeGame, friendName, visitFarm } from './mini_games/init.js'
 import { updateMinigame } from './mini_games/minigames.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'

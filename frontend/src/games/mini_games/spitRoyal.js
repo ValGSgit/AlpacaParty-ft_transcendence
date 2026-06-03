@@ -67,7 +67,7 @@ export async function initSpitRoyalOnline() {
 
   activePlayers.length = 0;
   gPlayer.value.point = 0;
-  gPlayer.value.socketId = activeClient.socket.id;
+  gPlayer.value.socketId = activeClient.sessionId;
   gPlayer.value.hp = 3;
   gPlayer.value.hasSpawned = false;
 
@@ -120,7 +120,7 @@ function spawnEnemySpits() {
     const spitData = events.shift();
     const shooter = activePlayers.find(p => p.socketId === spitData.ownerId);
 
-    if (shooter && shooter.socketId !== activeClient.socket.id && typeof shooter.spit === 'function') {
+    if (shooter && shooter.socketId !== activeClient.sessionId && typeof shooter.spit === 'function') {
       try {
         // Only rotate if direction is a valid Vector. Prevents NaN matrix corruption!
         if (spitData.direction && typeof spitData.direction.x === 'number' && typeof spitData.direction.z === 'number') {
@@ -181,7 +181,7 @@ function syncPlayers(delta) {
       // LOCAL PLAYER SPAWN FIX — only spawn from a tick that actually carries
       // a valid position. Guards against a stray pre-game payload positioning
       // the player at NaN (which would freeze movement).
-      if (localAlpaca.socketId === activeClient.socket.id) {
+      if (localAlpaca.socketId === activeClient.sessionId) {
         if (!localAlpaca.hasSpawned &&
             Number.isFinite(serverData.x) &&
             Number.isFinite(serverData.y) &&
