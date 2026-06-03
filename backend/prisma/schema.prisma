@@ -17,8 +17,6 @@ model User {
   avatar    String?   @default("/avatars/default.svg") @db.VarChar(512)
   bio       String?   @default("") @db.Text
   status    String?   @default("Hey there! I am using AlpacaParty") @db.VarChar(255)
-  role      String    @default("user") @db.VarChar(20)
-  isBanned  Boolean   @default(false) @map("is_banned")
   isOnline  Boolean?  @default(false) @map("is_online")
   lastSeen  DateTime? @default(now()) @map("last_seen") @db.Timestamptz
   createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
@@ -36,7 +34,7 @@ model User {
   wonGames               Game[]               @relation("winner")
   gameStats              GameStat[]
   achievements           UserAchievement[]
-  dailyChallenges        UserDailyChallenge[]
+  // dailyChallenges        UserDailyChallenge[]
   notifications          Notification[]
   posts                  Post[]
   postLikes              PostLike[]
@@ -231,32 +229,32 @@ model UserAchievement {
   @@map("user_achievement")
 }
 
-// ── Daily Challenges ─────────────────────────────────────────────────────
-model DailyChallenge {
-  id          Int      @id @default(autoincrement())
-  title       String   @db.VarChar(120)
-  description String?  @default("") @db.Text
-  xpReward    Int?     @default(0) @map("xp_reward")
-  activeDate  DateTime @default(now()) @map("active_date") @db.Date
+// // ── Daily Challenges ─────────────────────────────────────────────────────
+// model DailyChallenge {
+//   id          Int      @id @default(autoincrement())
+//   title       String   @db.VarChar(120)
+//   description String?  @default("") @db.Text
+//   xpReward    Int?     @default(0) @map("xp_reward")
+//   activeDate  DateTime @default(now()) @map("active_date") @db.Date
 
-  userChallenges UserDailyChallenge[]
+//   userChallenges UserDailyChallenge[]
 
-  @@map("daily_challenge")
-}
+//   @@map("daily_challenge")
+// }
 
-model UserDailyChallenge {
-  id          Int       @id @default(autoincrement())
-  userId      Int       @map("user_id")
-  challengeId Int       @map("challenge_id")
-  completed   Boolean?  @default(false)
-  completedAt DateTime? @map("completed_at") @db.Timestamptz
+// model UserDailyChallenge {
+//   id          Int       @id @default(autoincrement())
+//   userId      Int       @map("user_id")
+//   challengeId Int       @map("challenge_id")
+//   completed   Boolean?  @default(false)
+//   completedAt DateTime? @map("completed_at") @db.Timestamptz
 
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  challenge DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+//   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   challenge DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, challengeId])
-  @@map("user_daily_challenge")
-}
+//   @@unique([userId, challengeId])
+//   @@map("user_daily_challenge")
+// }
 
 // ── Notifications ────────────────────────────────────────────────────────
 model Notification {

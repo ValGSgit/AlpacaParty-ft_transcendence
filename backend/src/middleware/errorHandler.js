@@ -57,6 +57,9 @@ export const errorHandler = (err, _req, res, _next) => {
   res.status(error.statusCode).json({
     error: {
       message: error.message,
+      // Surface a machine-readable code when the error carries one so the
+      // client can react to specific cases (e.g. ACCOUNT_BANNED → force logout).
+      ...(error.code && { code: error.code }),
       ...(process.env.NODE_ENV === "development" && {
         stack: err.stack,
         prismaCode,

@@ -76,8 +76,7 @@ export const deleteComment = async (req, res, next) => {
       return res.status(400).json({ error: { message: 'invalid comment id' } });
     }
 
-    const isAdmin = req.user?.role === 'admin' || req.user?.role === 'superadmin';
-    const deleted = await Comment.delete(commentId, req.user.id, { isAdmin });
+    const deleted = await Comment.delete(commentId, req.user.id);
     if (!deleted) return res.status(404).json({ error: { message: 'Comment not found or not yours' } });
     res.json({ message: 'Comment deleted' });
   } catch (err) { next(err); }

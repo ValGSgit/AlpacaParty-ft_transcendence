@@ -18,7 +18,6 @@ export const authenticate = async (req, res, next) => {
 
     const user = await User.findById(decoded.id);
     if (!user) throw new CustomError("User not found", 401);
-    if (user.isBanned) throw new CustomError("Account is banned", 403);
     req.user = user;
     next();
   } catch (err) {

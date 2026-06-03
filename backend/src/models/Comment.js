@@ -58,31 +58,24 @@ const Comment = {
   },
 
   /**
-   * Delete a comment. Authorised when:
-   *   - the requester is the comment author, OR
-   *   - the requester owns the parent post, OR
-   *   - the requester has role admin/superadmin.
-   *
-   * Returns true on delete, false on not-found, throws nothing for auth.
-   * The caller's auth status (isAdmin) must be passed in; the model
-   * doesn't do role lookups itself.
+   * Delete a comment. Authorised when the requester is the comment author or
+   * owns the parent post. Returns true on delete, false on not-found / not
+   * authorised.
    */
-  async delete(id, requesterId, { isAdmin = false } = {}) {
+  async delete(id, requesterId) {
     const comment = await prisma.comment.findUnique({ where: { id: Number(id) } });
     if (!comment) return false;
 
     const isAuthor = comment.authorId === Number(requesterId);
     let isThreadOwner = false;
-    if (!isAuthor && !isAdmin) {
-      if (comment.postId !== null) {
-        const post = await prisma.post.findUnique({
-          where: { id: comment.postId },
-          select: { authorId: true },
-        });
-        isThreadOwner = post?.authorId === Number(requesterId);
-      }
+    if (!isAuthor && comment.postId !== null) {
+      const post = await prisma.post.findUnique({
+        where: { id: comment.postId },
+        select: { authorId: true },
+      });
+      isThreadOwner = post?.authorId === Number(requesterId);
     }
-    if (!isAuthor && !isAdmin && !isThreadOwner) return false;
+    if (!isAuthor && !isThreadOwner) return false;
 
     await prisma.$transaction(async (tx) => {
       await tx.comment.delete({ where: { id: Number(id) } });

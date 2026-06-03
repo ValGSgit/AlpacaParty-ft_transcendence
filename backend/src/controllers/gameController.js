@@ -96,7 +96,6 @@ export const getCoinsLeaderboard = async (req, res, next) => {
  */
 export const saveGameResult = async (req, res, next) => {
   try {
-    const { result } = req.body;
     const gameType = resolveGameType(req.body.gameType, null);
 
     if (gameType === null) {
@@ -104,9 +103,14 @@ export const saveGameResult = async (req, res, next) => {
         error: { message: `gameType must be one of: ${ALLOWED_GAME_TYPES.join(', ')}` },
       });
     }
-    if (!result) {
+    if (!req.body.result) {
       return res.status(400).json({ error: { message: 'result required' } });
     }
+    // Normalize before the whitelist check — clients have shipped "LOSS" /
+    // "Loss" / "loss" historically and the previous strict-case match
+    // rejected the first two as 400 even though the intent was obvious.
+    const result =
+      typeof req.body.result === "string" ? req.body.result.toLowerCase() : req.body.result;
     if (!['loss', 'draw'].includes(result)) {
       return res.status(400).json({
         error: { message: "Only 'loss' or 'draw' may be reported here; wins are persisted server-side." },
@@ -156,8 +160,7 @@ export const getFarm = async (req, res, next) => {
  * { items, alpacas, coins, upgrades, herdsize }.
  *
  * The client routinely sends large payloads on autosave; we cap the
- * arrays here so a single bad client (or a stretched WAF body limit)
- * can't blow up the JSONB column.
+ * arrays here so a single bad client can't blow up the JSONB column.
  */
 const FARM_FLAT_KEYS = ['items', 'alpacas', 'coins', 'upgrades', 'herdsize'];
 const MAX_ITEMS = 500;
@@ -181,6 +184,14 @@ export const saveFarm = async (req, res, next) => {
     if (raw.coins    !== undefined) clean.coins    = clampInt(raw.coins,    0, COIN_CAP);
     if (raw.upgrades !== undefined) clean.upgrades = clampInt(raw.upgrades, 0, COIN_CAP);
     if (raw.herdsize !== undefined) clean.herdsize = clampInt(raw.herdsize, 0, COIN_CAP);
+
+    // If no recognized field survived clamping, the body was either empty or
+    // pure junk — return 400 instead of silently writing nothing and 200-ing.
+    if (Object.keys(clean).length === 0) {
+      return res.status(400).json({
+        error: { message: 'farmData must contain at least one of: items, alpacas, coins, upgrades, herdsize' },
+      });
+    }
 
     const farm = await Game.updateFarm(req.user.id, clean);
     res.json({ farm });

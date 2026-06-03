@@ -20,7 +20,7 @@ import User from "../models/User.js";
 import { MatchManager } from "./MatchManager.js";
 import NotificationService from "./notificationService.js";
 import GamificationService from "./GamificationService.js";
-import { socketAuthMiddleware } from "./socketAuth.js";
+import { ensureSocketAuthed, socketAuthMiddleware } from "./socketAuth.js";
 
 // ── Token-bucket rate limiter (per-socket, per-event) ─────────
 // HTTP rate limits do not apply to socket events; without this a connected
@@ -98,6 +98,10 @@ export function initializeSocket(httpServer, corsOrigins) {
 
   // ── Connection handler ───────────────────────────────────────
   io.on("connection", async (socket) => {
+    // Belt-and-braces: socketAuthMiddleware should always populate socket.user
+    // before we get here, but if a future config change ever bypassed it we'd
+    // dereference `user.id` on the very next line and crash the namespace.
+    if (!ensureSocketAuthed(socket)) return;
     const { user } = socket;
 
     try {
