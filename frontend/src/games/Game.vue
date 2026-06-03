@@ -92,7 +92,7 @@
       <button v-if="!gMinigame.mode" class="hud-btn" @click="openEditMode()" title="Edit Scene"><AppIcon name="pencil-ruler" :size="28" /></button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="openLightMenu()" title="Edit Light"><AppIcon name="sun-full" :size="30" /></button>
       <button v-if="!gMinigame.mode" class="hud-btn" @click="changeCamera()" title="Change Camera"><AppIcon name="camera-farm" :size="28" /></button>
-      <button v-if="!gMinigame.mode" class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;"><AppIcon name="debug-coin" :size="28" /></button>
+      <button v-if="!gMinigame.mode && CONST.DEBUG" class="hud-btn" @click="addDebugCoins()" title="DEBUG: Add Coins" style="background: #ffd700; color: #000;"><AppIcon name="debug-coin" :size="28" /></button>
     </div>
     
     <div v-if="gUI.shopMenu" class="modal-overlay">
@@ -320,7 +320,7 @@ import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
 import '../styles/games/game.css'
-import { changeGame, friendName, visitFarm } from './mini_games/init.js'
+import { changeGame, friendName, visitFarm, returnFarm } from './mini_games/init.js'
 import { updateMinigame } from './mini_games/minigames.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
@@ -372,7 +372,8 @@ onMounted(async () => {
   }
   else
   {
-    stats = initFPSstats(gameContainer.value);
+    if (CONST.DEBUG)
+      stats = initFPSstats(gameContainer.value);
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
@@ -382,6 +383,8 @@ onMounted(async () => {
     await initWorld(gScene.value, authStore.isAuthenticated)
     gameIsReady.value = true
     stopMyWatcher = watchChanges()
+    if(gMinigame.value)
+      returnFarm()
     gameLoop()
   }
   window.addEventListener('resize', onResize)
