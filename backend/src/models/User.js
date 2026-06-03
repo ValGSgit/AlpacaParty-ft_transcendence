@@ -17,7 +17,6 @@ const SAFE_SELECT = {
   avatar: true,
   bio: true,
   status: true,
-  isBanned: true,
   isOnline: true,
   lastSeen: true,
   createdAt: true,
