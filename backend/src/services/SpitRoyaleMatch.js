@@ -151,8 +151,8 @@ export class SpitRoyalMatch extends BaseMatch {
     owner.lastSpitAt = 0;
 
     target.hp -= 1;
-    owner.point++;
     if (target.hp <= 0) {
+      owner.point++;
       target.isDead = true;
       this.eliminations = (this.eliminations || 0) + 1;
       this.namespace.to(targetId).emit('game_over', { reason: 'eliminated' });
