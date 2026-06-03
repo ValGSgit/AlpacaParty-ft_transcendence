@@ -21,7 +21,6 @@
 /backend/src/utils/                         @ValGSgit @DavidPoetsch
 
 /backend/Dockerfile                         @DavidPoetsch @ValGSgit
-/backend/Dockerfile.prod                    @DavidPoetsch @ValGSgit
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 /frontend/                                  @fankahou @LukasStefanek
@@ -34,18 +33,13 @@
 /frontend/src/services/                     @LukasStefanek @fankahou
 
 /frontend/Dockerfile                        @fankahou @LukasStefanek
-/frontend/Dockerfile.prod                   @fankahou @LukasStefanek
 
 # ── Infrastructure & Configuration ───────────────────────────────────────────
 /nginx/                                     @DavidPoetsch @ValGSgit
-/PostgreSQL/                                @DavidPoetsch @ValGSgit
-/scripts/                                   @ValGSgit @DavidPoetsch
-/e2e/                                       @ValGSgit @DavidPoetsch
+/database/                                  @DavidPoetsch @ValGSgit
 
-/docker-compose.yml                         @ValGSgit @DavidPoetsch
-/docker-compose.prod.yml                    @ValGSgit @DavidPoetsch
+/compose.yaml                               @ValGSgit @DavidPoetsch
 /Makefile                                   @ValGSgit @DavidPoetsch
 
-# ── Shared / Root configs ─────────────────────────────────────────────────────
-/shared/                                    @ValGSgit @DavidPoetsch @fankahou @LukasStefanek
+# ── Root configs ──────────────────────────────────────────────────────────────
 /.github/                                   @ValGSgit

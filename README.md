@@ -43,7 +43,7 @@
 ### How We Organized Work
 
 - **Task Distribution by domain** — Backend & infrastructure (ValGSgit, DavidPoetsch); frontend & 3D game (fankahou, LukasStefanek). Each developer owns a clear set of files; cross-domain features (e.g. real-time DMs) were paired.
-- **GitHub Issues** — Every feature was tracked as a GitHub issue with clear acceptance criteria. See [ISSUES.md](ISSUES.md) for the running log.
+- **GitHub Issues** — Every feature was tracked as a GitHub issue with clear acceptance criteria.
 - **Weekly syncs** — One team meeting per week to review progress, resolve blockers, and plan the next sprint.
 - **Code reviews** — Non-trivial PRs were reviewed by at least one other team member before merge.
 - **Communication** — Discord server for daily async chat and quick decisions; GitHub issue threads for design discussions.
@@ -70,7 +70,7 @@
 | **Auth** | JWT (access + refresh in HTTP-only cookies) + bcrypt | Standard secure pattern for email/password authentication |
 | **AI** | Groq LLM API — server-side proxy | Fast completions for the in-app "Paca" help desk; key never exposed to the browser |
 | **Reverse proxy** | nginx | HTTPS termination, WS upgrade, gzip, security headers |
-| **Containerization** | Docker Compose (`make up` / `make prod-up`) | Single-command deployment |
+| **Containerization** | Docker Compose (`make`) | Single-command build + deploy |
 | **API docs** | Swagger UI (OpenAPI 3) at `/api/docs/public`, embedded in the `/docs` frontend page | Interactive documentation for the public API + architecture map |
 
 ---
@@ -188,8 +188,7 @@ PostgreSQL with **22 Prisma models**, organized around users, social interaction
 > both halves have been removed from the project — Vault gave way to
 > secrets loaded from the project-root `.env` file via Compose's `env_file`
 > directive, and the WAF/ModSecurity layer has been dropped from the nginx
-> image (it now runs as a plain reverse proxy). See
-> [Points.md](Points.md#5-cybersecurity) for the full rationale.
+> image (it now runs as a plain reverse proxy).
 
 ### Module Implementation Details
 
@@ -250,41 +249,40 @@ PostgreSQL with **22 Prisma models**, organized around users, social interaction
 - **OpenSSL** (for self-signed cert generation in dev)
 - A modern browser (latest stable Google Chrome recommended)
 
-### Setup and Run (development)
+### Setup and Run
 
 ```bash
 # 1. Clone
 git clone https://github.com/ValGSgit/AlpacaParty.git
 cd AlpacaParty
 
-# 2. Create environment file
-cp .env.example .env
-# Edit .env: set DB_PASSWORD, JWT_SECRET; optionally GROQ_API_KEYS
-
-# 3. (Optional) Generate fresh secrets
-make generate-secrets
-
-# 4. Build & start (auto-generates SSL cert)
-make build && make up
-
-# 5. Open
-# https://localhost:8443  (accept the self-signed cert warning)
+# 2. Build & start the whole stack (single command)
+make
 ```
 
-### Production Deployment
+`make` does everything: on first run it generates `.env` from `.env.example`
+with random secrets and your machine's IP/ports filled in, creates a
+self-signed SSL cert, then builds the images and brings the stack up. When it
+finishes it prints the app URLs (`make info`).
 
-```bash
-make prod-build && make prod-up
-```
+Then open the URL it prints — by default **https://localhost:8443** (accept the
+self-signed cert warning). Optionally add your Groq keys (`GROQ_API_KEY1..3`)
+to `.env` and `make re` to enable the AI help desk.
 
-Production reads every secret straight from the project-root `.env` file via Docker Compose's `env_file` directive. `make generate-secrets` will randomize `DB_PASSWORD`, every `JWT_*_SECRET`, and `API_KEYS` for you.
+Other targets: `make down` · `make re` (rebuild+restart) · `make logs` ·
+`make ps` · `make info` · `make clean` · `make fclean`.
 
-### Local Development (without Docker)
+### Ports
 
-```bash
-make install         # install backend + frontend deps
-make dev             # backend on :3000, frontend on :5173
-```
+Every port is driven from `.env` — change one value and `make re`:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HTTPS_PORT` | `8443` | External HTTPS entrypoint (the app URL) |
+| `HTTP_PORT` | `8080` | External HTTP (redirects to HTTPS) |
+| `API_PORT` | `3000` | Backend Express server (internal) |
+| `FRONTEND_PORT` | `5173` | Frontend static server (internal) |
+| `DB_PORT` | `5432` | PostgreSQL (internal) |
 
 ### Environment Variables
 
@@ -292,23 +290,15 @@ See [.env.example](.env.example) for the full list. Highlights:
 
 | Variable | Description |
 |----------|-------------|
-| `DB_PASSWORD` | PostgreSQL password |
+| `DB_PASSWORD` | PostgreSQL password (randomised by `make generate-secrets`) |
 | `JWT_SECRET` | JWT signing secret |
 | `VITE_API_URL` | Frontend API base path (default `/api`) |
 | `GROQ_API_KEY1..3` | Up to 3 Groq keys for the AI help desk (round-robin) |
 | `API_KEYS` | Default public-API keys for service-level callers |
-| `AUTH_RATE_LIMIT_MAX` | Auth-route rate-limit cap — bumped by `make prod-e2e` for tests |
 
-### Evaluation tooling
-
-Every claimed module has a `make demo-<name>` target that prints the talking
-points and runs the minimal commands during a peer-eval walkthrough. See:
-
-```bash
-make demo-list        # menu of every module demo
-```
-
-The full evaluation defense lives in [EVALUATION.md](EVALUATION.md).
+Secrets and config are read straight from the project-root `.env` via Docker
+Compose's `env_file` directive. `make generate-secrets` randomizes
+`DB_PASSWORD`, every `JWT_*_SECRET`, and `API_KEYS` for you.
 
 ---
 
@@ -348,12 +338,12 @@ The full evaluation defense lives in [EVALUATION.md](EVALUATION.md).
 
 | Service | Container | Purpose |
 |---------|-----------|---------|
-| `nginx` | `alpacaparty_nginx` | Reverse proxy, HTTPS |
-| `backend` | `backend_prod` | Express + Socket.IO, port 3000 |
-| `frontend` | `alpacaparty_frontend` | Vite-built Vue 3 SPA |
+| `nginx` | `nginx_prod` | Reverse proxy, HTTPS |
+| `backend` | `backend_prod` | Express + Socket.IO (`API_PORT`) |
+| `frontend` | `frontend_prod` | nginx-served Vue 3 SPA build |
 | `postgres` | `alpacaparty_db_prod` | PostgreSQL 16 |
 
-For an interactive system map (request pipeline, route catalog, Socket.IO namespaces, and more), open the **Architecture Map** tab on `/docs` once the app is running. The full canonical reference lives in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+For an interactive system map (request pipeline, route catalog, Socket.IO namespaces, and more), open the **Architecture Map** tab on `/docs` once the app is running.
 
 ---
 
@@ -381,7 +371,6 @@ Specifically, AI assistance covered:
 - **Configuration** — Docker Compose snippets, nginx templates
 - **Debugging** — narrowing down Socket.IO disconnect issues, CORS edge cases, JWT refresh races
 - **Documentation** — README structure, OpenAPI tags
-- **Tests** — test-case scaffolding and mock setup patterns
 - **The in-app help desk itself** — answers to user questions are generated by Groq's LLM API, never by code we wrote
 
 ---
@@ -392,7 +381,7 @@ Specifically, AI assistance covered:
 - Firefox / Safari / Edge: tested informally and broadly compatible, but Chrome is the primary supported browser per the subject's requirements.
 - AlpacaParty matches are not matchmade — players manually join rooms via the in-game lobby. There is no ELO ranking; leaderboards rank by aggregate stats (kills, obstacles, coins).
 - There is no group chat or chat-room feature — only 1-to-1 direct messages.
-- There is no in-app moderation UI. Operator-level actions (ban, role change) are performed directly against the database (`make shell-db` / Prisma Studio).
+- There is no in-app moderation UI. Operator-level actions (e.g. banning a user) are performed directly against the database.
 
 ---
 

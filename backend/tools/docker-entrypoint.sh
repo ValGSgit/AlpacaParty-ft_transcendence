@@ -1,22 +1,20 @@
 #!/bin/sh
 set -e
 
-# Install deps (cheap when node_modules is already populated).
-npm install
-
-prisma="./node_modules/.bin/prisma"
-
-echo "Applying database migrations"
-$prisma migrate dev --name init
+# Apply database migrations. `migrate deploy` only runs committed migrations;
+# if none exist (first deploy with a fresh schema), fall back to `db push`.
+if find prisma/migrations -mindepth 1 -maxdepth 1 -type d | grep -q .; then
+  echo "Deploying database migrations"
+  npx prisma migrate deploy
+else
+  echo "No committed migrations — pushing schema"
+  npx prisma db push --accept-data-loss
+fi
 
 echo "Generating Prisma client"
-$prisma generate
+npx prisma generate
 
 echo "Seeding database"
 npm run seed
-
-echo "Building API docs"
-rm -f /app/src/docs/swagger-output-public-api.json
-npm run buildDocs
 
 exec "$@"
