@@ -1,6 +1,5 @@
 /**
  * Public API Key Middleware
- * @owner ValGSgit
  *
  * Header:  X-API-Key: <key>
  */

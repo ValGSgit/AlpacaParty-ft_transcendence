@@ -39,10 +39,10 @@
       </template>
       <div class="action-container">
         <button v-if="gMinigame.mode === 1 || gMinigame.mode === 3" class="shop-btn" @click="changeGame(gMinigame.mode, playerCount)">
-          Play Again <AppIcon name="refresh-box" :size="18" />
+          Play Again <AppIcon name="refresh-box" :size="24" />
         </button>
         <button class="shop-btn" @click="changeGame()" title="Return to Farm">
-          Return to Farm <AppIcon name="tractor" :size="18" />
+          Return to Farm <AppIcon name="tractor" :size="24" />
         </button>
       </div>
     </div>
@@ -53,7 +53,10 @@
       id="coin-hud"
       v-if="gMinigame.mode === 0 || gMinigame.isGameOver"
       class="stat" :class="{ 'overlay': gMinigame.isGameOver }">
-      <span class="hud-coins"><AppIcon name="coin" :size="36" /> {{ gUser.coins }}</span>
+      <span class="hud-coins">
+        <AppIcon name="coin" :size="36" />
+        <span class="hud-coins-val">{{ gUser.coins }}</span>
+      </span>
     </div>
       <template v-if="gMinigame.mode === 1 || gMinigame.mode === 2">
         <div v-for="player in gMinigame.players" :key="'ui-' + player.id" class="stat multiplayer-row">
@@ -115,7 +118,7 @@
         <option :value="3">3 Players</option>
         <option :value="4">4 Players</option>
       </select>
-        <button class="close-btn" @click="closeGameMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeGameMenu()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
     <MultiplayerLobby v-if="gUI.lobbyMenu && (gMinigame.mode === 2 || gMinigame.mode === 4)" />
@@ -126,7 +129,7 @@
             {{ friend.username }}
           </button>
         </div>
-        <button class="close-btn" @click="changeGame(0)" title="Close">✖️</button>
+        <button class="close-btn" @click="changeGame(0)" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
     <div v-if="gMinigame.mode === 5 && gMinigame.isVisiting" class="edit-mode">
@@ -159,7 +162,7 @@
         </button>
       </div>
 
-        <button class="close-btn" @click="gUI.farmMenu = false" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="gUI.farmMenu = false" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
 
@@ -177,7 +180,7 @@
           </button>
         </div>
         
-        <button class="close-btn" @click="closeItemShop()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeItemShop()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
     
@@ -201,7 +204,7 @@
           <input type="color" v-model="alpacaConfig.color" class="custom-picker" />
           <button class="shop-btn" @click="buyAlpaca()" title="Custom">Custom</button>
         </div>
-        <button class="close-btn" @click="closeAlpacaShop()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeAlpacaShop()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
     
@@ -234,7 +237,7 @@
             </div>
           </div>
         </div>
-        <button class="close-btn" @click="closeAlpacaStats()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeAlpacaStats()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
         
@@ -244,7 +247,7 @@
             <button class="shop-btn" @click="sellItem()"><AppIcon name="coin" :size="18" /> Sell Item</button>
             <button class="shop-btn" @click="cancelPlacement()">Cancel <AppIcon name="close" :size="14" /></button>
           </div>
-      <button class="close-btn" @click="closeEditMode()" title="Close"><AppIcon name="close" :size="16" /></button>
+      <button class="close-btn" @click="closeEditMode()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
         <div class="controls-hint">
         <h4><AppIcon name="tools" :size="16" /> Edit Controls</h4>
@@ -276,7 +279,7 @@
         <button class="shop-btn" @click="setTimeOfDay('day')"><AppIcon name="sun-full" :size="30" /> Day</button>
         <button class="shop-btn" @click="setTimeOfDay('sunset')"><AppIcon name="sunset" :size="30" /> Sunset</button>
         <button class="shop-btn" @click="setTimeOfDay('night')"><AppIcon name="night" :size="30" /> Night</button>
-        <button class="close-btn" @click="closeLightMenu()" title="Close"><AppIcon name="close" :size="16" /></button>
+        <button class="close-btn" @click="closeLightMenu()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
     </div>
   </div>
@@ -316,7 +319,7 @@ import { useInput } from './core/useInput.js'
 import { init_redot, render_redot } from './core/useSpatialBridge.js'
 import { useUIManager } from './core/useUIManager.js'
 import { watchChanges } from './core/watchChanges.js'
-import './game.css'
+import '../styles/games/game.css'
 import { changeGame, friendName, visitFarm } from './mini_games/init.js'
 import { updateMinigame } from './mini_games/minigames.js'
 import { getHearts } from './utils/uiHelpers.js'
@@ -374,7 +377,7 @@ onMounted(async () => {
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
 
-    if (authStore.isAuthenticated)
+    if (authStore.isAuthenticated && authStore.user?.username)
       gUser.value.name = authStore.user.username;
     await initWorld(gScene.value, authStore.isAuthenticated)
     gameIsReady.value = true
@@ -445,4 +448,4 @@ onUnmounted(async () => {
 </script>
 
 <!---------------------- STYLE ------------------------->
-<style src="./game.css"></style>
+<style src="../styles/games/game.css"></style>

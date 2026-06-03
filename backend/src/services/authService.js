@@ -1,10 +1,8 @@
 /**
  * Auth Service — JWT generation, password hashing
- * @owner ValGSgit
  */
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { randomBytes } from "crypto";
 import config from "../config/index.js";
 
 const SALT_ROUNDS = 12;
@@ -58,17 +56,6 @@ const AuthService = {
   },
 
   /**
-   * Generate admin token
-   */
-  generateAdminToken(admin) {
-    return jwt.sign(
-      { id: admin.id, username: admin.username, role: admin.role },
-      config.jwt.adminSecret,
-      { expiresIn: config.jwt.adminExpiresIn },
-    );
-  },
-
-  /**
    * Verify and decode access token.
    * @returns {object|null} decoded payload or null if invalid.
    */
@@ -101,20 +88,6 @@ const AuthService = {
   verifyPublicApiToken(token) {
     try {
       return jwt.verify(token, config.jwt.publicApiSecret, {
-        algorithms: ["HS256"],
-      });
-    } catch {
-      return null;
-    }
-  },
-
-  /**
-   * Verify and decode admin token.
-   * @returns {object|null} decoded payload or null if invalid.
-   */
-  verifyAdminToken(token) {
-    try {
-      return jwt.verify(token, config.jwt.adminSecret, {
         algorithms: ["HS256"],
       });
     } catch {

@@ -1,6 +1,7 @@
 /**
- * OpenAPI / Swagger configuration
- * UI available at /api/docs
+ * OpenAPI / Swagger configuration (full internal API)
+ * UI available at /api/docs/dev — dev only (gated by NODE_ENV in index.js).
+ * The publicly-mounted, externally-safe spec lives at /api/docs/public.
  */
 import swaggerJsdoc from "swagger-jsdoc";
 
@@ -32,7 +33,7 @@ The \`/public/*\` group uses an **X-API-Key** header instead of JWT:
 X-API-Key: ap_your_key_here
 \`\`\`
 
-**Generating a key:** log in, go to **Profile → Settings → Public API Key**, and click **Generate Key**. You can revoke and regenerate at any time from the same page. Server-level keys (set via \`API_KEYS\` env / Vault) are also accepted.
+**Generating a key:** log in, go to **Profile → Settings → Public API Key**, and click **Generate Key**. You can revoke and regenerate at any time from the same page. Server-level keys (set via the \`API_KEYS\` env var) are also accepted.
 
 ### Public endpoints
 | Method | Path | Description |
@@ -51,7 +52,6 @@ X-API-Key: ap_your_key_here
 |---|---|
 | Global | 1 000 req / 15 min |
 | Auth endpoints | 50 req / 15 min per IP |
-| Admin endpoints | 60 req / min |
 | AI help chat | 20 req / min |
 | Public API | 100 req / min |
       `.trim(),
@@ -60,7 +60,7 @@ X-API-Key: ap_your_key_here
     tags: [
       {
         name: "Auth",
-        description: "Register, login, OAuth (Google / GitHub), token refresh",
+        description: "Register, login, logout, token refresh",
       },
       {
         name: "Users",
@@ -86,11 +86,6 @@ X-API-Key: ap_your_key_here
         description: "File upload and management (images, PDFs, CSV…)",
       },
       {
-        name: "Admin",
-        description:
-          "🔐 Admin only — user management, site stats, GDPR processing",
-      },
-      {
         name: "Public API",
         description:
           "🔑 API-key auth — public data and service-level writes for external integrations. Generate a key at Profile → Settings → Public API Key.",
@@ -103,7 +98,7 @@ X-API-Key: ap_your_key_here
           in: "header",
           name: "X-API-Key",
           description:
-            "API key for **/public/*** endpoints. Generate yours at **Profile → Settings → Public API Key**. Format: `ap_<uuid-no-dashes>`. Server-level keys (Vault/env `API_KEYS`) are also accepted.",
+            "API key for **/public/*** endpoints. Generate yours at **Profile → Settings → Public API Key**. Format: `ap_<uuid-no-dashes>`. Server-level keys (env `API_KEYS`) are also accepted.",
         },
       },
       parameters: {

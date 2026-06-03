@@ -2,17 +2,34 @@ import { randomUUID } from "crypto";
 import { debug } from "#lib/logger.js";
 import { AlpacaRoadMatch } from "./AlpacaRoadMatch.js";
 import { SpitRoyalMatch } from "./SpitRoyaleMatch.js";
+import { ensureSocketAuthed } from "./socketAuth.js";
 
 const GAME_REGISTRY = {
   2: SpitRoyalMatch,
   4: AlpacaRoadMatch,
 };
 
+// Reverse lookup so we can resolve match → typeKey in O(1) instead of
+// walking GAME_REGISTRY for every public-rooms broadcast.
+const TYPE_KEY_BY_CTOR = new Map(
+  Object.entries(GAME_REGISTRY).map(([k, Ctor]) => [Ctor, Number(k)]),
+);
+
 // Max concurrent players per game type — used by join/create gating.
 const PLAYER_CAP = {
   2: 10, // SpitRoyale: up to 10 players in the arena.
   4: 4,  // AlpacaRoad: 4 lanes, 4 players max.
 };
+
+function acceptsJoin(typeKey, status) {
+  // Both game types now use the same lobby model: a room is joinable only
+  // while it is gathering players in the LOBBY. Once everyone readies up and
+  // the match starts (PLAYING), it leaves the public list and no longer
+  // accepts joins — Spit Royale used to accept mid-game joins, which skipped
+  // the ready screen entirely.
+  if (typeKey === 4 || typeKey === 2) return status === 'LOBBY';
+  return false;
+}
 
 export class MatchManager {
   constructor(ioNamespace) {
@@ -23,38 +40,48 @@ export class MatchManager {
     this.setupListeners();
   }
 
-  broadcastPublicRooms() {
+  listPublicRooms() {
     const publicRooms = [];
     for (const match of this.matches.values()) {
-      const typeKey = Number(
-        Object.keys(GAME_REGISTRY).find((k) => GAME_REGISTRY[k] === match.constructor),
-      );
+      const typeKey = TYPE_KEY_BY_CTOR.get(match.constructor);
+      if (typeKey == null) continue;
       const cap = PLAYER_CAP[typeKey];
-      const acceptingNew =
-        (typeKey === 4 && match.status === 'LOBBY') ||
-        (typeKey === 2 && match.status === 'PLAYING');
-      if (acceptingNew && match.players.size > 0 && match.players.size < cap) {
-        const levels = Array.from(match.players.values())
-          .map((player) => Number(player.level) || 1)
-          .filter((level) => Number.isFinite(level));
-        const averageLevel = levels.length
-          ? Math.round(levels.reduce((sum, level) => sum + level, 0) / levels.length)
-          : 1;
-        publicRooms.push({
-          id: match.matchId,
-          name: match.roomName,
-          playerCount: match.players.size,
-          gameType: typeKey,
-          averageLevel,
-        });
+      if (!acceptsJoin(typeKey, match.status)) continue;
+      if (match.players.size === 0 || match.players.size >= cap) continue;
+
+      let levelSum = 0;
+      let levelCount = 0;
+      for (const player of match.players.values()) {
+        const level = Number(player.level);
+        if (Number.isFinite(level)) {
+          levelSum += level;
+          levelCount++;
+        }
       }
+      publicRooms.push({
+        id: match.matchId,
+        name: match.roomName,
+        playerCount: match.players.size,
+        gameType: typeKey,
+        averageLevel: levelCount ? Math.round(levelSum / levelCount) : 1,
+      });
     }
-    this.io.emit('available_rooms', publicRooms);
+    return publicRooms;
+  }
+
+  broadcastPublicRooms() {
+    this.io.emit('available_rooms', this.listPublicRooms());
   }
 
   setupListeners() {
     this.io.on('connection', (socket) => {
-      this.broadcastPublicRooms();
+      // BaseMatch.addPlayer reads `socket.user.id`; bail early if the auth
+      // middleware ever failed open. ensureSocketAuthed disconnects the
+      // socket and returns false in that case.
+      if (!ensureSocketAuthed(socket)) return;
+      // Send the room list to the new socket only — broadcasting to every
+      // connected client on every new connection floods the namespace.
+      socket.emit('available_rooms', this.listPublicRooms());
 
       const leaveCurrentRoom = () => {
         const matchId = this.playerToMatch.get(socket.id);
@@ -90,8 +117,10 @@ export class MatchManager {
 
         this.matches.set(roomId, match);
         this.playerToMatch.set(socket.id, roomId);
-        socket.emit('join_success', { roomId, roomName, gameType: typeKey });
+        // Add to the match before signalling success so the client can't fire
+        // gameplay events into an empty match between the two emits.
         match.addPlayer(socket, name, color);
+        socket.emit('join_success', { roomId, roomName, gameType: typeKey });
         this.broadcastPublicRooms();
       });
 
@@ -99,21 +128,16 @@ export class MatchManager {
         const match = this.matches.get(roomId);
         if (!match) return socket.emit('join_error', { reason: 'room_not_found' });
 
-        const typeKey = Number(
-          Object.keys(GAME_REGISTRY).find((k) => GAME_REGISTRY[k] === match.constructor),
-        );
+        const typeKey = TYPE_KEY_BY_CTOR.get(match.constructor);
         const cap = PLAYER_CAP[typeKey];
-        const acceptingNew =
-          (typeKey === 4 && match.status === 'LOBBY') ||
-          (typeKey === 2 && match.status === 'PLAYING');
-        if (!acceptingNew || match.players.size >= cap) {
+        if (!acceptsJoin(typeKey, match.status) || match.players.size >= cap) {
           return socket.emit('join_error', { reason: 'lobby_full' });
         }
 
         leaveCurrentRoom();
         this.playerToMatch.set(socket.id, roomId);
-        socket.emit('join_success', { roomId, roomName: match.roomName, gameType: typeKey });
         match.addPlayer(socket, name, color);
+        socket.emit('join_success', { roomId, roomName: match.roomName, gameType: typeKey });
         this.broadcastPublicRooms();
       });
 
@@ -122,97 +146,79 @@ export class MatchManager {
         this.broadcastPublicRooms();
       })
 
-      socket.on('ready_toggle', ({ isReady }) => {
+      // ── Helpers for the per-event handlers below ─────────────────
+      //
+      // Every game event has the same dispatch pattern: look up the match
+      // by socket, verify the handler exists, then invoke it. Hand-inlining
+      // this six times bred subtle copy-paste bugs (forgotten typeof checks,
+      // mismatched delete order). One helper, one place to read.
+      const dispatch = (handlerName, ...args) => {
         const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) this.matches.get(matchId).toggleReady(socket.id, isReady);
+        if (!matchId) return;
+        const match = this.matches.get(matchId);
+        if (!match) return;
+        const fn = match[handlerName];
+        if (typeof fn !== 'function') return;
+        fn.call(match, socket.id, ...args);
+      };
+
+      // Inbound socket payloads are untrusted. Shape-guard before dispatch
+      // so the match classes can assume well-typed inputs. A bad payload is
+      // dropped silently — a cheating/buggy client doesn't get a 4xx.
+      const isObject = (v) => v !== null && typeof v === 'object';
+      const isFiniteN = (v) => typeof v === 'number' && Number.isFinite(v);
+      const isPlayerInput = (p) =>
+        isObject(p) && isFiniteN(p.x) && isFiniteN(p.y) && isFiniteN(p.z) && isFiniteN(p.angle);
+      const isSpitDirection = (p) =>
+        isObject(p) && isFiniteN(p.x) && isFiniteN(p.y) && isFiniteN(p.z);
+
+      socket.on('ready_toggle', (payload) => {
+        const isReady = !!(payload && payload.isReady);
+        dispatch('toggleReady', isReady);
       });
 
-      socket.on('player_hit', () => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handlePlayerHit === 'function') {
-            match.handlePlayerHit(socket.id);
-          }
-        }
-      });
-
-      socket.on('player_hit_complete', () => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handlePlayerHitComplete === 'function') {
-            match.handlePlayerHitComplete(socket.id);
-          }
-        }
-      })
+      socket.on('player_hit',          () => dispatch('handlePlayerHit'));
+      socket.on('player_hit_complete', () => dispatch('handlePlayerHitComplete'));
+      socket.on('player_jump',         () => dispatch('handlePlayerJump'));
+      socket.on('player_active',       () => dispatch('handleActive'));
 
       socket.on('player_spit', (data) => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handlePlayerSpit === 'function') {
-            match.handlePlayerSpit(socket.id, data.direction);
-          }
-        }
+        if (!isObject(data) || !isSpitDirection(data.direction)) return;
+        dispatch('handlePlayerSpit', data.direction);
       });
 
       socket.on('player_input', (data) => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handlePlayerInput === 'function') {
-            match.handlePlayerInput(socket.id, data);
-          }
-        }
+        if (!isPlayerInput(data)) return;
+        dispatch('handlePlayerInput', data);
       });
 
-      socket.on('spit_hit', ({ targetId }) => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handleSpitHit === 'function') {
-            match.handleSpitHit(socket.id, targetId);
-          }
-        }
+      socket.on('spit_hit', (payload) => {
+        if (!isObject(payload)) return;
+        const targetId = payload.targetId;
+        // Socket ids are strings; reject anything else outright.
+        if (typeof targetId !== 'string' || !targetId) return;
+        dispatch('handleSpitHit', targetId);
       });
 
-      socket.on('player_jump', () => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handlePlayerJump === 'function') {
-            match.handlePlayerJump(socket.id);
-          }
-        }
-      });
-
-      socket.on('player_active', () => {
-        const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match && typeof match.handleActive === 'function') {
-            match.handleActive(socket.id);
-          }
-        }
-      })
-
+      // Disconnect: tear down the socket's room membership, free the match if
+      // it just emptied. The previous version called playerToMatch.delete()
+      // twice on the success path (once inside, once outside the `if (match)`
+      // branch) — flatten to a single delete after the optional cleanup.
       socket.on('disconnect', () => {
         debug('BACKEND: Receive disconnect request');
         const matchId = this.playerToMatch.get(socket.id);
-        if (matchId) {
-          const match = this.matches.get(matchId);
-          if (match) {
-            match.removePlayer(socket.id);
-            this.playerToMatch.delete(socket.id);
-            if (match.players.size <= 0) {
-              match.stop();
-              this.matches.delete(matchId);
-            }
+        if (!matchId) return;
+
+        const match = this.matches.get(matchId);
+        if (match) {
+          match.removePlayer(socket.id);
+          if (match.players.size <= 0) {
+            match.stop();
+            this.matches.delete(matchId);
           }
-          this.playerToMatch.delete(socket.id);
-          this.broadcastPublicRooms();
         }
+        this.playerToMatch.delete(socket.id);
+        this.broadcastPublicRooms();
       });
     });
   }

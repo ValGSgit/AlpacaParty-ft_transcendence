@@ -21,7 +21,7 @@ export function changeFloorColor(top, bottom){
  *
  * @param {string} gameType                — "spit_royale" | "alpaca_road"
  * @param {'loss'|'draw'} result           — outcome
- * @param {{kills?:number,obstacles?:number}} [counters]
+ * @param {{kills?:number,obstacles?:number,stage?:number}} [counters]
  */
 export async function saveGameResult(gameType, result, counters = {}) {
   try {
@@ -31,6 +31,10 @@ export async function saveGameResult(gameType, result, counters = {}) {
     }
     if (typeof counters.obstacles === 'number' && counters.obstacles > 0) {
       payload.obstacles = Math.floor(counters.obstacles);
+    }
+    // Stage/level reached this run — feeds the "complete 5 stages" achievement.
+    if (typeof counters.stage === 'number' && counters.stage > 0) {
+      payload.stage = Math.floor(counters.stage);
     }
     await api.post('/game/result', payload);
   } catch (err) {

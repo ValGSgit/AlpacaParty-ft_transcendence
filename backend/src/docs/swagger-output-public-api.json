@@ -37,16 +37,6 @@
         "description": "Get users",
         "parameters": [
           {
-            "name": "limit",
-            "in": "query",
-            "type": "string"
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "type": "string"
-          },
-          {
             "name": "filter",
             "in": "query",
             "type": "string"
@@ -111,18 +101,6 @@
           "PublicApi"
         ],
         "description": "Get posts",
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "type": "string"
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "type": "string"
-          }
-        ],
         "responses": {
           "200": {
             "description": "Success."

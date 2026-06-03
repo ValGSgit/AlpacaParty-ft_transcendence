@@ -1,9 +1,10 @@
 /**
  * Upload Controller
- * @owner ValGSgit
  */
-import File from '../models/File.js';
-import { saveFileRecord, deleteFileFromDisk, validateFileMagicBytes } from '../services/uploadService.js';
+import File from '#models/File.js';
+import { saveFileRecord, deleteFileFromDisk, validateFileMagicBytes } from '#services/uploadService.js';
+import { parseLimitOffset, parseIdParam } from '#utils/pagination.js';
+import { error as logError } from '#lib/logger.js';
 
 /** POST /api/uploads — upload one or more files */
 export const uploadFiles = async (req, res, next) => {
@@ -17,7 +18,16 @@ export const uploadFiles = async (req, res, next) => {
     for (const file of multerFiles) {
       const valid = await validateFileMagicBytes(file);
       if (!valid) {
-        await Promise.all(multerFiles.map((f) => deleteFileFromDisk(f.filename).catch(() => {})));
+        // Cleanup the on-disk artifacts multer just wrote. Errors here are
+        // logged (so we notice a read-only mount) but not surfaced — the
+        // user's real problem is the rejected upload, not the cleanup.
+        await Promise.all(
+          multerFiles.map((f) =>
+            deleteFileFromDisk(f.filename).catch((err) => {
+              logError(`[uploads] orphan cleanup failed for ${f.filename}:`, err?.message || err);
+            }),
+          ),
+        );
         return res.status(400).json({
           error: { message: `${file.originalname} is not a valid ${file.mimetype} file` },
         });
@@ -32,8 +42,8 @@ export const uploadFiles = async (req, res, next) => {
 /** GET /api/uploads — list my uploads */
 export const listMyFiles = async (req, res, next) => {
   try {
-    const { limit = 50, offset = 0 } = req.query;
-    const files = await File.getByUploader(req.user.id, { limit: Number(limit), offset: Number(offset) });
+    const { limit, offset } = parseLimitOffset(req.query, { defaultLimit: 50, maxLimit: 100 });
+    const files = await File.getByUploader(req.user.id, { limit, offset });
     res.json({ files });
   } catch (err) { next(err); }
 };
@@ -41,9 +51,28 @@ export const listMyFiles = async (req, res, next) => {
 /** DELETE /api/uploads/:id */
 export const deleteFile = async (req, res, next) => {
   try {
-    const record = await File.delete(Number(req.params.id), req.user.id);
-    if (!record) return res.status(404).json({ error: { message: 'File not found or not yours' } });
-    await deleteFileFromDisk(record.storedName);
+    const fileId = parseIdParam(req.params.id);
+    if (fileId === null) {
+      return res.status(400).json({ error: { message: 'invalid file id' } });
+    }
+
+    // 1. Delete the DB row first. If this fails (FK constraint, race with
+    //    another request, ...) the file stays on disk and the caller learns
+    //    why — far better than orphaning a referenced row.
+    const record = await File.delete(fileId, req.user.id);
+    if (!record) {
+      return res.status(404).json({ error: { message: 'File not found or not yours' } });
+    }
+
+    // 2. DB row is gone; now remove the bytes. A failure here leaves an
+    //    orphan blob (no DB pointer) which the operator can sweep later;
+    //    we log it so it doesn't go unnoticed.
+    try {
+      await deleteFileFromDisk(record.storedName);
+    } catch (err) {
+      logError(`[uploads] disk cleanup failed for ${record.storedName}:`, err?.message || err);
+    }
+
     res.json({ message: 'File deleted' });
   } catch (err) { next(err); }
 };

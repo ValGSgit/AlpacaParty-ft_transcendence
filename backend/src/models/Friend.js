@@ -1,8 +1,8 @@
 /**
  * Friend Model — Prisma data access layer
- * @owner ValGSgit
  */
 import prisma from "#config/prisma.js";
+import CustomError from "#utils/CustomError.js";
 
 /** Map a friend user object from Prisma camelCase to frontend snake_case */
 function shapeFriend(u) {
@@ -32,7 +32,7 @@ const Friend = {
   },
   async sendRequest(senderId, receiverId) {
     if (senderId === receiverId)
-      throw Object.assign(new Error("Cannot friend yourself"), { status: 400 });
+      throw new CustomError("Cannot friend yourself", 400);
 
     const sender = Number(senderId);
     const receiver = Number(receiverId);
@@ -47,18 +47,12 @@ const Friend = {
       },
     });
     if (blocked) {
-      // If receiver blocked sender, return 403. If sender blocked receiver, reject as well.
-      throw Object.assign(
-        new Error("Cannot send friend request due to block"),
-        { status: 403 },
-      );
+      throw new CustomError("Cannot send friend request due to block", 403);
     }
 
     const alreadyFriends = await this.areFriends(sender, receiver);
     if (alreadyFriends)
-      throw Object.assign(new Error("You are already friends"), {
-        status: 409,
-      });
+      throw new CustomError("You are already friends", 409);
 
     const existing = await prisma.friendRequest.findFirst({
       where: {
@@ -115,9 +109,7 @@ const Friend = {
       },
     });
     if (!request)
-      throw Object.assign(new Error("Request not found or already handled"), {
-        status: 404,
-      });
+      throw new CustomError("Request not found or already handled", 404);
 
     const [updated] = await prisma.$transaction([
       prisma.friendRequest.update({

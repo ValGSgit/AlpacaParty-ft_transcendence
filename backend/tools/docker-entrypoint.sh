@@ -1,29 +1,20 @@
 #!/bin/sh
 set -e
 
-# Creates package lock if it does not exist
-echo "run npm install"
-npm install
+# Apply database migrations. `migrate deploy` only runs committed migrations;
+# if none exist (first deploy with a fresh schema), fall back to `db push`.
+if find prisma/migrations -mindepth 1 -maxdepth 1 -type d | grep -q .; then
+  echo "Deploying database migrations"
+  npx prisma migrate deploy
+else
+  echo "No committed migrations — pushing schema"
+  npx prisma db push --accept-data-loss
+fi
 
-# Builds the /run/secrets/.env file
-/usr/local/bin/load-secrets.sh
+echo "Generating Prisma client"
+npx prisma generate
 
-# Use local binaries directly — avoids npx re-downloading packages
-# when the npm 11 lookup misses local node_modules/.bin.
-run_with_secrets="./node_modules/.bin/env-cmd -f /run/secrets/.env"
-prisma="./node_modules/.bin/prisma"
-
-echo "Applying database migrations"
-$run_with_secrets $prisma migrate dev --name init
-
-echo "Create prisma client"
-$run_with_secrets $prisma generate
-
-echo "Seed database"
-$run_with_secrets npm run seed
-
-echo "Build docs"
-rm -f /app/src/docs/swagger-output-public-api.json
-npm run buildDocs
+echo "Seeding database"
+npm run seed
 
 exec "$@"

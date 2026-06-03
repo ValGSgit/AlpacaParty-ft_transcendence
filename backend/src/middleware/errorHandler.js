@@ -1,6 +1,5 @@
 /**
  * Error-handling Middleware
- * @owner DavidPoetsch, ValGSgit
  */
 
 import { Prisma } from "@prisma/client";
@@ -43,11 +42,13 @@ export const errorHandler = (err, _req, res, _next) => {
     prismaCode = err.code;
     error = handlePrismaError(err);
   } else {
-    // Generic error — preserve message and status the caller set. The
-    // information-disclosure concern from the review was specifically about
-    // unknown Prisma errors (raw schema/column names in the message),
-    // handled in handlePrismaError above.
-    error = new CustomError(err.message || "Internal Server Error", err.status || 500);
+    // Preserve any explicit message when present. The tests exercise custom
+    // 4xx/5xx errors, plus plain objects that only expose `status`.
+    const status = err.status || err.statusCode || 500;
+    const safeMessage = err.message && String(err.message).trim()
+      ? err.message
+      : "Internal Server Error";
+    error = new CustomError(safeMessage, status);
   }
 
   if (config.envIsDev)
@@ -56,6 +57,9 @@ export const errorHandler = (err, _req, res, _next) => {
   res.status(error.statusCode).json({
     error: {
       message: error.message,
+      // Surface a machine-readable code when the error carries one so the
+      // client can react to specific cases (e.g. ACCOUNT_BANNED → force logout).
+      ...(error.code && { code: error.code }),
       ...(process.env.NODE_ENV === "development" && {
         stack: err.stack,
         prismaCode,

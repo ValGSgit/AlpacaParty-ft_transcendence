@@ -1,6 +1,5 @@
 /**
  * Application Configuration
- * @owner ValGSgit
  *
  * Centralised config from environment variables.
  * See .env.example at the project root for required variables.
@@ -28,11 +27,9 @@ const config = {
       secret: process.env.JWT_SECRET,
       refreshSecret: process.env.JWT_REFRESH_SECRET,
       publicApiSecret: process.env.JWT_PUBLIC_API_SECRET,
-      adminSecret: process.env.JWT_ADMIN_SECRET,
       expiresIn: process.env.JWT_EXPIRES_IN,
       refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
       publicApiExpiresIn: process.env.JWT_PUBLIC_API_EXPIRES_IN,
-      adminExpiresIn: process.env.JWT_ADMIN_EXPIRES_IN,
       cookieOptions: {
         httpOnly: true,
         secure: secureCookies,
@@ -46,16 +43,6 @@ const config = {
         sameSite,
         maxAge: ms(process.env.JWT_REFRESH_EXPIRES_IN),
         path: "/api/auth/refresh",
-      },
-      cookieOptionsAdmin: {
-        httpOnly: true,
-        secure: secureCookies,
-        sameSite,
-        maxAge: ms(process.env.JWT_ADMIN_EXPIRES_IN),
-        // Scoped to /api/admin so the admin token isn't sent on every normal
-        // request — and never ends up captured in WAF audit logs of, say,
-        // /socket.io upgrades made by a logged-in non-admin tab.
-        path: "/api/admin",
       },
     };
   })(),
@@ -78,7 +65,7 @@ const config = {
       : [],
   },
 
-  // Explicit frontend URL used for OAuth post-login redirects.
+  // Explicit frontend URL used for production HTTPS redirects.
   // Falls back to the first CORS origin when not set.
   frontendUrl: process.env.FRONTEND_URL,
 
@@ -97,24 +84,6 @@ const config = {
     requireUppercase: true,
     requireLowercase: true,
     requireNumber: true,
-  },
-
-  // OAuth 2.0
-  oauth: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      callbackUrl:
-        process.env.GOOGLE_CALLBACK_URL ||
-        "https://localhost:8443/api/auth/google/callback",
-    },
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID || "",
-      clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-      callbackUrl:
-        process.env.GITHUB_CALLBACK_URL ||
-        "https://localhost:8443/api/auth/github/callback",
-    },
   },
 
   // SSL/TLS certificates

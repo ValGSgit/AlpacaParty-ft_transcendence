@@ -1,15 +1,34 @@
-# Frontend Dockerfile (Development)
-# @owner fankahou, LukasStefanek
+# Frontend Dockerfile (Production)
 
-FROM node:24-alpine3.22
+# ── Stage 1: Build ────────────────────────────────────────────
+FROM node:24-alpine3.22 AS builder
 
 WORKDIR /app
 
-EXPOSE 5173
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=$VITE_API_URL
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 
-# Copy scripts and strip Windows CRLF line endings so the shebang works on Linux
-COPY --chmod=755 tools/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm install --no-audit --no-fund --loglevel=error
 
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["npm", "run", "dev"]
+# Copy source and build
+COPY . .
+RUN npm run build
+
+# ── Stage 2: Production runtime ──────────────────────────────
+FROM nginx:alpine
+
+# SPA nginx config as a template — the official entrypoint runs envsubst over
+# /etc/nginx/templates/*.template at startup, filling in ${FRONTEND_PORT}.
+COPY conf/nginx.conf /etc/nginx/templates/default.conf.template
+
+# Copy built files from builder
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Listen port (matches .env FRONTEND_PORT; the top-level nginx proxies here).
+ARG FRONTEND_PORT=5173
+EXPOSE ${FRONTEND_PORT}
+
+# nginx starts automatically (envsubst-on-templates → conf.d/default.conf)

@@ -35,7 +35,9 @@ export const useAuthStore = defineStore("auth", () => {
       user.value = data.user;
       return data;
     } catch (err) {
-      error.value = err.response?.data?.error?.message || "Registration failed";
+      // HttpError carries the parsed JSON body on `err.data` (not on `err.response`,
+      // which is the raw Fetch Response). Read the backend's error message there.
+      error.value = err.data?.error?.message || "Registration failed";
       throw err;
     } finally {
       loading.value = false;
@@ -57,7 +59,7 @@ export const useAuthStore = defineStore("auth", () => {
       user.value = data.user;
       return data;
     } catch (err) {
-      error.value = err.response?.data?.error?.message || "Login failed";
+      error.value = err.data?.error?.message || "Login failed";
       throw err;
     } finally {
       loading.value = false;
@@ -107,7 +109,7 @@ export const useAuthStore = defineStore("auth", () => {
       user.value = data.user;
       return data.user;
     } catch (err) {
-      error.value = err.response?.data?.error?.message || "Update failed";
+      error.value = err.data?.error?.message || "Update failed";
       throw err;
     } finally {
       loading.value = false;

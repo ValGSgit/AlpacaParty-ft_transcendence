@@ -2,12 +2,12 @@
  * Upload Routes — /api/uploads
  */
 import express from 'express';
-import { uploadFiles, listMyFiles, deleteFile } from '../controllers/uploadController.js';
-import { authenticate } from '../middleware/auth.js';
-import { upload } from '../services/uploadService.js';
-import { uploadLimiter } from '../middleware/rateLimiters.js';
-import { idParamValidation } from '../validators/contentValidator.js';
-import { checkValidation } from '../validators/validatorUtils.js';
+import { uploadFiles, listMyFiles, deleteFile } from '#controllers/uploadController.js';
+import { authenticate } from '#middleware/auth.js';
+import { upload } from '#services/uploadService.js';
+import { uploadLimiter } from '#middleware/rateLimiters.js';
+import { idParamValidation } from '#validators/contentValidator.js';
+import { checkValidation } from '#validators/validatorUtils.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -21,7 +21,7 @@ router.use(authenticate);
  *     description: |
  *       Accepts `multipart/form-data` with a `files` field.
  *       - **Images** (JPEG, PNG, GIF, WebP, SVG) are served publicly at `/uploads/<filename>` — suitable for `<img>` tags.
- *       - **Non-images** (PDF, CSV, JSON, XML, text) are protected; only the uploader or an admin can download them.
+ *       - **Non-images** (PDF, CSV, JSON, XML, text) are protected; only the uploader can download them.
  *     requestBody:
  *       required: true
  *       content:
@@ -71,7 +71,7 @@ router.get('/', listMyFiles);
  * /uploads/{id}:
  *   delete:
  *     tags: [Uploads]
- *     summary: Delete an uploaded file (uploader or admin only)
+ *     summary: Delete an uploaded file (uploader only)
  *     description: Removes the file record from the database and the file from disk.
  *     parameters:
  *       - in: path

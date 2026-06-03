@@ -1,8 +1,8 @@
 import * as THREE from 'three';
+import { devWarn } from '../../services/logger.js';
 import { editLight } from '../components/editLight.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
-import { devWarn } from '../../services/logger.js';
 import { createAlpaca } from '../core/createObjects.js';
 import { gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
@@ -76,7 +76,12 @@ export async function initSpitRoyalOnline() {
   registerEntity(gPlayer.value, 'alpaca');
 
   gUI.cameraMode = 1;
-  gMinigame.value.isActive = true;
+  // Do NOT activate the sim here. The player now sits in the ready-up lobby
+  // first; isActive is flipped on by the game_start event. If we activated at
+  // join, updateSpitRoyal would run syncPlayers against lobby_update data
+  // (which has no x/y/z), spawn the local alpaca at NaN and mark hasSpawned,
+  // so the real spawn is skipped and the player can't move. Mirrors
+  // initAlpacaRoadOnline, which leaves isActive false until game_start.
 }
 
 export function updateSpitRoyal(delta) {
@@ -173,9 +178,14 @@ function syncPlayers(delta) {
     const serverData = serverPlayers.find(p => p.id === localAlpaca.socketId);
     if (serverData) {
 
-      // LOCAL PLAYER SPAWN FIX
+      // LOCAL PLAYER SPAWN FIX — only spawn from a tick that actually carries
+      // a valid position. Guards against a stray pre-game payload positioning
+      // the player at NaN (which would freeze movement).
       if (localAlpaca.socketId === activeClient.socket.id) {
-        if (!localAlpaca.hasSpawned) {
+        if (!localAlpaca.hasSpawned &&
+            Number.isFinite(serverData.x) &&
+            Number.isFinite(serverData.y) &&
+            Number.isFinite(serverData.z)) {
           localAlpaca.model.position.set(serverData.x, serverData.y, serverData.z);
           localAlpaca.hasSpawned = true;
           localAlpaca.isAutoMoving = false;
@@ -193,6 +203,7 @@ function syncPlayers(delta) {
 
         const targetRot = serverData.angle;
         let diff = targetRot - localAlpaca.model.rotation.y;
+
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
         localAlpaca.model.rotation.y += diff * delta * 10;

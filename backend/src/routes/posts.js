@@ -269,7 +269,7 @@ router.post('/:id/comments', authenticate, commentWriteLimiter, idParamValidatio
  * /posts/{id}/comments/{commentId}:
  *   delete:
  *     tags: [Posts]
- *     summary: Delete a comment (own comment, or post owner, or admin)
+ *     summary: Delete a comment (own comment, or post owner)
  *     parameters:
  *       - in: path
  *         name: id

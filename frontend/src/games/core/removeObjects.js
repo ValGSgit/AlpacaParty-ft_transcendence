@@ -38,13 +38,16 @@ function getEntity(object) {
 
 function removeMatsAndGeo(model) {
   model.traverse((child) => {
-    if (child.isMesh) {
+    if (!child.isMesh) return;
+    // Cache-owned geometry/material is reused by future clones — disposing
+    // here would turn the next spawn into a white mesh.
+    if (child.geometry && !child.geometry.userData?.shared) {
       child.geometry.dispose();
-      if (child.material.isMaterial) {
-        child.material.dispose();
-      } else if (Array.isArray(child.material)) {
-        child.material.forEach(mat => mat.dispose());
-      }
+    }
+    const mats = Array.isArray(child.material) ? child.material : [child.material];
+    for (const mat of mats) {
+      if (!mat || mat.userData?.shared) continue;
+      mat.dispose();
     }
   });
 }

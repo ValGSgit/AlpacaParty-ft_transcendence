@@ -634,7 +634,7 @@ function endMinigame() {
   // Backend rejects 'win' here; we only contribute the obstacle count to
   // the leaderboard so a fast run still ranks even if the player died.
   if (!gMinigame.value.isOnline && playerPoints > 0) {
-    saveGameResult('alpaca_road', 'loss', { obstacles: playerPoints });
+    saveGameResult('alpaca_road', 'loss', { obstacles: playerPoints, stage: level });
   }
 }
 
