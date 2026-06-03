@@ -1,3 +1,5 @@
+import { error } from "#lib/logger.js";
+
 export class BaseMatch {
   constructor(matchId, namespace, roomName, onStateChange) {
     this.matchId = matchId;
@@ -8,6 +10,11 @@ export class BaseMatch {
     this.players = new Map();
     this.status = 'LOBBY';
     this.heartbeat = null;
+    // Minimum players that must be present (and ready) before a match can
+    // start. Defaults to 1 (solo-friendly, e.g. Alpaca Road). Subclasses that
+    // are pointless solo — Spit Royale — raise this so a lone player waits in
+    // the lobby for an opponent instead of starting an empty arena.
+    this.minPlayers = 1;
   }
 
   addPlayer(socket, name, color) {
@@ -69,9 +76,10 @@ export class BaseMatch {
 
   checkStart() {
     const playerList = Array.from(this.players.values());
+    const enoughPlayers = playerList.length >= this.minPlayers;
     const allReady = playerList.length > 0 && playerList.every(p => p.isReady);
 
-    if (allReady && this.status === 'LOBBY') {
+    if (enoughPlayers && allReady && this.status === 'LOBBY') {
       this.start();
       if (this.onStateChange) this.onStateChange();
     }
@@ -81,10 +89,40 @@ export class BaseMatch {
     this.namespace.to(this.matchId).emit(eventName, data);
   }
 
+  // Lazily arm the per-match game loop. Identical for every match type, so it
+  // lives here rather than being copy-pasted into each subclass. Subclasses set
+  // `this.tickRate` in their constructor before the first player arrives.
+  _ensureHeartbeat() {
+    if (this.heartbeat) return;
+    this.heartbeat = setInterval(() => this._tick(), this.tickRate);
+  }
+
+  // A throw inside a setInterval callback escapes as an uncaughtException and,
+  // because the interval keeps firing (~30x/sec), repeats forever — spamming
+  // logs and wedging the loop. Contain it: log once and tear the match down so
+  // one bad tick can't take the process with it. A match that can't tick is
+  // already dead; players drop back to the lobby and the room is freed on the
+  // resulting disconnects.
+  _tick() {
+    try {
+      this.update();
+    } catch (err) {
+      error(`[match ${this.matchId}] tick failed, stopping match:`, err?.message);
+      this.stop();
+    }
+  }
+
   start() { }
   update() { }
   stop() {
-    clearInterval(this.heartbeat);
+    if (this.heartbeat) {
+      clearInterval(this.heartbeat);
+      // Null the handle so subclasses' lazy `_ensureHeartbeat()` guard
+      // (which short-circuits on a truthy value) can correctly tell that
+      // no interval is currently armed if stop() is ever followed by a
+      // re-armed match.
+      this.heartbeat = null;
+    }
     this.status = 'FINISHED';
   }
 }

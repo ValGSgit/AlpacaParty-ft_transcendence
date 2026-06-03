@@ -1,6 +1,5 @@
 /**
  * Auth Middleware — JWT verification
- * @owner ValGSgit
  */
 import AuthService from "../services/authService.js";
 import User from "../models/User.js";
@@ -19,7 +18,7 @@ export const authenticate = async (req, res, next) => {
 
     const user = await User.findById(decoded.id);
     if (!user) throw new CustomError("User not found", 401);
-    if (user.isBanned) throw new CustomError("Account is banned", 403);
+    if (user.isBanned) throw new CustomError("Account is banned", 403, "ACCOUNT_BANNED");
     req.user = user;
     next();
   } catch (err) {

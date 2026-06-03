@@ -18,6 +18,8 @@ vi.mock('../../src/services/api.js', () => ({
       response: { use: vi.fn() },
     },
   },
+  // App.vue imports this named export to wire the forced-logout listener.
+  ACCOUNT_BANNED_EVENT: 'auth:banned',
 }))
 
 function createTestRouter() {

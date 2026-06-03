@@ -1,5 +1,4 @@
 # Docker Compose — Development
-# @owner ValGSgit
 
 # include each service
 include:
@@ -8,16 +7,11 @@ include:
   - ./frontend/compose.yaml
   - ./nginx/compose.yaml
   - ./database/compose.yaml
-  - ./vault/compose.yaml
   - ./scripts/compose.yaml
 
 
 volumes:
   pg_data:
-  vault_data:
-    driver: local
-  vault_keys:
-    driver: local
   stress_test_results:
     driver: local
   backend_data:

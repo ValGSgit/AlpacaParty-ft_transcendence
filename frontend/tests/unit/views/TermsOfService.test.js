@@ -2,8 +2,7 @@
  * TermsOfService View Unit Tests
  */
 import { describe, it, expect } from 'vitest'
-import { mount } from '@vue/test-utils'
-import { RouterLinkStub } from '@vue/test-utils'
+import { mount, RouterLinkStub } from '@vue/test-utils'
 import TermsOfService from '../../../src/views/TermsOfService.vue'
 
 function mountPage() {
@@ -15,17 +14,17 @@ function mountPage() {
 describe('TermsOfService.vue', () => {
   it('renders the page heading', () => {
     const wrapper = mountPage()
-    expect(wrapper.find('h1').text()).toBe('Terms of Service')
+    expect(wrapper.find('h1').text()).toMatch(/Terms of Service/i)
   })
 
-  it('has the legal-page container', () => {
+  it('has the doc-page container', () => {
     const wrapper = mountPage()
-    expect(wrapper.find('.legal-page').exists()).toBe(true)
+    expect(wrapper.find('.doc-page').exists()).toBe(true)
   })
 
-  it('shows last updated date', () => {
+  it('shows the effective date', () => {
     const wrapper = mountPage()
-    expect(wrapper.find('.updated').text()).toContain('2026')
+    expect(wrapper.text()).toContain('2026')
   })
 
   it('contains multiple sections', () => {
@@ -41,13 +40,15 @@ describe('TermsOfService.vue', () => {
 
   it('has link to Privacy Policy', () => {
     const wrapper = mountPage()
-    const links = wrapper.findAllComponents(RouterLinkStub)
-    const hrefs = links.map(l => l.props('to'))
+    const hrefs = wrapper
+      .findAllComponents(RouterLinkStub)
+      .map((l) => l.props('to'))
     expect(hrefs).toContain('/privacy')
   })
 
-  it('contains acceptable use section', () => {
+  it('contains an acceptable-behavior / conduct clause', () => {
     const wrapper = mountPage()
-    expect(wrapper.text().toLowerCase()).toContain('acceptable use')
+    const text = wrapper.text().toLowerCase()
+    expect(text).toMatch(/acceptable\s+(use|behavior|behaviour|conduct)/)
   })
 })

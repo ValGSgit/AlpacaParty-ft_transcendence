@@ -60,8 +60,6 @@ jobs:
       SSL_CERT_PATH: ./ssl/cert.pem
       SSL_KEY_PATH: ./ssl/key.pem
       UPLOAD_DIR: ./uploads
-      GOOGLE_CALLBACK_URL: "https://localhost:8443/api/auth/google/callback"
-      GITHUB_CALLBACK_URL: "https://localhost:8443/api/auth/github/callback"
 
     defaults:
       run:
@@ -195,12 +193,8 @@ jobs:
       DB_PASSWORD: alpacaparty
       FRONTEND_URL: https://localhost:8443
       CORS_ORIGINS: https://localhost:8443,http://localhost:5173
-      GOOGLE_CALLBACK_URL: https://localhost:8443/api/auth/google/callback
-      GITHUB_CALLBACK_URL: https://localhost:8443/api/auth/github/callback
       JWT_EXPIRES_IN: 1h
       JWT_REFRESH_EXPIRES_IN: 7d
-      JWT_ADMIN_SECRET: ci-admin-secret-change
-      VAULT_DEV_TOKEN: root
       AUTH_RATE_LIMIT_MAX: "500"
 
     steps:
@@ -264,7 +258,7 @@ jobs:
             -out nginx/ssl/cert.pem \
             -days 365 \
             -subj '/CN=localhost' \
-            -addext 'subjectAltName=DNS:localhost,DNS:vault,DNS:backend,DNS:nginx,IP:127.0.0.1'
+            -addext 'subjectAltName=DNS:localhost,DNS:backend,DNS:nginx,IP:127.0.0.1'
           cp nginx/ssl/cert.pem backend/ssl/cert.pem
           cp nginx/ssl/key.pem  backend/ssl/key.pem
 

@@ -1,6 +1,5 @@
 /**
  * Notification Service — creates notifications and pushes them via socket
- * @owner ValGSgit
  */
 import Notification from '../models/Notification.js';
 

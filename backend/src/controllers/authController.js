@@ -1,15 +1,13 @@
 /**
- * Auth Controller — handles registration, login, logout, token refresh, OAuth
- * @owner ValGSgit
+ * Auth Controller — handles registration, login, logout, token refresh
  */
-import User, { shapeUserForClient } from "../models/User.js";
-import GamificationService from "../services/GamificationService.js";
-import AuthService from "../services/authService.js";
-import { oauthTokensForUser } from "../services/oauthService.js";
-import config from "../config/index.js";
+import User, { shapeUserForClient } from "#models/User.js";
+import GamificationService from "#services/GamificationService.js";
+import AuthService from "#services/authService.js";
+import config from "#config/index.js";
 import { customValidationResult } from "#validators/validatorUtils.js";
 import CustomError from "#utils/CustomError.js";
-import passport from "passport";
+import { extractPasswordHash } from "#utils/userAuth.js";
 
 /**
  * POST /api/auth/register
@@ -34,7 +32,8 @@ export const register = async (req, res, next) => {
     const passwordHash = await AuthService.hashPassword(password);
     const user = await User.create({ username, email, passwordHash });
 
-    GamificationService.onLogin(user.id).catch(() => {});
+    await GamificationService.onLogin(user.id);
+
     const accessToken = AuthService.generateAccessToken(user);
     const refreshToken = AuthService.generateRefreshToken(user);
 
@@ -47,6 +46,16 @@ export const register = async (req, res, next) => {
 };
 
 /**
+ * Username or email — POST body may put either in the `username` field.
+ * Returns the user record (with userAuth join) or null.
+ */
+async function findLoginUser(identifier) {
+  const byName = await User.findByUsername(identifier);
+  if (byName) return byName;
+  return User.findByEmail(identifier);
+}
+
+/**
  * POST /api/auth/login
  */
 export const login = async (req, res, next) => {
@@ -55,19 +64,16 @@ export const login = async (req, res, next) => {
 
     const { username, password } = req.body;
 
-    // Allow login with username or email
-    let user = await User.findByUsername(username);
-    if (!user) {
-      user = await User.findByEmail(username);
-    }
-    const passwordHash = user?.userAuth?.passwordHash || user?.passwordHash;
-    if (!user || !passwordHash)
-      throw new CustomError("Invalid credentials", 401);
+    const user = await findLoginUser(username);
+    if (!user) throw new CustomError("Invalid credentials", 401);
+
+    const passwordHash = extractPasswordHash(user);
+    if (!passwordHash) throw new CustomError("Invalid credentials", 401);
 
     const valid = await AuthService.comparePassword(password, passwordHash);
     if (!valid) throw new CustomError("Invalid credentials", 401);
 
-    if (user.isBanned) throw new CustomError("Account is banned", 403);
+    if (user.isBanned) throw new CustomError("Account is banned", 403, "ACCOUNT_BANNED");
 
     await User.setOnline(user.id);
 
@@ -76,10 +82,11 @@ export const login = async (req, res, next) => {
 
     const safeUser = shapeUserForClient(await User.findById(user.id));
 
+    await GamificationService.onLogin(user.id);
+
     res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
     res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
     res.json({ user: safeUser });
-    GamificationService.onLogin(user.id).catch(() => {});
   } catch (err) {
     next(err);
   }
@@ -91,7 +98,7 @@ export const login = async (req, res, next) => {
 export const logout = async (req, res, next) => {
   try {
     if (req.user) {
-      await User.setOffline(req.user.id);
+      await User.setOffline(req.user.id).catch(() => {});
     }
     // Clear auth cookies to end session client-side.
     res.clearCookie("jwt_token", { path: "/" });
@@ -112,13 +119,17 @@ export const refresh = async (req, res, next) => {
     if (!refreshToken) throw new CustomError("refresh token is required", 401);
 
     const decoded = AuthService.verifyRefreshToken(refreshToken);
-    if (!decoded)
+    // Symmetric guard to middleware/auth.js (which rejects refresh tokens on
+    // access-protected routes). Today the two secrets differ, so a stolen
+    // access token can't validate here anyway — this is defense in depth in
+    // case the secrets ever get unified or a future cookie mix-up swaps them.
+    if (!decoded || decoded.type !== "refresh")
       throw new CustomError("Invalid or expired refresh token", 401);
 
     const user = await User.findByIdWithPassword(decoded.id);
     if (!user) throw new CustomError("User not found", 401);
 
-    if (user.isBanned) throw new CustomError("Account is banned", 403);
+    if (user.isBanned) throw new CustomError("Account is banned", 403, "ACCOUNT_BANNED");
 
     const accessToken = AuthService.generateAccessToken(user);
     const newRefreshToken = AuthService.generateRefreshToken(user);
@@ -137,39 +148,13 @@ export const refresh = async (req, res, next) => {
 
 /**
  * GET /api/auth/me
- */
-export const me = async (req, res) =>
-  res.json({ user: req.user ? shapeUserForClient(req.user) : null });
-
-export const googleAuth = (req, res, next) => {
-  passport.authenticate("google", { session: false }, (err, user, info) => {
-    const frontendLogin = `${config.frontendUrl}/login`;
-
-    // Catch internal provider errors
-    if (err) {
-      console.error("Google OAuth Error:", err.message);
-      return res.redirect(`${frontendLogin}?error=oauth_provider_error`);
-    }
-
-    // Catch auth failures
-    if (!user) {
-      return res.redirect(`${frontendLogin}?error=access_denied`);
-    }
-    req.user = user;
-    next();
-  })(req, res, next);
-};
-
-/**
- * OAuth callback (Google / GitHub)
  *
- * Tokens are issued as httpOnly cookies; the redirect just brings the user
- * back to the SPA. config.frontendUrl is a server-side constant (never derived
- * from a request header) so this is a safe, fixed-origin redirect.
+ * Uses optionalAuth, which does NOT enforce the ban (unlike `authenticate`),
+ * so a banned user holding a stale cookie could otherwise restore a session
+ * here. Treat a banned user as no session so session-restore fails cleanly;
+ * any protected route they hit afterwards returns 403 ACCOUNT_BANNED.
  */
-export const oauthCallback = (req, res) => {
-  const { accessToken, refreshToken } = oauthTokensForUser(req.user);
-  res.cookie("jwt_token", accessToken, config.jwt.cookieOptions);
-  res.cookie("refresh_token", refreshToken, config.jwt.cookieOptionsRefresh);
-  res.redirect(302, `${config.frontendUrl}/oauth-callback`);
+export const me = async (req, res) => {
+  if (!req.user || req.user.isBanned) return res.json({ user: null });
+  return res.json({ user: shapeUserForClient(req.user) });
 };

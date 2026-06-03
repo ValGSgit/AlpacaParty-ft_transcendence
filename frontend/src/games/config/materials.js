@@ -1,47 +1,55 @@
 import * as THREE from 'three'
 
+// These materials are module-level singletons re-used across the scene
+// (collider boxes, ghosts, projectiles, etc.). clearScene() must not dispose
+// them or the next session renders with broken/white meshes.
+function shared(material) {
+  material.userData.shared = true
+  return material
+}
+
 export const MATERIALS = {
-  debug: new THREE.MeshBasicMaterial({
+  debug: shared(new THREE.MeshBasicMaterial({
     color: 0x00ff00,
     wireframe: true,
     visible: true,
-  }),
+  })),
 
-  collider: new THREE.MeshBasicMaterial({
+  collider: shared(new THREE.MeshBasicMaterial({
     visible: false
-  }),
+  })),
 
-  collider_hit: new THREE.MeshBasicMaterial({
+  collider_hit: shared(new THREE.MeshBasicMaterial({
     color: 0xff0000,
     wireframe: true,
-  }),
+  })),
 
-  highlight: new THREE.MeshStandardMaterial({
+  highlight: shared(new THREE.MeshStandardMaterial({
     color: 0x33ffff,
     emissive: 0x33ffff,
     emissiveIntensity: 0.7,
     transparent: true,
     opacity: 0.5,
-  }),
+  })),
 
-  ghost: new THREE.MeshBasicMaterial({
+  ghost: shared(new THREE.MeshBasicMaterial({
     color: 0xff0000,
     transparent: true,
     opacity: 0.5,
-  }),
+  })),
 
-  spit: new THREE.MeshStandardMaterial({
+  spit: shared(new THREE.MeshStandardMaterial({
     color: 0x00ffff,
     emissive: 0x00ffff,
     emissiveIntensity: 2,
     transparent: true,
     opacity: 0.8
-  }),
+  })),
 }
 
 export const ROAD_MATERIALS = {
-  obstacle: new THREE.MeshStandardMaterial({
+  obstacle: shared(new THREE.MeshStandardMaterial({
     color: '#550000',
     roughness: 0.8
-  })
+  }))
 }

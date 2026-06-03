@@ -1,4 +1,4 @@
-# nginx + ModSecurity WAF — Production
+# nginx reverse proxy — Production
 services:
   nginx:
     build:

@@ -151,21 +151,12 @@ describe('Helpdesk Routes', () => {
       // The validation middleware would handle this
     });
 
-    test('should set SSE headers for successful stream', async () => {
-      const mockReadableStream = {
-        getReader: jest.fn(() => ({
-          read: jest.fn()
-            .mockResolvedValueOnce({
-              value: new TextEncoder().encode('data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n'),
-              done: false,
-            })
-            .mockResolvedValueOnce({ done: true }),
-        })),
-      };
-
+    test('should return JSON content for successful request', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
-        body: mockReadableStream,
+        json: jest.fn().mockResolvedValue({
+          choices: [{ message: { content: 'Hello' } }],
+        }),
       });
 
       const res = await request(app)
@@ -176,8 +167,8 @@ describe('Helpdesk Routes', () => {
           ]
         });
 
-      // The streaming response would have SSE headers
-      expect(res.headers['content-type']).toContain('text/event-stream');
+      expect(res.status).toBe(200);
+      expect(res.body.content).toBe('Hello');
     });
 
     test('should round-robin through API keys', async () => {
@@ -186,7 +177,9 @@ describe('Helpdesk Routes', () => {
       global.fetch = jest.fn()
         .mockResolvedValueOnce({
           ok: true,
-          body: { getReader: () => ({ read: jest.fn().mockResolvedValue({ done: true }) }) },
+          json: jest.fn().mockResolvedValue({
+            choices: [{ message: { content: 'ok1' } }],
+          }),
         });
 
       await request(app)
@@ -200,7 +193,9 @@ describe('Helpdesk Routes', () => {
       // Second request should use key2
       global.fetch.mockResolvedValueOnce({
         ok: true,
-        body: { getReader: () => ({ read: jest.fn().mockResolvedValue({ done: true }) }) },
+        json: jest.fn().mockResolvedValue({
+          choices: [{ message: { content: 'ok2' } }],
+        }),
       });
 
       await request(app)
@@ -216,7 +211,9 @@ describe('Helpdesk Routes', () => {
     test('should include system prompt in request', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
-        body: { getReader: () => ({ read: jest.fn().mockResolvedValue({ done: true }) }) },
+        json: jest.fn().mockResolvedValue({
+          choices: [{ message: { content: 'System prompt present' } }],
+        }),
       });
 
       await request(app)
@@ -236,7 +233,9 @@ describe('Helpdesk Routes', () => {
     test('should pass user messages through', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
-        body: { getReader: () => ({ read: jest.fn().mockResolvedValue({ done: true }) }) },
+        json: jest.fn().mockResolvedValue({
+          choices: [{ message: { content: 'Echo' } }],
+        }),
       });
 
       const userMessages = [
@@ -257,7 +256,9 @@ describe('Helpdesk Routes', () => {
     test('should configure request with correct parameters', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
-        body: { getReader: () => ({ read: jest.fn().mockResolvedValue({ done: true }) }) },
+        json: jest.fn().mockResolvedValue({
+          choices: [{ message: { content: 'Configured' } }],
+        }),
       });
 
       await request(app)
@@ -267,9 +268,9 @@ describe('Helpdesk Routes', () => {
       const callArgs = global.fetch.mock.calls[0];
       const requestBody = JSON.parse(callArgs[1].body);
       expect(requestBody.model).toBe('mixtral-8x7b-32768');
-      expect(requestBody.max_tokens).toBe(400);
+      expect(requestBody.max_tokens).toBe(350);
       expect(requestBody.temperature).toBe(0.7);
-      expect(requestBody.stream).toBe(true);
+      expect(requestBody.stream).toBe(false);
     });
   });
 

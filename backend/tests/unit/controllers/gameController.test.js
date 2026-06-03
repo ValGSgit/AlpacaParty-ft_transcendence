@@ -51,11 +51,18 @@ describe('getStats', () => {
     expect(res._json.stats).toEqual(stats);
   });
 
-  test('passes custom gameType', async () => {
+  test('passes whitelisted gameType', async () => {
     mockGame.getStats.mockResolvedValue({});
+    const { req, res, next } = createReqRes({ query: { gameType: 'alpaca_road' } });
+    await getStats(req, res, next);
+    expect(mockGame.getStats).toHaveBeenCalledWith(1, 'alpaca_road');
+  });
+
+  test('rejects unknown gameType with 400 and does not hit the DB', async () => {
     const { req, res, next } = createReqRes({ query: { gameType: 'chess' } });
     await getStats(req, res, next);
-    expect(mockGame.getStats).toHaveBeenCalledWith(1, 'chess');
+    expect(res._status).toBe(400);
+    expect(mockGame.getStats).not.toHaveBeenCalled();
   });
 
   test('calls next on error', async () => {

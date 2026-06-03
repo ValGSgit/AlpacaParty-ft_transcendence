@@ -1,6 +1,5 @@
 /**
  * Socket Service — Real-time WebSocket hub
- * @owner ValGSgit
  *
  * Namespaces:
  *   /          — general: presence, notifications, DM chat
@@ -21,7 +20,7 @@ import User from "../models/User.js";
 import { MatchManager } from "./MatchManager.js";
 import NotificationService from "./notificationService.js";
 import GamificationService from "./GamificationService.js";
-import { socketAuthMiddleware } from "./socketAuth.js";
+import { ensureSocketAuthed, socketAuthMiddleware } from "./socketAuth.js";
 
 // ── Token-bucket rate limiter (per-socket, per-event) ─────────
 // HTTP rate limits do not apply to socket events; without this a connected
@@ -99,6 +98,10 @@ export function initializeSocket(httpServer, corsOrigins) {
 
   // ── Connection handler ───────────────────────────────────────
   io.on("connection", async (socket) => {
+    // Belt-and-braces: socketAuthMiddleware should always populate socket.user
+    // before we get here, but if a future config change ever bypassed it we'd
+    // dereference `user.id` on the very next line and crash the namespace.
+    if (!ensureSocketAuthed(socket)) return;
     const { user } = socket;
 
     try {
@@ -122,28 +125,30 @@ export function initializeSocket(httpServer, corsOrigins) {
           return ack?.({ error: "Empty message" });
         if (content.length > DM_MAX_LEN)
           return ack?.({ error: `message too long (max ${DM_MAX_LEN})` });
-        if (Number(receiverId) === user.id)
+
+        const recvId = Number(receiverId);
+        if (!Number.isInteger(recvId) || recvId <= 0)
+          return ack?.({ error: "Invalid recipient" });
+        if (recvId === user.id)
           return ack?.({ error: "Cannot send a message to yourself" });
+
         // Prevent sending messages when either user has blocked the other.
-        const blocked = await Friend.isBlockedBetween(
-          user.id,
-          Number(receiverId),
-        );
+        const blocked = await Friend.isBlockedBetween(user.id, recvId);
         if (blocked)
           return ack?.({
             error: "Cannot send message: blocked or you have blocked this user",
           });
 
-        const friends = await Friend.areFriends(user.id, Number(receiverId));
+        const friends = await Friend.areFriends(user.id, recvId);
         if (!friends)
           return ack?.({ error: "You can only message friends" });
         const msg = await Message.create({
           senderId: user.id,
-          receiverId,
+          receiverId: recvId,
           content: content.trim(),
         });
 
-        const dmRoom = `dm:${Math.min(user.id, receiverId)}-${Math.max(user.id, receiverId)}`;
+        const dmRoom = `dm:${Math.min(user.id, recvId)}-${Math.max(user.id, recvId)}`;
         socket.join(dmRoom);
 
         // Map to snake_case for frontend compatibility
@@ -159,20 +164,23 @@ export function initializeSocket(httpServer, corsOrigins) {
         };
 
         // Send to receiver's personal room
-        io.to(`user:${receiverId}`).emit("dm:message", shaped);
+        io.to(`user:${recvId}`).emit("dm:message", shaped);
         // Echo back to sender
         socket.emit("dm:message", shaped);
 
         GamificationService.onMessageSent(user.id).catch(() => {});
 
         // Notification (non-blocking)
-        NotificationService.newMessage(receiverId, user.username).catch(
+        NotificationService.newMessage(recvId, user.username).catch(
           (err) => { debug("notification error (newMessage):", err.message); },
         );
 
         ack?.({ ok: true, message: shaped });
       } catch (err) {
-        ack?.({ error: err.message });
+        // Don't leak internal error messages (DB error strings, etc.) to the
+        // client — log server-side and return a generic response.
+        debug("dm:send failed:", err?.message);
+        ack?.({ error: "Failed to send message" });
       }
     });
 
@@ -187,7 +195,11 @@ export function initializeSocket(httpServer, corsOrigins) {
     // ── Disconnect ───────────────────────────────────────────
     socket.on("disconnect", async (reason) => {
       debug(`[socket] ${user.username} disconnected: ${reason}`);
-      await markOffline(user.id, socket.id);
+      try {
+        await markOffline(user.id, socket.id);
+      } catch (err) {
+        debug(`[socket] markOffline failed: ${err.message}`);
+      }
     });
   });
 

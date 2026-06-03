@@ -1,6 +1,5 @@
 /**
  * Public API Routes — /api/public  (API key required)
- * @owner ValGSgit
  *
  * Rate limited. Requires X-API-Key header.
  *

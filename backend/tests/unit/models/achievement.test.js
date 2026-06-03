@@ -12,6 +12,7 @@ const mockPrisma = {
     findMany: jest.fn(),
     findUnique: jest.fn(),
     create: jest.fn(),
+    createMany: jest.fn(),
     upsert: jest.fn(),
   },
   dailyChallenge: {
@@ -21,9 +22,14 @@ const mockPrisma = {
 
 jest.unstable_mockModule('#config/prisma.js', () => ({ default: mockPrisma }));
 
-const { default: Achievement } = await import('../../../src/models/Achievement.js');
+const { default: Achievement, _resetAchievementCache } = await import(
+  '../../../src/models/Achievement.js'
+);
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  _resetAchievementCache();
+});
 
 // ── getAll ───────────────────────────────────────────────────────────────────
 describe('getAll', () => {
@@ -75,18 +81,18 @@ describe('getUserAchievements', () => {
 
 // ── unlock ───────────────────────────────────────────────────────────────────
 describe('unlock', () => {
-  // Race-safe: Achievement.unlock now just attempts the create and swallows
-  // P2002 (unique-constraint violation = already unlocked). No findUnique
-  // probe — two concurrent callers race on the unique key, the loser sees
-  // P2002 and returns null cleanly.
-  test('unlocks achievement successfully', async () => {
+  // Achievement.unlock now uses createMany({ skipDuplicates: true }) — one
+  // round-trip, no thrown P2002 to catch. createMany.count tells us whether
+  // the row was actually inserted.
+  test('unlocks achievement successfully (count: 1)', async () => {
     const achievement = { id: 1, key: 'first_win', name: 'First Win' };
     mockPrisma.achievement.findUnique.mockResolvedValue(achievement);
-    mockPrisma.userAchievement.create.mockResolvedValue({});
+    mockPrisma.userAchievement.createMany.mockResolvedValue({ count: 1 });
     const result = await Achievement.unlock(1, 'first_win');
     expect(mockPrisma.achievement.findUnique).toHaveBeenCalledWith({ where: { key: 'first_win' } });
-    expect(mockPrisma.userAchievement.create).toHaveBeenCalledWith({
-      data: { userId: 1, achievementId: 1 },
+    expect(mockPrisma.userAchievement.createMany).toHaveBeenCalledWith({
+      data: [{ userId: 1, achievementId: 1 }],
+      skipDuplicates: true,
     });
     expect(result).toEqual({ achievement });
   });
@@ -95,26 +101,36 @@ describe('unlock', () => {
     mockPrisma.achievement.findUnique.mockResolvedValue(null);
     const result = await Achievement.unlock(1, 'nonexistent');
     expect(result).toBeNull();
-    expect(mockPrisma.userAchievement.create).not.toHaveBeenCalled();
+    expect(mockPrisma.userAchievement.createMany).not.toHaveBeenCalled();
   });
 
-  test('returns null when concurrent caller already unlocked (P2002)', async () => {
-    const achievement = { id: 1, key: 'first_win' };
+  test('returns null when already unlocked (count: 0 from skipDuplicates)', async () => {
+    const achievement = { id: 2, key: 'second_win' };
     mockPrisma.achievement.findUnique.mockResolvedValue(achievement);
-    const dupe = new Error('Unique constraint failed');
-    dupe.code = 'P2002';
-    mockPrisma.userAchievement.create.mockRejectedValue(dupe);
-    const result = await Achievement.unlock(1, 'first_win');
+    mockPrisma.userAchievement.createMany.mockResolvedValue({ count: 0 });
+    const result = await Achievement.unlock(1, 'second_win');
     expect(result).toBeNull();
   });
 
-  test('rethrows non-P2002 database errors', async () => {
-    const achievement = { id: 1, key: 'first_win' };
+  test('rethrows non-skipDuplicates database errors', async () => {
+    const achievement = { id: 3, key: 'third_win' };
     mockPrisma.achievement.findUnique.mockResolvedValue(achievement);
     const err = new Error('DB error');
     err.code = 'P2003';
-    mockPrisma.userAchievement.create.mockRejectedValue(err);
-    await expect(Achievement.unlock(1, 'first_win')).rejects.toThrow('DB error');
+    mockPrisma.userAchievement.createMany.mockRejectedValue(err);
+    await expect(Achievement.unlock(1, 'third_win')).rejects.toThrow('DB error');
+  });
+
+  test('caches the achievement row — second unlock with same key skips findUnique', async () => {
+    const achievement = { id: 4, key: 'cached_key', name: 'Cached' };
+    mockPrisma.achievement.findUnique.mockResolvedValue(achievement);
+    mockPrisma.userAchievement.createMany.mockResolvedValue({ count: 1 });
+
+    await Achievement.unlock(1, 'cached_key');
+    await Achievement.unlock(2, 'cached_key');
+
+    expect(mockPrisma.achievement.findUnique).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.userAchievement.createMany).toHaveBeenCalledTimes(2);
   });
 });
 

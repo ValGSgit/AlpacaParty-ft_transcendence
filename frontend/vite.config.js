@@ -1,6 +1,5 @@
 /**
  * Vite Configuration
- * @owner fankahou, LukasStefanek
  */
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
@@ -17,6 +16,7 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts: ['localhost', '10.13.10.7.nip.io'],
     host: true,
     port: 5173,
     watch: {

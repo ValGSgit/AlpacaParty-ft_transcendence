@@ -1,9 +1,7 @@
 /**
  * User Model — Prisma data access layer
- * @owner ValGSgit
  */
 import prisma from "#config/prisma.js";
-import CustomError from "#utils/CustomError.js";
 
 /** Return a positive integer id or null. Avoids passing NaN to Prisma. */
 function toId(v) {
@@ -25,7 +23,6 @@ const SAFE_SELECT = {
   createdAt: true,
   updatedAt: true,
   userStats: { select: { level: true, xp: true } },
-  userAuth: { select: { oauthProvider: true } },
   userSettings: { select: { isPublic: true } },
   alpacaFarm: {
     select: { coins: true, alpacas: true, items: true, upgrades: true },
@@ -44,11 +41,9 @@ export function shapeUserForClient(u) {
     avatar: u.avatar,
     bio: u.bio,
     status: u.status,
-    role: u.role ?? "user",
     is_public: u.userSettings?.isPublic ?? true,
     is_online: u.isOnline,
     isOnline: u.isOnline,
-    oauth_provider: u.userAuth?.oauthProvider ?? null,
     api_key: u.userSettings?.apiKey ?? null,
     level: u.userStats?.level ?? 1,
     xp: u.userStats?.xp ?? 0,
@@ -74,92 +69,6 @@ const User = {
       },
       select: SAFE_SELECT,
     });
-  },
-
-  async findOrCreateOAuth({
-    provider,
-    oauthId,
-    username,
-    email,
-    avatar,
-    emailVerified = false,
-  }) {
-    const existing = await prisma.user.findFirst({
-      where: { userAuth: { oauthProvider: provider, oauthId } },
-      select: SAFE_SELECT,
-    });
-    if (existing) return { user: existing, created: false };
-
-    if (email) {
-      // Refuse to silently link an OAuth identity to an existing local
-      // account by email — that's an account-takeover primitive if the
-      // attacker controls a Google/GitHub account that claims the same
-      // address. Only auto-link when the provider has verified the email
-      // AND the existing account has no auth method yet (defensive: rows in
-      // that state shouldn't exist).
-      const existingByEmail = await prisma.user.findUnique({
-        where: { email },
-        include: { userAuth: true },
-      });
-      if (existingByEmail) {
-        if (!emailVerified) {
-          throw new CustomError(
-            "An account with this email already exists. Sign in with your original method, then link from Settings.",
-            409,
-          );
-        }
-        const ua = existingByEmail.userAuth;
-        if (ua?.passwordHash || ua?.oauthProvider) {
-          throw new CustomError(
-            "An account with this email already exists. Sign in with your original method, then link from Settings.",
-            409,
-          );
-        }
-        // Safe link: existing row has no prior auth.
-        const linked = await prisma.user.update({
-          where: { id: existingByEmail.id },
-          data: {
-            userAuth: {
-              upsert: {
-                create: { oauthProvider: provider, oauthId },
-                update: { oauthProvider: provider, oauthId },
-              },
-            },
-          },
-          select: SAFE_SELECT,
-        });
-        return { user: linked, created: true };
-      }
-
-      const user = await prisma.user.create({
-        data: {
-          username,
-          email,
-          avatar: avatar || "/avatars/default.svg",
-          userAuth: { create: { oauthProvider: provider, oauthId } },
-          userStats: { create: {} },
-          userSettings: { create: {} },
-        },
-        select: SAFE_SELECT,
-      });
-      return { user, created: true };
-    }
-
-    // No email (e.g. GitHub user with private email). Synthesize an internal
-    // address so the NOT NULL constraint is satisfied without colliding.
-    const internalEmail = `${provider}_${oauthId}@oauth.internal`;
-    const user = await prisma.user.create({
-      data: {
-        username,
-        email: internalEmail,
-        avatar: avatar || "/avatars/default.svg",
-        userAuth: { create: { oauthProvider: provider, oauthId } },
-        userStats: { create: {} },
-        userSettings: { create: {} },
-      },
-      select: SAFE_SELECT,
-    });
-    return { user, created: true };
   },
 
   async findById(id) {
@@ -279,14 +188,16 @@ const User = {
   },
 
   async setOnline(id, isOnline = true) {
-    await prisma.user.update({
+    // updateMany returns { count } and does not throw P2025 if the user was
+    // removed between socket connect and this call.
+    await prisma.user.updateMany({
       where: { id: Number(id) },
       data: { isOnline, lastSeen: new Date() },
     });
   },
 
   async setOffline(id) {
-    await prisma.user.update({
+    await prisma.user.updateMany({
       where: { id: Number(id) },
       data: { isOnline: false, lastSeen: new Date() },
     });

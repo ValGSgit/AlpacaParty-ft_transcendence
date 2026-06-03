@@ -1,6 +1,5 @@
 /**
  * Message Model — Prisma data access layer
- * @owner ValGSgit
  */
 import prisma from "#config/prisma.js";
 

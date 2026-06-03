@@ -1,5 +1,4 @@
 # Backend Dockerfile (Production)
-# @owner ValGSgit
 
 # ── Stage 1: Build ────────────────────────────────────────────
 FROM node:24-alpine3.22 AS builder
@@ -34,17 +33,11 @@ COPY --chown=node:node --from=builder /app/prisma.config.js ./prisma.config.js
 COPY --chown=node:node --from=builder /app/package.json ./package.json
 
 COPY --chmod=755 tools/docker-entrypoint-prod.sh /usr/local/bin/docker-entrypoint-prod.sh
-COPY --chmod=755 tools/load-secrets.sh /usr/local/bin/load-secrets.sh
-RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint-prod.sh \
-  /usr/local/bin/load-secrets.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint-prod.sh
 
 # Create uploads directories with correct ownership
 RUN mkdir -p /app/uploads && \
   chown -R node:node /app/uploads
-
-# Runtime secret file is written by entrypoint as non-root user.
-RUN mkdir -p /run/secrets && \
-  chown -R node:node /run/secrets
 
 USER node
 

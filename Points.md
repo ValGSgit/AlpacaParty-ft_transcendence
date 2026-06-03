@@ -1,8 +1,11 @@
 # Points
 
-Pass with 14
+**Required to pass: 14 points** — Major = 2 pts, Minor = 1 pt.
+**AlpacaParty claims 25 points** (9 Major × 2 + 7 Minor × 1) — intentional headroom in case any module is contested at peer evaluation.
 
-### 🟢 Major Module
+> This file is the authoritative claim ledger and must stay in sync with
+> the module table in [`README.md`](README.md). When the two diverge, the
+> README wins.
 
 ### 🟡 Minor Module
 
@@ -36,8 +39,7 @@ Pass with 14
 
 ### 🟡 Minor: Use an ORM for the database.
 
-- [x] prisma
-  - ORM == Object-Relational Mapping
+- [x] **Prisma** with `@prisma/adapter-pg` across 22 models, with migrations and seed data
 
 ### 🟡 Minor: A complete notification system for all creation, update, and deletion actions.
 
@@ -87,36 +89,11 @@ Pass with 14
 - [x] Users can add other users as friends and see their online status.
 - [x] Users have a profile page displaying their information.
 
-### 🟡❌ Minor: Game statistics and match history (requires a game module).
-
-- [ ] Track user game statistics (wins, losses, ranking, level, etc.).
-- [ ] Display match history (1v1 games, dates, results, opponents).
-- [ ] Show achievements and progression.
-- [ ] Leaderboard integration.
-
-### 🟡❌ Minor: Implement remote authentication with OAuth 2.0 (Google, GitHub, 42, etc.).
-
-- [ ] done
-
-### 🟢 Major: Advanced permissions system:
-
-- [x] View, edit, and delete users (CRUD).
-- [x] Roles management (admin, user, guest, moderator, etc.).
-- [x] Different views and actions based on user role.
-
-### 🟢❌ Major: An organization system:
-
-- [ ] Create, edit, and delete organizations.
-- [ ] Add users to organizations.
-- [ ] Remove users from organizations.
-- [ ] View organizations and allow users to perform specific actions within an organization (minimum: create, read, update).
-
-### 🟡❌ Minor: User activity analytics and insights dashboard.
-
 ---
 
 # 4 Artificial Intelligence
 
+=======
 ### 🟢 Major: Implement a complete LLM system interface.
 
 - [x] Generate text and/or images based on user input.
@@ -129,11 +106,11 @@ Pass with 14
 
 ### 🟢 Major: Implement a complete web-based game where users can play against each other.
 
-- [x] The game can be real-time multiplayer (e.g., Pong, Chess, Tic-Tac-Toe, Card
-      games, etc.).
-- [x] Players must be able to play live matches.
-- [x] The game must have clear rules and win/loss conditions.
-- [x] The game can be 2D or 3D.
+- [x] Real-time multiplayer arena over Socket.IO (`/minigames` namespace)
+- [x] Two players on separate computers play live; up to 10 players in a single arena
+- [x] Live matches with clear rules and win/loss conditions (last alpaca standing)
+- [x] 3D rendering via Three.js
+- [x] Network latency and disconnections handled gracefully (`MatchManager` cleans up dropped players; Socket.IO `connectionStateRecovery` restores presence)
 
 ### 🟢 Major: Remote players — Enable two players on separate computers to play the same game in real-time.
 
@@ -160,14 +137,43 @@ Pass with 14
 - [x] Implement advanced rendering techniques.
 - [x] Ensure smooth performance and user interaction.
 
-### 🟡 Minor: Game customization options.
+- [x] **Achievements** — `first_win`, `win_streak_5`, `level_10`, `social_butter` (10 friends), `first_post`, `org_founder`
+- [x] **Leaderboards** — leaderboards by kills (Spit Royale), obstacles (Alpaca Road), and coins
+- [x] **XP / level system** — XP for wins (with bonuses for accuracy, eliminations, powerups, survival time, flawless), losses, posts, challenges; auto level-up
+- [x] **Daily challenges** — rotate daily, persisted completions per user
+- [x] **Rewards** — coin economy for the farm, XP bonuses
+- [x] Fully persistent in the database (`UserStats`, `Achievement`, `UserAchievement`, `DailyChallenge`, `UserDailyChallenge`, `AlpacaFarm.coins`)
+- [x] Visual feedback — real-time notifications, XP progress bars, achievement unlock toasts
+- [x] Clear rules and progression mechanics, documented in-app
 
 - [x] Power-ups, attacks, or special abilities.
 - [x] Different maps or themes.
 - [x] Customizable game settings.
 - [x] Default options must be available.
 
-### 🟡 Minor: A gamification system to reward users for their actions.
+# Point Total
+
+| # | Module | Category | Type | Pts |
+|---|--------|----------|------|-----|
+| 1 | Frontend + Backend frameworks (Vue 3 + Express.js) | Web | Major | 2 |
+| 2 | Real-time features (Socket.IO, 2 namespaces) | Web | Major | 2 |
+| 3 | User interaction (chat + profile + friends) | Web | Major | 2 |
+| 4 | Public API (6 endpoints, key + rate limit + Swagger) | Web | Major | 2 |
+| 5 | ORM (Prisma, 22 models) | Web | Minor | 1 |
+| 6 | Notification system | Web | Minor | 1 |
+| 7 | File upload and management | Web | Minor | 1 |
+| 8 | Standard user management + authentication | User Mgmt | Major | 2 |
+| 9 | Game statistics & match history | User Mgmt | Minor | 1 |
+| 10 | LLM system interface (Groq help desk) | AI | Major | 2 |
+| 11 | Web-based game (Spit Royale) | Gaming | Major | 2 |
+| 12 | Add another game (Alpaca Road) with matchmaking | Gaming | Major | 2 |
+| 13 | Advanced 3D graphics (Three.js) | Gaming | Major | 2 |
+| 14 | Game customization | Gaming | Minor | 1 |
+| 15 | Gamification | Gaming | Minor | 1 |
+
+**Total: 25 points** — 11 points above the 14-point mandatory bar, with surplus reserved as evaluation headroom.
+
+> Per the subject, the bonus part is capped at **5 additional points** beyond the required 14. The team's primary claim is the 14-point core; the surplus modules are documented to absorb any module that fails to pass peer evaluation.
 
 - [x] Implement at least 3 of the following: achievements, badges, leaderboards, XP/level system, daily challenges, rewards
 - [x] System must be persistent (stored in database)

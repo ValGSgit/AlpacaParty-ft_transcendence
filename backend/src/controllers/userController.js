@@ -1,6 +1,5 @@
 /**
  * User Controller — profile viewing, editing, GDPR
- * @owner ValGSgit
  */
 import User, { shapeUserForClient } from "#models/User.js";
 import Friend from "#models/Friend.js";
@@ -12,12 +11,20 @@ import GamificationService from "#services/GamificationService.js";
 import { randomUUID } from "crypto";
 import config from "#config/index.js";
 import CustomError from "#utils/CustomError.js";
+import { extractPasswordHash } from "#utils/userAuth.js";
+import { parseLimitOffset } from "#utils/pagination.js";
 
 /**
  * GET /api/users/me
  */
-export const getMe = async (req, res) =>
-  res.json({ user: shapeUserForClient(req.user) });
+export const getMe = async (req, res, next) => {
+  try {
+    const fresh = await User.findById(req.user.id);
+    res.json({ user: shapeUserForClient(fresh || req.user) });
+  } catch (err) {
+    next(err);
+  }
+};
 
 /**
  * PUT /api/users/me
@@ -98,10 +105,17 @@ export const changePassword = async (req, res, next) => {
     }
     const id = Number(req.user.id);
     const currUser = await User.findByIdWithPassword(id);
-    const valid = await AuthService.comparePassword(
-      currentPassword,
-      currUser?.passwordHash || currUser?.userAuth?.passwordHash,
-    );
+    // Pull the hash through the shared helper so accounts missing the
+    // userAuth join (data-integrity edge case) return 401 here instead of
+    // crashing bcrypt.compare with an undefined hash — that previously
+    // surfaced as a 500.
+    const passwordHash = extractPasswordHash(currUser);
+    if (!passwordHash) {
+      return res
+        .status(401)
+        .json({ error: { message: "Current password is incorrect" } });
+    }
+    const valid = await AuthService.comparePassword(currentPassword, passwordHash);
     if (!valid)
       return res
         .status(401)
@@ -167,7 +181,15 @@ export const getUser = async (req, res, next) => {
         });
       }
     }
-    res.json({ user: shapeUserForClient(user), friend_status: friendStatus });
+    const shaped = shapeUserForClient(user);
+    // shapeUserForClient is built for the *owner's* view and includes
+    // self-only fields (email, api_key). Strip them when another user is
+    // viewing this profile so we don't leak PII / credentials.
+    if (user.id !== req.user?.id) {
+      delete shaped.email;
+      delete shaped.api_key;
+    }
+    res.json({ user: shaped, friend_status: friendStatus });
   } catch (err) {
     next(err);
   }
@@ -178,8 +200,10 @@ export const getUser = async (req, res, next) => {
  */
 export const listUsers = async (req, res, next) => {
   try {
-    const limit = Math.min(req.query.limit || 50, 100);
-    const offset = Math.max(0, Number(req.query.offset) || 0);
+    // Shared clamp — the old inline `Math.min(req.query.limit || 50, 100)`
+    // relied on string→number coercion inside Math.min and silently let
+    // non-numeric input through.
+    const { limit, offset } = parseLimitOffset(req.query, { defaultLimit: 50, maxLimit: 100 });
     const filter = req.query.search
       ? { username: req.query.search, ...(req.query.filter || {}) }
       : req.query.filter;

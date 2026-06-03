@@ -1,6 +1,5 @@
 /**
  * Post Model — Prisma data access layer
- * @owner ValGSgit
  */
 import prisma from "#config/prisma.js";
 import { stripDangerousHtml } from "#utils/htmlSanitizer.js";
@@ -135,19 +134,23 @@ const Post = {
   },
 
   async like(postId, userId) {
-    await prisma.$transaction(async (tx) => {
+    // Returns true if a new like row was inserted (and likesCount incremented),
+    // false if the user had already liked the post. Callers use this to gate
+    // notifications + gamification so re-liking doesn't fire them twice.
+    return prisma.$transaction(async (tx) => {
       try {
         await tx.postLike.create({
           data: { postId: Number(postId), userId: Number(userId) },
         });
       } catch (e) {
-        if (e.code === "P2002") return; // already liked — no-op
+        if (e.code === "P2002") return false; // already liked — no-op
         throw e;
       }
       await tx.post.update({
         where: { id: Number(postId) },
         data: { likesCount: { increment: 1 } },
       });
+      return true;
     });
   },
 

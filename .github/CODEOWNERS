@@ -38,7 +38,6 @@
 
 # ── Infrastructure & Configuration ───────────────────────────────────────────
 /nginx/                                     @DavidPoetsch @ValGSgit
-/vault/                                     @ValGSgit @DavidPoetsch
 /PostgreSQL/                                @DavidPoetsch @ValGSgit
 /scripts/                                   @ValGSgit @DavidPoetsch
 /e2e/                                       @ValGSgit @DavidPoetsch

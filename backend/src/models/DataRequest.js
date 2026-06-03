@@ -1,6 +1,5 @@
 /**
  * DataRequest Model — Prisma data access layer (GDPR)
- * @owner ValGSgit
  */
 import prisma from "#config/prisma.js";
 
