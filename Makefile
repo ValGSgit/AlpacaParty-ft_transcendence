@@ -274,6 +274,15 @@ e2e: ssl-certs create-dirs seed-live
 	@E2E_API_KEY="$${E2E_API_KEY:-$$(grep '^API_KEYS=' .env | cut -d= -f2- | cut -d, -f1)}"; \
 	$(DC_E2E) run --build --rm -e E2E_API_KEY="$$E2E_API_KEY" e2e npm test
 
+# The E2E suite registers a fresh user in nearly every test from a single IP.
+# The production auth limiters (50 registrations / 10 failed logins per 15 min)
+# would trip partway through the run and fail the later tests. Relax them for
+# the whole prod stack the suite runs against — these exported, target-specific
+# vars propagate to the prerequisite chain (prod-seed-live → prod-up) so the
+# backend container comes up with the relaxed caps. Real production leaves the
+# vars unset and keeps the strict defaults.
+prod-e2e: export AUTH_RATE_LIMIT_MAX := 100000
+prod-e2e: export LOGIN_RATE_LIMIT_MAX := 100000
 prod-e2e: prod-seed-live
 	@echo "$(CYAN)Building e2e image…$(RESET)"
 	docker build -t alpacaparty-e2e e2e/

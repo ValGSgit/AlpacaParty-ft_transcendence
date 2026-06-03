@@ -1,43 +1,8 @@
-# nginx WAF image — wraps the official OWASP ModSecurity CRS nginx image
-# and adds our custom rule tuning.
-#
-# Base image ships:
-#   nginx 1.25 + ModSecurity v3 + OWASP CRS v4
-#   https://hub.docker.com/r/owasp/modsecurity-crs
+# nginx reverse-proxy image — production
+FROM nginx:1.25
 
-FROM owasp/modsecurity-crs:nginx
-
-# Create SSL directory
+# SSL directory (certs mounted via the `ssl` volume at runtime)
 RUN mkdir -p /etc/nginx/conf
 
-# ── CRS configuration ──────────────────────────────────────────────────
-# The base image reads these env vars at startup to configure CRS.
-ENV MODSEC_RULE_ENGINE=On \
-    MODSEC_REQ_BODY_ACCESS=On \
-    MODSEC_RESP_BODY_ACCESS=Off \
-    MODSEC_REQ_BODY_LIMIT=10485760 \
-    MODSEC_AUDIT_LOG=/proc/self/fd/2 \
-    MODSEC_AUDIT_LOG_PARTS=ABFHKZ \
-    ANOMALY_INBOUND=10 \
-    ANOMALY_OUTBOUND=4 \
-    PORT=8443 \
-    SSL_PORT=8443
-
-# Extend the CRS allowed-methods list via the image's built-in template
-# mechanism (substituted into crs-setup.conf at startup). This is the
-# correct way to configure this in the owasp/modsecurity-crs image and
-# avoids a duplicate rule-ID conflict with CRS rule 900200.
-ENV ALLOWED_METHODS="GET HEAD POST OPTIONS PUT DELETE PATCH"
-
-# Copy nginx config
+# nginx config — rendered from the template by the official image entrypoint
 COPY conf/nginx.prod.conf /etc/nginx/templates/conf.d/default.conf.template
-
-# Inject our overrides via the image's template path. The image pipeline is:
-#   /etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template
-#     → envsubst → /etc/nginx/modsecurity.d/modsecurity-override.conf
-#     → 90-copy-modsecurity-config.sh → /etc/modsecurity.d/modsecurity-override.conf
-# That last path is the one setup.conf actually `Include`s. Writing directly
-# to it (as 99-alpacaparty.conf or as modsecurity-override.conf) either
-# bypasses the loader or blocks the entrypoint's `touch`, which then crash-
-# loops. Stay on the supported template path.
-COPY conf/modsecurity.conf /etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template

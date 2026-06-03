@@ -115,11 +115,12 @@ Legend:
 > every team member at evaluation, and with the project already at 25 points
 > (11 above the 14-point bar) the indirection was net cost with no benefit.
 >
-> The **WAF half is still shipped**: production nginx is built from the
-> `owasp/modsecurity-crs:nginx` image (ModSecurity v3 + OWASP CRS v4, see
-> [`nginx/Dockerfile.prod`](nginx/Dockerfile.prod)) and runs as defense-in-depth.
-> Because the Major needs both WAF **and** Vault, this category is not claimed
-> for points — the WAF simply hardens the deployment for free.
+> The **WAF half has also been removed**: production nginx is now built from
+> the stock `nginx` image (see [`nginx/Dockerfile.prod`](nginx/Dockerfile.prod))
+> and runs as a plain reverse proxy. The Major needs both WAF **and** Vault, so
+> with neither in place this category is not claimed for points. Application-layer
+> defenses (Helmet headers, per-user rate limiting, parameterised Prisma queries,
+> upload validation) remain in place.
 
 ---
 

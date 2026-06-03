@@ -16,7 +16,7 @@ multi-user concurrent.
 | Audience action | Command |
 |---|---|
 | Boot everything, dev mode | `make up` |
-| Boot everything, prod mode (Vault, WAF, real cert chain) | `make prod-up` |
+| Boot everything, prod mode (real cert chain) | `make prod-up` |
 | See every demo target with one-line description | `make demo-list` |
 | Run a single module demo | `make demo-<name>` |
 
@@ -199,69 +199,22 @@ the backend proxy.
 
 ---
 
-## Cybersecurity (2 points claimed)
+## Cybersecurity (0 points claimed)
 
-### Major: WAF/ModSecurity (strict) + HashiCorp Vault (2 pts) — `make demo-waf` and `make demo-vault`
+The subject's only Cybersecurity Major bundles **WAF/ModSecurity + HashiCorp
+Vault** into a single 2-point module, and both halves require the other to
+claim it. Neither ships anymore:
 
-This is a single bundled Major module — both halves must work for the claim.
+- **Vault** was removed — secrets now load from the project-root `.env` file
+  via Docker Compose's `env_file` directive (`make generate-secrets`
+  randomizes them).
+- **WAF/ModSecurity** was removed — production nginx is now built from the
+  stock `nginx` image and runs as a plain reverse proxy.
 
-#### WAF half — `make demo-waf`
-
-- nginx + ModSecurity 3.x + OWASP CRS 3.3.9 in **strict** paranoia mode
-- Audit log: `make waf-logs`
-- Live block test: `make waf-test` fires a textbook SQLi payload at
-  `/api/users?filter[username]=1' OR '1'='1` — ModSecurity rejects with HTTP
-  403 before Express ever sees it
-- Custom rule exceptions kept short and documented in
-  [`nginx/modsec/`](nginx/modsec/)
-
-**Demo**: tail audit log in one terminal (`make waf-logs`), run the test in
-another (`make waf-test`). Show the corresponding entry in the audit log
-("Matched Phase: 2 ... Anomaly Score").
-
-#### Vault half — `make demo-vault`
-
-- Production Vault runs with the **file backend** (encrypted blobs persisted
-  to `vault_data` volume), NOT dev-mode
-- Vault boots **sealed** every time; `vault-init` unseals on every container
-  start using the key stored at `vault/secrets/vault-init.json` (host-only,
-  chmod 600, git-ignored)
-- Backend reads its root token from `/vault/secrets/root-token` at entrypoint —
-  the token is never in `docker inspect` or shell history
-- App secrets (DB password, JWT secrets, API keys, Groq keys) live at
-  `secret/alpacaparty` and are pulled into a tmpfs `/run/secrets/.env` at
-  backend startup; no plaintext on disk inside the app container
-
-**Demo (live "Vault is the gate" proof)**:
-
-```bash
-make prod-vault-status          # shows file backend + unsealed
-make prod-vault-secrets         # shows the KV payload backend reads
-make prod-vault-reseal          # lock Vault
-make prod-down && make prod-up  # backend now refuses to start without secrets
-make prod-vault-unseal          # restore service
-```
-
-**Defense talking points**:
-- *"Why is Vault sealed at boot?"* — encryption keys live in memory, not on
-  disk. Unsealing is a separate ceremony. We automate it with a saved key
-  share, but the gate exists.
-- *"Why single-key Shamir?"* — single-operator deployment; Shamir splits only
-  matter when multiple humans hold shares. The script accepts
-  `-key-shares=5 -key-threshold=3` if you want stronger separation.
-- *"What stops someone reading vault/secrets/?"* — host filesystem
-  permissions + git-ignored. In a real deploy you'd ship those into a TPM /
-  KMS / Shamir-distributed envelope. For an evaluation single-host deploy,
-  chmod 600 is the bar.
-- *"Where does plaintext exist at runtime?"* — only in the backend's tmpfs
-  `/run/secrets/.env`, RAM-only, never on disk in the app container.
-
-**Files**:
-- [`vault/config/vault.prod.hcl`](vault/config/vault.prod.hcl) — server config
-- [`vault/init/init-and-seed.sh`](vault/init/init-and-seed.sh) — bootstrap
-- [`vault/compose.prod.yaml`](vault/compose.prod.yaml) — service definitions
-- [`backend/src/tools/fetchSecrets.js`](backend/src/tools/fetchSecrets.js) — backend pull
-- [`backend/tools/docker-entrypoint-prod.sh`](backend/tools/docker-entrypoint-prod.sh) — token bootstrap
+With neither half in place this category is **not claimed**. Application-layer
+defenses still in place (and demoed under other modules): Helmet security
+headers + nginx-set headers, TLS 1.2/1.3 with HSTS, per-user rate limiting,
+parameterised Prisma queries, bcrypt password hashing, and upload validation.
 
 ---
 
@@ -317,31 +270,6 @@ with documented rules.
 
 ---
 
-## Operator tooling (not claimed as a module)
-
-### Admin panel — `make demo-admin`
-
-- Login at `/admin/login`, dashboard at `/admin/panel`
-- Capabilities:
-  - Dashboard with totals (users, online, posts, banned)
-  - Analytics panel (coin distribution, game stats by type, top players,
-    achievement frequency, level histogram, 7-day registrations)
-  - User CRUD with search + pagination
-  - Role management (superadmin only, scoped via `assertCanModerate`)
-  - Ban / unban
-  - Per-admin Vault permission blob (read: self or superadmin; write:
-    superadmin)
-- Separate JWT secret + cookie scoped to `/api/admin`
-
-**This is NOT claimed as a module** — it's there to give the operator a UI
-during evaluation (ban a misbehaving demo account, etc.) and to make the
-multi-role auth story concrete. If asked "is this the Advanced Permissions
-module?", the answer is no — we don't claim it because the subject's
-Advanced Permissions module requires a full user-CRUD UI for non-admin
-roles too, which we haven't built.
-
----
-
 ## Cheat-sheet for the day of evaluation
 
 ```bash
@@ -357,8 +285,6 @@ make demo-frameworks
 make demo-realtime
 make demo-public-api
 make demo-llm
-make demo-waf
-make demo-vault
 
 # Security ops the evaluator might ask about
 make prod-vault-status         # show Vault is sealed/unsealed
@@ -370,7 +296,6 @@ make prod-vault-unseal         # restore
 
 # If something is wrong
 make prod-logs
-make waf-logs
 make shell-db                  # raw psql
 make shell-vault               # shell into Vault container
 ```
@@ -391,7 +316,6 @@ make shell-vault               # shell into Vault container
 | Alpaca Road rules | [`backend/src/services/AlpacaRoadMatch.js`](backend/src/services/AlpacaRoadMatch.js) |
 | Vault config | [`vault/config/vault.prod.hcl`](vault/config/vault.prod.hcl) |
 | Vault bootstrap | [`vault/init/init-and-seed.sh`](vault/init/init-and-seed.sh) |
-| WAF rules | [`nginx/modsec/`](nginx/modsec/) |
 | Database schema | [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma) |
 
 ---
@@ -403,10 +327,6 @@ make shell-vault               # shell into Vault container
   a KMS / TPM / Shamir-distributed envelope. We do not claim that level — what
   we do claim is "secrets isolated from the app, encrypted at rest, sealed by
   default, gated by an operator-held key."
-- **WAF**: strict CRS with documented exceptions. We do NOT claim "WAF tuned
-  to block every CVE" — that's continuous work. We claim "WAF blocks the
-  textbook payloads OWASP CRS knows about."
-- **Admin panel**: not a claimed module. Don't let an evaluator think it is.
 - **Browser support**: only Chrome is in our compatibility matrix. Firefox/
   Safari/Edge work in practice but we haven't claimed the multi-browser
   Minor.

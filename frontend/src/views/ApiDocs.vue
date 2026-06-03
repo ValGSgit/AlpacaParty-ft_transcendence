@@ -95,7 +95,7 @@
                     <div class="am-node am-node--edge">
                       <span class="am-dot" style="background:#00f0ff"></span>
                       <div class="am-node-name">nginx_prod <span class="am-tag">reverse-proxy</span></div>
-                      <div class="am-node-desc">ModSecurity WAF · OWASP CRS 3.3.9 · rate-limit headers</div>
+                      <div class="am-node-desc">TLS termination · security & rate-limit headers</div>
                       <div class="am-ports"><span>:8443</span><span>:8080</span></div>
                     </div>
                   </div>
@@ -151,8 +151,6 @@
               </div>
               <div class="am-pipe" style="margin-bottom:14px">
                 <div class="am-step"><div class="am-step-lbl">Browser</div><div class="am-step-sub">HTTPS</div></div>
-                <span class="am-arrow">→</span>
-                <div class="am-step"><div class="am-step-lbl">ModSecurity WAF</div><div class="am-step-sub">OWASP CRS 3.3.9</div></div>
                 <span class="am-arrow">→</span>
                 <div class="am-step"><div class="am-step-lbl">nginx routing</div><div class="am-step-sub">/api · /socket.io · /uploads · /*</div></div>
                 <span class="am-arrow">→</span>
@@ -444,7 +442,6 @@
                 <span class="am-card-sub">match order</span>
               </div>
               <ul class="am-rl am-rl--nginx">
-                <li><span class="am-verb am-v-mix">SPC</span><span>/api/users/me</span><em class="am-note">WAF bypass</em></li>
                 <li><span class="am-verb am-v-get">→</span><span>/api/*</span><em class="am-note">backend:3000</em></li>
                 <li><span class="am-verb am-v-post">⇅</span><span>/socket.io/*</span><em class="am-note">WS upgrade</em></li>
                 <li><span class="am-verb am-v-get">→</span><span>/uploads/*</span><em class="am-note">backend:3000</em></li>

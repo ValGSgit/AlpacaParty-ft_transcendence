@@ -52,7 +52,6 @@ X-API-Key: ap_your_key_here
 |---|---|
 | Global | 1 000 req / 15 min |
 | Auth endpoints | 50 req / 15 min per IP |
-| Admin endpoints | 60 req / min |
 | AI help chat | 20 req / min |
 | Public API | 100 req / min |
       `.trim(),
@@ -85,11 +84,6 @@ X-API-Key: ap_your_key_here
       {
         name: "Uploads",
         description: "File upload and management (images, PDFs, CSV…)",
-      },
-      {
-        name: "Admin",
-        description:
-          "🔐 Admin only — user management, site stats, GDPR processing",
       },
       {
         name: "Public API",

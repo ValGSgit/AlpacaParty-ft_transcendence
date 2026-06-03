@@ -29,6 +29,7 @@ services:
       SSL_KEY_PATH: /app/ssl/key.pem
       UPLOAD_DIR: /app/uploads
       AUTH_RATE_LIMIT_MAX: "${AUTH_RATE_LIMIT_MAX:-}"
+      LOGIN_RATE_LIMIT_MAX: "${LOGIN_RATE_LIMIT_MAX:-}"
       PUBLIC_API_HOST: "${PUBLIC_API_HOST}"
     volumes:
       - ssl:/app/ssl

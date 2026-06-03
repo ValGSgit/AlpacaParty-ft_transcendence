@@ -243,7 +243,7 @@ const Game = {
 
   /**
    * Persist a farm payload. The body the client sends is large and the
-   * WAF/body-parser limits were getting close — only the columns Prisma
+   * body-parser limits were getting close — only the columns Prisma
    * actually has on AlpacaFarm are forwarded (items, alpacas, coins,
    * upgrades, herdsize). Everything else is ignored.
    */

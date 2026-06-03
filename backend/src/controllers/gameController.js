@@ -160,8 +160,7 @@ export const getFarm = async (req, res, next) => {
  * { items, alpacas, coins, upgrades, herdsize }.
  *
  * The client routinely sends large payloads on autosave; we cap the
- * arrays here so a single bad client (or a stretched WAF body limit)
- * can't blow up the JSONB column.
+ * arrays here so a single bad client can't blow up the JSONB column.
  */
 const FARM_FLAT_KEYS = ['items', 'alpacas', 'coins', 'upgrades', 'herdsize'];
 const MAX_ITEMS = 500;

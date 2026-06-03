@@ -88,7 +88,7 @@ backend/
 
 ```
 Dev (Docker):  https://localhost:8443/api
-Prod (Docker): https://<host>/api          (nginx + ModSecurity in front)
+Prod (Docker): https://<host>/api          (nginx reverse proxy in front)
 Local (host):  http://localhost:3000/api   (no nginx)
 ```
 
