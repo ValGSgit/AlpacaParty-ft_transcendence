@@ -195,7 +195,6 @@ jobs:
       CORS_ORIGINS: https://localhost:8443,http://localhost:5173
       JWT_EXPIRES_IN: 1h
       JWT_REFRESH_EXPIRES_IN: 7d
-      JWT_ADMIN_SECRET: ci-admin-secret-change
       AUTH_RATE_LIMIT_MAX: "500"
 
     steps:

@@ -269,7 +269,7 @@ describe("AuthService", () => {
     });
 
     test("refresh token does not contain username", () => {
-      const user = { id: 1, username: "admin"};
+      const user = { id: 1, username: "alice"};
       const refresh = AuthService.verifyRefreshToken(
         AuthService.generateRefreshToken(user),
       );
