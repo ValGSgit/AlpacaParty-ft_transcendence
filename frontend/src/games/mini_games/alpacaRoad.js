@@ -20,7 +20,7 @@ import { saveGameResult } from './utils.js';
 const roadLength = 700;
 const roadBack = -25;
 const roadOffset = roadLength / 2 + roadBack;
-let roadSpeed;
+export let roadSpeed;
 const startZ = roadLength + roadBack;
 
 let level;
