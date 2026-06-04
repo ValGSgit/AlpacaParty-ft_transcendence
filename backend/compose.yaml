@@ -32,9 +32,11 @@ services:
       AUTH_RATE_LIMIT_MAX: "${AUTH_RATE_LIMIT_MAX:-}"
       LOGIN_RATE_LIMIT_MAX: "${LOGIN_RATE_LIMIT_MAX:-}"
       PUBLIC_API_HOST: "${PUBLIC_API_HOST}"
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:${DB_PORT}/${DB_NAME}?schema=public
     volumes:
       - ssl:/app/ssl
       - backend_uploads:/app/uploads
+      - backend_migrations:/app/prisma/migrations
     depends_on:
       postgres:
         condition: service_healthy

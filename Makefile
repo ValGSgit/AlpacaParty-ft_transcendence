@@ -20,7 +20,7 @@ DC := docker compose
 
 # ── Run ─────────────────────────────────────────────────────
 # A single `make` builds every image and brings the stack up.
-up: .env ssl-certs
+up: .env create-dirs ssl-certs
 	$(DC) up -d --build
 	@bash scripts/info.sh
 
@@ -56,6 +56,9 @@ generate-secrets:
 # Substitute {MY_IP} and {HTTPS_PORT} placeholders in .env.
 set-ip:
 	@bash scripts/set-ip.sh
+
+create-dirs:
+	@bash scripts/create-dirs.sh
 
 # ── SSL certificates ────────────────────────────────────────
 ssl-certs:

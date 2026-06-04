@@ -14,6 +14,16 @@ volumes:
     driver: local
   backend_uploads:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backend/uploads
+  backend_migrations:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./backend/prisma/migrations
   ssl:
     driver: local
     driver_opts:
