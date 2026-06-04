@@ -2,12 +2,12 @@
 set -e
 
 # Apply database migrations. `migrate deploy` only runs committed migrations;
-# if none exist (first deploy with a fresh schema), fall back to `db push`.
+# if none exist they will be created
 if find prisma/migrations -mindepth 1 -maxdepth 1 -type d | grep -q .; then
   echo "Deploying database migrations"
   npx prisma migrate deploy
 else
-  echo "No committed migrations — pushing schema"
+  echo "No migrations found"
   npx prisma migrate dev --name init
 fi
 
