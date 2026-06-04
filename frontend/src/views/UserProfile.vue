@@ -158,11 +158,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
 import { devError } from '../services/logger.js'
+import { useAuthStore } from '../stores/auth.js'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -212,7 +212,7 @@ onMounted(async () => {
 
   // Fetch game stats and posts in parallel only for visible profiles
   try {
-    const { data } = await api.get(`/game/stats?userId=${userId}&gameType=spit_royale`)
+    const { data } = await api.get(`/game/stats?userId=${userId}`)
     stats.value = data.stats
   } catch (e) { devError(e) }
 
