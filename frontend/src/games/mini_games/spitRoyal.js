@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { devWarn } from '../../services/logger.js';
+import { useCoinUI } from '../components/coins.js';
 import { editLight } from '../components/editLight.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
@@ -13,9 +14,11 @@ import { activeClient } from './GameClient.js';
 import { changeFloorColor } from './utils.js';
 
 let activePlayers = [];
+let hasAwardedRewards = false;
 
 const { spawnFloatingText } = useFloatingText();
 const { setTimeOfDay } = editLight();
+const { collectRewards } = useCoinUI();
 
 export function shootSpitAction(directionVec) {
   if (!gPlayer.value || gPlayer.value.isDead === 1) return;
@@ -66,6 +69,7 @@ export async function initSpitRoyalOnline() {
   gUI.isLightCycling = false;
 
   activePlayers.length = 0;
+  hasAwardedRewards = false;
   gPlayer.value.point = 0;
   gPlayer.value.socketId = activeClient.sessionId;
   gPlayer.value.hp = 3;
@@ -85,7 +89,12 @@ export async function initSpitRoyalOnline() {
 }
 
 export function updateSpitRoyal(delta) {
-  if (!gMinigame.value.isActive || gMinigame.value.isGameOver) return;
+  if (gMinigame.value.isGameOver) {
+    endMinigame()
+    return;
+  }
+
+  if (!gMinigame.value.isActive) return;
 
   if (gMinigame.value.spawnData && !gPlayer.value.hasSpawned)
     spawnPlayer();
@@ -103,6 +112,24 @@ function spawnPlayer() {
   gPlayer.value.hasSpawned = true;
   gPlayer.value.isAutoMoving = false;
   gMinigame.value.spawnData = null;
+}
+
+function endMinigame() {
+  gMinigame.value.isGameOver = true;
+
+  if (hasAwardedRewards) return;
+  hasAwardedRewards = true;
+
+  gMinigame.value.isActive = false;
+
+  let playerPoints = 0;
+  const local = activePlayers.find(p => p.socketId === activeClient.sessionId);
+  if (local) playerPoints = local.point || 0;
+  const earnedCoins = Math.floor(playerPoints * 5);
+
+  if (earnedCoins > 0) {
+    setTimeout(() => { collectRewards(earnedCoins); }, 50);
+  }
 }
 
 function streamLocalPosition() {
@@ -154,7 +181,6 @@ function syncPlayers(delta) {
           newAlpaca.socketId = sPlayer.id;
           if (sPlayer.color) newAlpaca.setColor(sPlayer.color);
           gScene.value.add(newAlpaca.model);
-          registerEntity(newAlpaca, 'alpaca');
           activePlayers[index] = newAlpaca;
         }
       });

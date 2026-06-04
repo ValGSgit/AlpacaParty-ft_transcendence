@@ -269,7 +269,6 @@ function syncPlayers(delta) {
             newAlpaca.setColor(sPlayer.color);
           }
           gScene.value.add(newAlpaca.model);
-          registerEntity(newAlpaca, 'alpaca');
           activePlayers[index] = newAlpaca;
         }
       });
