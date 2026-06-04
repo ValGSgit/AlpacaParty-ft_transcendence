@@ -25,7 +25,13 @@
             :class="['conv-item', { active: selected?.type === 'dm' && selected.id === c.other_user_id }]"
             @click="selectConv(c)"
           >
-            <img :src="c.avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
+            <img
+              :src="c.avatar || '/avatars/default.svg'"
+              class="mini-avatar avatar-link"
+              alt=""
+              title="View profile"
+              @click.stop="goToProfile(c.other_user_id)"
+            />
             <div class="conv-info">
               <span class="conv-name">{{ c.username }}</span>
               <span class="conv-preview">{{ c.last_message || '…' }}</span>
@@ -46,7 +52,13 @@
             @click="openDmWithFriend(f)"
           >
             <div class="avatar-wrap">
-              <img :src="f.avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
+              <img
+                :src="f.avatar || '/avatars/default.svg'"
+                class="mini-avatar avatar-link"
+                alt=""
+                title="View profile"
+                @click.stop="goToProfile(f.id)"
+              />
               <span :class="['online-dot', { online: f.is_online }]"></span>
             </div>
             <div class="conv-info">
@@ -69,7 +81,13 @@
               class="conv-item"
               @click="openDmWithUser(u)"
             >
-              <img :src="u.avatar || '/avatars/default.svg'" class="mini-avatar" alt="" />
+              <img
+                :src="u.avatar || '/avatars/default.svg'"
+                class="mini-avatar avatar-link"
+                alt=""
+                title="View profile"
+                @click.stop="goToProfile(u.id)"
+              />
               <div class="conv-info">
                 <span class="conv-name">{{ u.username }}</span>
                 <span class="conv-preview">Start a conversation</span>
@@ -92,8 +110,10 @@
             <img
               v-if="selected.type === 'dm'"
               :src="selected.avatar || '/avatars/default.svg'"
-              class="chat-avatar"
+              class="chat-avatar avatar-link"
               alt=""
+              title="View profile"
+              @click="goToProfile(selected.id)"
             />
             <span class="chat-title">
               {{ selected.type === 'dm' ? selected.username : `# ${selected.name}` }}
@@ -124,12 +144,24 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
 import { socket, connectSocket, disconnectSocket } from '../services/socket.js'
 
+const emit = defineEmits(['close'])
+const router = useRouter()
 const authStore = useAuthStore()
 const currentUserId = computed(() => authStore.user?.id)
+
+// Messages renders inside a modal owned by App.vue, so navigating away has to
+// also tell the parent to close the modal — otherwise the overlay stays on top
+// of the profile page.
+function goToProfile(userId) {
+  if (userId == null) return
+  emit('close')
+  router.push(`/user/${userId}`)
+}
 
 const sideTab = ref('dms')
 const conversations = ref([])
