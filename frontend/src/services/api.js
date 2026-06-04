@@ -18,19 +18,6 @@ class HttpError extends Error {
   }
 }
 
-// Event the app listens for to force a logout when the server reports the
-// current account is banned (403 / code ACCOUNT_BANNED).
-export const ACCOUNT_BANNED_EVENT = "auth:banned";
-
-function signalAccountBanned(message) {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(
-    new CustomEvent(ACCOUNT_BANNED_EVENT, {
-      detail: { message: message || "Your account has been banned." },
-    }),
-  );
-}
-
 function buildUrl(path, params) {
   const url = new URL(path, window.location.origin);
 
@@ -140,13 +127,6 @@ async function performRequest({
     }
 
     const errorData = await parseResponse(response).catch(() => null);
-
-    // A banned account can happen mid-session: any authenticated route returns
-    // 403 with code ACCOUNT_BANNED. Broadcast a global event so the app can
-    // surface a message and force a logout. Listener (App.vue) is idempotent.
-    if (response.status === 403 && errorData?.error?.code === "ACCOUNT_BANNED") {
-      signalAccountBanned(errorData?.error?.message);
-    }
 
     if (response.status === 401 && retryOnAuth) {
       try {

@@ -12,6 +12,7 @@
 # ============================================================================
 
 DC := docker compose
+DC_DBG := docker compose -f compose.yaml -f backend/compose.debug.yaml
 
 .DEFAULT_GOAL := up
 .PHONY: up down re build logs ps info help \
@@ -20,7 +21,7 @@ DC := docker compose
 
 # ── Run ─────────────────────────────────────────────────────
 # A single `make` builds every image and brings the stack up.
-up: .env ssl-certs
+up: .env create-dirs ssl-certs
 	$(DC) up -d --build
 	@bash scripts/info.sh
 
@@ -44,6 +45,13 @@ info:
 
 help: info
 
+debug: .env create-dirs ssl-certs
+	$(DC_DBG) up -d --build
+	@bash scripts/info.sh
+
+prisma-studio:
+	$(DC) exec -d backend /usr/local/bin/start-prisma-studio.sh
+
 # ── .env + secrets ──────────────────────────────────────────
 # Auto-generate .env (with random secrets, detected IP, and ports from
 # .env.example) the first time anything needs it.
@@ -56,6 +64,9 @@ generate-secrets:
 # Substitute {MY_IP} and {HTTPS_PORT} placeholders in .env.
 set-ip:
 	@bash scripts/set-ip.sh
+
+create-dirs:
+	@bash scripts/create-dirs.sh
 
 # ── SSL certificates ────────────────────────────────────────
 ssl-certs:

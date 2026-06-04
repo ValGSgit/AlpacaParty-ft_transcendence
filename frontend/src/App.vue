@@ -58,8 +58,6 @@
           </template>
           <template v-else>
             <span class="nav-divider"></span>
-            <router-link to="/docs" class="nav-link" @click="mobileOpen = false">Docs</router-link>
-            <span class="nav-divider"></span>
             <router-link to="/login" class="nav-link nav-login" @click="mobileOpen = false">Login</router-link>
             <router-link to="/register" class="nav-link nav-register" @click="mobileOpen = false">Sign Up</router-link>
           </template>
@@ -104,17 +102,6 @@
     <!-- AI help desk widget -->
     <HelpDeskChat v-if="authStore.isAuthenticated && !isAuthRoute" :with-footer="hasFooter" />
 
-    <!-- Banned popup — blocks the whole app until acknowledged -->
-    <div v-if="banned" class="banned-overlay" role="alertdialog" aria-modal="true" aria-labelledby="banned-title">
-      <div class="banned-modal">
-        <AppIcon name="alpaca" :size="40" class="banned-icon" />
-        <h2 id="banned-title" class="banned-title">Account Banned</h2>
-        <p class="banned-text">{{ bannedMessage }}</p>
-        <p class="banned-sub">You have been logged out and can no longer use AlpacaParty.</p>
-        <button class="banned-btn" @click="dismissBanned">OK</button>
-      </div>
-    </div>
-
   </div>
 </template>
 
@@ -122,7 +109,7 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth.js'
-import api, { ACCOUNT_BANNED_EVENT } from './services/api.js'
+import api from './services/api.js'
 import { devError } from './services/logger.js'
 import { connectSocket, disconnectSocket } from './services/socket.js'
 import AppIcon from './components/AppIcon.vue'
@@ -140,26 +127,6 @@ const showMessagesModal = ref(false)
 const notifications = ref([])
 const unreadCount = ref(0)
 const unreadMessages = ref(0)
-
-// Ban handling — when the server reports the account is banned (403 /
-// ACCOUNT_BANNED on any request, or a banned socket handshake), we show a
-// blocking popup and tear down the session so the app can't be used further.
-const banned = ref(false)
-const bannedMessage = ref('')
-
-async function handleBanned(e) {
-  if (banned.value) return // idempotent — a burst of 403s only triggers once
-  banned.value = true
-  bannedMessage.value = e?.detail?.message || 'Your account has been banned.'
-  // Drop the session immediately (clears user, disconnects socket, clears
-  // cookies) so nothing behind the modal remains usable.
-  try { await authStore.logout() } catch { /* best-effort */ }
-}
-
-function dismissBanned() {
-  banned.value = false
-  router.push('/login')
-}
 
 watch(showMessagesModal, (open) => {
   if (open) unreadMessages.value = 0
@@ -258,13 +225,6 @@ const socketHandlers = {
   'dm:message': () => {
     if (!showMessagesModal.value) unreadMessages.value++
   },
-  // Safety net: a banned account is rejected at the socket handshake with
-  // "Account is banned". Route it through the same forced-logout flow.
-  connect_error: (err) => {
-    if (/banned/i.test(err?.message || '')) {
-      window.dispatchEvent(new CustomEvent(ACCOUNT_BANNED_EVENT))
-    }
-  },
 }
 let boundSocket = null
 
@@ -311,12 +271,10 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 onMounted(() => {
   document.addEventListener('click', handleOutsideClick)
   window.addEventListener('scroll', handleScroll, { passive: true })
-  window.addEventListener(ACCOUNT_BANNED_EVENT, handleBanned)
 })
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('scroll', handleScroll)
-  window.removeEventListener(ACCOUNT_BANNED_EVENT, handleBanned)
   unbindSocketHandlers()
 })
 </script>

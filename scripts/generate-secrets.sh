@@ -38,12 +38,4 @@ for var in JWT_SECRET JWT_REFRESH_SECRET JWT_PUBLIC_API_SECRET; do
 	printf 'Randomized %s\n' "$var"
 done
 
-api_key=$(openssl rand -hex 32)
-if grep -q '^API_KEYS=' "$root/.env"; then
-	sed_in_place "s|^API_KEYS=.*|API_KEYS=$api_key|" "$root/.env"
-else
-	printf '\nAPI_KEYS=%s\n' "$api_key" >> "$root/.env"
-fi
-
-printf 'Randomized API_KEYS\n'
 printf 'Secrets written to .env\n'
