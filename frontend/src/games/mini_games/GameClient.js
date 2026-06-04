@@ -1,8 +1,8 @@
 import { io } from 'socket.io-client';
+import { debug, devError } from '../../services/logger.js';
 import { gMinigame, gUI } from '../core/globals';
 import { makeAnnouncement, playCountDown } from './annoucement';
 import { changeGame } from './init';
-import { debug, devError } from '../../services/logger.js';
 
 export class GameClient {
   constructor() {
@@ -10,6 +10,11 @@ export class GameClient {
     this.serverData = {};
     this.spitQueue = [];
     this._handlers = null;
+    this.sessionId = localStorage.getItem('alpaca_session_id');
+    if (!this.sessionId) {
+      this.sessionId = Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('alpaca_session_id', this.sessionId);
+    }
   }
 
   connect() {
@@ -29,7 +34,10 @@ export class GameClient {
    */
   _buildHandlers() {
     return {
-      connect: () => { debug("GameClient connected:", this.socket?.id); },
+      connect: () => { 
+        debug("GameClient connected:", this.socket?.id); 
+        this.socket.emit('restore_session', { sessionId: this.sessionId });
+      },
       connect_error: (err) => { devError("GameClient connection failed:", err.message); },
 
       // Drop the singleton reference on disconnect so a new connect() works
@@ -46,6 +54,23 @@ export class GameClient {
         gMinigame.value.publicRooms = roomList;
       },
 
+      reconnect_success: (data) => {
+        this.serverData = {};
+        this.spitQueue = [];
+        const mode = data.gameType;
+        gMinigame.value.mode = mode;
+        changeGame(mode, 1);
+        gMinigame.value.currentRoomName = data.roomName;
+
+        if (data.status === 'PLAYING') {
+          gUI.lobbyMenu = false;
+          gMinigame.value.isActive = true;
+          if (data.spawn) gMinigame.value.spawnData = data.spawn;
+        } else {
+          gUI.lobbyMenu = true;
+        }
+      },
+
       join_success: (data) => {
         this.serverData = {};
         this.spitQueue = [];
@@ -54,8 +79,6 @@ export class GameClient {
         changeGame(mode, 1);
         gMinigame.value.currentRoomName = data.roomName;
         gMinigame.value.isReady = false;
-        // Keep the lobby (ready screen) open for both game types. Spit Royale
-        // used to skip straight into the arena; now it waits for ready-up too.
         gUI.lobbyMenu = mode === 2 || mode === 4;
       },
 
@@ -96,7 +119,7 @@ export class GameClient {
         gMinigame.value.isGameOver = true;
         if (!data) return;
         if (data.reason === 'eliminated') makeAnnouncement('Eliminated!', 3000);
-        if (data.reason === 'lastone_standing' && data.winnerId === this.socket?.id) {
+        if (data.reason === 'lastone_standing' && data.winnerId === this.sessionId) {
           makeAnnouncement('You won!', 3000);
         }
       },

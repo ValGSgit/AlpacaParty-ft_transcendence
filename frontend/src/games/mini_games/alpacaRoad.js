@@ -77,7 +77,7 @@ export async function initAlpacaRoadOnline() {
   await loadAssets();
 
   activePlayers.length = 0;
-  gPlayer.value.socketId = activeClient.socket.id;
+  gPlayer.value.socketId = activeClient.sessionId;
 
   gScene.value.add(gPlayer.value.model);
   activePlayers.push(gPlayer.value);
@@ -297,7 +297,7 @@ function syncPlayers(delta) {
       }
 
       // JUMP TRIGGER
-      if (localAlpaca.socketId !== activeClient.socket.id) {
+      if (localAlpaca.socketId !== activeClient.sessionId) {
         if (serverData.isJumping && !localAlpaca.isJumping) {
           localAlpaca.isJumping = true;
         }
@@ -331,7 +331,7 @@ function syncPlayers(delta) {
 }
 
 function handleJump(alpaca, delta) {
-  if (alpaca.socketId === activeClient.socket.id)
+  if (alpaca.socketId === activeClient.sessionId)
     return;
   const { model } = alpaca
 
@@ -357,7 +357,7 @@ function handleJump(alpaca, delta) {
 }
 
 function checkLocalCollisions() {
-  const localAlpaca = activePlayers.find(p => p.socketId === activeClient.socket.id);
+  const localAlpaca = activePlayers.find(p => p.socketId === activeClient.sessionId);
 
   if (!localAlpaca || localAlpaca.isDead || localAlpaca.isBeingHit) return;
 
@@ -380,7 +380,7 @@ function checkActivity(delta) {
 }
 
 function checkLocalJump() {
-  const localAlpaca = activePlayers.find(p => p.socketId === activeClient.socket.id);
+  const localAlpaca = activePlayers.find(p => p.socketId === activeClient.sessionId);
 
   if (!localAlpaca || localAlpaca.isDead) return;
 
@@ -617,7 +617,7 @@ function endMinigame() {
 
   let playerPoints = 0;
   if (gMinigame.value.isOnline) {
-    const local = activePlayers.find(p => p.socketId === activeClient.socket.id);
+    const local = activePlayers.find(p => p.socketId === activeClient.sessionId);
     if (local) playerPoints = local.point || 0;
   } else {
     playerPoints = activePlayers[0].point || 0;
@@ -649,7 +649,7 @@ function updateRoadScene(delta) {
   for (let i = 1; i < roadScene.length; i++) {
     const item = roadScene[i];
     item.position.z -= movement;
-    if (item.position.z < roadBack) {
+    if (item.position.z < roadBack - 10) {
       item.position.z = startZ;
       item.scale.set(0.1, 0.1, 0.1);
     }
@@ -677,7 +677,7 @@ function spinAlpacaUp(alpaca, delta) {
     alpaca.model.rotation.x = 0;
     alpaca.model.position.y = 0;
     alpaca.isBeingHit = false;
-    if (gMinigame.value.isOnline && alpaca.socketId === activeClient.socket.id) {
+    if (gMinigame.value.isOnline && alpaca.socketId === activeClient.sessionId) {
       activeClient.sendHitComplete();
     }
   }
