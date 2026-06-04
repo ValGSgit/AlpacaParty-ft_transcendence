@@ -174,9 +174,7 @@ export class SpitRoyalMatch extends BaseMatch {
 
     if (
       this.playersJoined > 1 &&
-      alivePlayers.length <= 1 &&
-      (this.eliminations || 0) > 0
-    ) {
+      alivePlayers.length <= 1) {
       this.status = 'GAME_OVER';
       const winnerSocketId = alivePlayers.length === 1 ? alivePlayers[0].id : null;
       this.endMatch(winnerSocketId, 'lastone_standing');
@@ -202,7 +200,7 @@ export class SpitRoyalMatch extends BaseMatch {
   }
 
   async _persistOutcome(winnerSocketId) {
-    if (this.finalized) return;
+    if (this.finalized && this.eliminations <= 0) return;
     this.finalized = true;
 
     const ranked = Array.from(this.players.values()).filter((p) =>

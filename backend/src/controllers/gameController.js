@@ -2,14 +2,14 @@
  * Game Controller — REST endpoints for game history, stats, leaderboard, farm
  * Real-time game flow is handled by socketService.js
  */
-import Game from '#models/Game.js';
 import Achievement from '#models/Achievement.js';
+import Game from '#models/Game.js';
 import GamificationService from '#services/GamificationService.js';
-import { parseLimitOffset, clampInt } from '#utils/pagination.js';
+import { clampInt, parseLimitOffset } from '#utils/pagination.js';
 
-const ALLOWED_GAME_TYPES = ['spit_royale', 'alpaca_road'];
+const ALLOWED_GAME_TYPES = ['spit_royale', 'alpaca_road', 'both'];
 
-function resolveGameType(raw, fallback = 'spit_royale') {
+function resolveGameType(raw, fallback = 'both') {
   if (typeof raw !== 'string') return fallback;
   if (ALLOWED_GAME_TYPES.includes(raw)) return raw;
   return null; // signal "invalid" to the caller
@@ -24,7 +24,19 @@ export const getStats = async (req, res, next) => {
         error: { message: `gameType must be one of: ${ALLOWED_GAME_TYPES.join(', ')}` },
       });
     }
-    const stats = await Game.getStats(req.user.id, gameType);
+    let userId = Number(req.user.id) ?? -1;
+    if (req.query.userId !== undefined && req.query.userId !== null)
+      userId = Number(req.query.userId);
+
+    let stats;
+    if (gameType == 'both') {
+      const stats1 = await Game.getStats(userId, 'spit_royale');
+      const stats2 = await Game.getStats(userId, 'alpaca_road');
+      stats = Game.combineStats(userId, stats1, stats2);
+    } else {
+      stats = await Game.getStats(userId, gameType);
+    }
+
     res.json({ stats });
   } catch (err) { next(err); }
 };
@@ -138,10 +150,10 @@ export const saveGameResult = async (req, res, next) => {
     res.json({ stats });
 
     if (result === 'loss') {
-      GamificationService.onLoss(req.user.id).catch(() => {});
+      GamificationService.onLoss(req.user.id).catch(() => { });
     }
     if (gameType === 'alpaca_road') {
-      GamificationService.onAlpacaRoadStage(req.user.id, stageReached).catch(() => {});
+      GamificationService.onAlpacaRoadStage(req.user.id, stageReached).catch(() => { });
     }
   } catch (err) { next(err); }
 };
@@ -179,9 +191,9 @@ export const saveFarm = async (req, res, next) => {
     // reject negatives, NaN, and non-numeric junk from the JSONB write.
     const COIN_CAP = 1_000_000_000;
     const clean = {};
-    if (Array.isArray(raw.items))   clean.items   = raw.items.slice(0, MAX_ITEMS);
+    if (Array.isArray(raw.items)) clean.items = raw.items.slice(0, MAX_ITEMS);
     if (Array.isArray(raw.alpacas)) clean.alpacas = raw.alpacas.slice(0, MAX_ALPACAS);
-    if (raw.coins    !== undefined) clean.coins    = clampInt(raw.coins,    0, COIN_CAP);
+    if (raw.coins !== undefined) clean.coins = clampInt(raw.coins, 0, COIN_CAP);
     if (raw.upgrades !== undefined) clean.upgrades = clampInt(raw.upgrades, 0, COIN_CAP);
     if (raw.herdsize !== undefined) clean.herdsize = clampInt(raw.herdsize, 0, COIN_CAP);
 
@@ -195,7 +207,7 @@ export const saveFarm = async (req, res, next) => {
 
     const farm = await Game.updateFarm(req.user.id, clean);
     res.json({ farm });
-    GamificationService.onFarmSave(req.user.id, clean).catch(() => {});
+    GamificationService.onFarmSave(req.user.id, clean).catch(() => { });
   } catch (err) { next(err); }
 };
 
