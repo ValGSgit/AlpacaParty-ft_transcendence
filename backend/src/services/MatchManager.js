@@ -138,6 +138,7 @@ export class MatchManager {
               status: match.status,
               spawn: match.status === 'PLAYING' && player ? { x: player.x, z: player.z, angle: player.angle } : null
             });
+            match.syncLobby();
           }
         }
       });
@@ -166,9 +167,10 @@ export class MatchManager {
 
         // Add to the match before signalling success so the client can't fire
         // gameplay events into an empty match between the two emits.
-        socket.join(roomId);
         match.addPlayer(socket, sessionId, name, color);
+        socket.join(roomId);
         socket.emit('join_success', { roomId, roomName, gameType: typeKey });
+        match.syncLobby();
         this.broadcastPublicRooms();
       });
 
@@ -190,6 +192,7 @@ export class MatchManager {
         match.addPlayer(socket, sessionId, name, color);
         socket.join(roomId);
         socket.emit('join_success', { roomId, roomName: match.roomName, gameType: typeKey });
+        match.syncLobby();
         this.broadcastPublicRooms();
       });
 

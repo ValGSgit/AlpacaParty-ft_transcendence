@@ -66,6 +66,14 @@ export class SpitRoyalMatch extends BaseMatch {
     }
   }
 
+  reconnectPlayer(sessionId) {
+    super.reconnectPlayer(sessionId);
+    const player = this.players.get(sessionId);
+    if (player) {
+      player.lastInputAt = Date.now();
+    }
+  }
+
   removePlayer(sessionId) {
     const player = this.players.get(sessionId);
     if (player) {
@@ -82,21 +90,43 @@ export class SpitRoyalMatch extends BaseMatch {
     const validNum = (n) => typeof n === "number" && Number.isFinite(n);
 
     if (validNum(x) && validNum(z)) {
-      const r2 = x * x + z * z;
+      let safeX = x;
+      let safeZ = z;
+
+      const r2 = safeX * safeX + safeZ * safeZ;
       const maxR = ARENA_RADIUS - PLAYER_RADIUS;
-      if (r2 > maxR * maxR) return;
+
+      if (r2 > maxR * maxR) {
+        const scale = maxR / Math.sqrt(r2);
+        safeX *= scale;
+        safeZ *= scale;
+      }
 
       const now = Date.now();
-      const dt = Math.max(0.001, (now - (player.lastInputAt || now)) / 1000);
-      const step = Math.hypot(x - (player.x ?? 0), z - (player.z ?? 0));
+
+      if (!player.lastInputAt || (now - player.lastInputAt) > 1000) {
+        player.lastInputAt = now;
+        player.x = safeX;
+        player.z = safeZ;
+        if (validNum(y)) player.y = y;
+        if (validNum(angle)) player.angle = angle;
+        return;
+      }
+
+      const dt = Math.max(0.001, (now - player.lastInputAt) / 1000);
+      const step = Math.hypot(safeX - (player.x ?? 0), safeZ - (player.z ?? 0));
+
       if (step > MAX_SPEED_MPS * dt * 1.5) return;
+
       player.lastInputAt = now;
-      player.x = x;
-      player.z = z;
+      player.x = safeX;
+      player.z = safeZ;
     }
+
     if (validNum(y)) player.y = y;
     if (validNum(angle)) player.angle = angle;
   }
+
 
   handlePlayerSpit(sessionId, direction) {
     const player = this.players.get(sessionId);

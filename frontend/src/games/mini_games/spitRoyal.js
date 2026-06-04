@@ -224,7 +224,6 @@ function syncPlayers(delta) {
       localAlpaca.point = serverData.point;
       if (localAlpaca.socketId === activeClient.sessionId) {
         gUser.value.point = serverData.point;
-        console.log("POINTS: ", gUser.value.point)
       }
     }
   }

@@ -61,7 +61,6 @@ export class GameClient {
         gMinigame.value.mode = mode;
         changeGame(mode, 1);
         gMinigame.value.currentRoomName = data.roomName;
-
         if (data.status === 'PLAYING') {
           gUI.lobbyMenu = false;
           gMinigame.value.isActive = true;
