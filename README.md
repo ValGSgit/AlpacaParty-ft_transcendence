@@ -20,7 +20,7 @@
 - **Friends & Presence** — Send/accept/decline/cancel requests; live online indicator.
 - **AI Help Desk ("Paca")** — Floating chat widget; backend proxies to Groq with a system prompt that knows AlpacaParty's features and links.
 - **Gamification** — XP/level, 15 seeded achievements, daily challenges, in-game coins, three leaderboards (kills, obstacles, coins).
-- **Public API** — 6 RESTful endpoints under `/api/public/*` with `X-API-Key` (`ap_` prefix) auth, 30 req/min rate limit, Swagger UI at `/api/docs/public` (also embedded in the in-app `/docs` page).
+- **Public API** — 6 RESTful endpoints under `/api/public/*` with `X-API-Key` (`ap_` prefix) auth, 30 req/min rate limit, Swagger UI at `/api/docs/public`.
 - **HTTPS Everywhere** — Self-signed TLS in dev, nginx HTTPS termination in prod; HSTS, CSP, X-Frame-Options enforced at the nginx layer.
 - **GDPR Compliance** — Self-service data export (JSON/CSV/XML) and account deletion from Profile → Settings.
 - **Privacy Policy & Terms of Service** — Project-specific copy (no boilerplate), linked from every page footer.
@@ -71,7 +71,7 @@
 | **AI** | Groq LLM API — server-side proxy | Fast completions for the in-app "Paca" help desk; key never exposed to the browser |
 | **Reverse proxy** | nginx | HTTPS termination, WS upgrade, gzip, security headers |
 | **Containerization** | Docker Compose (`make`) | Single-command build + deploy |
-| **API docs** | Swagger UI (OpenAPI 3) at `/api/docs/public`, embedded in the `/docs` frontend page | Interactive documentation for the public API + architecture map |
+| **API docs** | Swagger UI (OpenAPI 3) at `/api/docs/public` | Interactive documentation for the public API |
 
 ---
 
@@ -195,7 +195,7 @@ PostgreSQL with **22 Prisma models**, organized around users, social interaction
 1. **Frontend + Backend Frameworks** — Vue 3 + Vite + Pinia + Vue Router on the client; Express.js with modular controller/service/route architecture on the server.
 2. **Real-time features** — Socket.IO with two namespaces. The `/` namespace handles presence, DMs, notifications, and post broadcasts. The `/minigames` namespace hosts `MatchManager`, which dispatches to `SpitRoyalMatch` and `AlpacaRoadMatch` instances per match room (each running its own ~33 ms tick loop). JWT cookies are validated by `socketAuthMiddleware` on every namespace.
 3. **User interaction** — Direct messaging, profile pages with stats, friends with online presence, block / unblock.
-4. **Public API** — `/api/public/*` with 6 endpoints (`GET /users`, `GET /users/:id`, `GET /posts`, `POST /posts`, `PUT /posts/:id`, `DELETE /posts/:id`). Authenticated by `X-API-Key` (keys prefixed `ap_` followed by a 32-char hex string), rate-limited per key (30 req/min). Plus `GET /api/public/` returning a self-describing endpoint listing. Interactive Swagger UI at `/api/docs/public`, also embedded in the in-app `/docs` page alongside an architecture map.
+4. **Public API** — `/api/public/*` with 6 endpoints (`GET /users`, `GET /users/:id`, `GET /posts`, `POST /posts`, `PUT /posts/:id`, `DELETE /posts/:id`). Authenticated by `X-API-Key` (keys prefixed `ap_` followed by a 32-char hex string), rate-limited per key (30 req/min). Plus `GET /api/public/` returning a self-describing endpoint listing. Interactive Swagger UI at `/api/docs/public`.
 5. **ORM** — Prisma + `@prisma/adapter-pg` covers all 22 models with full type safety and migrations.
 6. **Notification system** — Notifications are inserted on friend-request CRUD, post likes, comments, achievement unlocks, and game invites; pushed in real time over Socket.IO and persisted in the `Notification` table.
 7. **File upload** — `multer` accepts images & documents under a MIME whitelist; 10 MB cap; hashed stored names; per-user listing; uploader-only delete; image preview; non-image files require auth to download.
@@ -220,7 +220,7 @@ PostgreSQL with **22 Prisma models**, organized around users, social interaction
 - **API surface**: All controllers (auth, users, friends, chat, posts, comments, game, notifications, uploads, public API, helpdesk)
 - **Services**: Gamification engine, NotificationService, dataExportService (JSON / CSV / XML), uploadService, `socketService` for the `/` namespace, `MatchManager` on the `/minigames` namespace dispatching `SpitRoyalMatch` and `AlpacaRoadMatch`
 - **AI**: Groq LLM proxy (`/helpdesk`) with key rotation and rate limiting; floating `HelpDeskChat.vue` widget
-- **Frontend**: `Feed.vue`, `Profile.vue`, settings page, public-API-key management UI, `ApiDocs.vue`, notifications, `Help.vue`, `PrivacyPolicy.vue`, `TermsOfService.vue`, GDPR export + delete-request flows
+- **Frontend**: `Feed.vue`, `Profile.vue`, settings page, public-API-key management UI, notifications, `Help.vue`, `PrivacyPolicy.vue`, `TermsOfService.vue`, GDPR export + delete-request flows
 
 ### DavidPoetsch — Technical Lead / Developer
 - **nginx**: Reverse-proxy config for dev + prod, HTTPS termination, WS upgrade for Socket.IO, security headers (HSTS, CSP, X-Frame-Options)
@@ -342,8 +342,6 @@ Compose's `env_file` directive. `make generate-secrets` randomizes
 | `backend` | `backend_prod` | Express + Socket.IO (`API_PORT`) |
 | `frontend` | `frontend_prod` | nginx-served Vue 3 SPA build |
 | `postgres` | `alpacaparty_db_prod` | PostgreSQL 16 |
-
-For an interactive system map (request pipeline, route catalog, Socket.IO namespaces, and more), open the **Architecture Map** tab on `/docs` once the app is running.
 
 ---
 

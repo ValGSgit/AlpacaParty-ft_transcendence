@@ -324,6 +324,7 @@ import { changeGame, friendName, visitFarm } from './mini_games/init.js'
 import { updateMinigame } from './mini_games/minigames.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
+import { debug } from '../services/logger.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -436,7 +437,7 @@ onUnmounted(async () => {
   } catch (e) {
     // best-effort flush; continue teardown even on failure
     // eslint-disable-next-line no-console
-    console.warn('flushSave failed during unmount:', e)
+    debug('flushSave failed during unmount:', e)
   }
   if (stopMyWatcher) stopMyWatcher()
   cancelAnimationFrame(animationFrameId)
