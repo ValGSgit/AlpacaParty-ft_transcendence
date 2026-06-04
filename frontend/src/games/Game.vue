@@ -244,8 +244,8 @@
     <div v-if="gUI.editMode" class="edit-mode">
       <div class="shop-title"> Edit Mode
           <div v-if="gEditState.selected" class="edit-actions">
-            <button class="shop-btn" @click="sellItem()"><AppIcon name="coin" :size="18" /> Sell Item</button>
-            <button class="shop-btn" @click="cancelPlacement()">Cancel <AppIcon name="close" :size="14" /></button>
+            <button class="shop-btn" @click="sellItem()"><AppIcon name="coin" :size="22" /> Sell Item</button>
+            <button class="shop-btn" @click="cancelPlacement()">Cancel <AppIcon name="close" :size="22" /></button>
           </div>
       <button class="close-btn" @click="closeEditMode()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
@@ -373,8 +373,7 @@ onMounted(async () => {
   }
   else
   {
-    if (CONST.DEBUG)
-      stats = initFPSstats(gameContainer.value);
+    stats = initFPSstats(gameContainer.value);
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
