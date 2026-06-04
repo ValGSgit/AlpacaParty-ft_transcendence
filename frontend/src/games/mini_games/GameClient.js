@@ -34,8 +34,8 @@ export class GameClient {
    */
   _buildHandlers() {
     return {
-      connect: () => { 
-        debug("GameClient connected:", this.socket?.id); 
+      connect: () => {
+        debug("GameClient connected:", this.socket?.id);
         this.socket.emit('restore_session', { sessionId: this.sessionId });
       },
       connect_error: (err) => { devError("GameClient connection failed:", err.message); },
@@ -95,7 +95,7 @@ export class GameClient {
         if (data && data.spawn) {
           gMinigame.value.spawnData = data.spawn;
         }
-        if (!(data && data.instant)) {
+        if (!(data && data.instant) && gMinigame.value.mode === 4) {
           playCountDown(3);
         }
       },

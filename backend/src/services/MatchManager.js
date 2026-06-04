@@ -163,11 +163,11 @@ export class MatchManager {
 
         this.matches.set(roomId, match);
         this.sessionToMatch.set(sessionId, roomId);
-        
+
         // Add to the match before signalling success so the client can't fire
         // gameplay events into an empty match between the two emits.
-        match.addPlayer(socket, sessionId, name, color);
         socket.join(roomId);
+        match.addPlayer(socket, sessionId, name, color);
         socket.emit('join_success', { roomId, roomName, gameType: typeKey });
         this.broadcastPublicRooms();
       });

@@ -50,6 +50,8 @@ export class SpitRoyalMatch extends BaseMatch {
     this.playersJoined = this.players.size;
     this._ensureHeartbeat();
 
+    const now = Date.now();
+
     for (const [id, player] of this.players) {
       const spawn = this.getValidSpawn();
       player.x = spawn.x;
@@ -60,6 +62,7 @@ export class SpitRoyalMatch extends BaseMatch {
       player.isDead = false;
       player.point = 0;
       this.namespace.to(id).emit('game_start', { spawn });
+      player.lastInputAt = now;
     }
   }
 
@@ -127,7 +130,9 @@ export class SpitRoyalMatch extends BaseMatch {
       owner.point++;
       target.isDead = true;
       this.eliminations = (this.eliminations || 0) + 1;
-      this.namespace.to(targetId).emit('game_over', { reason: 'eliminated' });
+      setTimeout(() => {
+        this.namespace.to(targetId).emit('game_over', { reason: 'eliminated' });
+      }, 500);
       this.checkWinCondition();
     }
   }
@@ -157,7 +162,9 @@ export class SpitRoyalMatch extends BaseMatch {
   endMatch(winnerSocketId, reason) {
     this.update()
     this.isPlaying = false;
-    this.broadcast('game_over', { reason, winnerId: winnerSocketId });
+    setTimeout(() => {
+      this.broadcast('game_over', { reason, winnerId: winnerSocketId });
+    }, 500);
     this._persistOutcome(winnerSocketId).catch((err) =>
       error('[spit-royale] failed to persist outcome:', err.message),
     );
