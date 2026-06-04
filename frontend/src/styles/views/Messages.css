@@ -93,6 +93,8 @@
 .avatar-wrap { position: relative; flex-shrink: 0; }
 .mini-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .mini-avatar-sm { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 4px; }
+.avatar-link { cursor: pointer; transition: filter 0.15s, box-shadow 0.15s; }
+.avatar-link:hover { filter: brightness(1.08); box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.45); }
 
 .online-dot {
   position: absolute;

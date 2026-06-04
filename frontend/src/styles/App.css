@@ -286,6 +286,29 @@
   border-radius: 14px 14px 0 0;
 }
 
+.notif-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.notif-clear {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.notif-clear:hover {
+  color: var(--primary);
+  border-color: rgba(0, 240, 255, 0.4);
+  background: rgba(0, 240, 255, 0.08);
+}
+
 .notif-close {
   background: none;
   border: none;
