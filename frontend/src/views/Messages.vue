@@ -160,7 +160,7 @@ const currentUserId = computed(() => authStore.user?.id)
 function goToProfile(userId) {
   if (userId == null) return
   emit('close')
-  router.push(`/user/${userId}`)
+  router.push(`/users/${userId}`)
 }
 
 const sideTab = ref('dms')

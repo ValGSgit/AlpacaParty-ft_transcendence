@@ -421,7 +421,7 @@ const router = useRouter();
 
 function goToProfile(userId) {
   if (userId == null) return;
-  router.push(`/user/${userId}`);
+  router.push(`/users/${userId}`);
 }
 
 const activeTab = ref("friends");
