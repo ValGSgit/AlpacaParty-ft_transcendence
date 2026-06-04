@@ -24,7 +24,10 @@ export async function changeGame(mode = 0, playerCount = 1) {
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0) await flushSave();
 
+  const savedPlayers = gMinigame.value.players;
+
   resetMinigame();
+  gMinigame.value.players = savedPlayers;
   gMinigame.value.mode = mode;
   gMinigame.value.isOnline = (gMinigame.value.mode === 2 || gMinigame.value.mode === 4);
   gUser.value.hp = CONST.HP

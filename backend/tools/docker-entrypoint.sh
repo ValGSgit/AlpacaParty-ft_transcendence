@@ -17,4 +17,8 @@ npx prisma generate
 echo "Seeding database"
 npm run seed
 
+echo "Building API docs"
+rm -f /app/src/docs/swagger-output-public-api.json
+npm run buildDocs
+
 exec "$@"
