@@ -36,7 +36,16 @@
               <div v-if="showNotifPanel" class="notif-panel">
                 <div class="notif-panel-header">
                   <span>Notifications</span>
-                  <button class="notif-close" @click="showNotifPanel = false">&times;</button>
+                  <div class="notif-header-actions">
+                    <button
+                      v-if="notifications.length"
+                      class="notif-clear"
+                      @click="clearAllNotifications"
+                    >
+                      Clear all
+                    </button>
+                    <button class="notif-close" @click="showNotifPanel = false">&times;</button>
+                  </div>
                 </div>
                 <div v-if="!notifications.length" class="notif-empty">No notifications yet</div>
                 <div
@@ -95,7 +104,7 @@
     <div v-if="showMessagesModal" class="modal-overlay" @click.self="showMessagesModal = false">
       <div class="messages-modal-content">
         <button class="modal-close-top" @click="showMessagesModal = false">&times;</button>
-        <Messages />
+        <Messages @close="showMessagesModal = false" />
       </div>
     </div>
 
@@ -156,9 +165,20 @@ function toggleNotifications() {
 async function fetchNotifications() {
   try {
     const { data } = await api.get('/notifications')
-    notifications.value = data.notifications || []
+    // Message notifications are surfaced on the floating message bubble (via the
+    // unread-messages badge), so keep them out of the notification bell to avoid
+    // double-counting the same event.
+    notifications.value = (data.notifications || []).filter(n => n.type !== 'message')
     unreadCount.value = notifications.value.filter(n => !n.is_read).length
   } catch (e) { devError(e) }
+}
+
+async function clearAllNotifications() {
+  try {
+    await api.put('/notifications/read-all')
+  } catch (e) { devError(e) }
+  notifications.value = []
+  unreadCount.value = 0
 }
 
 async function fetchUnreadMessages() {
@@ -214,7 +234,9 @@ function handleScroll() { scrolled.value = window.scrollY > 12 }
 // Capture the handlers once, track the socket they're attached to, and
 // always unbind before binding.
 const socketHandlers = {
-  notification: () => { unreadCount.value++ },
+  // Skip 'message' notifications here — those are reflected on the message
+  // bubble's unread badge through the 'dm:message' handler below.
+  notification: (n) => { if (n?.type !== 'message') unreadCount.value++ },
   connect:      () => { if (authStore.user) authStore.user.isOnline = true },
   disconnect:   () => { if (authStore.user) authStore.user.isOnline = false },
   presence:     ({ userId, isOnline }) => {

@@ -100,8 +100,10 @@
             <div class="avatar-wrap">
               <img
                 :src="f.avatar || '/avatars/default.svg'"
-                class="avatar"
+                class="avatar avatar-link"
                 alt=""
+                title="View profile"
+                @click="goToProfile(f.id)"
               />
               <span class="status-dot" :class="{ online: f.is_online }"></span>
             </div>
@@ -203,8 +205,10 @@
               <div class="avatar-wrap">
                 <img
                   :src="u.avatar || '/avatars/default.svg'"
-                  class="avatar"
+                  class="avatar avatar-link"
                   alt=""
+                  title="View profile"
+                  @click="goToProfile(u.id)"
                 />
               </div>
               <div class="user-info">
@@ -285,8 +289,10 @@
                     r.senderAvatar ||
                     '/avatars/default.svg'
                   "
-                  class="avatar"
+                  class="avatar avatar-link"
                   alt=""
+                  title="View profile"
+                  @click="goToProfile(r.senderId)"
                 />
               </div>
               <div class="user-info">
@@ -340,8 +346,10 @@
                     r.receiverAvatar ||
                     '/avatars/default.svg'
                   "
-                  class="avatar"
+                  class="avatar avatar-link"
                   alt=""
+                  title="View profile"
+                  @click="goToProfile(r.receiverId)"
                 />
               </div>
               <div class="user-info">
@@ -377,8 +385,10 @@
             <div class="avatar-wrap">
               <img
                 :src="b.avatar || '/avatars/default.svg'"
-                class="avatar avatar-blocked"
+                class="avatar avatar-blocked avatar-link"
                 alt=""
+                title="View profile"
+                @click="goToProfile(b.id)"
               />
             </div>
             <div class="user-info">
@@ -401,11 +411,18 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
 import api from "../services/api.js";
 import { useAuthStore } from "../stores/auth.js";
 import ListFetcher from "../utils/ListFetcher.js";
 
 const authStore = useAuthStore();
+const router = useRouter();
+
+function goToProfile(userId) {
+  if (userId == null) return;
+  router.push(`/users/${userId}`);
+}
 
 const activeTab = ref("friends");
 const tabs = [
