@@ -10,39 +10,49 @@ export class BaseMatch {
     this.players = new Map();
     this.status = 'LOBBY';
     this.heartbeat = null;
-    // Minimum players that must be present (and ready) before a match can
-    // start. Defaults to 1 (solo-friendly, e.g. Alpaca Road). Subclasses that
-    // are pointless solo — Spit Royale — raise this so a lone player waits in
-    // the lobby for an opponent instead of starting an empty arena.
     this.minPlayers = 1;
   }
 
-  addPlayer(socket, name, color) {
+  addPlayer(socket, sessionId, name, color) {
     const player = {
-      id: socket.id,
-      // socket.user is attached by socketAuthMiddleware; matches require auth,
-      // but keep the guard so a missing user doesn't crash player setup.
+      id: sessionId,
       userId: socket.user?.id ?? null,
       level: socket.user?.level ?? socket.user?.userStats?.level ?? 1,
       name: name || socket.user?.username || 'Vue_Alpaca',
       isReady: false,
       hp: 3,
       points: 0,
-      color: color || "0x000000"
+      color: color || "0x000000",
+      isOffline: false
     };
 
-    this.players.set(socket.id, player);
-    socket.join(this.matchId);
+    this.players.set(sessionId, player);
     this.syncLobby();
   }
 
-  removePlayer(socketId) {
-    this.players.delete(socketId);
+  removePlayer(sessionId) {
+    this.players.delete(sessionId);
     this.syncLobby();
   }
 
-  toggleReady(socketId, isReady) {
-    const player = this.players.get(socketId);
+  setPlayerOffline(sessionId) {
+    const player = this.players.get(sessionId);
+    if (player) {
+      player.isOffline = true;
+      this.syncLobby();
+    }
+  }
+
+  reconnectPlayer(sessionId) {
+    const player = this.players.get(sessionId);
+    if (player) {
+      player.isOffline = false;
+      this.syncLobby();
+    }
+  }
+
+  toggleReady(sessionId, isReady) {
+    const player = this.players.get(sessionId);
     if (player) {
       player.isReady = isReady;
       this.syncLobby();
@@ -50,15 +60,10 @@ export class BaseMatch {
     }
   }
 
-  // Whitelist of fields safe to broadcast. NEVER serialise the raw player
-  // object — client-supplied / future server-side fields may include
-  // setTimeout handles, sockets, or other non-plain values whose internal
-  // pointers crash socket.io-parser's hasBinary walk (stack overflow).
-  // Subclasses extend this list as needed.
   static _SAFE_PLAYER_FIELDS = [
     'id', 'userId', 'level', 'name', 'isReady', 'hp', 'points', 'color',
     'isDead', 'isHit', 'isJumping', 'isActive', 'point', 'lane',
-    'x', 'y', 'z', 'angle',
+    'x', 'y', 'z', 'angle', 'isOffline'
   ];
 
   shapePlayer(p) {
@@ -89,20 +94,11 @@ export class BaseMatch {
     this.namespace.to(this.matchId).emit(eventName, data);
   }
 
-  // Lazily arm the per-match game loop. Identical for every match type, so it
-  // lives here rather than being copy-pasted into each subclass. Subclasses set
-  // `this.tickRate` in their constructor before the first player arrives.
   _ensureHeartbeat() {
     if (this.heartbeat) return;
     this.heartbeat = setInterval(() => this._tick(), this.tickRate);
   }
 
-  // A throw inside a setInterval callback escapes as an uncaughtException and,
-  // because the interval keeps firing (~30x/sec), repeats forever — spamming
-  // logs and wedging the loop. Contain it: log once and tear the match down so
-  // one bad tick can't take the process with it. A match that can't tick is
-  // already dead; players drop back to the lobby and the room is freed on the
-  // resulting disconnects.
   _tick() {
     try {
       this.update();
@@ -117,10 +113,6 @@ export class BaseMatch {
   stop() {
     if (this.heartbeat) {
       clearInterval(this.heartbeat);
-      // Null the handle so subclasses' lazy `_ensureHeartbeat()` guard
-      // (which short-circuits on a truthy value) can correctly tell that
-      // no interval is currently armed if stop() is ever followed by a
-      // re-armed match.
       this.heartbeat = null;
     }
     this.status = 'FINISHED';
