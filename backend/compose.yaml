@@ -36,6 +36,7 @@ services:
     volumes:
       - ssl:/app/ssl
       - backend_uploads:/app/uploads
+      - backend_migrations:/app/prisma/migrations
     depends_on:
       postgres:
         condition: service_healthy

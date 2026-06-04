@@ -7,5 +7,7 @@ printf 'Running aggressive Docker cleanup (global).\n'
 docker compose down --rmi all --volumes --remove-orphans || true
 docker system prune -af --volumes
 docker builder prune -af
-rm -rf backend/node_modules frontend/node_modules
+
+docker run --rm -v "$(pwd):/workdir" -w /workdir alpine rm -rf backend/uploads backend/prisma/migrations
+
 printf 'Aggressive Docker cleanup complete\n'
