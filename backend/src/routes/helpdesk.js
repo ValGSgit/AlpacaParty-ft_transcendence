@@ -1,18 +1,18 @@
-import express from 'express';
-import { body } from 'express-validator';
-import { checkValidation } from '../validators/validatorUtils.js';
-import { helpdeskLimiter } from '../middleware/rateLimiters.js';
-import { authenticate } from '../middleware/auth.js';
-import config from '#config/index.js';
+import express from "express";
+import { body } from "express-validator";
+import { checkValidation } from "../validators/validatorUtils.js";
+import { helpdeskLimiter } from "../middleware/rateLimiters.js";
+import { authenticate } from "../middleware/auth.js";
+import config from "#config/index.js";
 
 const router = express.Router();
 
 // Tight enough to keep replies short and finish-able on a single Groq call,
 // loose enough for normal Q&A. Mirrored on the frontend (HelpDeskChat.vue).
-const MAX_HISTORY = 10;        // messages of context
-const MAX_CHARS = 1000;        // per user message
-const MAX_TOKENS = 350;        // ~250 words — enough for a complete answer,
-                               // small enough that the model never runs out.
+const MAX_HISTORY = 10; // messages of context
+const MAX_CHARS = 1000; // per user message
+const MAX_TOKENS = 350; // ~250 words — enough for a complete answer,
+// small enough that the model never runs out.
 
 let keyIndex = 0;
 function nextApiKey() {
@@ -33,6 +33,7 @@ AlpacaParty is a web-based platform where users can:
 - Send direct messages to other players
 - Earn coins and achievements through gameplay
 - Compete on leaderboards
+- The project repository is at https://github.com/ValGSgit/AlpacaParty-ft_transcendence
 
 ## The Game — AlpacaFarm
 - Players control alpacas on a farm map
@@ -75,18 +76,18 @@ AlpacaParty is a web-based platform where users can:
 - When appropriate, sign off short answers with a friendly alpaca-themed closing (e.g. "Happy farming! 🦙").`;
 
 router.post(
-  '/chat',
+  "/chat",
   authenticate,
   helpdeskLimiter,
-  express.json({ limit: '16kb' }),
+  express.json({ limit: "16kb" }),
   [
-    body('messages')
+    body("messages")
       .isArray({ min: 1, max: MAX_HISTORY })
       .withMessage(`messages must be an array of 1–${MAX_HISTORY} items`),
-    body('messages.*.role')
-      .isIn(['user', 'assistant'])
+    body("messages.*.role")
+      .isIn(["user", "assistant"])
       .withMessage('Each message role must be "user" or "assistant"'),
-    body('messages.*.content')
+    body("messages.*.content")
       .isString()
       .trim()
       .isLength({ min: 1, max: MAX_CHARS })
@@ -96,42 +97,59 @@ router.post(
   async (req, res) => {
     const apiKey = nextApiKey();
     if (!apiKey) {
-      return res.status(503).json({ error: { message: 'Help desk is not configured.' } });
+      return res
+        .status(503)
+        .json({ error: { message: "Help desk is not configured." } });
     }
 
     const abortCtrl = new AbortController();
-    req.on('close', () => abortCtrl.abort());
+    req.on("close", () => abortCtrl.abort());
 
     let upstream;
     try {
-      upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: config.groq.model,
-          messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...req.body.messages],
-          max_tokens: MAX_TOKENS,
-          temperature: 0.7,
-          stream: false,
-        }),
-        signal: abortCtrl.signal,
-      });
+      upstream = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: config.groq.model,
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              ...req.body.messages,
+            ],
+            max_tokens: MAX_TOKENS,
+            temperature: 0.7,
+            stream: false,
+          }),
+          signal: abortCtrl.signal,
+        },
+      );
     } catch (err) {
-      if (err.name === 'AbortError') return;
-      console.error('[helpdesk] fetch error:', err.message);
-      return res.status(502).json({ error: { message: 'Could not reach AI service.' } });
+      if (err.name === "AbortError") return;
+      console.error("[helpdesk] fetch error:", err.message);
+      return res
+        .status(502)
+        .json({ error: { message: "Could not reach AI service." } });
     }
 
     if (!upstream.ok) {
-      const errBody = await upstream.text().catch(() => '');
-      console.error('[helpdesk] Groq error:', errBody);
-      return res.status(502).json({ error: { message: 'AI service unavailable.' } });
+      const errBody = await upstream.text().catch(() => "");
+      console.error("[helpdesk] Groq error:", errBody);
+      return res
+        .status(502)
+        .json({ error: { message: "AI service unavailable." } });
     }
 
     const data = await upstream.json().catch(() => null);
     const content = data?.choices?.[0]?.message?.content?.trim();
     if (!content) {
-      return res.status(502).json({ error: { message: 'Empty response from the assistant.' } });
+      return res
+        .status(502)
+        .json({ error: { message: "Empty response from the assistant." } });
     }
     res.json({ content });
   },
