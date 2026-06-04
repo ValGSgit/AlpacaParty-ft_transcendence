@@ -33,7 +33,9 @@ COPY --chown=node:node --from=builder /app/prisma.config.js ./prisma.config.js
 COPY --chown=node:node --from=builder /app/package.json ./package.json
 
 COPY --chmod=755 tools/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --chmod=755 tools/start-prisma-studio.sh /usr/local/bin/start-prisma-studio.sh
 RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/start-prisma-studio.sh
 
 # Create uploads directories with correct ownership
 RUN mkdir -p /app/uploads && \

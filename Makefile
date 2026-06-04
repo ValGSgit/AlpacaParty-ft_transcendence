@@ -12,6 +12,7 @@
 # ============================================================================
 
 DC := docker compose
+DC_DBG := docker compose -f compose.yaml -f backend/compose.debug.yaml
 
 .DEFAULT_GOAL := up
 .PHONY: up down re build logs ps info help \
@@ -43,6 +44,13 @@ info:
 	@bash scripts/info.sh
 
 help: info
+
+debug: .env create-dirs ssl-certs
+	$(DC_DBG) up -d --build
+	@bash scripts/info.sh
+
+prisma-studio:
+	$(DC) exec -d backend /usr/local/bin/start-prisma-studio.sh
 
 # ── .env + secrets ──────────────────────────────────────────
 # Auto-generate .env (with random secrets, detected IP, and ports from
