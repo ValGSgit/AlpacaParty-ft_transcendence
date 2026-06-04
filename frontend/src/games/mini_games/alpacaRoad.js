@@ -193,27 +193,29 @@ function initRoadStripes() {
 export function updateAlpacaRoad(delta) {
   if (!assetsLoaded) return;
 
-  if (gMinigame.value.isOnline) { // ONLINE
-    if (gMinigame.value.isGameOver) {
-      endMinigame();
-      return;
-    }
-    syncObstacles();
-    syncPlayers(delta);
-    if (gMinigame.value.isActive) {
-      updateRoadScene(delta);
-      checkLocalCollisions();
-      checkLocalJump();
-      checkActivity(delta);
-    }
-  } else { //OFFLINE
-    if (!gMinigame.value.isActive) return;
-    spawnObstacles(delta)
-    updateObstacles(delta)
-    updatePlayers(delta)
-    updateRoadScene(delta)
-    updateDifficulty()
-    if (alivePlayers <= 0) endMinigame();
+  if (!gMinigame.value.isActive) return;
+  spawnObstacles(delta)
+  updateObstacles(delta)
+  updatePlayers(delta)
+  updateRoadScene(delta)
+  updateDifficulty()
+  if (alivePlayers <= 0) endMinigame();
+}
+
+export function updateAlpacaRoadOnline(delta) {
+  if (!assetsLoaded) return;
+
+  if (gMinigame.value.isGameOver) {
+    endMinigame();
+    return;
+  }
+  syncObstacles();
+  syncPlayers(delta);
+  if (gMinigame.value.isActive) {
+    updateRoadScene(delta);
+    checkLocalCollisions();
+    checkLocalJump();
+    checkActivity(delta);
   }
 }
 

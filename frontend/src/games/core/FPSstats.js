@@ -2,7 +2,7 @@ import Stats from 'three/addons/libs/stats.module.js';
 import { CONST } from '../config/constants';
 
 export function initFPSstats(container) {
-    //if (!CONST.DEBUG) return;
+    if (!CONST.DEBUG) return;
 
     const stats = new Stats();
 
@@ -19,7 +19,7 @@ export function initFPSstats(container) {
 }
 
 export function cleanupFPSstats(stats, container) {
-    //if (!CONST.DEBUG) return;
+    if (!CONST.DEBUG) return;
 
     if (stats && stats.dom && container && container.contains(stats.dom)) {
         container.removeChild(stats.dom);

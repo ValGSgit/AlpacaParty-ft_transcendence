@@ -104,6 +104,18 @@ router.get(
     #swagger.security = [{
       "apiKeyAuth": []
     }]
+    #swagger.parameters['filter'] = {
+      in: 'query',
+      name: 'filter[username]', 
+      description: 'Filter users by exact username.',
+      type: 'string'
+    }
+    #swagger.parameters['sort'] = {
+      in: 'query',
+      name: 'sort[id]', 
+      description: 'sort users by id',
+      type: 'string'
+    }
     #swagger.responses[200] = { description: 'Success.' }
     #swagger.responses[400] = { description: 'Failed.' }
   */

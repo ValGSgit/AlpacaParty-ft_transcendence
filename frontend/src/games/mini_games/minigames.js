@@ -1,5 +1,5 @@
 import { gMinigame } from "../core/globals";
-import { updateAlpacaRoad } from "./alpacaRoad";
+import { updateAlpacaRoad, updateAlpacaRoadOnline } from "./alpacaRoad";
 import { updateSpitRoyal } from "./spitRoyal";
 
 export function updateMinigame(delta) {
@@ -14,7 +14,7 @@ export function updateMinigame(delta) {
       updateAlpacaRoad(delta);
       break;
     case 4:
-      updateAlpacaRoad(delta);
+      updateAlpacaRoadOnline(delta);
       break;
     default:
       return;
