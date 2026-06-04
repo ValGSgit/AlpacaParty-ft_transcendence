@@ -278,7 +278,7 @@
       <section class="settings-section" style="--i:3">
         <h3>Public API Key</h3>
         <p class="s-muted">
-          Use this key to access the <router-link to="/docs" class="s-link">Public API</router-link>.
+          Use this key to access the <a href="/api/docs/public" target="_blank" rel="noopener" class="s-link">Public API</a>.
           Pass it as the <code>X-API-Key</code> header on every request.
         </p>
         <div v-if="apiKeyMsg" class="flash" :class="'flash-' + apiKeyMsg.type" style="margin-bottom:1rem">
