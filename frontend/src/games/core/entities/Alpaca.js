@@ -105,7 +105,7 @@ export class Alpaca {
     if (gUI.editMode) {
       this.isMoving = false;
       this.animDir = 0;
-    } else if (!isPlayer && gMinigame.value.mode !== 3) {
+    } else if (!isPlayer && gMinigame.value.mode !== 3 && gMinigame.value.mode !== 4) {
       updateAI(this, delta);
       this.animDir = this.isMoving || this.isJumping? 1 : 0;
     } else {

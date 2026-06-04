@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { CONST } from '../config/constants.js';
-import { gMinigame } from './globals.js';
+import { gMinigame, gPlayer } from './globals.js';
+import { roadSpeed } from '../mini_games/alpacaRoad.js';
 
 export function handleAnimation(player, animDir, speed) {
+  if (gMinigame.value.mode === 3 || gMinigame.value.mode === 4 )
+    speed = roadSpeed / 2.1 
   if (CONST.SBS_ENABLED)
     speed /= 2 // SBS calibration
   const { mixer, animations } = player
-
   const idleAction = mixer.clipAction(animations[1])
   const jumpAction = mixer.clipAction(animations[2])
   const deadAction = mixer.clipAction(animations[0])
@@ -32,12 +34,15 @@ export function handleAnimation(player, animDir, speed) {
       newAction = jumpAction
     else
       newAction = walkAction
-    walkAction.timeScale = (speed * calibration) * animDir
+    if (gMinigame.value.mode === 4)
+      walkAction.timeScale = speed * 0.125
+    else
+      walkAction.timeScale = (speed * calibration) * animDir
   } else {
     newAction = idleAction
   }
 
-  if ((gMinigame.value.mode === 3 || gMinigame.value.mode === 4 )&& !player.isJumping && !player.isDead)
+  if ((gMinigame.value.mode === 3 || gMinigame.value.mode === 4 )&& !player.isJumping && !player.isDead && gMinigame.value.isActive)
     newAction = walkAction // always walking in Alpaca Road mini game
 
   if (player.currentAction !== newAction) {
