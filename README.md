@@ -132,11 +132,21 @@ to stop the project:
 
 ## Database Schema
 
-run `make prisma-studio` to see:
+To see:
 
 - Visual representation of the database
 - Tables/collections and their relationships.
 - Key fields and data types.
+
+run
+
+```
+make debug
+// once the backend container is running run
+make prisma-studio
+```
+
+open `http://localhost:5555`
 
 ---
 
@@ -192,13 +202,6 @@ run `make prisma-studio` to see:
 | 20  | **Module of choice** — Sandbox game, Edit mode, shop, custom 3D models, visit others                         | Gaming    | Major | **2**  | ✅     | fankahou, LukasStefanek |
 
 ### **Total: 32 points** (14 required + bonus headroom)
-
-> The **Cybersecurity** Major is not claimed either. The subject bundles
-> WAF/ModSecurity **and** HashiCorp Vault into a single 2-point module, and
-> both halves have been removed from the project — Vault gave way to
-> secrets loaded from the project-root `.env` file via Compose's `env_file`
-> directive, and the WAF/ModSecurity layer has been dropped from the nginx
-> image (it now runs as a plain reverse proxy).
 
 ### Module Implementation Details
 
