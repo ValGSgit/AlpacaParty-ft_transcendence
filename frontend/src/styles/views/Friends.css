@@ -286,6 +286,12 @@
   filter: grayscale(0.7);
   opacity: 0.6;
 }
+.avatar-link {
+  cursor: pointer;
+}
+.avatar-link:hover {
+  border-color: rgba(0, 232, 122, 0.6);
+}
 
 .status-dot {
   position: absolute;

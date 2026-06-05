@@ -123,7 +123,7 @@
 
         <template v-else>
           <header class="post-head">
-            <router-link v-if="post.author_id" :to="`/user/${post.author_id}`" class="author-avatar-link">
+            <router-link v-if="post.author_id" :to="`/users/${post.author_id}`" class="author-avatar-link">
               <div class="avatar" :class="avatarColor(post.author_username)">
                 <img v-if="post.author_avatar" :src="resolveMediaUrl(post.author_avatar)" :alt="post.author_username" @error="onPostImageError" />
                 <span v-else>{{ post.author_username?.slice(0, 2).toUpperCase() }}</span>
@@ -134,7 +134,7 @@
             </div>
 
             <div class="post-meta">
-              <router-link v-if="post.author_id" :to="`/user/${post.author_id}`" class="username">
+              <router-link v-if="post.author_id" :to="`/users/${post.author_id}`" class="username">
                 {{ post.author_username }}
                 <span v-if="post.author_id === authStore.user?.id" class="self-tag">you</span>
               </router-link>
@@ -191,7 +191,7 @@
                 </div>
                 <div class="comment-body">
                   <div class="comment-head">
-                    <router-link v-if="c.author_id" :to="`/user/${c.author_id}`" class="username">{{ c.author_username }}</router-link>
+                    <router-link v-if="c.author_id" :to="`/users/${c.author_id}`" class="username">{{ c.author_username }}</router-link>
                     <span v-else class="username">{{ c.author_username }}</span>
                     <time class="ts">{{ formatTime(c.created_at) }}</time>
                     <button

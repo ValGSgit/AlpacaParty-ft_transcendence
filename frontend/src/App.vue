@@ -36,7 +36,16 @@
               <div v-if="showNotifPanel" class="notif-panel">
                 <div class="notif-panel-header">
                   <span>Notifications</span>
-                  <button class="notif-close" @click="showNotifPanel = false">&times;</button>
+                  <div class="notif-header-actions">
+                    <button
+                      v-if="notifications.length"
+                      class="notif-clear"
+                      @click="clearAllNotifications"
+                    >
+                      Clear all
+                    </button>
+                    <button class="notif-close" @click="showNotifPanel = false">&times;</button>
+                  </div>
                 </div>
                 <div v-if="!notifications.length" class="notif-empty">No notifications yet</div>
                 <div
@@ -57,8 +66,6 @@
             </button>
           </template>
           <template v-else>
-            <span class="nav-divider"></span>
-            <router-link to="/docs" class="nav-link" @click="mobileOpen = false">Docs</router-link>
             <span class="nav-divider"></span>
             <router-link to="/login" class="nav-link nav-login" @click="mobileOpen = false">Login</router-link>
             <router-link to="/register" class="nav-link nav-register" @click="mobileOpen = false">Sign Up</router-link>
@@ -97,23 +104,12 @@
     <div v-if="showMessagesModal" class="modal-overlay" @click.self="showMessagesModal = false">
       <div class="messages-modal-content">
         <button class="modal-close-top" @click="showMessagesModal = false">&times;</button>
-        <Messages />
+        <Messages @close="showMessagesModal = false" />
       </div>
     </div>
 
     <!-- AI help desk widget -->
     <HelpDeskChat v-if="authStore.isAuthenticated && !isAuthRoute" :with-footer="hasFooter" />
-
-    <!-- Banned popup — blocks the whole app until acknowledged -->
-    <div v-if="banned" class="banned-overlay" role="alertdialog" aria-modal="true" aria-labelledby="banned-title">
-      <div class="banned-modal">
-        <AppIcon name="alpaca" :size="40" class="banned-icon" />
-        <h2 id="banned-title" class="banned-title">Account Banned</h2>
-        <p class="banned-text">{{ bannedMessage }}</p>
-        <p class="banned-sub">You have been logged out and can no longer use AlpacaParty.</p>
-        <button class="banned-btn" @click="dismissBanned">OK</button>
-      </div>
-    </div>
 
   </div>
 </template>
@@ -122,7 +118,7 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth.js'
-import api, { ACCOUNT_BANNED_EVENT } from './services/api.js'
+import api from './services/api.js'
 import { devError } from './services/logger.js'
 import { connectSocket, disconnectSocket } from './services/socket.js'
 import AppIcon from './components/AppIcon.vue'
@@ -140,26 +136,6 @@ const showMessagesModal = ref(false)
 const notifications = ref([])
 const unreadCount = ref(0)
 const unreadMessages = ref(0)
-
-// Ban handling — when the server reports the account is banned (403 /
-// ACCOUNT_BANNED on any request, or a banned socket handshake), we show a
-// blocking popup and tear down the session so the app can't be used further.
-const banned = ref(false)
-const bannedMessage = ref('')
-
-async function handleBanned(e) {
-  if (banned.value) return // idempotent — a burst of 403s only triggers once
-  banned.value = true
-  bannedMessage.value = e?.detail?.message || 'Your account has been banned.'
-  // Drop the session immediately (clears user, disconnects socket, clears
-  // cookies) so nothing behind the modal remains usable.
-  try { await authStore.logout() } catch { /* best-effort */ }
-}
-
-function dismissBanned() {
-  banned.value = false
-  router.push('/login')
-}
 
 watch(showMessagesModal, (open) => {
   if (open) unreadMessages.value = 0
@@ -189,9 +165,20 @@ function toggleNotifications() {
 async function fetchNotifications() {
   try {
     const { data } = await api.get('/notifications')
-    notifications.value = data.notifications || []
+    // Message notifications are surfaced on the floating message bubble (via the
+    // unread-messages badge), so keep them out of the notification bell to avoid
+    // double-counting the same event.
+    notifications.value = (data.notifications || []).filter(n => n.type !== 'message')
     unreadCount.value = notifications.value.filter(n => !n.is_read).length
   } catch (e) { devError(e) }
+}
+
+async function clearAllNotifications() {
+  try {
+    await api.put('/notifications/read-all')
+  } catch (e) { devError(e) }
+  notifications.value = []
+  unreadCount.value = 0
 }
 
 async function fetchUnreadMessages() {
@@ -247,7 +234,9 @@ function handleScroll() { scrolled.value = window.scrollY > 12 }
 // Capture the handlers once, track the socket they're attached to, and
 // always unbind before binding.
 const socketHandlers = {
-  notification: () => { unreadCount.value++ },
+  // Skip 'message' notifications here — those are reflected on the message
+  // bubble's unread badge through the 'dm:message' handler below.
+  notification: (n) => { if (n?.type !== 'message') unreadCount.value++ },
   connect:      () => { if (authStore.user) authStore.user.isOnline = true },
   disconnect:   () => { if (authStore.user) authStore.user.isOnline = false },
   presence:     ({ userId, isOnline }) => {
@@ -257,13 +246,6 @@ const socketHandlers = {
   },
   'dm:message': () => {
     if (!showMessagesModal.value) unreadMessages.value++
-  },
-  // Safety net: a banned account is rejected at the socket handshake with
-  // "Account is banned". Route it through the same forced-logout flow.
-  connect_error: (err) => {
-    if (/banned/i.test(err?.message || '')) {
-      window.dispatchEvent(new CustomEvent(ACCOUNT_BANNED_EVENT))
-    }
   },
 }
 let boundSocket = null
@@ -311,12 +293,10 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 onMounted(() => {
   document.addEventListener('click', handleOutsideClick)
   window.addEventListener('scroll', handleScroll, { passive: true })
-  window.addEventListener(ACCOUNT_BANNED_EVENT, handleBanned)
 })
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('scroll', handleScroll)
-  window.removeEventListener(ACCOUNT_BANNED_EVENT, handleBanned)
   unbindSocketHandlers()
 })
 </script>

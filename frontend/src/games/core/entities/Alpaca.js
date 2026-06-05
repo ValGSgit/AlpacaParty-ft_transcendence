@@ -2,11 +2,11 @@ import * as THREE from 'three';
 import { alpacaAI } from '../../components/alpacaAI.js';
 import { alpacaHandling } from '../../components/alpacaHandling.js';
 import { CONST } from '../../config/constants.js';
-import { gAlpacas, gCollidables, gPlayer, gUI, gUser, gEngine, gMinigame } from '../globals.js';
+import { saveGameResult } from '../../mini_games/utils.js';
+import { gAlpacas, gCollidables, gEngine, gMinigame, gPlayer, gUI, gUser } from '../globals.js';
 import { removeFromArray } from '../removeObjects.js';
 import { handleAnimation } from '../useAnimation.js';
 import { usePlayerControls } from '../usePlayerControls.js';
-import { saveGameResult } from '../../mini_games/utils.js';
 
 const { updateAI } = alpacaAI();
 const { updatePlayer } = usePlayerControls();
@@ -83,8 +83,7 @@ export class Alpaca {
     const isIncrease = amount > 0 ? true : false;
     const speedAdjustment = 4.0;
 
-    if (isIncrease)
-    {
+    if (isIncrease) {
       if (this.speedOffset <= 0)
         this.speedOffset += speedAdjustment;
     }
@@ -93,7 +92,7 @@ export class Alpaca {
         this.speedOffset -= speedAdjustment;
     }
   }
- 
+
   update(delta) {
     const player = gPlayer.value;
     const isPlayer = (player && this.model.uuid === player.model.uuid);
@@ -107,7 +106,7 @@ export class Alpaca {
       this.animDir = 0;
     } else if (!isPlayer && gMinigame.value.mode !== 3) {
       updateAI(this, delta);
-      this.animDir = this.isMoving || this.isJumping? 1 : 0;
+      this.animDir = this.isMoving || this.isJumping ? 1 : 0;
     } else {
       updatePlayer(this, delta);
     }
@@ -135,7 +134,7 @@ export class Alpaca {
     raycaster.setFromCamera(mouse, gEngine.value.camera);
 
     const targetWorldPoint = new THREE.Vector3();
-    raycaster.ray.at(20, targetWorldPoint); 
+    raycaster.ray.at(20, targetWorldPoint);
     makeSpit(this, targetWorldPoint);
   }
 
@@ -155,8 +154,7 @@ export class Alpaca {
       alpaca.point++ // credit for the spit owner
       if (alpaca === gPlayer.value)
         gUser.value.point++ // for display
-      if (this === gPlayer.value || (gMinigame.value.isActive && gCollidables.length === 1))
-      {
+      if (this === gPlayer.value || (gMinigame.value.isActive && gCollidables.length === 1)) {
         gMinigame.value.isGameOver = true;
         gMinigame.value.isActive = false
         // Offline spit-royale only (mode 1): contribute the local player's

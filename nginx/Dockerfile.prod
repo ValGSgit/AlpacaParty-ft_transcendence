@@ -1,8 +1,0 @@
-# nginx reverse-proxy image — production
-FROM nginx:1.25
-
-# SSL directory (certs mounted via the `ssl` volume at runtime)
-RUN mkdir -p /etc/nginx/conf
-
-# nginx config — rendered from the template by the official image entrypoint
-COPY conf/nginx.prod.conf /etc/nginx/templates/conf.d/default.conf.template

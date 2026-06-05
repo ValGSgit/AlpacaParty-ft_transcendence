@@ -1,10 +1,10 @@
 import { ref } from 'vue';
-import { useAuthStore } from '../../stores/auth.js';
 import { debug } from '../../services/logger.js';
+import { useAuthStore } from '../../stores/auth.js';
 import { clearCoins } from '../components/coins.js';
 import { CONST } from '../config/constants.js';
 import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
-import { pauseSaves, resumeSaves, saveGame, flushSave } from '../core/saveLoadGame.js';
+import { flushSave, pauseSaves, resumeSaves } from '../core/saveLoadGame.js';
 import { useGameEngine } from '../core/useGameEngine.js';
 import { initWorld } from '../world/initWorld.js';
 import { initAlpacaRoad, initAlpacaRoadOnline } from './alpacaRoad.js';
@@ -24,7 +24,10 @@ export async function changeGame(mode = 0, playerCount = 1) {
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0) await flushSave();
 
+  const savedPlayers = gMinigame.value.players;
+
   resetMinigame();
+  gMinigame.value.players = savedPlayers;
   gMinigame.value.mode = mode;
   gMinigame.value.isOnline = (gMinigame.value.mode === 2 || gMinigame.value.mode === 4);
   gUser.value.hp = CONST.HP
@@ -43,7 +46,7 @@ export async function changeGame(mode = 0, playerCount = 1) {
   initGameMode(mode, playerCount, tempAlpacas);
 }
 
-async function returnFarm() {
+export async function returnFarm() {
   const authStore = useAuthStore()
 
   activeClient.disconnect();
@@ -124,7 +127,7 @@ async function initGameMode(mode, playerCount, tempAlpacas) {
   }
 }
 
-export async function visitFarm(playerId, username){
+export async function visitFarm(playerId, username) {
   visitPlayerId = playerId
   friendName = username
   gUI.lobbyMenu = false

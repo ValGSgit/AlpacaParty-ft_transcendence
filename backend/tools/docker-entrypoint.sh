@@ -1,16 +1,18 @@
 #!/bin/sh
 set -e
 
-# Install deps (cheap when node_modules is already populated).
-npm install
-
-prisma="./node_modules/.bin/prisma"
-
-echo "Applying database migrations"
-$prisma migrate dev --name init
+# Apply database migrations. `migrate deploy` only runs committed migrations;
+# if none exist they will be created
+if [ -d "prisma/migrations" ] && find prisma/migrations -type f -name "*.sql" | grep -q .; then
+  echo "Deploying database migrations"
+  npx prisma migrate deploy
+else
+  echo "No migrations found - create new"
+  npx prisma migrate dev --name init
+fi
 
 echo "Generating Prisma client"
-$prisma generate
+npx prisma generate
 
 echo "Seeding database"
 npm run seed

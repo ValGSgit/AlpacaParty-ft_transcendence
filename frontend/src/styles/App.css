@@ -286,6 +286,29 @@
   border-radius: 14px 14px 0 0;
 }
 
+.notif-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.notif-clear {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.notif-clear:hover {
+  color: var(--primary);
+  border-color: rgba(0, 240, 255, 0.4);
+  background: rgba(0, 240, 255, 0.08);
+}
+
 .notif-close {
   background: none;
   border: none;
@@ -450,54 +473,3 @@
 
   .logout-label { display: inline; }
 }
-
-/* ── Banned popup ──────────────────────────────────────────── */
-.banned-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.78);
-  backdrop-filter: blur(4px);
-  padding: 1rem;
-}
-.banned-modal {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 2rem 1.75rem;
-  max-width: 420px;
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-.banned-icon { color: #ff5470; margin-bottom: 0.5rem; }
-.banned-title {
-  margin: 0.25rem 0 0.75rem;
-  font-size: 1.5rem;
-  color: #ff5470;
-}
-.banned-text {
-  color: var(--text-primary);
-  font-size: 1rem;
-  margin: 0 0 0.5rem;
-}
-.banned-sub {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  margin: 0 0 1.5rem;
-}
-.banned-btn {
-  background: linear-gradient(90deg, #ff5470, #ff7a4d);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.65rem 2.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: filter 0.15s ease;
-}
-.banned-btn:hover { filter: brightness(1.1); }

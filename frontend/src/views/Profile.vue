@@ -278,7 +278,7 @@
       <section class="settings-section" style="--i:3">
         <h3>Public API Key</h3>
         <p class="s-muted">
-          Use this key to access the <router-link to="/docs" class="s-link">Public API</router-link>.
+          Use this key to access the <a href="/api/docs/public" target="_blank" rel="noopener" class="s-link">Public API</a>.
           Pass it as the <code>X-API-Key</code> header on every request.
         </p>
         <div v-if="apiKeyMsg" class="flash" :class="'flash-' + apiKeyMsg.type" style="margin-bottom:1rem">
@@ -351,11 +351,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth.js'
 import api from '../services/api.js'
 import { devError } from '../services/logger.js'
+import { useAuthStore } from '../stores/auth.js'
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -492,7 +492,7 @@ onMounted(async () => {
   // 4. Fetch per-game stats (wins/losses). GameStat has no level field —
   //    don't try to read s.level here; the canonical level lives on UserStats.
   try {
-    const { data } = await api.get('/game/stats')
+    const { data } = await api.get('/game/stats');
     const s = Array.isArray(data.stats) ? data.stats[0] : data.stats
     if (s) {
       userStats.value.wins = s.wins ?? 0

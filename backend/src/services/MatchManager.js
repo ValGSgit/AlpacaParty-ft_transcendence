@@ -1,5 +1,5 @@
-import { randomUUID } from "crypto";
 import { debug } from "#lib/logger.js";
+import { randomUUID } from "crypto";
 import { AlpacaRoadMatch } from "./AlpacaRoadMatch.js";
 import { SpitRoyalMatch } from "./SpitRoyaleMatch.js";
 import { ensureSocketAuthed } from "./socketAuth.js";
@@ -35,7 +35,9 @@ export class MatchManager {
   constructor(ioNamespace) {
     this.io = ioNamespace;
     this.matches = new Map();
-    this.playerToMatch = new Map();
+    this.socketToSession = new Map();
+    this.sessionToMatch = new Map();
+    this.disconnectTimers = new Map();
 
     this.setupListeners();
   }
@@ -83,23 +85,68 @@ export class MatchManager {
       // connected client on every new connection floods the namespace.
       socket.emit('available_rooms', this.listPublicRooms());
 
-      const leaveCurrentRoom = () => {
-        const matchId = this.playerToMatch.get(socket.id);
+      const leaveCurrentRoom = (sessionId) => {
+        const matchId = this.sessionToMatch.get(sessionId);
         if (matchId) {
           const match = this.matches.get(matchId);
           if (match) {
-            match.removePlayer(socket.id);
+            match.removePlayer(sessionId);
             if (match.players.size === 0) {
               match.stop();
               this.matches.delete(matchId);
             }
           }
-          this.playerToMatch.delete(socket.id);
+          this.sessionToMatch.delete(sessionId);
+
+          const timer = this.disconnectTimers.get(sessionId);
+          if (timer) {
+            clearTimeout(timer);
+            this.disconnectTimers.delete(sessionId);
+          }
         }
       };
 
+      socket.on('restore_session', ({ sessionId }) => {
+        if (!sessionId) return;
+        socket.join(sessionId);
+        this.socketToSession.set(socket.id, sessionId);
+
+        const matchId = this.sessionToMatch.get(sessionId);
+        if (matchId) {
+          const match = this.matches.get(matchId);
+          if (match) {
+            if (match.status === 'GAME_OVER') {
+              return socket.emit('game_over');
+            }
+
+            const timer = this.disconnectTimers.get(sessionId);
+            if (timer) {
+              clearTimeout(timer);
+              this.disconnectTimers.delete(sessionId);
+            }
+
+            socket.join(matchId);
+            match.reconnectPlayer(sessionId);
+
+            const typeKey = TYPE_KEY_BY_CTOR.get(match.constructor);
+            const player = match.players.get(sessionId);
+
+            socket.emit('reconnect_success', {
+              roomId: matchId,
+              roomName: match.roomName,
+              gameType: typeKey,
+              status: match.status,
+              spawn: match.status === 'PLAYING' && player ? { x: player.x, z: player.z, angle: player.angle } : null
+            });
+            match.syncLobby();
+          }
+        }
+      });
+
       socket.on('create_room', ({ name, color, gameType }) => {
         debug(`BACKEND: Received create_room request from ${name}`);
+        const sessionId = this.socketToSession.get(socket.id);
+        if (!sessionId) return;
 
         const typeKey = Number(gameType);
         const MatchClass = GAME_REGISTRY[typeKey];
@@ -107,7 +154,7 @@ export class MatchManager {
           return socket.emit('join_error', { reason: 'invalid_game_type' });
         }
 
-        leaveCurrentRoom();
+        leaveCurrentRoom(sessionId);
 
         const roomId = randomUUID();
         const roomName = `${name}'s Room`;
@@ -116,15 +163,21 @@ export class MatchManager {
         });
 
         this.matches.set(roomId, match);
-        this.playerToMatch.set(socket.id, roomId);
+        this.sessionToMatch.set(sessionId, roomId);
+
         // Add to the match before signalling success so the client can't fire
         // gameplay events into an empty match between the two emits.
-        match.addPlayer(socket, name, color);
+        match.addPlayer(socket, sessionId, name, color);
+        socket.join(roomId);
         socket.emit('join_success', { roomId, roomName, gameType: typeKey });
+        match.syncLobby();
         this.broadcastPublicRooms();
       });
 
       socket.on('join_room', ({ name, roomId, color }) => {
+        const sessionId = this.socketToSession.get(socket.id);
+        if (!sessionId) return;
+
         const match = this.matches.get(roomId);
         if (!match) return socket.emit('join_error', { reason: 'room_not_found' });
 
@@ -134,17 +187,20 @@ export class MatchManager {
           return socket.emit('join_error', { reason: 'lobby_full' });
         }
 
-        leaveCurrentRoom();
-        this.playerToMatch.set(socket.id, roomId);
-        match.addPlayer(socket, name, color);
+        leaveCurrentRoom(sessionId);
+        this.sessionToMatch.set(sessionId, roomId);
+        match.addPlayer(socket, sessionId, name, color);
+        socket.join(roomId);
         socket.emit('join_success', { roomId, roomName: match.roomName, gameType: typeKey });
+        match.syncLobby();
         this.broadcastPublicRooms();
       });
 
       socket.on('leave_room', () => {
-        leaveCurrentRoom();
+        const sessionId = this.socketToSession.get(socket.id);
+        if (sessionId) leaveCurrentRoom(sessionId);
         this.broadcastPublicRooms();
-      })
+      });
 
       // ── Helpers for the per-event handlers below ─────────────────
       //
@@ -153,13 +209,15 @@ export class MatchManager {
       // this six times bred subtle copy-paste bugs (forgotten typeof checks,
       // mismatched delete order). One helper, one place to read.
       const dispatch = (handlerName, ...args) => {
-        const matchId = this.playerToMatch.get(socket.id);
+        const sessionId = this.socketToSession.get(socket.id);
+        if (!sessionId) return;
+        const matchId = this.sessionToMatch.get(sessionId);
         if (!matchId) return;
         const match = this.matches.get(matchId);
         if (!match) return;
         const fn = match[handlerName];
         if (typeof fn !== 'function') return;
-        fn.call(match, socket.id, ...args);
+        fn.call(match, sessionId, ...args);
       };
 
       // Inbound socket payloads are untrusted. Shape-guard before dispatch
@@ -177,10 +235,10 @@ export class MatchManager {
         dispatch('toggleReady', isReady);
       });
 
-      socket.on('player_hit',          () => dispatch('handlePlayerHit'));
+      socket.on('player_hit', () => dispatch('handlePlayerHit'));
       socket.on('player_hit_complete', () => dispatch('handlePlayerHitComplete'));
-      socket.on('player_jump',         () => dispatch('handlePlayerJump'));
-      socket.on('player_active',       () => dispatch('handleActive'));
+      socket.on('player_jump', () => dispatch('handlePlayerJump'));
+      socket.on('player_active', () => dispatch('handleActive'));
 
       socket.on('player_spit', (data) => {
         if (!isObject(data) || !isSpitDirection(data.direction)) return;
@@ -205,20 +263,32 @@ export class MatchManager {
       // twice on the success path (once inside, once outside the `if (match)`
       // branch) — flatten to a single delete after the optional cleanup.
       socket.on('disconnect', () => {
-        debug('BACKEND: Receive disconnect request');
-        const matchId = this.playerToMatch.get(socket.id);
+        const sessionId = this.socketToSession.get(socket.id);
+        if (!sessionId) return;
+        this.socketToSession.delete(socket.id);
+
+        const matchId = this.sessionToMatch.get(sessionId);
         if (!matchId) return;
 
         const match = this.matches.get(matchId);
         if (match) {
-          match.removePlayer(socket.id);
-          if (match.players.size <= 0) {
-            match.stop();
-            this.matches.delete(matchId);
-          }
+          match.setPlayerOffline(sessionId);
+
+          const timer = setTimeout(() => {
+            this.disconnectTimers.delete(sessionId);
+            const currentMatch = this.matches.get(this.sessionToMatch.get(sessionId));
+            if (currentMatch) {
+              currentMatch.removePlayer(sessionId);
+              if (currentMatch.players.size <= 0) {
+                currentMatch.stop();
+                this.matches.delete(matchId);
+              }
+            }
+            this.sessionToMatch.delete(sessionId);
+            this.broadcastPublicRooms();
+          }, 30000);
+          this.disconnectTimers.set(sessionId, timer);
         }
-        this.playerToMatch.delete(socket.id);
-        this.broadcastPublicRooms();
       });
     });
   }

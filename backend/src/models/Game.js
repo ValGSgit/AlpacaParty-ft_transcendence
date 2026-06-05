@@ -69,6 +69,19 @@ const Game = {
     });
   },
 
+  combineStats(userId, stat1, stat2) {
+    return {
+      userId: userId,
+      gameType: 'both',
+      wins: stat1.wins + stat2.wins,
+      losses: stat1.losses + stat2.losses,
+      draws: stat1.draws + stat2.draws,
+      kills: stat1.kills + stat2.kills,
+      obstacles: 0,
+      level: 1,
+    };
+  },
+
   async getStats(userId, gameType = "spit_royale") {
     const id = Number(userId);
     const stat = await prisma.gameStat.findUnique({
