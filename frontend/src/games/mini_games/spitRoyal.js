@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { devWarn } from '../../services/logger.js';
+import { useCoinUI } from '../components/coins.js';
 import { editLight } from '../components/editLight.js';
 import { useFloatingText } from '../components/floatingText.js';
 import { CONST } from '../config/constants.js';
 import { createAlpaca } from '../core/createObjects.js';
-import { gMinigame, gPlayer, gScene, gUI } from '../core/globals.js';
+import { gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
 import { registerEntity } from '../core/registerEntity.js';
 import { removeObject } from '../core/removeObjects.js';
 import { getValidRandomPos } from '../utils/spawnRandomly.js';
@@ -13,9 +14,11 @@ import { activeClient } from './GameClient.js';
 import { changeFloorColor } from './utils.js';
 
 let activePlayers = [];
+let hasAwardedRewards = false;
 
 const { spawnFloatingText } = useFloatingText();
 const { setTimeOfDay } = editLight();
+const { collectRewards } = useCoinUI();
 
 export function shootSpitAction(directionVec) {
   if (!gPlayer.value || gPlayer.value.isDead === 1) return;
@@ -66,6 +69,7 @@ export async function initSpitRoyalOnline() {
   gUI.isLightCycling = false;
 
   activePlayers.length = 0;
+  hasAwardedRewards = false;
   gPlayer.value.point = 0;
   gPlayer.value.socketId = activeClient.sessionId;
   gPlayer.value.hp = 3;
@@ -85,7 +89,12 @@ export async function initSpitRoyalOnline() {
 }
 
 export function updateSpitRoyal(delta) {
-  if (!gMinigame.value.isActive || gMinigame.value.isGameOver) return;
+  if (gMinigame.value.isGameOver) {
+    endMinigame()
+    return;
+  }
+
+  if (!gMinigame.value.isActive) return;
 
   if (gMinigame.value.spawnData && !gPlayer.value.hasSpawned)
     spawnPlayer();
@@ -105,8 +114,26 @@ function spawnPlayer() {
   gMinigame.value.spawnData = null;
 }
 
+function endMinigame() {
+  gMinigame.value.isGameOver = true;
+
+  if (hasAwardedRewards) return;
+  hasAwardedRewards = true;
+
+  gMinigame.value.isActive = false;
+
+  let playerPoints = 0;
+  const local = activePlayers.find(p => p.socketId === activeClient.sessionId);
+  if (local) playerPoints = local.point || 0;
+  const earnedCoins = Math.floor(playerPoints * 5);
+
+  if (earnedCoins > 0) {
+    setTimeout(() => { collectRewards(earnedCoins); }, 50);
+  }
+}
+
 function streamLocalPosition() {
-  if (!gPlayer.value || !gPlayer.value.hasSpawned) return;
+  if (!gPlayer.value || !gPlayer.value.hasSpawned || gPlayer.value.isDead) return;
 
   const model = gPlayer.value.model;
   activeClient.sendPlayerInput(model.position.x, model.position.y, model.position.z, model.rotation.y);
@@ -154,7 +181,6 @@ function syncPlayers(delta) {
           newAlpaca.socketId = sPlayer.id;
           if (sPlayer.color) newAlpaca.setColor(sPlayer.color);
           gScene.value.add(newAlpaca.model);
-          registerEntity(newAlpaca, 'alpaca');
           activePlayers[index] = newAlpaca;
         }
       });
@@ -183,9 +209,9 @@ function syncPlayers(delta) {
       // the player at NaN (which would freeze movement).
       if (localAlpaca.socketId === activeClient.sessionId) {
         if (!localAlpaca.hasSpawned &&
-            Number.isFinite(serverData.x) &&
-            Number.isFinite(serverData.y) &&
-            Number.isFinite(serverData.z)) {
+          Number.isFinite(serverData.x) &&
+          Number.isFinite(serverData.y) &&
+          Number.isFinite(serverData.z)) {
           localAlpaca.model.position.set(serverData.x, serverData.y, serverData.z);
           localAlpaca.hasSpawned = true;
           localAlpaca.isAutoMoving = false;
@@ -201,12 +227,14 @@ function syncPlayers(delta) {
         const movedDist = oldPos.distanceTo(localAlpaca.model.position);
         localAlpaca.isMoving = movedDist > (1.0 * delta);
 
-        const targetRot = serverData.angle;
-        let diff = targetRot - localAlpaca.model.rotation.y;
+        if (typeof serverData.angle === 'number') {
+          const targetRot = serverData.angle;
+          let diff = targetRot - localAlpaca.model.rotation.y;
 
-        while (diff < -Math.PI) diff += Math.PI * 2;
-        while (diff > Math.PI) diff -= Math.PI * 2;
-        localAlpaca.model.rotation.y += diff * delta * 10;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          localAlpaca.model.rotation.y += diff * delta * 10;
+        }
       }
 
       // Shared States
@@ -215,14 +243,14 @@ function syncPlayers(delta) {
       }
 
       if (serverData.isDead && localAlpaca.isDead !== 1) {
-        localAlpaca.model.rotation.x = Math.PI / 2;
-        localAlpaca.model.position.y = 0.5;
         localAlpaca.isMoving = false;
+        localAlpaca.isDead = 1;
       }
-
       localAlpaca.hp = serverData.hp;
       localAlpaca.point = serverData.point;
-      localAlpaca.isDead = serverData.isDead ? 1 : 0;
+      if (localAlpaca.socketId === activeClient.sessionId) {
+        gUser.value.point = serverData.point;
+      }
     }
   }
 }

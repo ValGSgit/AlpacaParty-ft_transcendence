@@ -10,7 +10,6 @@ const Feed     = () => import('../views/Feed.vue')
 const NotFound = () => import('../views/NotFound.vue')
 const PrivacyPolicy  = () => import('../views/PrivacyPolicy.vue')
 const TermsOfService = () => import('../views/TermsOfService.vue')
-const ApiDocs  = () => import('../views/ApiDocs.vue')
 const Help     = () => import('../views/Help.vue')
 
 const routes = [
@@ -62,12 +61,6 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/docs',
-    name: 'ApiDocs',
-    component: ApiDocs,
-    meta: { requiresAuth: false },
-  },
-  {
     path: '/help',
     name: 'Help',
     component: Help,
@@ -86,7 +79,7 @@ const routes = [
     meta: { requiresAuth: false },
   },
   {
-    path: '/user/:id',
+    path: '/users/:id',
     name: 'UserProfile',
     component: UserProfile,
     meta: { requiresAuth: false },
@@ -107,7 +100,7 @@ const router = createRouter({
 // Navigation guard — redirect to login if route requires auth.
 //
 // Session restore (calling /auth/me on a cold load so a still-valid cookie
-// rehydrates the store) lives in main.js, BEFORE the router is mounted —
+// rehydrates the store) lives in main.js, BEFORE the router is mounted
 // previously there was a `if (isAuthenticated && !user) fetchUser()` block
 // here, but isAuthenticated is derived as `!!user`, so the condition was
 // logically unreachable and only confused readers debugging session bugs.

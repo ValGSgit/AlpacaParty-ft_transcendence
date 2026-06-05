@@ -8,10 +8,10 @@
  *   • Every unlock fires an achievement notification
  */
 import prisma from '#config/prisma.js';
+import { error as logError } from '#lib/logger.js';
 import Achievement from '#models/Achievement.js';
 import Game from '#models/Game.js';
 import NotificationService from '#services/notificationService.js';
-import { error as logError } from '#lib/logger.js';
 
 // Notification delivery is fire-and-forget — the XP/achievement state is
 // already persisted by the time we get here. We don't want a flaky notify
@@ -22,9 +22,8 @@ function logNotifyError(context, err) {
 }
 
 const XP_PER_LEVEL = 100;
-const WIN_XP       = 30;
-const LOSS_XP      = 5;
-const WIN_COINS    = 20;
+const WIN_XP = 30;
+const LOSS_XP = 5;
 
 const GamificationService = {
   // ── XP ────────────────────────────────────────────────────────────────────
@@ -51,7 +50,7 @@ const GamificationService = {
     const newLevel = Math.floor(newXp / XP_PER_LEVEL);
 
     await prisma.userStats.upsert({
-      where:  { userId },
+      where: { userId },
       update: { xp: newXp, level: newLevel },
       create: { userId, xp: newXp, level: newLevel },
     });
@@ -59,8 +58,8 @@ const GamificationService = {
     if (newLevel > oldLevel) {
       NotificationService.notify({
         userId,
-        type:    'level_up',
-        title:   'Level Up!',
+        type: 'level_up',
+        title: 'Level Up!',
         message: `You reached level ${newLevel}!`,
       }).catch((err) => logNotifyError('level_up', err));
       if (newLevel >= 10) await this._unlockNoXp(userId, 'level_10');
@@ -86,7 +85,7 @@ const GamificationService = {
       // level_10 awards XP directly to avoid an awardXp → unlock('level_10') loop
       if (achievementKey === 'level_10') {
         await prisma.userStats.upsert({
-          where:  { userId },
+          where: { userId },
           update: { xp: { increment: achievement.xpReward } },
           create: { userId, xp: achievement.xpReward },
         });
@@ -155,22 +154,17 @@ const GamificationService = {
 
     await prisma.$transaction([
       prisma.userStats.upsert({
-        where:  { userId },
+        where: { userId },
         update: { xp: newXp, level: newLevel, winStreak: newStreak },
         create: { userId, xp: newXp, level: newLevel, winStreak: newStreak },
-      }),
-      prisma.alpacaFarm.upsert({
-        where:  { userId },
-        update: { coins: { increment: WIN_COINS } },
-        create: { userId, coins: WIN_COINS },
       }),
     ]);
 
     if (newLevel > oldLevel) {
       NotificationService.notify({
         userId,
-        type:    'level_up',
-        title:   'Level Up!',
+        type: 'level_up',
+        title: 'Level Up!',
         message: `You reached level ${newLevel}!`,
       }).catch((err) => logNotifyError('level_up', err));
       if (newLevel >= 10) await this._unlockNoXp(userId, 'level_10');
@@ -178,10 +172,10 @@ const GamificationService = {
 
     // Achievement checks (game stats already updated by the caller).
     const gs = await Game.getStats(userId, gameType);
-    if (gs.wins === 1)  await this.unlock(userId, 'first_win');
+    if (gs.wins === 1) await this.unlock(userId, 'first_win');
     if (newStreak >= 5) await this.unlock(userId, 'win_streak_5');
     if (gameType === 'spit_royale' && gs.wins >= 10) await this.unlock(userId, 'sharpshooter');
-    
+
     await this.checkTopPlayerAchievement(userId).catch((err) =>
       logError('[gamification] top-player check failed:', err?.message || err),
     );
@@ -204,7 +198,7 @@ const GamificationService = {
     const newLevel = Math.floor(newXp / XP_PER_LEVEL);
 
     await prisma.userStats.upsert({
-      where:  { userId },
+      where: { userId },
       update: { xp: newXp, level: newLevel, winStreak: 0 },
       create: { userId, xp: newXp, level: newLevel, winStreak: 0 },
     });
@@ -212,8 +206,8 @@ const GamificationService = {
     if (newLevel > oldLevel) {
       NotificationService.notify({
         userId,
-        type:    'level_up',
-        title:   'Level Up!',
+        type: 'level_up',
+        title: 'Level Up!',
         message: `You reached level ${newLevel}!`,
       }).catch((err) => logNotifyError('level_up', err));
       if (newLevel >= 10) await this._unlockNoXp(userId, 'level_10');

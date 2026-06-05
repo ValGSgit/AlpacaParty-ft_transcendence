@@ -20,7 +20,7 @@ import { saveGameResult } from './utils.js';
 const roadLength = 700;
 const roadBack = -25;
 const roadOffset = roadLength / 2 + roadBack;
-let roadSpeed;
+export let roadSpeed;
 const startZ = roadLength + roadBack;
 
 let level;
@@ -193,27 +193,29 @@ function initRoadStripes() {
 export function updateAlpacaRoad(delta) {
   if (!assetsLoaded) return;
 
-  if (gMinigame.value.isOnline) { // ONLINE
-    if (gMinigame.value.isGameOver) {
-      endMinigame();
-      return;
-    }
-    syncObstacles();
-    syncPlayers(delta);
-    if (gMinigame.value.isActive) {
-      updateRoadScene(delta);
-      checkLocalCollisions();
-      checkLocalJump();
-      checkActivity(delta);
-    }
-  } else { //OFFLINE
-    if (!gMinigame.value.isActive) return;
-    spawnObstacles(delta)
-    updateObstacles(delta)
-    updatePlayers(delta)
-    updateRoadScene(delta)
-    updateDifficulty()
-    if (alivePlayers <= 0) endMinigame();
+  if (!gMinigame.value.isActive) return;
+  spawnObstacles(delta)
+  updateObstacles(delta)
+  updatePlayers(delta)
+  updateRoadScene(delta)
+  updateDifficulty()
+  if (alivePlayers <= 0) endMinigame();
+}
+
+export function updateAlpacaRoadOnline(delta) {
+  if (!assetsLoaded) return;
+
+  if (gMinigame.value.isGameOver) {
+    endMinigame();
+    return;
+  }
+  syncObstacles();
+  syncPlayers(delta);
+  if (gMinigame.value.isActive) {
+    updateRoadScene(delta);
+    checkLocalCollisions();
+    checkLocalJump();
+    checkActivity(delta);
   }
 }
 
@@ -267,7 +269,6 @@ function syncPlayers(delta) {
             newAlpaca.setColor(sPlayer.color);
           }
           gScene.value.add(newAlpaca.model);
-          registerEntity(newAlpaca, 'alpaca');
           activePlayers[index] = newAlpaca;
         }
       });

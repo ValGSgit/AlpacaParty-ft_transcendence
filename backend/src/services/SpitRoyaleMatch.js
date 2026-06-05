@@ -50,6 +50,8 @@ export class SpitRoyalMatch extends BaseMatch {
     this.playersJoined = this.players.size;
     this._ensureHeartbeat();
 
+    const now = Date.now();
+
     for (const [id, player] of this.players) {
       const spawn = this.getValidSpawn();
       player.x = spawn.x;
@@ -60,6 +62,15 @@ export class SpitRoyalMatch extends BaseMatch {
       player.isDead = false;
       player.point = 0;
       this.namespace.to(id).emit('game_start', { spawn });
+      player.lastInputAt = now;
+    }
+  }
+
+  reconnectPlayer(sessionId) {
+    super.reconnectPlayer(sessionId);
+    const player = this.players.get(sessionId);
+    if (player) {
+      player.lastInputAt = Date.now();
     }
   }
 
@@ -79,21 +90,43 @@ export class SpitRoyalMatch extends BaseMatch {
     const validNum = (n) => typeof n === "number" && Number.isFinite(n);
 
     if (validNum(x) && validNum(z)) {
-      const r2 = x * x + z * z;
+      let safeX = x;
+      let safeZ = z;
+
+      const r2 = safeX * safeX + safeZ * safeZ;
       const maxR = ARENA_RADIUS - PLAYER_RADIUS;
-      if (r2 > maxR * maxR) return;
+
+      if (r2 > maxR * maxR) {
+        const scale = maxR / Math.sqrt(r2);
+        safeX *= scale;
+        safeZ *= scale;
+      }
 
       const now = Date.now();
-      const dt = Math.max(0.001, (now - (player.lastInputAt || now)) / 1000);
-      const step = Math.hypot(x - (player.x ?? 0), z - (player.z ?? 0));
+
+      if (!player.lastInputAt || (now - player.lastInputAt) > 1000) {
+        player.lastInputAt = now;
+        player.x = safeX;
+        player.z = safeZ;
+        if (validNum(y)) player.y = y;
+        if (validNum(angle)) player.angle = angle;
+        return;
+      }
+
+      const dt = Math.max(0.001, (now - player.lastInputAt) / 1000);
+      const step = Math.hypot(safeX - (player.x ?? 0), safeZ - (player.z ?? 0));
+
       if (step > MAX_SPEED_MPS * dt * 1.5) return;
+
       player.lastInputAt = now;
-      player.x = x;
-      player.z = z;
+      player.x = safeX;
+      player.z = safeZ;
     }
+
     if (validNum(y)) player.y = y;
     if (validNum(angle)) player.angle = angle;
   }
+
 
   handlePlayerSpit(sessionId, direction) {
     const player = this.players.get(sessionId);
@@ -127,7 +160,9 @@ export class SpitRoyalMatch extends BaseMatch {
       owner.point++;
       target.isDead = true;
       this.eliminations = (this.eliminations || 0) + 1;
-      this.namespace.to(targetId).emit('game_over', { reason: 'eliminated' });
+      setTimeout(() => {
+        this.namespace.to(targetId).emit('game_over', { reason: 'eliminated' });
+      }, 500);
       this.checkWinCondition();
     }
   }
@@ -139,9 +174,7 @@ export class SpitRoyalMatch extends BaseMatch {
 
     if (
       this.playersJoined > 1 &&
-      alivePlayers.length <= 1 &&
-      (this.eliminations || 0) > 0
-    ) {
+      alivePlayers.length <= 1) {
       this.status = 'GAME_OVER';
       const winnerSocketId = alivePlayers.length === 1 ? alivePlayers[0].id : null;
       this.endMatch(winnerSocketId, 'lastone_standing');
@@ -157,7 +190,9 @@ export class SpitRoyalMatch extends BaseMatch {
   endMatch(winnerSocketId, reason) {
     this.update()
     this.isPlaying = false;
-    this.broadcast('game_over', { reason, winnerId: winnerSocketId });
+    setTimeout(() => {
+      this.broadcast('game_over', { reason, winnerId: winnerSocketId });
+    }, 500);
     this._persistOutcome(winnerSocketId).catch((err) =>
       error('[spit-royale] failed to persist outcome:', err.message),
     );
@@ -165,7 +200,7 @@ export class SpitRoyalMatch extends BaseMatch {
   }
 
   async _persistOutcome(winnerSocketId) {
-    if (this.finalized) return;
+    if (this.finalized && this.eliminations <= 0) return;
     this.finalized = true;
 
     const ranked = Array.from(this.players.values()).filter((p) =>

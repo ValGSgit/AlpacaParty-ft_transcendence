@@ -244,8 +244,8 @@
     <div v-if="gUI.editMode" class="edit-mode">
       <div class="shop-title"> Edit Mode
           <div v-if="gEditState.selected" class="edit-actions">
-            <button class="shop-btn" @click="sellItem()"><AppIcon name="coin" :size="18" /> Sell Item</button>
-            <button class="shop-btn" @click="cancelPlacement()">Cancel <AppIcon name="close" :size="14" /></button>
+            <button class="shop-btn" @click="sellItem()"><AppIcon name="coin" :size="22" /> Sell Item</button>
+            <button class="shop-btn" @click="cancelPlacement()">Cancel <AppIcon name="close" :size="22" /></button>
           </div>
       <button class="close-btn" @click="closeEditMode()" title="Close"><AppIcon name="close" :size="22" /></button>
       </div>
@@ -324,6 +324,7 @@ import { changeGame, friendName, returnFarm, visitFarm } from './mini_games/init
 import { updateMinigame } from './mini_games/minigames.js'
 import { getHearts } from './utils/uiHelpers.js'
 import { initWorld } from './world/initWorld.js'
+import { debug } from '../services/logger.js'
 
 const gameContainer = ref(null)
 const gameIsReady= shallowRef(false)
@@ -372,8 +373,7 @@ onMounted(async () => {
   }
   else
   {
-    if (CONST.DEBUG)
-      stats = initFPSstats(gameContainer.value);
+    stats = initFPSstats(gameContainer.value);
     initInput()
     const { updateCamera } = useCamera(gEngine.value.camera, gEngine.value.controls)
     cameraUpdate = updateCamera
@@ -439,7 +439,7 @@ onUnmounted(async () => {
   } catch (e) {
     // best-effort flush; continue teardown even on failure
     // eslint-disable-next-line no-console
-    console.warn('flushSave failed during unmount:', e)
+    debug('flushSave failed during unmount:', e)
   }
   if (stopMyWatcher) stopMyWatcher()
   cancelAnimationFrame(animationFrameId)

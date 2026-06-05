@@ -222,7 +222,7 @@ watch(query, () => rewireObserver())
 
             <template v-else-if="s.id === 'public-api'">
               <p>The REST API lives under <code>/api/public/*</code> on this host. Authenticate by sending an <code>X-API-Key</code> header — generate the key from <router-link to="/profile?tab=settings">Profile → Settings → Public API Key</router-link>. Keys start with <code>ap_</code> followed by a 32-character hex string.</p>
-              <p>Default rate limit is <strong>30 requests / minute</strong>. The interactive Swagger UI is at <router-link to="/docs">/docs</router-link>.</p>
+              <p>Default rate limit is <strong>30 requests / minute</strong>. The interactive Swagger UI is at <a href="/api/docs/public" target="_blank" rel="noopener">/api/docs/public</a>.</p>
             </template>
 
             <template v-else-if="s.id === 'contact'">
