@@ -24,15 +24,14 @@ if [[ ! -f "$root/ssl/cert.pem" ]]; then
 		echo '         The app is still reachable at https://localhost:<HTTPS_PORT>.'
 		echo '         Set MY_IP in .env manually for LAN/nip.io access.'
 	fi
-	if openssl req -help 2>&1 | grep -q -- '-addext'; then
-		openssl req -x509 -newkey rsa:2048 -nodes \
-			-keyout "$root/ssl/key.pem" -out "$root/ssl/cert.pem" -days 365 \
-			-subj '/CN=localhost' \
-			-addext "subjectAltName=$san"
-	else
-		tmp_conf=$(mktemp /tmp/ssl-conf.XXXXXX)
-		trap 'rm -f "$tmp_conf"' EXIT
-		cat > "$tmp_conf" <<EOF
+	# Put the whole subject + SAN in a config file rather than passing
+	# `-subj '/CN=localhost'`. On Git Bash/MSYS (Windows) a leading-slash arg
+	# like /CN=localhost is mangled into a filesystem path (C:/Program
+	# Files/Git/CN=localhost) and openssl rejects it. A config file avoids that
+	# and also works on old openssl builds without `-addext`.
+	tmp_conf=$(mktemp "$root/ssl/ssl-conf.XXXXXX")
+	trap 'rm -f "$tmp_conf"' EXIT
+	cat > "$tmp_conf" <<EOF
 [req]
 distinguished_name = req_distinguished_name
 prompt = no
@@ -47,13 +46,12 @@ basicConstraints = CA:FALSE
 keyUsage = digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
 EOF
-		openssl req -x509 -newkey rsa:2048 -nodes \
-			-keyout "$root/ssl/key.pem" -out "$root/ssl/cert.pem" -days 365 \
-			-config "$tmp_conf" \
-			-extensions v3_req
-		trap - EXIT
-		rm -f "$tmp_conf"
-	fi
+	openssl req -x509 -newkey rsa:2048 -nodes \
+		-keyout "$root/ssl/key.pem" -out "$root/ssl/cert.pem" -days 365 \
+		-config "$tmp_conf" \
+		-extensions v3_req
+	trap - EXIT
+	rm -f "$tmp_conf"
 	chmod +rw "$root/ssl/key.pem" "$root/ssl/cert.pem"
 	printf 'Self-signed certificate generated in ssl/\n'
 else
