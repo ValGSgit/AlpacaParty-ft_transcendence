@@ -78,16 +78,6 @@
 .av-mint   { background: linear-gradient(135deg, #c5f6c2, #6ddc7a); color: #062a14; }
 .av-violet { background: linear-gradient(135deg, #cdb6ff, #8a6cff); color: #fff; }
 
-/* ── left sidebar ── */
-.mini-card h4 {
-  margin: 0 0 10px; font-size: 11px; color: var(--text-secondary);
-  letter-spacing: .16em; text-transform: uppercase; font-weight: 600;
-}
-.trend-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
-.trend-list li { display: flex; align-items: center; font-size: 13px; color: var(--text-primary); }
-.trend-list .hash { color: var(--primary); margin-right: 4px; font-weight: 700; }
-.trend-list em { margin-left: auto; font-style: normal; font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', ui-monospace, monospace; }
-
 /* ── composer ── */
 .composer { padding: 14px; transition: box-shadow .2s ease, border-color .2s ease; }
 .composer.focused {

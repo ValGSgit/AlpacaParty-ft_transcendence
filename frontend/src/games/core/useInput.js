@@ -115,7 +115,10 @@ export function useInput() {
   }
 
   const onPointerDown = (e) => {
-    if ((gMinigame.value.mode === 1 || gMinigame.value.mode === 1) && gPlayer.value)
+    // Spit Royale — AI (mode 1) and online (mode 2). Click-to-spit mirrors the
+    // F key; the mode-2 case was previously a duplicated `=== 1` typo, so
+    // clicking never spat in online matches.
+    if ((gMinigame.value.mode === 1 || gMinigame.value.mode === 2) && gPlayer.value)
       gPlayer.value.spit()
     keys.pointer = true
     // Select item in edit mode — only on your own farm (see canEditFarm).

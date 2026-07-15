@@ -110,6 +110,8 @@ export default defineComponent({
     }
 
     const onCtaClick = () => {
+      // It's a fake ad — the CTA delivers exactly what fake ads deserve.
+      window.open('https://youtu.be/dQw4w9WgXcQ?si=hMZu9EAV1jMyqba6', '_blank', 'noopener,noreferrer')
       emit('cta-click')
     }
 
