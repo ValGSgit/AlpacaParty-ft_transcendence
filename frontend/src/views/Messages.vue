@@ -67,11 +67,12 @@
             </div>
           </li>
           <li v-if="!filteredFriends.length && !friendSearch" class="conv-item empty-friend">
-            <span class="empty small">Add some friend!</span>
+            <span class="empty small">Add some friends to start chatting!</span>
           </li>
         </ul>
 
-        <!-- Recommended users (non-friends) -->
+        <!-- Recommended users (non-friends). You can only DM friends, so this
+             section offers an "Add Friend" action rather than a dead DM. -->
         <template v-if="recommendedUsers.length && !friendSearch">
           <div class="section-label">People you may know</div>
           <ul class="conv-list">
@@ -79,7 +80,7 @@
               v-for="u in recommendedUsers"
               :key="u.id"
               class="conv-item"
-              @click="openDmWithUser(u)"
+              @click="goToProfile(u.id)"
             >
               <img
                 :src="u.avatar || '/avatars/default.svg'"
@@ -90,8 +91,16 @@
               />
               <div class="conv-info">
                 <span class="conv-name">{{ u.username }}</span>
-                <span class="conv-preview">Start a conversation</span>
+                <span class="conv-preview">Add as friend to chat</span>
               </div>
+              <button
+                class="add-friend-btn"
+                :disabled="sentRequests.has(u.id)"
+                title="Send friend request"
+                @click.stop="addRecommendedFriend(u)"
+              >
+                {{ sentRequests.has(u.id) ? 'Sent ✓' : 'Add' }}
+              </button>
             </li>
           </ul>
         </template>
@@ -269,9 +278,19 @@ function openDmWithFriend(f) {
   loadDmMessages(f.id)
 }
 
-function openDmWithUser(u) {
-  selected.value = { type: 'dm', id: u.id, username: u.username, avatar: u.avatar }
-  loadDmMessages(u.id)
+// Non-friends can't be DM'd (the backend rejects it), so recommended users get
+// a friend-request action instead. Track sent ones to disable the button.
+const sentRequests = ref(new Set())
+
+async function addRecommendedFriend(u) {
+  if (sentRequests.value.has(u.id)) return
+  try {
+    await api.post('/friends/requests', { userId: u.id })
+    // Reassign to trigger reactivity on the Set.
+    sentRequests.value = new Set(sentRequests.value).add(u.id)
+  } catch (e) {
+    msgError.value = e.response?.data?.error?.message || 'Could not send friend request'
+  }
 }
 
 async function loadDmMessages(userId) {

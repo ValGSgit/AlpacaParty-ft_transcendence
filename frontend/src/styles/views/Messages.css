@@ -114,6 +114,21 @@
 
 .unread-badge { background: var(--primary, var(--primary)); color: var(--bg-primary); border-radius: 10px; font-size: 0.7rem; padding: 1px 6px; font-weight: 700; white-space: nowrap; }
 
+.add-friend-btn {
+  margin-left: auto;
+  padding: 3px 10px;
+  background: var(--primary, var(--primary));
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.add-friend-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.add-friend-btn:disabled { opacity: 0.5; cursor: default; background: var(--success, var(--success)); }
+
 .member-select-list {
   list-style: none;
   max-height: 120px;
