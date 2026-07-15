@@ -21,7 +21,8 @@
   "scripts": {
     "start": "node src/index.js",
     "seed": "npx prisma db seed",
-    "buildDocs": "node src/docs/swaggerPublicApi.js"
+    "buildDocs": "node src/docs/swaggerPublicApi.js",
+    "test": "node --test"
   },
   "keywords": [
     "alpacaparty",

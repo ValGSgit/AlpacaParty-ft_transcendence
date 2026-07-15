@@ -6,7 +6,9 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
-  base: process.env.VITE_BASE_PATH || '/',
+  // App is served at the domain root behind nginx (not from a GitHub Pages
+  // sub-path), so the base is always '/'.
+  base: '/',
   plugins: [vue()],
   build: {
     chunkSizeWarningLimit: 700,

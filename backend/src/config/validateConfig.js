@@ -1,4 +1,5 @@
 import config from "./index.js";
+import { jwtSecretProblems } from "./secretStrength.js";
 
 const requireConfig = (value, name) => {
   if (value == null || Number.isNaN(value) || value === "") {
@@ -41,43 +42,17 @@ export const validateConfig = () => {
   requireConfig(config.uploads.dir, "UPLOAD_DIR");
 };
 
-const MIN_SECRET_LENGTH = 32;
-// Obvious placeholders that must never survive into a running instance.
-const WEAK_SECRETS = new Set([
-  "secret", "changeme", "change-me", "password", "jwtsecret", "jwt_secret",
-  "your-secret", "your_secret_here", "supersecret", "test", "dev", "default",
-]);
-
 const validateJwtSecretStrength = () => {
-  // Presence is already enforced above. Strength is only hard-enforced in
-  // production; in dev/test we warn so local placeholder secrets keep working.
-  const enforce = config.envIsProd;
-  const secrets = {
+  const problems = jwtSecretProblems({
     JWT_SECRET: config.jwt.secret,
     JWT_REFRESH_SECRET: config.jwt.refreshSecret,
     JWT_PUBLIC_API_SECRET: config.jwt.publicApiSecret,
-  };
-
-  const problems = [];
-  for (const [name, value] of Object.entries(secrets)) {
-    if (String(value).length < MIN_SECRET_LENGTH) {
-      problems.push(`${name} must be at least ${MIN_SECRET_LENGTH} characters (run \`make generate-secrets\`)`);
-    }
-    if (WEAK_SECRETS.has(String(value).trim().toLowerCase())) {
-      problems.push(`${name} is a known placeholder value — set a random secret`);
-    }
-  }
-
-  // Reusing one secret across the three token types means a leaked/forgeable
-  // access token also validates as a refresh or public-API token.
-  const values = Object.values(secrets).map(String);
-  if (new Set(values).size !== values.length) {
-    problems.push("JWT_SECRET, JWT_REFRESH_SECRET and JWT_PUBLIC_API_SECRET must all be different");
-  }
-
+  });
   if (problems.length === 0) return;
 
   const message = `Insecure JWT configuration:\n  - ${problems.join("\n  - ")}`;
-  if (enforce) throw new Error(message);
+  // Strength is only hard-enforced in production; in dev/test we warn so local
+  // placeholder secrets keep working.
+  if (config.envIsProd) throw new Error(message);
   console.warn(`[config] WARNING — ${message}`);
 };
