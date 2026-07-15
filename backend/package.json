@@ -57,5 +57,9 @@
     "@jest/globals": "^30.4.1",
     "jest": "^30.4.2",
     "supertest": "^7.1.4"
+  },
+  "_overrides_note": "@hono/node-server is pinned to the patched 1.19.14 (GHSA-92pp-h63x-v22m); Prisma's CLI dev server pins the vulnerable 1.19.11 transitively. Not used in our runtime/Docker build, but this clears the audit finding without downgrading Prisma.",
+  "overrides": {
+    "@hono/node-server": "1.19.14"
   }
 }
