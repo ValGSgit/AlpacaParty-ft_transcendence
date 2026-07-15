@@ -10,15 +10,20 @@ root=$(cd "$SCRIPT_DIR/.." && pwd)
 mkdir -p "$root/ssl"
 
 if [[ ! -f "$root/ssl/cert.pem" ]]; then
-  echo "Create ssl-certs" 
+	echo "Creating ssl-certs"
 	ip=$(detect_ip)
-	if [[ -z "$ip" ]]; then
-		echo 'Error: Could not detect IP address.'
-		exit 1
+	# Base SANs always work for local access. A detected LAN IP (+ its nip.io
+	# alias) is added on top. Missing IP detection (e.g. an unusual Windows
+	# locale) must NOT block the stack — fall back to a localhost-only cert.
+	san="DNS:localhost,DNS:frontend,DNS:backend,DNS:nginx,IP:127.0.0.1"
+	if [[ -n "$ip" && "$ip" != "127.0.0.1" ]]; then
+		echo "Generating certificate for IP: $ip"
+		san="$san,IP:$ip,DNS:$ip.nip.io"
+	else
+		echo 'Warning: no LAN IP detected — generating a localhost-only certificate.'
+		echo '         The app is still reachable at https://localhost:<HTTPS_PORT>.'
+		echo '         Set MY_IP in .env manually for LAN/nip.io access.'
 	fi
-
-	echo "Generating certificate for IP: $ip"
-	san="DNS:localhost,DNS:frontend,DNS:backend,DNS:nginx,IP:127.0.0.1,IP:$ip,DNS:$ip.nip.io"
 	if openssl req -help 2>&1 | grep -q -- '-addext'; then
 		openssl req -x509 -newkey rsa:2048 -nodes \
 			-keyout "$root/ssl/key.pem" -out "$root/ssl/cert.pem" -days 365 \
