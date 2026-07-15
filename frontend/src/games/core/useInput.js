@@ -64,8 +64,14 @@ export function useInput() {
     }
   }
 
+  // Editing is only ever valid on the player's OWN farm (minigame mode 0).
+  // Visiting a friend's farm (mode 5) loads their objects into gEditables, so
+  // a stale editMode flag left over from your own farm must NOT be able to
+  // select/move/place/sell them. Gate every edit interaction on ownership.
+  const canEditFarm = () => gMinigame.value.mode === 0
+
   const onWheel = (e) => {
-    if (gUI.editMode && gEditState.selected) {
+    if (canEditFarm() && gUI.editMode && gEditState.selected) {
       if (keys.shift) {
         scaleItem(e)
       }
@@ -98,7 +104,7 @@ export function useInput() {
   const handleMouseMove = (e) => {
     // item selected to move
     if (!gEngine.value) return;
-    if (gUI.editMode || gEditState.selected) {
+    if (canEditFarm() && (gUI.editMode || gEditState.selected)) {
       if (gEditState.selected) {
         moveItem(e)
       }
@@ -112,8 +118,8 @@ export function useInput() {
     if ((gMinigame.value.mode === 1 || gMinigame.value.mode === 1) && gPlayer.value)
       gPlayer.value.spit()
     keys.pointer = true
-    // Select item in edit mode
-    if (gUI.editMode || gEditState.selected) {
+    // Select item in edit mode — only on your own farm (see canEditFarm).
+    if (canEditFarm() && (gUI.editMode || gEditState.selected)) {
       if (gEditState.selected) {
         placeItem()
       } else {

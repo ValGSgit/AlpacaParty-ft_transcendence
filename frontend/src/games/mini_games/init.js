@@ -3,7 +3,7 @@ import { debug } from '../../services/logger.js';
 import { useAuthStore } from '../../stores/auth.js';
 import { clearCoins } from '../components/coins.js';
 import { CONST } from '../config/constants.js';
-import { gAlpacas, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
+import { gAlpacas, gEditState, gMinigame, gPlayer, gScene, gUI, gUser } from '../core/globals.js';
 import { flushSave, pauseSaves, resumeSaves } from '../core/saveLoadGame.js';
 import { useGameEngine } from '../core/useGameEngine.js';
 import { initWorld } from '../world/initWorld.js';
@@ -23,6 +23,15 @@ export async function changeGame(mode = 0, playerCount = 1) {
   debug("changeGame:", mode);
   if (!gPlayer.value || !gUser.value) return;
   if (gMinigame.value.mode === 0) await flushSave();
+
+  // Tear down any in-progress edit session before switching context (visiting
+  // a friend's farm, entering a minigame). Otherwise a stale editMode flag +
+  // selected item would carry over onto the newly loaded scene and let the
+  // user manipulate objects that aren't theirs. The scene itself is cleared
+  // below, so just resetting the edit state refs is enough.
+  gUI.editMode = false;
+  gEditState.selected = null;
+  gEditState.ghost = null;
 
   const savedPlayers = gMinigame.value.players;
 
