@@ -4,10 +4,14 @@
  * requests. Applied per-route so a user abusing one
  * endpoint does not starve others.
  */
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
+// Authenticated requests key on user id; anonymous ones fall back to IP.
+// express-rate-limit v8 requires the ipKeyGenerator helper for the IP path so
+// IPv6 addresses are normalised to their /64 subnet — without it an IPv6 client
+// could rotate the low 64 bits to sidestep the limit (ERR_ERL_KEY_GEN_IPV6).
 const userKey = (req) =>
-  (req.user?.id ? `u:${req.user.id}` : `ip:${req.ip}`);
+  req.user?.id ? `u:${req.user.id}` : `ip:${ipKeyGenerator(req.ip)}`;
 
 const make = (windowMs, max, message) =>
   rateLimit({

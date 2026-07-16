@@ -195,7 +195,7 @@ export function useEditMode() {
     const isAlpaca = gAlpacas.some(alpaca => alpaca.model === gEditState.selected)
 
     if (isAlpaca && gAlpacas.length === 1) {
-      alert("Can't sell last alpaca!");
+      spawnFloatingText(gPlayer.value.model, "Can't sell your last alpaca!", 'warning');
       cancelPlacement();
       return;
     }

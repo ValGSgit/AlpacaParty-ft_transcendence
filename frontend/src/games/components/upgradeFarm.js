@@ -2,6 +2,7 @@ import { CONST } from '../config/constants.js';
 import { shopItems } from '../core/entities/Item.js';
 import { gAlpacas, gScene, gUser } from '../core/globals.js';
 import { spawnObjectRandomly } from '../utils/spawnRandomly.js';
+import { gameNotify } from './notify.js';
 
 const UPGRADE_COST = [25, 50, 100, 250, 500];
 const HERDSIZE_COST = [15, 25, 50, 100];
@@ -13,7 +14,7 @@ export function upgradeFarm() {
     const cost = getUpgradeCost(level);
 
     if (cost === "Max" || level >= UPGRADE_COST.length) {
-      alert("You reached max upgrades!");
+      gameNotify('Max upgrades reached!');
       return;
     }
     if (!checkCoinsPrice(cost)) return;
@@ -41,7 +42,7 @@ export function upgradeFarm() {
     const cost = getHerdSizeCost(level);
 
     if (cost === "Max" || level >= UPGRADE_COST.length) {
-      alert("You reached max herdsize!");
+      gameNotify('Max herd size reached!');
       return;
     }
     if (!checkCoinsPrice(cost)) return;
@@ -70,7 +71,7 @@ export function getHerdSize(level) {
 
 export function checkCoinsPrice(cost) {
   if (gUser.value.coins < cost) {
-    alert('Not enough coins!');
+    gameNotify('Not enough coins!');
     return false;
   }
   return true;
@@ -78,7 +79,7 @@ export function checkCoinsPrice(cost) {
 
 export function checkHerdSize() {
   if (gAlpacas.length >= getHerdSize(gUser.value.herdsize)) {
-    alert('Herdsize limit reached!');
+    gameNotify('Herd size limit reached!');
     return false;
   }
   return true;

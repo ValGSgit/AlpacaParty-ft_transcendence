@@ -544,12 +544,22 @@ input:checked+.slider:before {
 /* SHARED FLOATING TEXT */
 .floating-text,
 .floating-text-coins,
-.floating-text-hearts {
+.floating-text-hearts,
+.floating-text-warning {
   position: absolute;
   font-size: 28px;
   font-weight: 900;
   pointer-events: none;
   animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* In-game warnings (replaces the old native alert() popups) */
+.floating-text-warning {
+  color: #ffb300;
+  font-size: 22px;
+  margin-top: -70px;
+  white-space: nowrap;
+  text-shadow: 1px 3px 0px #7a4a00, 0px 4px 6px rgba(0, 0, 0, 0.5);
 }
 
 .floating-text {

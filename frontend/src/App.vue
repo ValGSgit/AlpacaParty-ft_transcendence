@@ -174,8 +174,10 @@ async function fetchNotifications() {
 }
 
 async function clearAllNotifications() {
+  // "Clear all" must actually delete them — PUT /read-all only marks them read,
+  // so the list reappeared the next time the panel refetched.
   try {
-    await api.put('/notifications/read-all')
+    await api.delete('/notifications')
   } catch (e) { devError(e) }
   notifications.value = []
   unreadCount.value = 0
@@ -197,12 +199,19 @@ async function markNotifRead(n) {
     } catch (e) { devError(e) }
   }
   showNotifPanel.value = false
+  // Keep in sync with the notification types emitted by the backend
+  // (notificationService.js). Missing types (friend_accepted, post_comment,
+  // level_up, data_request) previously fell through to '/', so clicking those
+  // notifications dumped the user on the home page instead of the right place.
   const targetByType = {
-    friend_request: '/friends',
-    game_invite:    '/game',
-    game_finish:    '/game',
-    post_like:      '/feed',
-    achievement:    '/profile',
+    friend_request:  '/friends',
+    friend_accepted: '/friends',
+    game_invite:     '/game',
+    post_like:       '/feed',
+    post_comment:    '/feed',
+    achievement:     '/profile',
+    level_up:        '/profile',
+    data_request:    '/profile',
   }
   router.push(targetByType[n.type] || '/')
 }

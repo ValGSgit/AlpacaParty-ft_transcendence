@@ -2,6 +2,7 @@ import { createDecoration, createItem } from '../core/createObjects.js';
 import { gEditables } from '../core/globals.js';
 import { useUIManager } from '../core/useUIManager.js';
 import { setupPlacement } from './editMode.js';
+import { gameNotify } from './notify.js';
 import { checkCoinsPrice } from './upgradeFarm.js';
 
 export function itemShop() {
@@ -25,7 +26,7 @@ export function itemShop() {
 
 function checkObjectsLimit() {
   if (gEditables.length + 1 > 1000) {
-    alert('Object limit reached!');
+    gameNotify('Object limit reached!');
     return false;
   }
   return true;

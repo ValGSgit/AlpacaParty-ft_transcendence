@@ -3,7 +3,7 @@
  */
 import express from 'express';
 import {
-  listNotifications, markRead, markAllRead, deleteNotification,
+  listNotifications, markRead, markAllRead, deleteNotification, deleteAllNotifications,
 } from '../controllers/notificationController.js';
 import { authenticate } from '../middleware/auth.js';
 import { idParamValidation } from '../validators/contentValidator.js';
@@ -55,6 +55,25 @@ router.get('/', listNotifications);
  *                 message: { type: string, example: "All notifications marked as read" }
  */
 router.put('/read-all', markAllRead);
+
+/**
+ * @openapi
+ * /notifications:
+ *   delete:
+ *     tags: [Notifications]
+ *     summary: Clear (delete) all of my notifications
+ *     responses:
+ *       200:
+ *         description: All notifications cleared
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string, example: "All notifications cleared" }
+ *                 count: { type: integer, example: 7 }
+ */
+router.delete('/', deleteAllNotifications);
 
 /**
  * @openapi

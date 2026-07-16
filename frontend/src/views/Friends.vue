@@ -223,7 +223,7 @@
                   @click="onAddFriendBtnPressed(u)"
                   :disabled="u.request_sent || u.is_friend"
                 >
-                  {{ u.request_sent || u.is_friend ? "Sent ✓" : "Add Friend" }}
+                  {{ u.is_friend ? "Friends ✓" : u.request_sent ? "Sent ✓" : "Add Friend" }}
                 </button>
               </div>
             </li>

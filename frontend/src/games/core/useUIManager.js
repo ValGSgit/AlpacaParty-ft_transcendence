@@ -21,6 +21,10 @@ export function useUIManager() {
   }
 
   const openEditMode = () => {
+    // Edit mode is only meaningful on your own farm. Refuse to open it while
+    // visiting a friend's farm or inside a minigame (defense in depth — the
+    // button is also hidden via v-if="!gMinigame.mode").
+    if (gMinigame.value.mode !== 0) return;
     gUI.editMode = true;
     gEditState.cameraMode = gUI.cameraMode;
     changeEditModeCamera();

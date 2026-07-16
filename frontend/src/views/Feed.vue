@@ -4,15 +4,6 @@
     <!-- ░░░ LEFT SIDEBAR ░░░ -->
     <aside class="col col-left">
       <FakeAd :sidebar="true" />
-      <div class="card mini-card">
-        <h4>Trending</h4>
-        <ul class="trend-list">
-          <li><span class="hash">#</span>SpitRoyaleMeta <em>4.2k</em></li>
-          <li><span class="hash">#</span>StageBoss <em>2.1k</em></li>
-          <li><span class="hash">#</span>HayBalePass <em>1.8k</em></li>
-          <li><span class="hash">#</span>AlpacaRoad <em>980</em></li>
-        </ul>
-      </div>
     </aside>
 
     <!-- ░░░ CENTER FEED ░░░ -->
